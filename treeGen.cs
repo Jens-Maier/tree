@@ -12,14 +12,17 @@ public class treeGen : MonoBehaviour
     public GameObject selfGameObject;
     public Mesh mesh;
     public MeshFilter meshFilter;
+        
+    public branch rootBranch;
 
-    public float gizmoScale = 0.2f;
+    public List<branch> allBranches;
 
     // settings
+    [Header("____________________________________________________________________________________________________________________________________________________________________")]
+    [Header("Settings")]
     public int levels;
     public List<int> numberBranchesOnLevels;
 
-    branch rootBranch;
     public Vector3 start;
     public Vector3 end;
 
@@ -30,17 +33,36 @@ public class treeGen : MonoBehaviour
     public float taper; // 0.4 %
     public int ringRes;
     public float radius;
+
+    [Header("Branch Settings")]
     public float branchRotation;
+    public float branchRotationVariation;
+    public float branchRotationVariationFrequency;
+    public float downAngle;
+    public float branchLengthScalingFactor;
+    public float branchThicknessScalingFactor;
+    public float branchTipUpwardAttraction;
+
+    [Header("Branch Splitting")]
+    [Range(0f, 1f)]
+    public float splitHeight;// = 0.5f;
+    public float splitAngleDeg;// = 30f;
 
     // gizmos
+    [Header("____________________________________________________________________________________________________________________________________________________________________")]
+    [Header("Gizmos")]
+    public bool drawGizmos;
+    public float gizmoScale = 0.2f;
+
     public List<Vector3> gizmosBlue;
     public List<Vector3> gizmosRed;
+    public List<Vector3> gizmosGreen;
 
     // Start is called before the first frame update
     void Start()
     {
         // settings
-        levels = 0;
+        levels = 1;
         if (numberBranchesOnLevels == null)
         {
             numberBranchesOnLevels = new List<int>();
@@ -51,6 +73,9 @@ public class treeGen : MonoBehaviour
         }
 
         rootBranch = new branch(start, controlPt1, controlPt2, end, ringSpacing, ringRes, taper, radius, this, 0);
+        allBranches = new List<branch>();
+
+        rootBranch.split();
 
         meshFilter = GetComponent<MeshFilter>();
 
@@ -68,13 +93,26 @@ public class treeGen : MonoBehaviour
 
         gizmosBlue.Clear();
         gizmosRed.Clear();
+        gizmosGreen.Clear();
 
-        rootBranch.generateBranchMesh(start, controlPt1, controlPt2, end, ringSpacing, ringRes, taper, radius);
-
-        if (levels > 0)
+        if (rootBranch != null)
         {
-            rootBranch.generateChildBranches();
+            rootBranch.generateBranchMesh(start, controlPt1, controlPt2, end, ringSpacing, ringRes, taper, radius);
         }
+        gizmosBlue.Clear();
+        gizmosRed.Clear();
+        gizmosGreen.Clear();
+
+
+        //if (levels > 0)
+        //{
+        //    rootBranch.generateChildBranches();
+        //}
+        rootBranch.branches.Clear();
+        
+        rootBranch.resampleSpline(4); // TODO: combine with split!
+        //rootBranch.split();
+
         getVerticesAndTriangles();
         
         mesh.Clear(false);
@@ -87,6 +125,8 @@ public class treeGen : MonoBehaviour
 
     void getVerticesAndTriangles()
     {
+        rootBranch.getAllBranches();
+
         allVertices = rootBranch.vertices;
         allTriangles = rootBranch.triangles;
         int indexOffset = rootBranch.vertices.Count;
@@ -108,40 +148,54 @@ public class treeGen : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        Gizmos.color = Color.red;
-        //foreach (Vector3 v in vertices)
-        //{
-        //    Gizmos.DrawSphere(v, 0.005f);
-        //}
-
-        Gizmos.DrawSphere(start, 0.05f);
-        Gizmos.DrawSphere(controlPt1, 0.05f);
-        Gizmos.DrawSphere(controlPt2, 0.05f);
-        Gizmos.DrawSphere(end, 0.05f);
-
-        if (rootBranch != null)
+        if (drawGizmos)
         {
-            for (int j = 0; j < (int)(rootBranch.length / ringSpacing); j++)
+            Gizmos.color = Color.red;
+            //foreach (Vector3 v in vertices)
+            //{
+            //    Gizmos.DrawSphere(v, 0.005f);
+            //}
+
+            //Gizmos.DrawSphere(start, 0.05f);
+            //Gizmos.DrawSphere(controlPt1, 0.05f);
+            //Gizmos.DrawSphere(controlPt2, 0.05f);
+            //Gizmos.DrawSphere(end, 0.05f);
+
+            //if (rootBranch != null)
+            //{
+            //    for (int j = 0; j < rootBranch.pos.Length; j++) // ERROR out of range ???
+            //    {
+            //        Gizmos.color = Color.blue;
+            //        Gizmos.DrawRay(rootBranch.pos[j], gizmoScale * rootBranch.dirA[j]);// dirA
+            //        Gizmos.color = Color.green;
+            //        Gizmos.DrawRay(rootBranch.pos[j], gizmoScale * rootBranch.dirB[j]);// dirB
+            //        Gizmos.color = Color.red;
+            //        Gizmos.DrawRay(rootBranch.pos[j], gizmoScale * rootBranch.tangent[j]);
+            //        Gizmos.DrawRay(rootBranch.pos[j], gizmoScale * rootBranch.curvature[j]);
+            //    }
+            Gizmos.color = Color.green;
+            foreach (Vector3 g in gizmosGreen)
             {
-                Gizmos.color = Color.blue;
-                Gizmos.DrawRay(rootBranch.pos[j], gizmoScale * rootBranch.dirA[j]);// dirA
-                Gizmos.color = Color.green;
-                Gizmos.DrawRay(rootBranch.pos[j], gizmoScale * rootBranch.dirB[j]);// dirB
-                Gizmos.color = Color.red;
-                Gizmos.DrawRay(rootBranch.pos[j], gizmoScale * rootBranch.tangent[j]);
-                Gizmos.DrawRay(rootBranch.pos[j], gizmoScale * rootBranch.curvature[j]);
-            }
-            Gizmos.color = Color.blue;
-            foreach (Vector3 g in gizmosBlue)
-            {
-                Gizmos.DrawSphere(g, 0.01f);
+                Gizmos.DrawSphere(g, 0.007f);
             }
             Gizmos.color = Color.red;
             foreach (Vector3 g in gizmosRed)
             {
                 Gizmos.DrawSphere(g, 0.02f);
             }
-
+            
+            Gizmos.color = Color.blue;
+                foreach (Vector3 g in gizmosBlue)
+                {
+                    Gizmos.DrawSphere(g, 0.01f);
+                }
+            //    Gizmos.color = Color.red;
+            //    foreach (Vector3 g in gizmosRed)
+            //    {
+            //        Gizmos.DrawSphere(g, 0.02f);
+            //    }
+            //
+            //}
         }
     }
 }
@@ -155,10 +209,13 @@ public class branch
     public Vector3 branchControlPt1;
     public Vector3 branchControlPt2;
 
-    public Vector3[] dirA;
-    public Vector3[] dirB;
+    public Vector3[] dirA; // dirA = norm(bitangent)
+    public Vector3[] dirB; // local coordinate system on spline
 
-    public Vector3[] pos;
+    public Vector3[] tangent;
+    public Vector3[] bitangent;
+    
+    public Vector3[] pos; // spline sample points
 
     public float length;
 
@@ -168,16 +225,16 @@ public class branch
 
     public float ringSpacing; // 0.04
 
-    public float taper; // 0.4 %
+    public int sections;
 
-    public Vector3[] tangent;
-    public Vector3[] bitangent;
+    public float taper; // 0.4 %
 
     public Vector3[] curvature;
 
     public List<Vector3> vertices;
     public List<int> triangles;
 
+    public branch nextSegment;
     public List<branch> branches;
     int level;
 
@@ -194,8 +251,125 @@ public class branch
         branchControlPt1 = controlPt1;
         branchControlPt2 = controlPt2;
         branchEnd = end;
-        tree.gizmosBlue.Add(end);
+        tree.gizmosGreen.Add(end);
         generateBranchMesh(start, controlPt1, controlPt2, end, rSpacing, ringRes, tapr, radius);
+    }
+
+    public void getAllBranches()
+    {
+        tree.allBranches.Add(this);
+        if (nextSegment != null)
+        {
+            nextSegment.getAllBranches();
+        }
+
+        if (branches != null)
+        {
+            foreach (branch b in branches)
+            {
+                b.getAllBranches();
+            }
+        }
+    }
+
+    public void resampleSpline(int sections)
+    {
+        // subdivide spline before splitting -> stem stays straight 
+        Vector3[] samplePts = new Vector3[sections + 1];
+        Vector3[] sampleTangents = new Vector3[sections];
+        float[] sampleStemRadius = new float[sections];
+
+        for (int i = 0; i < sections; i++)
+        {
+            samplePts[i] = sampleSpline(branchStart, branchControlPt1, branchControlPt2, branchEnd, (float)i / (float)sections);
+            sampleTangents[i] = sampleSplineTangent(branchStart, branchControlPt1, branchControlPt2, branchEnd, (float)i / (float)sections);
+            sampleStemRadius[i] = fLerp(stemRadius, taper * stemRadius, (float)i / (float)sections);
+        }
+
+        for (int i = 0; i < sections - 1; i++)
+        {
+            Vector3 control_1 = samplePts[i] + sampleTangents[i] * (1f / 12f);
+            Vector3 control_2 = samplePts[i + 1] - sampleTangents[i + 1] * (1f / 12f);
+            tree.gizmosGreen.Add(control_1);
+            tree.gizmosGreen.Add(control_2);
+
+            if (i == 0)
+            {
+                branchStart = samplePts[0];
+                branchControlPt1 = control_1;
+                branchControlPt2 = control_2;
+                branchEnd = samplePts[1];
+                
+                //tree.rootBranch = new branch(samplePts[i], control_1, control_2, samplePts[i + 1],
+                //                             ringSpacing, stemRingResolution, taper, sampleStemRadius[i], tree, level);
+            }
+            else
+            {
+                nextSegment = new branch(samplePts[i], control_1, control_2, samplePts[i + 1],
+                                         ringSpacing, stemRingResolution, taper, sampleStemRadius[i], tree, level);
+
+                //tree.rootBranch.branches.Add(new branch(samplePts[i], control_1, control_2, samplePts[i + 1],
+                //                                        ringSpacing, stemRingResolution, taper, sampleStemRadius[i], tree, level));
+            }
+
+        }
+    }
+
+    public void split()
+    {
+        //float splitHeight = 0.5f;
+        //float splitAngleDeg = 30f;
+        Vector3 splitAngleAxis = norm(Vector3.Cross(sampleSplineTangent(branchStart, branchControlPt1, branchControlPt2, branchEnd, tree.splitHeight), new Vector3(1f, 0f, 0f)));
+
+        Vector3 splitPoint = sampleSpline(branchStart, branchControlPt1, branchControlPt2, branchEnd, tree.splitHeight);
+        Vector3 splitPointTangent = sampleSplineTangent(branchStart, branchControlPt1, branchControlPt2, branchEnd, tree.splitHeight);
+        float radiusAtSplitPoint = fLerp(stemRadius, taper * stemRadius, tree.splitHeight);
+
+        Vector3 rotatedSplitPointTangentBranchA = Quaternion.AngleAxis(tree.splitAngleDeg, splitAngleAxis) * splitPointTangent;
+        Vector3 rotatedSplitPointTangentBranchB = Quaternion.AngleAxis(-tree.splitAngleDeg, splitAngleAxis) * splitPointTangent;
+
+        Vector3 controlPt1HighBranchA = splitPoint - (1f / 6f) * length * norm(rotatedSplitPointTangentBranchA);
+        Vector3 controlPt2LowBranchA = splitPoint + (1f / 6f) * length * norm(rotatedSplitPointTangentBranchA);
+
+        Vector3 controlPt1HighBranchB = splitPoint - (1f / 6f) * length * norm(rotatedSplitPointTangentBranchB);
+        Vector3 controlPt2LowBranchB = splitPoint + (1f / 6f) * length * norm(rotatedSplitPointTangentBranchB);
+
+        Vector3 rotatedBranchEndBranchA = Quaternion.AngleAxis(tree.splitAngleDeg, splitAngleAxis) * branchEnd;
+        Vector3 rotatedBranchEndBranchB = Quaternion.AngleAxis(-tree.splitAngleDeg, splitAngleAxis) * branchEnd;
+
+        if (branches == null)
+        {
+            branches = new List<branch>();
+        }
+        branches.Add(new branch(splitPoint, 
+                                controlPt2LowBranchA,
+                                rotatedBranchEndBranchA + (branchControlPt2 - rotatedBranchEndBranchA) * tree.splitHeight,
+                                rotatedBranchEndBranchA, 
+                                ringSpacing, 
+                                stemRingResolution, 
+                                taper, 
+                                radiusAtSplitPoint, 
+                                tree, 
+                                level + 1));
+
+        branches.Add(new branch(splitPoint,
+                                controlPt2LowBranchB,
+                                rotatedBranchEndBranchB + (branchControlPt2 - rotatedBranchEndBranchB) * tree.splitHeight,
+                                rotatedBranchEndBranchB,
+                                ringSpacing,
+                                stemRingResolution,
+                                taper,
+                                radiusAtSplitPoint,
+                                tree,
+                                level + 1));
+
+        branchControlPt1 = branchStart + (branchControlPt1 - branchStart) * tree.splitHeight;
+        branchControlPt2 = controlPt1HighBranchA;
+        branchEnd = splitPoint;
+        tree.gizmosBlue.Add(splitPoint);
+        tree.gizmosBlue.Add(rotatedBranchEndBranchA);
+        tree.gizmosBlue.Add(rotatedBranchEndBranchB);
+        generateBranchMesh(branchStart, branchControlPt1, branchControlPt2, branchEnd, ringSpacing, stemRingResolution, fLerp(1f, taper, tree.splitHeight), stemRadius);
     }
 
     public void generateChildBranches()
@@ -205,71 +379,89 @@ public class branch
         Vector3[] controlPts1 = new Vector3[tree.numberBranchesOnLevels[level]];
         Vector3[] controlPts2 = new Vector3[tree.numberBranchesOnLevels[level]];
 
-        tree.gizmosBlue.Clear();
+        //tree.gizmosBlue.Clear();
         branches = new List<branch>();
 
         for (int i = 0; i < tree.numberBranchesOnLevels[level]; i++)
         {
-            startPoints[i] = sampleSpline(branchStart, branchControlPt1, branchControlPt2, branchEnd, (float)i / (float)tree.numberBranchesOnLevels[level]);
-            tree.gizmosBlue.Add(startPoints[i]);
-
-            Vector3 tangent = sampleSplineTangent(branchStart, branchControlPt1, branchControlPt2, branchEnd, (float)i / (float)tree.numberBranchesOnLevels[level]);
+            Vector3 tangent = norm(sampleSplineTangent(branchStart, branchControlPt1, branchControlPt2, branchEnd, (float)i / (float)tree.numberBranchesOnLevels[level]));
             Vector3 bitangent = norm(Vector3.Cross(tangent, new Vector3(1f, 0f, 0f)));
 
-            Vector3 rotatedBitangent = Quaternion.AngleAxis(tree.branchRotation * i, norm(tangent)) * bitangent;
+            Vector3 rotatedBitangent = Quaternion.AngleAxis((tree.branchRotation + tree.branchRotationVariation * Mathf.Sin(tree.branchRotationVariationFrequency * 2f * Mathf.PI * (float)i / (float)tree.numberBranchesOnLevels[level])) * (float)i, norm(tangent)) * bitangent;
 
-            endPoints[i] = startPoints[i] + rotatedBitangent + tangent;
-            //controlPts1[i] = vLerp(startPoints[i], endPoints[i], 1f / 3f);
-            controlPts1[i] = startPoints[i] + tangent * 0.5f;
+            float length = tree.branchLengthScalingFactor * fLerp(1f, taper, (float)i / (float)tree.numberBranchesOnLevels[level]);
+
+            startPoints[i] = sampleSpline(branchStart, branchControlPt1, branchControlPt2, branchEnd, (float)i / (float)tree.numberBranchesOnLevels[level]);
+            endPoints[i] = startPoints[i] + length * ((tree.downAngle / 90f) * rotatedBitangent + (1f - (tree.downAngle / 90f)) * tangent);
+            controlPts1[i] = vLerp(startPoints[i], endPoints[i], 1f / 3f);
             controlPts2[i] = vLerp(startPoints[i], endPoints[i], 2f / 3f);
 
-            branches.Add(new branch(startPoints[i], controlPts1[i], controlPts2[i], endPoints[i], ringSpacing, stemRingResolution / 2, taper, stemRadius / 4f, tree, level + 1));
+            endPoints[i] += new Vector3(0f, 0.01f, 0f) * tree.branchTipUpwardAttraction;
+
+            float radius = tree.branchThicknessScalingFactor * fLerp(stemRadius, taper * stemRadius, (float)i / (float)tree.numberBranchesOnLevels[level]);
+            
+            tree.gizmosBlue.Add(startPoints[i]);
+
+            branches.Add(new branch(startPoints[i], controlPts1[i], controlPts2[i], endPoints[i], ringSpacing, stemRingResolution / 2, taper, radius, tree, level + 1));
         }
 
     }
 
-
     public void generateBranchMesh(Vector3 start, Vector3 controlPt1, Vector3 controlPt2, Vector3 end, float rSpacing, int ringRes, float tapr, float radius)
     {
+        vertices.Clear();
+        triangles.Clear();
+        
+
         branchStart = start;
         branchControlPt1 = controlPt1;
         branchControlPt2 = controlPt2;
         branchEnd = end;
 
+        tree.gizmosRed.Add(tree.start);
+        tree.gizmosRed.Add(tree.controlPt1);
+        tree.gizmosRed.Add(tree.controlPt2);
+        tree.gizmosRed.Add(tree.end);
+
         tree.gizmosRed.Add(end);
 
         length = vLength(end - start);
-        ringSpacing = rSpacing;
+        sections = (int)(length / rSpacing);
+        ringSpacing = length / (float)sections;
+        //ringSpacing = rSpacing;
         stemRingResolution = ringRes;
         taper = tapr;
         stemRadius = radius;
 
-        dirA = new Vector3[(int)(length / ringSpacing)];
-        dirB = new Vector3[(int)(length / ringSpacing)];
-        tangent = new Vector3[(int)(length / ringSpacing)];
-        bitangent = new Vector3[(int)(length / ringSpacing)];
-        curvature = new Vector3[(int)(length / ringSpacing)];
+        dirA = new Vector3[sections + 1];
+        dirB = new Vector3[sections + 1];
+        tangent = new Vector3[sections + 1];
+        bitangent = new Vector3[sections + 1];
+        curvature = new Vector3[sections + 1];
 
-        pos = new Vector3[(int)(length / ringSpacing)];
+        pos = new Vector3[sections + 1];
 
         bool flippedTangent = false;
         bool flippedBitangent = false;
         bool flippedDirB = false;
 
-        for (int j = 0; j < (int)(length / ringSpacing); j++)
+        for (int j = 0; j < sections + 1; j++)
         {
-            pos[j] = sampleSpline(start, controlPt1, controlPt2, end, (float)j / (length / ringSpacing));
+            pos[j] = sampleSpline(start, controlPt1, controlPt2, end, (float)j / (float)sections);
 
-            tree.gizmosBlue.Add(pos[j]);
+            if (level == 0)
+            {
+                tree.gizmosGreen.Add(pos[j]);
+            }
 
-            tangent[j] = norm(sampleSplineTangent(start, controlPt1, controlPt2, end, (float)j / (length / ringSpacing)));
+            tangent[j] = norm(sampleSplineTangent(start, controlPt1, controlPt2, end, (float)j / (float)sections));// ERROR HERE
 
             if (j > 0)
             {
                 if (Vector3.Dot(tangent[j - 1], tangent[j]) < 0f)
                 {
                     flippedTangent = true;
-                    Debug.Log("flippedTangent!");
+                    //Debug.Log("flippedTangent!");
                 }
                 if (flippedTangent)
                 {
@@ -285,7 +477,7 @@ public class branch
                 if (Vector3.Dot(bitangent[j - 1], bitangent[j]) < 0f)
                 {
                     flippedBitangent = true;
-                    Debug.Log("flippedBitangent!");
+                    //Debug.Log("flippedBitangent!");
                 }
                 if (flippedBitangent)
                 {
@@ -306,7 +498,7 @@ public class branch
                 if (Vector3.Dot(dirB[j - 1], dirB[j]) < 0f)
                 {
                     flippedDirB = true;
-                    Debug.Log("flippedDirB!");
+                    //Debug.Log("flippedDirB!");
                 }
                 if (flippedDirB)
                 {
@@ -328,19 +520,19 @@ public class branch
                 vertices.Add(v);
             }
         }
-        Debug.Log("vertex count: " + vertices.Count);
+        //Debug.Log("vertex count: " + vertices.Count);
         generateTriangles();
-        Debug.Log("triangle count: " + triangles.Count);
+        //Debug.Log("triangle count: " + triangles.Count);
     }
 
     void generateTriangles()
     {
-        int rings = (int)(length / ringSpacing) - 1;
+        //int rings = (int)(length / ringSpacing) - 1;
 
-        Debug.Log("level: " + level + ", rings: " + rings); // ist: 24, soll: 19
+        //Debug.Log("level: " + level + ", rings: " + rings); // ist: 24, soll: 19
 
         triangles = new List<int>();
-        for (int j = 0; j < (int)(length / ringSpacing) - 1; j++)
+        for (int j = 0; j < sections; j++)
         {
             for (int i = 0; i < 2 * stemRingResolution; i++)
             {
