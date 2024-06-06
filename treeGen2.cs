@@ -6,16 +6,20 @@ public class node
 {
     public Vector3 point;
     public Vector3 tangent; // TODO: List tangent -> for splits !!!
+    public Vector3 cotangent; // TODO!
     public List<node> next;
+    public node parent;
     public float radius;
     public treeGen2 gen;
+    public List<node> children;
 
-    public node(Vector3 p, float r, treeGen2 g)
+    public node(Vector3 p, float r, treeGen2 g, node par)
     {
         point = p;
         radius = r;
         next = new List<node>();
         gen = g;
+        parent = par;
     }
 
     public void grow(Quaternion dir, float length, Vector3 prevPoint, float r)
@@ -27,20 +31,37 @@ public class node
         else
         {
             Vector3 newPoint = point + norm(dir * (point - prevPoint)) * length;
-            next.Add(new node(newPoint, r, gen));
+            next.Add(new node(newPoint, r, gen, this));
             next[0].tangent = norm(next[0].point - point);
             tangent = norm(next[0].point - prevPoint);
+
+            cotangent = norm(Vector3.Cross(tangent, Vector3.Cross(parent.cotangent, tangent)));
+
+            next[0].cotangent = norm(Vector3.Cross(next[0].tangent, Vector3.Cross(cotangent, next[0].tangent)));
         }
         // Vector3 rotatedVector = Quaternion.AngleAxis(angleDeg, axis) * vector;
     }
 
-    public void split(float length, Vector3 branchDir, Vector3 localDir, float r, Vector3 splitAxis, float splitRotation, float splitAngleDegA, float splitAngleDegB, bool left, bool center, bool right)
+    public void addChildren(int n)
+    {
+        Vector3[] startPoints = new Vector3[n];
+
+        for (int i = 1; i < n; i++)
+        {
+            startPoints[i] = sampleSpline(point, 
+                                          point + vLength(next[0].point - point) * norm(tangent) * (1f / 3f),
+                                          next[0].point - vLength(next[0].point - point) * norm(next[0].tangent) * (1f / 3f),
+                                          next[0].point, (float)i / (float)n);
+        }
+    }
+
+    public void split(float length, Vector3 branchDir, Vector3 localDir, float r, Vector3 prevPoint, Vector3 splitAxis, float splitRotation, float splitAngleDegA, float splitAngleDegB, bool left, bool center, bool right)
     {
         if (next.Count > 0)
         {
-            for(int n = 0; n < next.Count; n++)
+            for (int n = 0; n < next.Count; n++)
             {
-                next[n].split(length, branchDir, norm(next[n].point - point), r, splitAxis, splitRotation * 0.5f, splitAngleDegA, splitAngleDegB,left, center, right);
+                next[n].split(length, branchDir, norm(next[n].point - point), r, point, splitAxis, splitRotation * 0.5f, splitAngleDegA, splitAngleDegB, left, center, right);
             }
         }
         else
@@ -71,48 +92,112 @@ public class node
             }
 
 
-            Vector3 rightDir = norm(Vector3.Cross(branchDir, refVector));
+            //Vector3 rightDir = norm(Vector3.Cross(branchDir, refVector));
+            Vector3 rightDir = norm(Vector3.Cross(tangent, refVector));
+
+
             //splitAxis = norm(Vector3.Cross(rightDir, localDir));
-            Vector3 dirA = Quaternion.AngleAxis(splitAngleDegA, splitAxis) * localDir;
-            Vector3 dirB = Quaternion.AngleAxis(-splitAngleDegB, splitAxis) * localDir;
+
+
+            //Vector3 dirA = Quaternion.AngleAxis(splitAngleDegA, splitAxis) * localDir;
+            //Vector3 dirB = Quaternion.AngleAxis(-splitAngleDegB, splitAxis) * localDir;
+            Vector3 dirA = Quaternion.AngleAxis(splitAngleDegA, splitAxis) * norm(tangent);
+            Vector3 dirB = Quaternion.AngleAxis(-splitAngleDegB, splitAxis) * norm(tangent);
 
             if (left)
             {
                 Vector3 newPointA = point + dirA * length;
-                node nodeA = new node(newPointA, r, gen);
+                node nodeA = new node(newPointA, r, gen, this);
+                //nodeA.tangent = norm(dirA);
+                nodeA.tangent = norm(nodeA.point - (point + norm(dirA) * length));
                 next.Add(nodeA);
             }
             if (right)
             {
                 Vector3 newPointB = point + dirB * length;
-                node nodeB = new node(newPointB, r, gen);
+                node nodeB = new node(newPointB, r, gen, this);
+                //nodeB.tangent = norm(dirB);
+
+
+                nodeB.tangent = norm(nodeB.point - (point + norm(dirB) * length));
                 next.Add(nodeB);
             }
             if (center)
             {
                 Vector3 newPointC = point + localDir * length;
-                node nodeC = new node(newPointC, r, gen);
+                node nodeC = new node(newPointC, r, gen, this);
+                nodeC.tangent = norm(localDir);
                 next.Add(nodeC);
             }
-            
-            tangent = norm(next[0].point - point);
 
-            //points.Add(newPointA);
-            //points.Add(newPointB);
+            //tangent = norm((next[0].point - point) + (next[1].point - point));
+
+            int c = 0;
+            if (right)
+            {
+                gen.tangentDebugLines.Add(new line(point + norm(tangent) * vLength(next[c].point - point) / 3f, next[c].point)); // OK
+
+                //next[c].tangent = norm(next[c].point - (point + norm(tangent) * vLength(next[c].point - point) / 3f));
+
+                next[c].tangent = norm(next[c].point - point);
+                tangent = norm(next[c].point - prevPoint);
+
+                cotangent = norm(Vector3.Cross(tangent, Vector3.Cross(parent.cotangent, tangent)));
+
+                next[c].cotangent = norm(Vector3.Cross(next[c].tangent, Vector3.Cross(cotangent, next[c].tangent)));
+
+                c += 1;
+            }
+            if (left)
+            {
+                //gen.tangentDebugLines.Add(new line(point, next[1].point)); // OK
+                gen.tangentDebugLines.Add(new line(point + norm(tangent) * vLength(next[c].point - point) / 3f, next[c].point)); // OK
+
+                //next[c].tangent = norm(next[c].point - (point + norm(tangent) * vLength(next[c].point - point) / 3f));
+
+                next[c].tangent = norm(next[c].point - point);
+                tangent = norm(next[c].point - prevPoint);
+
+                cotangent = norm(Vector3.Cross(tangent, Vector3.Cross(parent.cotangent, tangent)));
+
+                next[c].cotangent = norm(Vector3.Cross(next[c].tangent, Vector3.Cross(cotangent, next[c].tangent)));
+
+                c += 1;
+            }
+            if (center)
+            {
+                gen.tangentDebugLines.Add(new line(point + norm(tangent) * vLength(next[c].point - point) / 3f, next[c].point)); // OK
+
+                //next[c].tangent = norm(next[c].point - (point + norm(tangent) * vLength(next[c].point - point) / 3f));
+
+                next[c].tangent = norm(next[c].point - point);
+                tangent = norm(next[c].point - prevPoint);
+
+                cotangent = norm(Vector3.Cross(tangent, Vector3.Cross(parent.cotangent, tangent)));
+
+                next[c].cotangent = norm(Vector3.Cross(next[c].tangent, Vector3.Cross(cotangent, next[c].tangent)));
+            }
+
+
+                // TODO: offset points up in direction of parent branch -> account for curve!
+
+                //points.Add(newPointA);
+                //points.Add(newPointB);
+            
         }
     }
 
     public void getAllSegments(List<segment> allSegments, int sections, int ringRes)
     {
-        Debug.Log("new next node");
+        //Debug.Log("new next node");
         foreach (node n in next)
         {
-            if (next.Count > 1)
-            {
-                Debug.Log("next: count: " + next.Count);
-                Debug.Log("next: start point same? " + point);
-            }
-            allSegments.Add(new segment(point, n.point, tangent, n.tangent, sections, radius, n.radius, ringRes, gen));
+            //if (next.Count > 1)
+            //{
+            //    Debug.Log("next: count: " + next.Count);
+            //    Debug.Log("next: start point same? " + point);
+            //}
+            allSegments.Add(new segment(point, n.point, tangent, n.tangent, cotangent, n.cotangent, sections, radius, n.radius, ringRes, gen));
             n.getAllSegments(allSegments, sections, ringRes);
         }
     }
@@ -136,6 +221,23 @@ public class node
     {
         return (v / Mathf.Sqrt(v.x * v.x + v.y * v.y + v.z * v.z));
     }
+
+    static Vector3 sampleSpline(Vector3 controlA, Vector3 controlB, Vector3 controlC, Vector3 controlD, float t)
+    {
+        return ((1f - t) * (1f - t) * (1f - t) * controlA + 3f * (1f - t) * (1f - t) * t * controlB + 3f * (1f - t) * t * t * controlC + t * t * t * controlD);
+    }
+
+    static Vector3 sampleSplineTangent(Vector3 controlA, Vector3 controlB, Vector3 controlC, Vector3 controlD, float t)
+    {
+        //return (3f * (1f - t) * (1f - t) * (controlB - controlA) + 6f * (1f - t) * t * (controlC - controlB) + 3f * t * t * (controlD - controlC));
+        return (-3f * (1f - t) * (1f - t) * controlA + 3f * (3f * t * t - 4f * t + 1f) * controlB + 3f * (-3f * t * t + 2f * t) * controlC + 3f * t * t * controlD);
+    }
+
+    static Vector3 sampleSplineCurvature(Vector3 controlA, Vector3 controlB, Vector3 controlC, Vector3 controlD, float t)
+    {
+        //return (6f * (1f - t) * (controlC - 2f * controlB + controlA) + 6f * t * (controlD - 2f * controlC + controlB));
+        return (6f * (1f - t) * controlA + 3f * (6f * t - 4f) * controlB + 3f * (-6f * t + 2f) * controlC + 6f * t * controlD);
+    }
 }
 
 public class segment
@@ -144,6 +246,8 @@ public class segment
     public Vector3 end;
     public Vector3 startTangent;
     public Vector3 endTangent;
+    public Vector3 startCotangent;
+    public Vector3 endCotangent;
     public int sections;
     public float startRadius;
     public float endRadius;
@@ -154,12 +258,14 @@ public class segment
     public List<Vector3> vertices;
     public List<int> triangles;
 
-    public segment(Vector3 Start, Vector3 End, Vector3 startTan, Vector3 endTan, int Sections, float StartRadius, float EndRadius, int ringRes, treeGen2 gen)
+    public segment(Vector3 Start, Vector3 End, Vector3 startTan, Vector3 endTan, Vector3 startCotan, Vector3 endCotan, int Sections, float StartRadius, float EndRadius, int ringRes, treeGen2 gen)
     {
         start = Start;
         end = End;
         startTangent = startTan;
+        startCotangent = startCotan;
         endTangent = endTan;
+        endCotangent = endCotan;
         sections = Sections;
         startRadius = StartRadius;
         endRadius = EndRadius;
@@ -192,6 +298,8 @@ public class treeGen2 : MonoBehaviour
 
     public float treeHeight;
     public Vector3 treeGrowDir;
+
+    public int levels; // -> children in node
 
     public float splitAngleDegA;
     public float splitAngleDegB;
@@ -266,24 +374,30 @@ public class treeGen2 : MonoBehaviour
         dirAdebugLines.Clear();
         dirBdebugLines.Clear();
 
-        root = new node(new Vector3(0f, 0f, 0f), radius, this);
-        root.next.Add(new node(norm(treeGrowDir) * treeHeight, radius * 0.5f, this));
+        root = new node(new Vector3(0f, 0f, 0f), radius, this, null);
+        root.next.Add(new node(norm(treeGrowDir) * treeHeight, radius * 0.5f, this, root));
         root.tangent = norm(root.next[0].point - root.point);
+        root.cotangent = norm(Vector3.Cross(treeGrowDir, new Vector3(1f, 0f, 0f)));
+        if (root.cotangent == new Vector3(0f, 0f, 0f))
+        {
+            root.cotangent = norm(Vector3.Cross(treeGrowDir, new Vector3(0f, 0f, 1f)));
+        }
         root.next[0].tangent = norm(root.next[0].point - root.point);
-        
+        root.next[0].cotangent = norm(Vector3.Cross(root.next[0].tangent, Vector3.Cross(root.cotangent, root.next[0].tangent)));
+
         root.grow(Quaternion.identity                               , treeHeight / 2f, root.next[0].point, root.next[0].radius * 0.5f);
         root.grow(Quaternion.AngleAxis(5f, new Vector3(1f, 0f, 0f)), growLength     , root.next[0].point, root.next[0].radius * 0.5f);
         root.grow(Quaternion.AngleAxis(-4f, new Vector3(0f, 0f, 1f)), growLength     , root.next[0].point, root.next[0].radius * 0.5f);
         
-        root.split(splitLength       , root.next[0].point - root.point, root.next[0].point - root.point, root.next[0].next[0].radius / 2f, new Vector3(1f, 0f, 0f), splitRotation, splitAngleDegA, splitAngleDegB, true, false, true);
+        root.split(splitLength       , root.next[0].point - root.point, root.next[0].point - root.point, root.next[0].next[0].radius / 2f, root.point, new Vector3(1f, 0f, 0f), splitRotation, splitAngleDegA, splitAngleDegB, true, false, true);
         
-        root.split(splitLength * 0.8f, root.next[0].point - root.point, root.next[0].point - root.point, root.next[0].next[0].radius / 2f, new Vector3(1f, 0f, 0f), splitRotation, splitAngleDegA, splitAngleDegB, true, false, true);
-        root.split(splitLength * 0.6f, root.next[0].point - root.point, root.next[0].point - root.point, root.next[0].next[0].radius / 4f, new Vector3(0f, 0f, 1f), splitRotation, splitAngleDegA, splitAngleDegB, false, true, true);
-        root.split(splitLength * 0.6f, root.next[0].point - root.point, root.next[0].point - root.point, root.next[0].next[0].radius / 8f, new Vector3(0f, 0f, 1f), splitRotation, splitAngleDegA, splitAngleDegB, false, true, true);
+        root.split(splitLength * 0.8f, root.next[0].point - root.point, root.next[0].point - root.point, root.next[0].next[0].radius / 2f, root.point, new Vector3(1f, 0f, 0f), splitRotation, splitAngleDegA * 0.9f, splitAngleDegB * 0.9f, true, false, true);
+        root.split(splitLength * 0.6f, root.next[0].point - root.point, root.next[0].point - root.point, root.next[0].next[0].radius / 4f, root.point, new Vector3(0f, 0f, 1f), splitRotation, splitAngleDegA * 0.8f, splitAngleDegB * 0.8f, true, true, true);
+        root.split(splitLength * 0.6f, root.next[0].point - root.point, root.next[0].point - root.point, root.next[0].next[0].radius / 8f, root.point, new Vector3(1f, 0f, 0f), splitRotation, splitAngleDegA * 0.7f, splitAngleDegB * 0.7f, true, false, true);
         
         allSegments.Clear();
         allSegments = getAllSegments(sections);
-        Debug.Log("allSegments Count: " + allSegments.Count);
+        //Debug.Log("allSegments Count: " + allSegments.Count);
 
         vertices.Clear();
         triangles.Clear();
@@ -320,7 +434,7 @@ public class treeGen2 : MonoBehaviour
         {
             root.getAllSegments(allSegments, sections, stemRingResolution);
         }
-        Debug.Log("allSegmants count " + allSegments.Count);
+        //Debug.Log("allSegmants count " + allSegments.Count);
         return allSegments;
     }
 
@@ -354,19 +468,19 @@ public class treeGen2 : MonoBehaviour
             }
         }
 
-        Debug.Log("refVector: " + refVector);
+        //Debug.Log("refVector: " + refVector);
 
         for(int s = 0; s < allSegments.Count; s++)
         {
-            Debug.Log("in generateMesh(): segment: ");
+            //Debug.Log("in generateMesh(): segment: ");
 
             // TODO: automatic tangents -> connecttion line from previous to next vertex -> tangent!
 
             Vector3 controlPt1 = allSegments[s].start + allSegments[s].startTangent * vLength(allSegments[s].end - allSegments[s].start) / 3f; //(1f / 3f) * (end - start);
             Vector3 controlPt2 = allSegments[s].end - allSegments[s].endTangent * vLength(allSegments[s].end - allSegments[s].start) / 3f;     //(2f / 3f) * (end - start);
 
-            Debug.Log("startTangent: " + allSegments[s].startTangent);
-            Debug.Log("endTangent: " + allSegments[s].endTangent);
+            //Debug.Log("startTangent: " + allSegments[s].startTangent);
+            //Debug.Log("endTangent: " + allSegments[s].endTangent);
 
 
             //Debug.Log("start: " + start);
@@ -390,9 +504,12 @@ public class treeGen2 : MonoBehaviour
             //bool flippedDirB = false;
 
             int debug = allSegments[s].sections + 1;
-            Debug.Log("sections loop: " + debug);
+            //Debug.Log("sections loop: " + debug);
             debugListRed.Add(allSegments[s].start);
             debugListRed.Add(allSegments[s].end);
+
+            tangentDebugLines.Add(new line(allSegments[s].start, controlPt1));
+            tangentDebugLines.Add(new line(allSegments[s].end, controlPt2));
 
             debugListBlue.Add(controlPt1);
             debugListBlue.Add(controlPt2);
@@ -409,23 +526,43 @@ public class treeGen2 : MonoBehaviour
                     Debug.Log("ERROR tangent is zero! j = " + j);
                 }
 
-                tangentDebugLines.Add(new line(pos[j], pos[j] + tangent[j] / 5f));
+                //tangentDebugLines.Add(new line(pos[j], pos[j] + tangent[j] / 5f));
 
-                Vector3 cross = Vector3.Cross(tangent[j], refVector);
-
-                if (cross == new Vector3(0f, 0f, 0f))
-                {
-                    cross = Vector3.Cross(tangent[j], Quaternion.AngleAxis(90f, new Vector3(0f, 1f, 0f)) * refVector);
-                    Debug.Log("cross is ZERO !!!");
-                }
-
-                dirA[j] = norm(cross);
-
-                dirAdebugLines.Add(new line(pos[j], pos[j] + dirA[j] / 5f));
+                //--- old version
+                //Vector3 cross = Vector3.Cross(tangent[j], refVector);
+                //
+                //if (cross == new Vector3(0f, 0f, 0f))
+                //{
+                //    cross = Vector3.Cross(tangent[j], Quaternion.AngleAxis(90f, new Vector3(0f, 1f, 0f)) * refVector);
+                //    Debug.Log("cross is ZERO !!!");
+                //}
+                //
+                //dirA[j] = norm(cross);
+                //
+                //dirAdebugLines.Add(new line(pos[j], pos[j] + dirA[j] / 5f));
+                //
+                //dirB[j] = norm(Vector3.Cross(tangent[j], dirA[j]));
+                //---
+                
+                //if (j == 0) // test off
+                //{
+                    dirA[j] = vLerp(allSegments[s].startCotangent, allSegments[s].endCotangent, (float)j / (float)allSegments[s].sections);
+                    //Vector3 cross = Vector3.Cross(tangent[j], refVector);
+                    //if (cross == new Vector3(0f, 0f, 0f))
+                    //{
+                    //    cross = Vector3.Cross(tangent[j], Quaternion.AngleAxis(90f, new Vector3(0f, 1f, 0f)) * refVector);
+                    //    Debug.Log("cross is ZERO !!!");
+                    //}
+                    //dirA[j] = norm(cross);
+                //}
+                //else
+                //{
+                //    dirA[j] = norm(dirA[j - 1] - norm(tangent[j]) * Vector3.Dot(dirA[j - 1], norm(tangent[j])));
+                //}
 
                 dirB[j] = norm(Vector3.Cross(tangent[j], dirA[j]));
 
-                
+                dirAdebugLines.Add(new line(pos[j], pos[j] + dirA[j] / 5f));
 
                 Vector3 dir = norm(tangent[j]);
 
@@ -484,8 +621,8 @@ public class treeGen2 : MonoBehaviour
     void generateTriangles(int Sections, int offset)
     {
 
-        Debug.Log("in generateTriangles: sections: " + Sections);
-        Debug.Log("in generateTriangles: stemRingResolution: " + stemRingResolution);
+        //Debug.Log("in generateTriangles: sections: " + Sections);
+        //Debug.Log("in generateTriangles: stemRingResolution: " + stemRingResolution);
 
         int count = 0;
         for (int j = 0; j < Sections; j++)
@@ -576,14 +713,14 @@ public class treeGen2 : MonoBehaviour
             //    //    Gizmos.DrawSphere(v, 0.02f);
             //    //}
             //}
-            if (debugListGreen != null)
-            {
-                Gizmos.color = Color.green;
-                foreach (Vector3 v in debugListGreen)
-                {
-                    Gizmos.DrawSphere(v, 0.02f);
-                }
-            }
+            //if (debugListGreen != null)
+            //{
+            //    Gizmos.color = Color.green;
+            //    foreach (Vector3 v in debugListGreen)
+            //    {
+            //        Gizmos.DrawSphere(v, 0.02f);
+            //    }
+            //}
             if (debugListRed != null)
             {
                 Gizmos.color = Color.red;
@@ -597,9 +734,10 @@ public class treeGen2 : MonoBehaviour
                 Gizmos.color = Color.blue;
                 foreach (Vector3 v in debugListBlue)
                 {
-                    Gizmos.DrawSphere(v, 0.01f);
+                    Gizmos.DrawSphere(v, 0.03f);
                 }
             }
+            Gizmos.color = Color.blue;
             if (tangentDebugLines != null)
             { 
                 foreach (line l in tangentDebugLines)
