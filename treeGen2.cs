@@ -10,13 +10,15 @@ public class node
     public List<node> next;
     public node parent;
     public float crossSectionArea;
+    public int branchLevel;
     public treeGen2 gen;
     public List<List<node>> children;
 
-    public node(Vector3 Point, float CrossSectionArea, treeGen2 g, node par)
+    public node(Vector3 Point, treeGen2 g, node par, int level)
     {
         point = Point;
-        crossSectionArea = CrossSectionArea;
+        crossSectionArea = 0f;
+        branchLevel = level;
         next = new List<node>();
         gen = g;
         parent = par;
@@ -32,16 +34,16 @@ public class node
         //}
     }
 
-    public void grow(Quaternion dir, float length, Vector3 prevPoint, float r)
+    public void grow(Quaternion dir, float length, Vector3 prevPoint)
     {
         if (next.Count > 0)
         {
-            next[0].grow(dir, length, point, r);
+            next[0].grow(dir, length, point);
         }
         else
         {
             Vector3 newPoint = point + norm(dir * (point - prevPoint)) * length;
-            next.Add(new node(newPoint, r, gen, this));
+            next.Add(new node(newPoint, gen, this, branchLevel));
             children.Add(new List<node>());
             next[0].tangent = norm(next[0].point - point);
             tangent = norm(next[0].point - prevPoint);
@@ -53,24 +55,48 @@ public class node
         // Vector3 rotatedVector = Quaternion.AngleAxis(angleDeg, axis) * vector;
     }
 
-    public void addChildren(int n)
+    //TODO: combine children with split !
+    public void addChildren(int numberChildren)
     {
         if (next.Count > 0)
         {
-            Vector3[,] startPoints = new Vector3[next.Count, n];
+            int[] rVals = new int[next.Count]; // random number of children for each branc (foreach node in next, for splits...)
+            int maxR = 0;
+            for (int c = 0; c < next.Count; c++)
+            {
+                if (numberChildren > 0)
+                {
+                    float p = (float)gen.randomNumbers[gen.randomNumberIndex] / (float)gen.randomArraySize; // 0-1
+                    gen.randomNumberIndex = gen.randomNumberIndex + 1;
+                    float p1 = (float)gen.randomNumbers[gen.randomNumberIndex] / (float)gen.randomArraySize; // 0-1
+                    gen.randomNumberIndex = gen.randomNumberIndex + 1;
+
+                    rVals[c] = (int)((float)numberChildren * p);
+                    if (maxR < rVals[c])
+                    {
+                        maxR = rVals[c];
+                    }
+                    Debug.Log("crossSectionArea " + crossSectionArea); // OK
+                    Debug.Log("root crossSectionArea " + gen.root.crossSectionArea); // OK
+                    if (crossSectionArea > 0f)
+                    {
+                        rVals[c] = (int)((float)(rVals[c]) / (crossSectionArea / gen.root.crossSectionArea + 1f));
+                    }
+                }
+            }
+
+            Vector3[,] startPoints = new Vector3[next.Count, maxR]; //start points for all children of all branches in next[]
 
             gen.debugListBlue.Add(point);
             gen.debugListBlue.Add(next[0].point);
             for (int c = 0; c < next.Count; c++)
             {
-                for (int i = 0; i < n; i++)
+                for (int i = 0; i < rVals[c]; i++)
                 {
                     startPoints[c, i] = sampleSpline(point,
                                                       point + vLength(next[c].point - point) * norm(tangent) * (1f / 3f),
                                                       next[c].point - vLength(next[c].point - point) * norm(next[c].tangent) * (1f / 3f),
-                                                      next[c].point, (float)(i + 1) / (float)(n + 1));
-
-                    float startPointCrossSectionArea = fLerp(crossSectionArea, next[c].crossSectionArea, (float)(i + 1) / (float)(n + 1)) * gen.childBrachThicknessScaling;
+                                                      next[c].point, (float)(i + 1) / (float)(rVals[c] + 1));
 
                     if (i > 0)
                     {
@@ -80,51 +106,79 @@ public class node
                         startPoints[c, i] = sampleSpline(point,
                                                       point + vLength(next[c].point - point) * norm(tangent) * (1f / 3f),
                                                       next[c].point - vLength(next[c].point - point) * norm(next[c].tangent) * (1f / 3f),
-                                                      next[c].point, ((float)(i + 1) + (random01 - 0.5f) * gen.randomChildBranchStartPointOffset) / (float)(n + 1));
-
+                                                      next[c].point, ((float)(i + 1) + (random01 - 0.5f) * gen.randomChildBranchStartPointOffset) / (float)(rVals[c] + 1));
                     }
-
                     gen.debugList.Add(startPoints[c, i]);
+                    
+                    float startPointCrossSectionArea = fLerp(crossSectionArea, next[c].crossSectionArea, (float)(i + 1) / (float)(rVals[c] + 1)) * gen.childBrachThicknessScaling;
                     gen.debugListRadius.Add(Mathf.Sqrt(startPointCrossSectionArea));
-
-                    children[c].Add(new node(startPoints[c, i], startPointCrossSectionArea, gen, this));
                 }
             }
 
-            Vector3 parentDir = norm(next[0].point - point);
             for (int c = 0; c < next.Count; c++)
             {
-                //foreach (node c in children[i])
-                for (int i = 0; i < n; i++)
+                Vector3 parentDir = norm(next[c].point - point);
+                                
+                for (int i = 0; i < rVals[c]; i++)
                 {
-                    //Debug.Log("growChild nextNode: " + i);
+                    // TODO: orientation rel to root
+                    // -> outward vector, left, right
+                    Vector3 outward = norm(new Vector3(parentDir.x, 0f, parentDir.z));
+                    Vector3 outwardAxis = norm(Vector3.Cross(parentDir, outward));
+                    //gen.tangentDebugLines.Add(new line(startPoints[c, i], startPoints[c, i] + outward)); // ???
+
+                    Vector3 dir = norm(Quaternion.AngleAxis(fLerp(gen.childSplitAngleDegBottom, gen.childSplitAngleDegTop, (float)i / (float)rVals[c]), cotangent) * norm(parentDir)); // TODO: ((cotangent)) -> random angle!
+
+                    dir = norm(Quaternion.AngleAxis(gen.childScrewAngle * i, tangent) * dir);
+
+                    node n = new node(startPoints[c, i], gen, this, branchLevel + 1);
                     
-                    Vector3 dir = norm(Quaternion.AngleAxis(gen.childSplitAngleDeg, cotangent) * norm(parentDir)); // TODO: ((cotangent)) -> random angle!
-                    Vector3 newPoint = startPoints[c, i] + dir * gen.childSplitBranchLength;
-                    children[c][i].next.Add(new node(newPoint, children[c][i].crossSectionArea * gen.taper * vLength(newPoint - children[c][i].point), gen, children[c][i])); // test!
+                    n.tangent = dir;
+                    n.cotangent = norm(Vector3.Cross(n.tangent, Vector3.Cross(cotangent, n.tangent)));
+
+                    Vector3 newPoint = startPoints[c, i] + dir * fLerp(gen.childBranchLengthBottom, gen.childBranchLengthTop, (float)i / (float)rVals[c]);
+                    node nextNode = new node(newPoint, gen, n, branchLevel + 1);
+                    nextNode.tangent = n.tangent + gen.childCurvature * vLength(startPoints[c, i] - newPoint) * new Vector3(0f, 1f, 0f) / 3f;
+                    nextNode.point = nextNode.point + gen.childCurvature * vLength(startPoints[c, i] - newPoint) * new Vector3(0f, 1f, 0f);
+
+                    nextNode.cotangent = n.cotangent;
+
+                    n.next.Add(nextNode);
                     
-                    gen.tangentDebugLines.Add(new line(children[c][i].point, children[c][i].next[0].point));
+                    children[c].Add(n);
+                    if (gen.tangentDebugLines != null)
+                    {
+                        gen.tangentDebugLines.Add(new line(children[c][i].point, children[c][i].next[0].point));
+                    }
+
+
                 }
             }
 
-            foreach (node nextNode in next)
-            {
-                nextNode.addChildren(n);
-            }
+            //foreach (node nextNode in next)
+            //{
+            //    nextNode.addChildren(numberChildren);
+            //}
         }
     }
 
-
-
-    // do not use center (TODO: remove option)
-    public void split(float length, Vector3 branchDir, Vector3 localDir, float crossArea, Vector3 prevPoint, Vector3 splitAxis, float splitRotation, float splitAngleDegA, float splitAngleDegB, bool left, bool center, bool right)
+    // TODO: combine children with split !
+    //
+    //  TODO: levels -> base, beanches, ...
+    public void split(float length, Vector3 branchDir, Vector3 localDir, Vector3 prevPoint, Vector3 splitAxis, float splitRotation, float splitAngleDegA, float splitAngleDegB, bool left, bool center, bool right)
     {
         if (next.Count > 0)
         {
             int n = 0;
             //int safetyLimit = 1000;
             //int c = 0;
-            while (n < next.Count)
+            while (n < next.Count) // TODO: only split some (center) branch !!!  // TODO: -> random!  TODO: -> center branch on different "level" than right/left -> 
+                                                                                                          // -> split again only on one level  -> random!
+                                                                                                          // -> new variable "branch level" in node
+                                                                                                          // left, right: parent.branchLevel + 1
+                                                                                                          // center: parent.branchLevel
+                                                                                                          // split(...branchLvl...) {if (branchLevel == branchLvl)
+                                                                                                          //                         {   -> split ... }
             {
                 // Random.Range(): float: min and max inclusive || int: min inclusive, max exclusive
                 //float splitRotationVariation = 0f;
@@ -137,7 +191,7 @@ public class node
                 
                 //Debug.Log("randomNumberIndex: " + gen.randomNumbers[n]);
                 //Debug.Log("random variation: " + gen.splitRotationVariation[gen.randomNumbers[n]]);
-                next[n].split(length, branchDir, norm(next[n].point - point), crossArea, point, splitAxis, splitRotation + gen.splitRotationVariation[gen.randomNumbers[gen.randomNumberIndex]], splitAngleDegA, splitAngleDegB, left, center, right);
+                next[n].split(length, branchDir, norm(next[n].point - point), point, splitAxis, splitRotation + gen.splitRotationVariation[gen.randomNumbers[gen.randomNumberIndex]], splitAngleDegA, splitAngleDegB, left, center, right);
                 
                 gen.randomNumberIndex = (gen.randomNumberIndex + 1) % gen.randomNumbers.Length;
                 gen.randomIndex = (gen.randomIndex + 1) % gen.randomArraySize;
@@ -147,10 +201,8 @@ public class node
         else
         {
             //Vector3 globalDir = branchDir;
-            
-            // use splitOrientationAngle -> relative to cotangent!
 
-            // TODO: r depends on number of splits!
+            // use splitOrientationAngle -> relative to cotangent!
 
             //int splitThickness = 0;
 
@@ -169,7 +221,7 @@ public class node
             //    //splitThickness = 1;
             //}
             //gen.randomNumberIndex = (gen.randomNumberIndex + 1) % gen.randomNumbers.Length;
-            
+
             //gen.randomNumberIndex = (gen.randomNumberIndex + 1) % gen.randomNumbers.Length;
             //if (gen.randomNumbers[gen.randomNumberIndex] > gen.randomArraySize * (1f - gen.splitProbability))
             //{
@@ -193,124 +245,169 @@ public class node
 
             // thickness ... -> in own methode calculateThickness after branch splitting done! OK
 
-            splitAxis = Quaternion.AngleAxis(splitRotation, tangent) * cotangent; // test! (???)
-
-            Vector3 dirA = Quaternion.AngleAxis(splitAngleDegA, splitAxis) * norm(tangent);
-            Vector3 dirB = Quaternion.AngleAxis(-splitAngleDegB, splitAxis) * norm(tangent);
-
-            //if (left) gen.randomNumbers[gen.randomNumberIndex] // randomSplitVariationArraySize
-            if (left)
+            if (branchLevel < 3)
             {
-                Vector3 newPointA = point + dirA * length;
-                node nodeA = new node(newPointA, crossArea, gen, this);
-                //nodeA.tangent = norm(dirA);
-                nodeA.tangent = norm(nodeA.point - (point + norm(dirA) * length));
-                next.Add(nodeA);
-                children.Add(new List<node>());
-            }
-            //gen.randomNumberIndex = (gen.randomNumberIndex + 1) % gen.randomNumbers.Length;
-            //if (right)
-            if (right)
-            {
-                Vector3 newPointB = point + dirB * length;
-                node nodeB = new node(newPointB, crossArea, gen, this);
-                //nodeB.tangent = norm(dirB);
-
-
-                nodeB.tangent = norm(nodeB.point - (point + norm(dirB) * length));
-                next.Add(nodeB);
-                children.Add(new List<node>());
-            }
-            //gen.randomNumberIndex = (gen.randomNumberIndex + 1) % gen.randomNumbers.Length;
-
-            // do not use center (TODO: remove option)
-
-            if (center)
-            //if (gen.randomNumbers[gen.randomNumberIndex] > gen.randomArraySize / 2)
-            {
-                Vector3 newPointC = point + localDir * length;
-                node nodeC = new node(newPointC, crossArea, gen, this);
-                nodeC.tangent = norm(localDir);
-                next.Add(nodeC);
-                children.Add(new List<node>());
-            }
-
-            //gen.randomNumberIndex = (gen.randomNumberIndex + 1) % gen.randomNumbers.Length;
-
-            if (left && right)
-            {
-                tangent = norm((next[0].point - point) + (next[1].point - point));
-            }
-
-            int c = 0;
-            if (right)
-            {
-                if (gen.tangentDebugLines != null)
+                splitAxis = Vector3.Cross(Vector3.Cross(tangent, new Vector3(0f, 1f, 0f)), new Vector3(0f, 1f, 0f));
+                if (splitAxis != new Vector3(0f, 0f, 0f))
                 {
-                    gen.tangentDebugLines.Add(new line(point + norm(tangent) * vLength(next[c].point - point) * gen.splitTangentOffset, next[c].point)); // OK
+                    splitAxis = norm(splitAxis);
                 }
-                next[c].tangent = norm(next[c].point - (point + norm(tangent) * vLength(next[c].point - point) * gen.splitTangentOffset)); // -> * splitTangentOffset instead of / 3f
+                else
+                {
+                    splitAxis = new Vector3(1f, 0f, 0f);
+                }
 
-                //next[c].tangent = norm(next[c].point - point);
-                
-                tangent = norm(next[c].point - prevPoint);
+                Vector3 splitAxisLeft = Quaternion.AngleAxis(splitRotation, tangent) * splitAxis;
+                Vector3 splitAxisRight;
+                if (branchLevel == 0)
+                {
+                    splitAxisRight = Quaternion.AngleAxis(splitRotation, tangent) * splitAxis;
+                }
+                else
+                {
+                    splitAxisRight = Quaternion.AngleAxis(-splitRotation, tangent) * splitAxis;
+                }
+                //splitAxis = Quaternion.AngleAxis(splitRotation, tangent) * cotangent; // test! (???)
 
-                cotangent = norm(Vector3.Cross(tangent, Vector3.Cross(parent.cotangent, tangent)));
+                Vector3 dirA = Quaternion.AngleAxis(splitAngleDegA, splitAxisLeft) * norm(tangent);
+                Vector3 dirB = Quaternion.AngleAxis(-splitAngleDegB, splitAxisRight) * norm(tangent);
 
-                next[c].cotangent = norm(Vector3.Cross(next[c].tangent, Vector3.Cross(cotangent, next[c].tangent)));
+                //if (left) gen.randomNumbers[gen.randomNumberIndex] // randomSplitVariationArraySize
+                if (left)
+                {
+                    Vector3 newPointA = point + dirA * length;
+                    node nodeA = new node(newPointA, gen, this, branchLevel + 1);
+                    //nodeA.tangent = norm(dirA);
+                    nodeA.tangent = norm(nodeA.point - (point + norm(dirA) * length));
+                    next.Add(nodeA);
+                    children.Add(new List<node>());
+                }
+                //gen.randomNumberIndex = (gen.randomNumberIndex + 1) % gen.randomNumbers.Length;
+                //if (right)
+                if (right)
+                {
+                    Vector3 newPointB = point + dirB * length;
+                    node nodeB = new node(newPointB, gen, this, branchLevel + 1);
+                    //nodeB.tangent = norm(dirB);
 
-                c += 1;
-            }
-            if (left)
-            {
-                //gen.tangentDebugLines.Add(new line(point, next[1].point)); // OK
-                gen.tangentDebugLines.Add(new line(point + norm(tangent) * vLength(next[c].point - point) * gen.splitTangentOffset, next[c].point)); // OK
 
-                next[c].tangent = norm(next[c].point - (point + norm(tangent) * vLength(next[c].point - point) * gen.splitTangentOffset));
+                    nodeB.tangent = norm(nodeB.point - (point + norm(dirB) * length));
+                    next.Add(nodeB);
+                    children.Add(new List<node>());
+                }
+                //gen.randomNumberIndex = (gen.randomNumberIndex + 1) % gen.randomNumbers.Length;
 
-                //next[c].tangent = norm(next[c].point - point);
-                
-                tangent = norm(next[c].point - prevPoint);
+                // do not use center (TODO: remove option)
 
-                cotangent = norm(Vector3.Cross(tangent, Vector3.Cross(parent.cotangent, tangent)));
+                if (center)
+                //if (gen.randomNumbers[gen.randomNumberIndex] > gen.randomArraySize / 2)
+                {
+                    Vector3 newPointC = point + localDir * length * 2f;
+                    node nodeC = new node(newPointC, gen, this, branchLevel);
+                    nodeC.tangent = norm(localDir);
+                    next.Add(nodeC);
+                    children.Add(new List<node>());
+                }
 
-                next[c].cotangent = norm(Vector3.Cross(next[c].tangent, Vector3.Cross(cotangent, next[c].tangent)));
+                //gen.randomNumberIndex = (gen.randomNumberIndex + 1) % gen.randomNumbers.Length;
 
-                c += 1;
-            }
-            if (center)
-            {
-                gen.tangentDebugLines.Add(new line(point + norm(tangent) * vLength(next[c].point - point) * gen.splitTangentOffset, next[c].point)); // OK
-            
-                next[c].tangent = norm(next[c].point - (point + norm(tangent) * vLength(next[c].point - point) * gen.splitTangentOffset));
-            
-                //next[c].tangent = norm(next[c].point - point);
-                
-                tangent = norm(next[c].point - prevPoint);
-            
-                cotangent = norm(Vector3.Cross(tangent, Vector3.Cross(parent.cotangent, tangent)));
-            
-                next[c].cotangent = norm(Vector3.Cross(next[c].tangent, Vector3.Cross(cotangent, next[c].tangent)));
-            }
+                if (left && right)
+                {
+                    tangent = (norm((next[0].point - point)) + norm((next[1].point - point))) / 2f;
+                }
+
+                int c = 0;
+                if (right)
+                {
+                    if (gen.tangentDebugLines != null)
+                    {
+                        gen.tangentDebugLines.Add(new line(point + norm(tangent) * vLength(next[c].point - point) * gen.splitTangentOffset, next[c].point)); // OK
+                    }
+                    next[c].tangent = norm(next[c].point - (point + norm(tangent) * vLength(next[c].point - point) * gen.splitTangentOffset)); // -> * splitTangentOffset instead of / 3f
+
+                    //next[c].tangent = norm(next[c].point - point);
+                    if (left == false)
+                    {
+                        tangent = norm(next[c].point - prevPoint);
+                    }
+                    cotangent = norm(Vector3.Cross(tangent, Vector3.Cross(parent.cotangent, tangent)));
+
+                    next[c].cotangent = norm(Vector3.Cross(next[c].tangent, Vector3.Cross(cotangent, next[c].tangent)));
+
+                    c += 1;
+                }
+                if (left)
+                {
+                    //gen.tangentDebugLines.Add(new line(point, next[1].point)); // OK
+                    if (gen.tangentDebugLines != null)
+                    {
+                        gen.tangentDebugLines.Add(new line(point + norm(tangent) * vLength(next[c].point - point) * gen.splitTangentOffset, next[c].point)); // OK
+                    }
+
+                    next[c].tangent = norm(next[c].point - (point + norm(tangent) * vLength(next[c].point - point) * gen.splitTangentOffset));
+
+                    //next[c].tangent = norm(next[c].point - point);
+
+                    if (right == false)
+                    {
+                        tangent = norm(next[c].point - prevPoint);
+                    }
+
+                    cotangent = norm(Vector3.Cross(tangent, Vector3.Cross(parent.cotangent, tangent)));
+
+                    next[c].cotangent = norm(Vector3.Cross(next[c].tangent, Vector3.Cross(cotangent, next[c].tangent)));
+
+                    c += 1;
+                }
+                if (center)
+                {
+                    if (gen.tangentDebugLines != null)
+                    {
+                        gen.tangentDebugLines.Add(new line(point + norm(tangent) * vLength(next[c].point - point) * gen.splitTangentOffset, next[c].point)); // OK
+                    }
+
+                    next[c].tangent = norm(next[c].point - (point + norm(tangent) * vLength(next[c].point - point) * gen.splitTangentOffset));
+
+                    //next[c].tangent = norm(next[c].point - point);
+
+                    tangent = norm(next[c].point - prevPoint);
+
+                    cotangent = norm(Vector3.Cross(tangent, Vector3.Cross(parent.cotangent, tangent)));
+
+                    next[c].cotangent = norm(Vector3.Cross(next[c].tangent, Vector3.Cross(cotangent, next[c].tangent)));
+                }
 
                 // TODO: offset points up in direction of parent branch -> account for curve!
 
                 //points.Add(newPointA);
                 //points.Add(newPointB);
-            
+            }
         }
     }
 
 
     public float calculateThickness()
     {
-        if (next.Count > 0)
+        if (next.Count > 0 || children.Count > 0)
         {
             float sum = 0f;
-            foreach(node n in next)
+            if (next.Count > 0)
             {
-                sum += n.calculateThickness();
-                sum += vLength(n.point - point) * gen.taper;
+                foreach (node n in next)
+                {
+                    sum += n.calculateThickness();
+                    sum += vLength(n.point - point) * gen.taper;
+                }
+            }
+            if (children.Count > 0)
+            {
+                foreach (List<node> c in children)
+                {
+                    foreach (node n in c)
+                    {
+                        sum += n.calculateThickness();
+                    }
+                }
             }
             crossSectionArea = sum;
             return sum;
@@ -352,6 +449,14 @@ public class node
             //}
             allSegments.Add(new segment(point, n.point, tangent, n.tangent, cotangent, n.cotangent, sections, Mathf.Sqrt(crossSectionArea), Mathf.Sqrt(n.crossSectionArea), ringRes, gen));
             n.getAllSegments(allSegments, sections, ringRes);
+        }
+
+        foreach (List<node> l in children)
+        {
+            foreach (node c in l)
+            {
+                c.getAllSegments(allSegments, sections, ringRes);
+            }
         }
     }
 
@@ -458,13 +563,22 @@ public class treeGen2 : MonoBehaviour
     public float taper;
 
     public int levels; // -> children in node
-    [Range(0, 20)]
+    [Range(0, 40)]
     public int numberChildren;
+    //[Range(0f, 1f)]
+    public float childDistribution;
     public float childBrachThicknessScaling;
     [Range(-1f, 1f)]
     public float randomChildBranchStartPointOffset;
-    public float childSplitAngleDeg;
-    public float childSplitBranchLength;
+    public float childSplitAngleDegBottom;
+    public float childSplitAngleDegTop;
+
+    public float childBranchLengthBottom;
+    public float childBranchLengthTop;
+
+    public float childCurvature;
+
+    public float childScrewAngle;
 
     [Range(1, 6)]
     public int maxNumberSplits;
@@ -505,7 +619,7 @@ public class treeGen2 : MonoBehaviour
     public List<Vector3> debugListGreen;
     public List<Vector3> debugListBlue;
 
-    public float radius;
+    //public float radius;
     [Range(1, 10)]
     public int sections;
     [Range(2, 10)]
@@ -683,8 +797,8 @@ public class treeGen2 : MonoBehaviour
             dirBdebugLines.Clear();
         }
     
-        root = new node(new Vector3(0f, 0f, 0f), radius * radius, this, null);
-        root.next.Add(new node(norm(treeGrowDir) * treeHeight, radius * radius, this, root));
+        root = new node(new Vector3(0f, 0f, 0f), this, null, 0);
+        root.next.Add(new node(norm(treeGrowDir) * treeHeight / 2f, this, root, 0)); // TODO: remove radius option -> is calculated!
         root.children.Add(new List<node>());
         root.tangent = norm(root.next[0].point - root.point);
         root.cotangent = norm(Vector3.Cross(treeGrowDir, new Vector3(1f, 0f, 0f)));
@@ -695,62 +809,46 @@ public class treeGen2 : MonoBehaviour
         root.next[0].tangent = norm(root.next[0].point - root.point);
         root.next[0].cotangent = norm(Vector3.Cross(root.next[0].tangent, Vector3.Cross(root.cotangent, root.next[0].tangent)));
 
-        root.grow(Quaternion.identity, treeHeight / 2f, root.next[0].point, root.next[0].crossSectionArea * 0.5f);
-        Debug.Log("growLength: " + growLength + " root.next.point: " + root.next[0].point + " root.next.crossArea: " + root.next[0].crossSectionArea);
-        root.grow(Quaternion.AngleAxis(0f, new Vector3(1f, 0f, 0f)), growLength, root.next[0].point, root.next[0].crossSectionArea * 0.5f);
-        root.grow(Quaternion.AngleAxis(0f, new Vector3(0f, 0f, 1f)), growLength, root.next[0].point, root.next[0].crossSectionArea);
-        root.grow(Quaternion.AngleAxis(0f, new Vector3(0f, 0f, 1f)), growLength, root.next[0].point, root.next[0].crossSectionArea);
+        root.grow(Quaternion.identity, treeHeight / 2f, root.next[0].point);
 
-        //root.next[0].addChildren(5);
 
-        Vector3 p = root.next[0].point;
-        if (p == null)
-        {
-            Debug.Log("ERRROR p is null!");
-        }
-        Vector3 rp = root.point;
-        if (rp == null)
-        {
-            Debug.Log("ERRROR rp is null!");
-        }
-        float cross = root.next[0].crossSectionArea;
-        if (cross == null)
-        {
-            Debug.Log("ERRROR cross is null!");
-        }
-        float sr = splitRotation[0];
-        if (sr == null)
-        {
-            Debug.Log("ERRROR sr is null!");
-        }
-        float saA = splitAngleDegA[0];
-        if (saA == null)
-        {
-            Debug.Log("ERRROR saA is null!");
-        }
-        float saB = splitAngleDegB[0];
-        if (saB == null)
-        {
-            Debug.Log("ERRROR saB is null!");
-        }
+        //root.grow(Quaternion.AngleAxis(0f, new Vector3(1f, 0f, 0f)), growLength, root.next[0].point);
+        //root.grow(Quaternion.AngleAxis(0f, new Vector3(0f, 0f, 1f)), growLength, root.next[0].point);
+        //root.grow(Quaternion.AngleAxis(0f, new Vector3(0f, 0f, 1f)), growLength, root.next[0].point);
+        root.calculateThickness();
 
-        root.split(splitLength, p - rp, p - rp, cross, rp, new Vector3(1f, 0f, 0f), sr, saA, saB, true, false, true);
-        //
-        root.split(splitLength * 0.7f, root.next[0].point - root.point, root.next[0].point - root.point, root.next[0].next[0].crossSectionArea, root.point, new Vector3(1f, 0f, 0f), splitRotation[1], splitAngleDegA[1], splitAngleDegB[1], true, false, true);
-        root.split(splitLength * 0.7f, root.next[0].point - root.point, root.next[0].point - root.point, root.next[0].next[0].crossSectionArea, root.point, new Vector3(0f, 0f, 1f), splitRotation[2], splitAngleDegA[2], splitAngleDegB[2], true, false, true);
-        root.split(splitLength * 0.7f, root.next[0].point - root.point, root.next[0].point - root.point, root.next[0].next[0].crossSectionArea, root.point, new Vector3(1f, 0f, 0f), splitRotation[3], splitAngleDegA[3], splitAngleDegB[3], true, false, true); // do not use center (TODO: remove option)
-    
+
+        // TODO: combine children with split !
+
+        // root.split(splitLength * 0.7f, p - rp, p - rp, rp, new Vector3(1f, 0f, 0f), sr, saA, saB, true, true, true);
+        // //
+        root.next[0].addChildren(numberChildren);
+
+        foreach (List<node> l in root.next[0].children) // TEST! ... // TODO!
+        {
+            foreach (node c in l)
+            {
+                c.split(splitLength * 0.7f, root.next[0].point - root.point, root.next[0].point - root.point, root.point, new Vector3(1f, 0f, 0f), splitRotation[1], splitAngleDegA[1], splitAngleDegB[1], false, true, true);
+                c.split(splitLength * 1.3f, root.next[0].point - root.point, root.next[0].point - root.point, root.point, new Vector3(0f, 0f, 1f), splitRotation[2], splitAngleDegA[2], splitAngleDegB[2], false, true, true);
+                c.split(splitLength * 0.7f, root.next[0].point - root.point, root.next[0].point - root.point, root.point, new Vector3(1f, 0f, 0f), splitRotation[3], splitAngleDegA[3], splitAngleDegB[3], false, true, true);
+                c.split(splitLength * 0.7f, root.next[0].point - root.point, root.next[0].point - root.point, root.point, new Vector3(1f, 0f, 0f), splitRotation[3], splitAngleDegA[3], splitAngleDegB[3], true, false, true);
+                c.split(splitLength * 0.7f, root.next[0].point - root.point, root.next[0].point - root.point, root.point, new Vector3(1f, 0f, 0f), splitRotation[3], splitAngleDegA[3], splitAngleDegB[3], false, true, true);
+            }
+        }
+        // TODO: uneven crossSectionAreaSplitting! -> at childPoints!
+
         //for (int i = 0; i < maxNumberSplits; i++)
         //{
         //    root.split(splitLength * 0.7f, root.next[0].point - root.point, root.next[0].point - root.point, root.next[0].next[0].crossSectionArea, root.point, new Vector3(1f, 0f, 0f), splitRotation[i], splitAngleDegA[i], splitAngleDegB[i], true, false, true);
         //}
-        
+
         root.calculateThickness();
-        
-        //root.next[0].next[0].next[0].addChildren(numberChildren);
-    
-        allSegments.Clear();
-        allSegments = getAllSegments(sections);
+
+        if (allSegments != null)
+        {
+            allSegments.Clear();
+            allSegments = getAllSegments(sections);
+        }
         //Debug.Log("allSegments Count: " + allSegments.Count);
     
         vertices.Clear();
