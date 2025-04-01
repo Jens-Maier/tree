@@ -531,10 +531,10 @@ public class treeGen3 : MonoBehaviour
                 {
                     // split
                     int indexToSplit = random.Next() % nodeIndices.Count;
-                    Debug.Log("indexToSplit: " + indexToSplit); // 2
-                    Debug.Log("nodeIndices.Count: " + nodeIndices.Count); // 4
-                    Debug.Log("nodeIndexToSplit: " + nodeIndices[indexToSplit]); // 2
-                    Debug.Log("nodesInLevelNextIndex[level = " + level + "].Count: " + nodesInLevelNextIndex[level].Count); // level 2, Count 2
+                    Debug.Log("indexToSplit: " + indexToSplit); // 0
+                    Debug.Log("nodeIndices.Count: " + nodeIndices.Count); // 1
+                    Debug.Log("nodeIndexToSplit: " + nodeIndices[indexToSplit]); // 0
+                    Debug.Log("nodesInLevelNextIndex[level = " + level + "].Count: " + nodesInLevelNextIndex[level].Count); // level 0, Count 31
                     if (nodeIndices.Count > indexToSplit)
                     {
                         node splitNode = split(nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item1, nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item2, 0.5f, 30f);
@@ -544,7 +544,7 @@ public class treeGen3 : MonoBehaviour
                         if (splitNode == nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item1)
                         {
                             // did not split
-                            nodesInLevelNextIndex[level].RemoveAt(indexToSplit);
+                            // nodesInLevelNextIndex[level].RemoveAt(indexToSplit); // TEST OFF
                             Debug.Log("did not split!");
                         }
                         else
@@ -811,6 +811,7 @@ public class treeGen3 : MonoBehaviour
 
     public node split(node startNode, int nextIndex, float splitHeight, float splitAngle) // splitHeight: [0, 1]
     {
+        Debug.Log("in split()!");
         // split after resampleSpline!  //  in resampleSpline(): t_value = (float)i / (float)n
         if (startNode.next.Count > 0 && nextIndex < startNode.next.Count)
         {
@@ -824,37 +825,144 @@ public class treeGen3 : MonoBehaviour
 
             int splitAfterNodeNr = (int)((float)(nrNodesToTip) * splitHeight);
 
-            if ((float)(nrNodesToTip) * splitHeight - (float)splitAfterNodeNr < 0.2f && nrNodesToTip > 1)
+            if (nrNodesToTip > 0) //1)
             {
-                // split at existing node
-            
-
-
-                node splitNode = startNode;
-                int splitAfterNodeIndex = 0;
-                for (int i = 0; i < splitAfterNodeNr; i++)
+                if ((float)(nrNodesToTip) * splitHeight - (float)splitAfterNodeNr < 0.2f)
                 {
-                    if (i == 0)
+                    // split at existing node
+                    Debug.Log("split at existing node!");
+
+
+
+                    node splitNode = startNode;
+                    int splitAfterNodeIndex = 0;
+                    for (int i = 0; i < splitAfterNodeNr; i++)
                     {
-                        splitNode = splitNode.next[nextIndex];
+                        if (i == 0)
+                        {
+                            splitNode = splitNode.next[nextIndex];
+                            nextIndex = 0;
+                        }
+                        else
+                        {
+                            splitNode = splitNode.next[0]; // nextIndex in first iteration, then 0!
+                        }
+                        splitAfterNodeIndex++;
+                    }
+                    if (splitNode == rootNode)
+                    {
+                        Debug.Log("split at rootNode");
+                    }
+                    Debug.Log("in split() split point: " + splitNode.point);
+                    if (splitNode == startNode)
+                    {
+                        // TODO: insert new node!
+                        Debug.Log("splitNode == startNode, TODO: insert new node!");
                     }
                     else
                     {
-                        splitNode = splitNode.next[0]; // nextIndex in first iteration, then 0!
+                        node n = splitNode;
+                        int nodesAfterSplitNode = 0;
+                        while(n.next.Count > 0)
+                        {
+                            nodesAfterSplitNode++;
+                            n = n.next[0];
+                        }
+
+                        //Vector3 splitPoint = sampleSplineT(splitNode.point, splitNode.next[0].point, splitNode.tangent[0], splitNode.next[0].tangent[0], 
+                        //                                   (splitHeight * nrNodesToTip) - Mathf.Floor(splitHeight * nrNodesToTip));
+                        //
+                        //debugSplitPoint = splitPoint;
+
+                        Vector3 outwardDir; // TODO
+                        Vector3 curvature; // TODO
+                        Vector3 splitAxis = splitNode.cotangent;
+                        splitAxis = Quaternion.AngleAxis(90, splitNode.tangent[0]) * splitAxis;
+
+                        Vector3 splitDirA = Quaternion.AngleAxis(splitAngle, splitAxis) * splitNode.tangent[0];
+                        Vector3 splitDirB = Quaternion.AngleAxis(-splitAngle, splitAxis) * splitNode.tangent[0];
+                        debugSplitDirA = splitDirA;
+                        debugSplitDirB = splitDirB;
+
+                        splitNode.tangent.Add(splitDirA);
+                        splitNode.tangent.Add(splitDirB); // tangent[]: center, dirA, dirB
+
+                        node s = splitNode;
+                        node prevA = splitNode;
+                        node prevB = splitNode;
+                        for (int i = 0; i < nodesAfterSplitNode; i++)
+                        {
+                            s = s.next[0];
+                            Vector3 relPos = s.point - splitNode.point;
+
+                            Vector3 tangentA = Quaternion.AngleAxis(splitAngle, splitAxis) * s.tangent[0];
+                            Vector3 tangentB = Quaternion.AngleAxis(-splitAngle, splitAxis) * s.tangent[0];
+                            Vector3 cotangentA = Quaternion.AngleAxis(splitAngle, splitAxis) * s.cotangent;
+                            Vector3 cotangentB = Quaternion.AngleAxis(-splitAngle, splitAxis) * s.cotangent;
+
+                            node nodeA = new node(splitNode.point + Quaternion.AngleAxis(splitAngle, splitAxis) * relPos, tangentA, cotangentA, this, s.parent);
+                            node nodeB = new node(splitNode.point + Quaternion.AngleAxis(-splitAngle, splitAxis) * relPos, tangentB, cotangentB, this, s.parent);
+                            if (i == 0)
+                            {
+                                splitNode.next[0] = nodeA;
+                                splitNode.next.Add(nodeB);
+                                prevA = nodeA;
+                                prevB = nodeB;
+                            }
+                            else
+                            {
+                                prevA.next.Add(nodeA);
+                                prevB.next.Add(nodeB);
+                                prevA = nodeA;
+                                prevB = nodeB;
+                            }
+                        }
+
+                        // mockup funkt!
+                        // 
+                        // node nodeA = new node(splitNode.point + splitDirA, splitNode.tangent[1], splitNode.cotangent, splitNode.gen, splitNode);
+                        // node nodeB = new node(splitNode.point + splitDirB, splitNode.tangent[2], splitNode.cotangent, splitNode.gen, splitNode);
+                        // 
+                        // splitNode.next[0] = nodeA;
+                        // splitNode.next.Add(nodeB);
                     }
-                    splitAfterNodeIndex++;
-                }
-                if (splitNode == rootNode)
-                {
-                    Debug.Log("split at rootNode");
-                }
-                Debug.Log("in split() split point: " + splitNode.point);
-                if (splitNode == startNode)
-                {
-                    // TODO: insert new node!
+                    return splitNode;
+
                 }
                 else
                 {
+                    Debug.Log("split at new node");
+
+                    node splitNode = startNode;
+                    int splitAfterNodeIndex = 0;
+                    for (int i = 0; i < splitAfterNodeNr; i++)
+                    {
+                        if (i == 0)
+                        {
+                            splitNode = splitNode.next[nextIndex];
+                            nextIndex = 0;
+                        }
+                        else
+                        {
+                            splitNode = splitNode.next[0]; // nextIndex in first iteration, then 0!
+                        }
+                        splitAfterNodeIndex++;
+                    }
+                    if (splitNode == rootNode)
+                    {
+                        Debug.Log("split at rootNode");
+                    }
+                    Debug.Log("in split() split point: " + splitNode.point);
+                    
+                    Vector3 newPoint = sampleSplineT(splitNode.point, splitNode.next[nextIndex].point, splitNode.tangent[nextIndex], splitNode.next[nextIndex].tangent[0], (float)(nrNodesToTip) * splitHeight - (float)splitAfterNodeNr);
+                    Vector3 newTangent = sampleSplineTangentT(splitNode.point, splitNode.next[nextIndex].point, splitNode.tangent[nextIndex], splitNode.next[nextIndex].tangent[0], (float)(nrNodesToTip) * splitHeight - (float)splitAfterNodeNr);
+                    Vector3 newCotangent = vLerp(splitNode.cotangent, splitNode.next[nextIndex].cotangent, (float)(nrNodesToTip) * splitHeight - (float)splitAfterNodeNr);
+
+                    node newNode = new node(newPoint, newTangent, newCotangent, this, splitNode);
+                    newNode.next.Add(splitNode.next[nextIndex]);
+                    splitNode.next[nextIndex] = newNode;
+                    splitNode = newNode;
+
                     node n = splitNode;
                     int nodesAfterSplitNode = 0;
                     while(n.next.Count > 0)
@@ -911,53 +1019,13 @@ public class treeGen3 : MonoBehaviour
                             prevB = nodeB;
                         }
                     }
-
-                    // mockup funkt!
-                    // 
-                    // node nodeA = new node(splitNode.point + splitDirA, splitNode.tangent[1], splitNode.cotangent, splitNode.gen, splitNode);
-                    // node nodeB = new node(splitNode.point + splitDirB, splitNode.tangent[2], splitNode.cotangent, splitNode.gen, splitNode);
-                    // 
-                    // splitNode.next[0] = nodeA;
-                    // splitNode.next.Add(nodeB);
+                    
+                    return splitNode;
                 }
-                return splitNode;
-
-            }
-            else
-            {
-                node splitNode = startNode;
-                int splitAfterNodeIndex = 0;
-                for (int i = 0; i < splitAfterNodeNr; i++)
-                {
-                    if (i == 0)
-                    {
-                        splitNode = splitNode.next[nextIndex];
-                    }
-                    else
-                    {
-                        splitNode = splitNode.next[0]; // nextIndex in first iteration, then 0!
-                    }
-                    splitAfterNodeIndex++;
-                }
-                if (splitNode == rootNode)
-                {
-                    Debug.Log("split at rootNode");
-                }
-                Debug.Log("in split() split point: " + splitNode.point);
-                node n = splitNode;
-
-                // add new node to split at
-                int ni = 0;
-                if (splitNode == startNode)
-                {
-                    ni = nextIndex;
-                }
-                splitNode = splitNode.subdivideSegment(ni, (float)(nrNodesToTip) * splitHeight - (float)splitAfterNodeNr);
-                Debug.Log("subdivideSegment() -> insert new node!");
-                return splitNode;
             }
             
         }
+        Debug.Log("in split() returning startNode");
         return startNode;
     }
 
