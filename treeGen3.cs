@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = System.Random;
 
 
 public struct line
@@ -26,16 +27,33 @@ public class node
     public treeGen3 gen;
     public List<List<node>> children;
 
-    public node(Vector3 Point, Vector3 newTangent, treeGen3 g, node par)
+    public node(Vector3 Point, Vector3 newTangent, Vector3 newCotangent, treeGen3 g, node par)
     {
         point = Point;
         tangent = new List<Vector3>();
         tangent.Add(newTangent);
+        cotangent = newCotangent;
         radius = 0f;
         next = new List<node>();
         gen = g;
         parent = par;
         children = new List<List<node>>(); // one list for each node in next 
+    }
+
+    public void getAllLeafNodes(List<node> allLeafNodes)
+    {
+        if (next.Count > 0)
+        {
+            foreach (node n in next)
+            {
+                n.getAllLeafNodes(allLeafNodes);
+            }
+        }
+        else
+        {
+            allLeafNodes.Add(this);
+        }
+        
     }
 
     public void getAllSegments(List<segment> allSegments, int sections, int ringRes)
@@ -54,10 +72,10 @@ public class node
             //}
             if (tangent.Count > 1) // list<tangent> for splits! [tangentIn, tangentOutA, tangentOutB]
             {
-
-                //Debug.Log("tangent count: " + tangent.Count); // 3
-                //Debug.Log("next count: " + next.Count); // 2
-                
+                int index = i + 1;
+                //Debug.Log("tangent count: " + tangent.Count + ", using tangent index " + index + ", next count: " + next.Count);
+                //Debug.Log("next[0].point: " + next[0].point + ", next[1].point: " + next[1].point);
+                                
                 allSegments.Add(new segment(point, next[i].point, tangent[i + 1], next[i].tangent[0], cotangent, next[i].cotangent, sections, radius, next[i].radius, ringRes, gen));
                 
 
@@ -82,6 +100,23 @@ public class node
         }
     }
 
+    public node subdivideSegment(int nextIndex, float splitHeight)
+    {
+        Vector3 splitPoint = sampleSpline(point, next[nextIndex].point, tangent[nextIndex], next[nextIndex].tangent[0], splitHeight);
+        Vector3 splitTangent = sampleSplineTangentT(point, next[nextIndex].point, tangent[nextIndex], next[nextIndex].tangent[0], splitHeight);
+        Vector3 splitCotangent = vLerp(cotangent, next[nextIndex].cotangent, splitHeight);
+        node newNode = new node(splitPoint, splitTangent, splitCotangent, gen, this);
+        newNode.next = next;
+        foreach (node n in next)
+        {
+            n.parent = newNode;
+        }
+        next.Clear();
+        next.Add(newNode);
+        newNode.parent = this;
+        return newNode;
+    }
+
     public void resampleSpline(int n, float noiseAmplitudeLower, float noiseAmplitudeUpper, float noiseScale)
     {
         if (n > 1)
@@ -89,6 +124,7 @@ public class node
             node nodeNext = next[0];
             node currentNode = this;
             Vector3 prevPoint = point;
+            Vector3 prevDirA = cotangent; // TODO: cancel screw!
 
             for (int i = 1; i < n; i++)
             {
@@ -126,13 +162,11 @@ public class node
                 node newNode;
                 if (i == 1)
                 {
-                    newNode = new node(samplePoint, sampleTangent, gen, this);
-                    newNode.cotangent = sampleCotangent;
+                    newNode = new node(samplePoint, sampleTangent, sampleCotangent, gen, this);
                 }
                 else
                 {
-                    newNode = new node(samplePoint, sampleTangent, gen, currentNode);
-                    newNode.cotangent = sampleCotangent;
+                    newNode = new node(samplePoint, sampleTangent, sampleCotangent, gen, currentNode);
                 }
 
                 if (currentNode.next.Count == 0)
@@ -163,11 +197,16 @@ public class node
     }
 
     
-    public int nodesToTip()
+    public int nodesToTip(int i)
     {
         if (next.Count > 0)
         {
-            return (1 + next[0].nodesToTip());
+            if (i > 500)
+            {
+                Debug.Log("ERROR: in nodesToTip(): max iteration reached!");
+                return i;
+            }
+            return (1 + next[0].nodesToTip(i + 1));
         }
         else
         {
@@ -183,11 +222,17 @@ public class node
             float sum = 0f;
             if (next.Count > 0)
             {
+                float max = 0f;
                 foreach (node n in next)
                 {
-                    sum += n.calculateRadius();
-                    sum += vLength(n.point - point) * gen.taper * gen.taper;
+                    float s =  n.calculateRadius();
+                    s += vLength(n.point - point) * gen.taper * gen.taper;
+                    if (s > max)
+                    {
+                        max = s;
+                    }
                 }
+                sum = max;
             }
             if (children.Count > 0)
             {
@@ -200,7 +245,7 @@ public class node
                 }
             }
             radius = sum;
-            Debug.Log("crossSection: " + sum);
+            //Debug.Log("crossSection: " + sum);
             return sum;
         }
         else
@@ -326,6 +371,8 @@ public class treeGen3 : MonoBehaviour
     public Mesh mesh;
     public MeshFilter meshFilter;
 
+    public Random random;
+
     public node rootNode;
     public List<segment> allSegments;
 
@@ -340,18 +387,28 @@ public class treeGen3 : MonoBehaviour
     public int sections;
     [Range(2, 10)]
     public int stemRingResolution;
-    [Range(1, 10)]
+    [Range(1, 25)]
     public int resampleNr;
     [Range(0f, 1f)]
     public float noiseAmplitudeLower;
     [Range(0f, 1f)]
     public float noiseAmplitudeUpper;
-    [Range(0f, 4f)]
+    [Range(1f, 5f)]
     public float noiseAmplitudeLowerUpperExponent;
     [Range(0.1f, 10f)]
     public float noiseScale;
+    [Range(1, 25)]
+    public int nrSplits;
     [Range(0f, 1f)]
     public float testSplitHeight;
+    [Range(0f, 90f)]
+    public float testSplitAngle;
+
+    public float[] splitProbabilityInLevel;
+    public int[] expectedSplitsInLevel;
+    public List<int> nodeIndices;
+    public int meanLevel;
+
 
     public List<line> tangentDebugLines;
     public List<line> dirAdebugLines;
@@ -369,13 +426,14 @@ public class treeGen3 : MonoBehaviour
     public Vector3 debugPrev;
     public Vector3 debugNext;
     public Vector3 debugSplitPoint;
+    public Vector3 debugSplitDirA;
+    public Vector3 debugSplitDirB;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        int x = 3;
-        int y = x / 2;
-        Debug.Log("int 3/2 = " + y);
+        int seed = 2542423;
+        random = new Random(seed);
 
         tangentDebugLines = new List<line>();
         dirAdebugLines = new List<line>();
@@ -411,33 +469,508 @@ public class treeGen3 : MonoBehaviour
         return allSegments;
     }
 
-    public void split(node startNode, float splitHeight)
+
+    public void splitRecursive(node startNode, int nrSplits, float splitAngle)
     {
-        // split after resampleSpline!
-        if (startNode.next.Count > 0)
+        splitProbabilityInLevel = new float[nrSplits];
+        expectedSplitsInLevel = new int[nrSplits];
+        meanLevel = (int)Mathf.Log((float)nrSplits, 2f) + 1;
+
+        for (int i = 0; i < meanLevel - 1; i++)
         {
-            int nrNodesToTip;
-            nrNodesToTip = startNode.next[0].nodesToTip();
+            splitProbabilityInLevel[i] = 1f;
+            expectedSplitsInLevel[i] = (int)(1f * Mathf.Pow(2f, (float)i));
+        }
+        splitProbabilityInLevel[meanLevel - 1] = 7f / 8f; 
 
-            int splitAfterNodeNr = (int)((float)(nrNodesToTip) * splitHeight);
-            Debug.Log("splitAfterNodeNr " + splitAfterNodeNr);
-            Debug.Log("nrNodesToTip " + nrNodesToTip); // 2 OK
+        expectedSplitsInLevel[meanLevel - 1] = (int)Mathf.RoundToInt((7f / 8f) * Mathf.Pow(2f, (float)(meanLevel - 1))); 
+        for (int i = meanLevel; i < nrSplits; i++)
+        {
+            splitProbabilityInLevel[i] = 1f / 8f;
+            expectedSplitsInLevel[i] = (int)(Mathf.RoundToInt(1f / 8f * Mathf.Pow(2f, (float)i)));
+        }
+        splitProbabilityInLevel[0] = 1f; // for nrSplits = 1
 
-            node splitAfterNode = rootNode;
-            int splitAfterNodeIndex = 0;
-            while(splitAfterNodeNr > 0)
+        List<List<(node, int)>> nodesInLevelNextIndex = new List<List<(node, int)>>();
+        for (int i = 0; i <= nrSplits; i++)
+        {
+            nodesInLevelNextIndex.Add(new List<(node, int)>());
+        }
+        for (int n = 0; n < startNode.next.Count; n++)
+        {
+            nodesInLevelNextIndex[0].Add((startNode, n));
+        }
+
+        int totalSplitCounter = 0;
+        for (int level = 0; level < nrSplits; level++)
+        {
+            int splitsInLevel = 0;
+            int safetyCounter = 0;
+            
+            nodeIndices = new List<int>();
+            for (int i = 0; i < nodesInLevelNextIndex[level].Count; i++)
             {
-                splitAfterNode = splitAfterNode.next[0];
-                splitAfterNodeIndex++;
-                splitAfterNodeNr--;
+                nodeIndices.Add(i);
+            }
+            Debug.Log("begin of level " + level + ": nodeIndices.Count: " + nodeIndices.Count);
+            for (int i = 0; i < nodesInLevelNextIndex[level].Count; i++)
+            {
+                Debug.Log("nodeIndices[" + i + "]: " + nodeIndices[i]);
             }
 
-            Vector3 splitPoint = sampleSplineT(splitAfterNode.point, splitAfterNode.next[0].point, splitAfterNode.tangent[0], splitAfterNode.next[0].tangent[0], 
-                                               (splitHeight * nrNodesToTip) % Mathf.Floor(splitHeight * nrNodesToTip)  - (float)splitAfterNodeIndex / (float)nrNodesToTip);
+            while(splitsInLevel < expectedSplitsInLevel[level])
+            {
+                Debug.Log("begin of iteration: nodeIndices.Count: " + nodeIndices.Count);
+                
+                if (totalSplitCounter == nrSplits)
+                {
+                    break;
+                }
+                float r = ((float)(random.Next() % 9999)) / 10000f;
+                if (r <= splitProbabilityInLevel[level])
+                {
+                    // split
+                    int indexToSplit = random.Next() % nodeIndices.Count;
+                    Debug.Log("indexToSplit: " + indexToSplit); // 2
+                    Debug.Log("nodeIndices.Count: " + nodeIndices.Count); // 4
+                    Debug.Log("nodeIndexToSplit: " + nodeIndices[indexToSplit]); // 2
+                    Debug.Log("nodesInLevelNextIndex[level = " + level + "].Count: " + nodesInLevelNextIndex[level].Count); // level 2, Count 2
+                    if (nodeIndices.Count > indexToSplit)
+                    {
+                        node splitNode = split(nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item1, nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item2, 0.5f, 30f);
 
-            debugSplitPoint = splitPoint; // TODO...
+                        // TODO: in split() -> split between two nodes -> insert new node!
+
+                        if (splitNode == nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item1)
+                        {
+                            // did not split
+                            nodesInLevelNextIndex[level].RemoveAt(indexToSplit);
+                            Debug.Log("did not split!");
+                        }
+                        else
+                        {
+                            //nodesInLevelNextIndex[level].RemoveAt(nodeIndices[indexToSplit]);
+                            nodeIndices.RemoveAt(indexToSplit);
+                            nodesInLevelNextIndex[level + 1].Add((splitNode, 0));//
+                            nodesInLevelNextIndex[level + 1].Add((splitNode, 1));
+                            splitsInLevel += 1;
+                            totalSplitCounter += 1;
+                        }
+                    }
+                }
+                safetyCounter += 1;
+                if (safetyCounter > 40)
+                {
+                    break;
+                }
+                
+            }
+        }
+
+
+
+
+        // List<List<int>> splitIndex = new List<List<int>>();
+        // for (int i = 0; i < nrSplits; i++)
+        // {
+        //     splitIndex.Add(new List<int>());
+        // }
+// 
+        // List<List<(node, int)>> nodesInLevelNextIndex = new List<List<(node, int)>>();
+        // for (int i = 0; i <= nrSplits; i++)
+        // {
+        //     nodesInLevelNextIndex.Add(new List<(node, int)>());
+        // }
+        // nodesInLevelNextIndex[0].Add((startNode, 0));
+        // int maxLevel = 1;
+
+        // int totalSplitCounter = 0;
+        // for (int level = 0; level < maxLevel; level++)
+        // {
+        //     //Debug.Log("level " + level + " splitProbability: " + splitProbabilityInLevel[level]);
+        //     
+        //     int i = 0;
+        //     Debug.Log("nodesInLevelNextIndex.Count: " + nodesInLevelNextIndex.Count + "level: " + level);
+        //     for (int c = 0; c < nodesInLevelNextIndex.Count; c++)
+        //     {
+        //         Debug.Log("nodesInLevelNextIndex[" + c + "].Count: " + nodesInLevelNextIndex[c].Count);
+        //     }
+        //     nodeIndices = new List<int>();
+        //     for (int x = 0; x < nodesInLevelNextIndex[level].Count; x++)
+        //     {
+        //         nodeIndices.Add(x); // ERROR HERE !!!
+        //     }
+        //     if (nodesInLevelNextIndex[level].Count > 0 && totalSplitCounter < nrSplits)
+        //     {
+        //         Debug.Log("nodeIndices count: " + nodeIndices.Count);
+        //         i = random.Next() % nodeIndices.Count;//
+        //         Debug.Log("i: " + i);
+        //         if (i == nodeIndices.Count || i > nodeIndices.Count)
+        //         {
+        //             i = nodeIndices.Count - 1;
+        //         }
+        //         int iteration = 0;
+        //         int maxIterations = 20;
+        //         int safetyCounter = 0;
+// 
+        //         Debug.Log("level: " + level);
+        //         Debug.Log("expectedSplitsInLevel.Count: " + expectedSplitsInLevel.Length);
+        //         //for (int s = 0; s < expectedSplitsInLevel[level]; s++)
+        //         //while(counter < expectedSplitsInLevel[level])
+        //         for (int counter = 0; counter < 40; counter++)
+        //         {
+        //             if (counter >= expectedSplitsInLevel[level])
+        //             {
+        //                 break;
+        //             }
+        //             if (safetyCounter > maxIterations)
+        //             {
+        //                 break;
+        //             }
+        //             float r = ((float)(random.Next() % 9999)) / 10000f;
+// 
+        //             if (r <= splitProbabilityInLevel[level] && iteration < maxIterations) // is only called once per level! -> must be called multiple times!
+        //             {
+        //                 Debug.Log("split! level " + level); // 2
+        //                 Debug.Log("i: " + i); // 3
+        //                 Debug.Log("nodeIndices count: " + nodeIndices.Count); 
+        //                 Debug.Log("nodeIndices[i]: " + nodeIndices[i]);
+        //                 
+        //                 if (nodesInLevelNextIndex[level].Count > nodeIndices[i])
+        //                 {
+        //                     node splitNode = split(nodesInLevelNextIndex[level][nodeIndices[i]].Item1, nodesInLevelNextIndex[level][nodeIndices[i]].Item2, 0.5f, 30f);
+        //                     if (splitNode == nodesInLevelNextIndex[level][nodeIndices[i]].Item1)
+        //                     {
+        //                         // did not split
+        //                     }
+        //                     else
+        //                     {
+        //                         nodeIndices.RemoveAt(i);
+        //                         // -> update range of i! 
+// 
+        //                         nodesInLevelNextIndex[level + 1].Add((splitNode, 0));//
+        //                         nodesInLevelNextIndex[level + 1].Add((splitNode, 1));
+        //                         int l = level + 1;
+        //                         Debug.Log("adding two splitNodes to nodesInLevelNextIndex[level = " + l + "]");
+// 
+        //                         //expectedSplitsInLevel[level] += 1;
+// 
+        //                         // node split(node startNode, int nextIndex, float splitHeight, float splitAngle) 
+        //                         // returns splitNode
+// 
+        //                         counter += 1;
+        //                         totalSplitCounter += 1;
+        //                         Debug.Log("totalSplitCounter: " + totalSplitCounter);
+        //                     }
+        //                     //-------^^^^ add code above here  ^^^^-----------------------------------------------------------------------
+        //                     if (nodeIndices.Count > 0)
+        //                     {
+        //                         i = random.Next() % nodeIndices.Count;
+        //                     }
+        //                     else
+        //                     {
+        //                         Debug.Log("nodeIndices.Count = 0! -> all branches are split (??) -> break");
+        //                         break;
+        //                     }
+        //                 }
+        //                 else
+        //                 {
+        //                     Debug.Log("ERROR: nodesInLevelNextIndex[level].Count: " + nodesInLevelNextIndex[level].Count + ", nodeIndices[i]: " + nodeIndices[i]);
+        //                 }
+// 
+        //                 Debug.Log("nodesInLevelNextIndex.Count: " + nodesInLevelNextIndex.Count + ", level: " + level);
+        //                 for (int c = 0; c < nodesInLevelNextIndex.Count; c++)
+        //                 {
+        //                     Debug.Log("nodesInLevelNextIndex[" + c + "].Count: " + nodesInLevelNextIndex[c].Count);
+        //                 }
+        //             }
+        //             if (totalSplitCounter == nrSplits)
+        //             {
+        //                 Debug.Log("totalSplitCounter == nrSplits: " + nrSplits + " -> break");
+        //                 break;
+        //             }
+        //             iteration += 1;
+        //             if (iteration >= maxIterations)
+        //             {
+        //                 Debug.Log("maxIteraitons -> break");
+        //                 break;
+        //             }
+        //             safetyCounter += 1;
+        //             if (safetyCounter > 20)
+        //             {
+        //                 Debug.Log("safetyCounter = 20 -> break");
+        //                 break;
+        //             }
+        //         }
+        //         if (level == maxLevel - 1)
+        //         {
+        //             maxLevel += 1;
+        //             if (maxLevel > nrSplits)
+        //             {
+        //                 maxLevel = nrSplits;
+        //             }
+        //             if (maxLevel >= 20)
+        //             {
+        //                 Debug.Log("maxLevel: " + maxLevel);
+        //                 break;
+        //             }
+        //             Debug.Log("new maxLevel: " + maxLevel);
+        //         }
+        //     }
+        //     else
+        //     {
+        //         Debug.Log("nodesInLevelNextIndex[level = " + level + "].Count: " + nodesInLevelNextIndex[level].Count + ",  totalSplitCounter: " + totalSplitCounter);
+        //     }
+        // }
+        // List<node> leafNodeParents = new List<node>();
+        // leafNodeParents.Add(startNode);
+        // float[] splitProbabilityInLevel = new float[nrSplits];
+        // int[] expectedSplitsInLevel = new int[nrSplits];
+        // int meanLevel = (int)Mathf.Log((float)nrSplits, 2f) + 1;
+        // Debug.Log("meanLevel: " + meanLevel + ", nrSplits: " + nrSplits); // meanLevel: 2, nrSplits: 2
+        // for (int i = 0; i < meanLevel - 1; i++)
+        // {
+        //     splitProbabilityInLevel[i] = 1f;
+        //     Debug.Log("splitProbabilityInLevel[" + i + "]: " + splitProbabilityInLevel[i]); // [0]: 1  [1]: 0.875
+        //     expectedSplitsInLevel[i] = (int)(1f * Mathf.Pow(2f, (float)i));
+        // }
+        // splitProbabilityInLevel[meanLevel - 1] = 7f / 8f; 
+        // int k = meanLevel - 1; 
+        // Debug.Log("splitProbabilityInLevel[" + k + "]: " + splitProbabilityInLevel[meanLevel - 1]); 
+        // expectedSplitsInLevel[meanLevel - 1] = (int)Mathf.RoundToInt((7f / 8f) * Mathf.Pow(2f, (float)(meanLevel - 1))); 
+        // for (int i = meanLevel; i < nrSplits; i++)
+        // {
+        //     splitProbabilityInLevel[i] = 1f / 8f;
+        //     Debug.Log("splitProbabilityInLevel[" + i + "]: " + splitProbabilityInLevel[i]);
+        //     expectedSplitsInLevel[i] = (int)(Mathf.RoundToInt(1f / 8f * Mathf.Pow(2f, (float)i)));
+        // }
+        // 
+        // for (int i = 0; i < nrSplits; i++)
+        // {
+        //     Debug.Log("expectedSplitsInLevel[" + i + "]: " + expectedSplitsInLevel[i]); // [0]: 1  [1]: 2  [2]: 1
+        // }
+        // 
+        // int splitCounter = 0;
+        // int safetyLimit = 1000000;
+        // int safetyCounter = 0;
+        // int level = 0;
+        // int[] splitsInLevel = new int[nrSplits];
+        // for (int i = 0; i < nrSplits; i++)
+        // {
+        //     splitsInLevel[i] = 0;
+        // }
+        // while (splitCounter < nrSplits)
+        // {
+        //     Debug.Log("expectedSplitsInLevel[" + level + "]: " + expectedSplitsInLevel[level]); // [0]: 1  [1]: 2  [2]: 1
+        // 
+        //     bool[] isSplit = new bool[intPow(2, level)];
+        //     for (int i = 0; i < intPow(2, level); i++)
+        //     {
+        //         isSplit[i] = false;
+        //     }
+        //     
+        //     while(splitsInLevel[level] < expectedSplitsInLevel[level])
+        //     {
+        //         float r = ((float)(random.Next() % 100)) / 100f;
+        //         int rnext = random.Next() % leafNodeParents.Count; // do not split nodes that have been split before!
+        //         // todo: leafNodeParents can have 2 children -> 2 paths to split!
+        //         
+        //         if (isSplit[rnext] == false)
+        //         {
+        //             // split
+        //             Debug.Log("split! rnext: " + rnext + ", in level " + level);
+        //             leafNodeParents.Add(split(leafNodeParents[rnext], 0, 0.5f, splitAngle));
+        //             isSplit[rnext] = true;
+        //             
+        //             splitsInLevel[level]++;
+        //             splitCounter++;
+        //             safetyCounter++;
+        //         }
+        // 
+        // 
+        //     }
+        //     level++;
+        // 
+        //     Debug.Log("level++ -> " + level);
+        //     if (level >= nrSplits)
+        //     {
+        //         Debug.Log("level " + level + "-> break");//
+        //         break;
+        //     }
+        //     
+        //     
+        //     if (safetyCounter > safetyLimit)
+        //     {
+        //         Debug.Log("ERROR: safety limit reached!");
+        //         break;
+        //     }
+        // }
+        
+    }
+
+
+    public node split(node startNode, int nextIndex, float splitHeight, float splitAngle) // splitHeight: [0, 1]
+    {
+        // split after resampleSpline!  //  in resampleSpline(): t_value = (float)i / (float)n
+        if (startNode.next.Count > 0 && nextIndex < startNode.next.Count)
+        {
+            int nrNodesToTip;
+            nrNodesToTip = startNode.next[nextIndex].nodesToTip(0);
+            
+            if (splitHeight >= 0.999f)
+            {
+                splitHeight = 0.999f;
+            }
+
+            int splitAfterNodeNr = (int)((float)(nrNodesToTip) * splitHeight);
+
+            if ((float)(nrNodesToTip) * splitHeight - (float)splitAfterNodeNr < 0.2f && nrNodesToTip > 1)
+            {
+                // split at existing node
+            
+
+
+                node splitNode = startNode;
+                int splitAfterNodeIndex = 0;
+                for (int i = 0; i < splitAfterNodeNr; i++)
+                {
+                    if (i == 0)
+                    {
+                        splitNode = splitNode.next[nextIndex];
+                    }
+                    else
+                    {
+                        splitNode = splitNode.next[0]; // nextIndex in first iteration, then 0!
+                    }
+                    splitAfterNodeIndex++;
+                }
+                if (splitNode == rootNode)
+                {
+                    Debug.Log("split at rootNode");
+                }
+                Debug.Log("in split() split point: " + splitNode.point);
+                if (splitNode == startNode)
+                {
+                    // TODO: insert new node!
+                }
+                else
+                {
+                    node n = splitNode;
+                    int nodesAfterSplitNode = 0;
+                    while(n.next.Count > 0)
+                    {
+                        nodesAfterSplitNode++;
+                        n = n.next[0];
+                    }
+
+                    //Vector3 splitPoint = sampleSplineT(splitNode.point, splitNode.next[0].point, splitNode.tangent[0], splitNode.next[0].tangent[0], 
+                    //                                   (splitHeight * nrNodesToTip) - Mathf.Floor(splitHeight * nrNodesToTip));
+                    //
+                    //debugSplitPoint = splitPoint;
+
+                    Vector3 outwardDir; // TODO
+                    Vector3 curvature; // TODO
+                    Vector3 splitAxis = splitNode.cotangent;
+                    splitAxis = Quaternion.AngleAxis(90, splitNode.tangent[0]) * splitAxis;
+
+                    Vector3 splitDirA = Quaternion.AngleAxis(splitAngle, splitAxis) * splitNode.tangent[0];
+                    Vector3 splitDirB = Quaternion.AngleAxis(-splitAngle, splitAxis) * splitNode.tangent[0];
+                    debugSplitDirA = splitDirA;
+                    debugSplitDirB = splitDirB;
+
+                    splitNode.tangent.Add(splitDirA);
+                    splitNode.tangent.Add(splitDirB); // tangent[]: center, dirA, dirB
+
+                    node s = splitNode;
+                    node prevA = splitNode;
+                    node prevB = splitNode;
+                    for (int i = 0; i < nodesAfterSplitNode; i++)
+                    {
+                        s = s.next[0];
+                        Vector3 relPos = s.point - splitNode.point;
+
+                        Vector3 tangentA = Quaternion.AngleAxis(splitAngle, splitAxis) * s.tangent[0];
+                        Vector3 tangentB = Quaternion.AngleAxis(-splitAngle, splitAxis) * s.tangent[0];
+                        Vector3 cotangentA = Quaternion.AngleAxis(splitAngle, splitAxis) * s.cotangent;
+                        Vector3 cotangentB = Quaternion.AngleAxis(-splitAngle, splitAxis) * s.cotangent;
+
+                        node nodeA = new node(splitNode.point + Quaternion.AngleAxis(splitAngle, splitAxis) * relPos, tangentA, cotangentA, this, s.parent);
+                        node nodeB = new node(splitNode.point + Quaternion.AngleAxis(-splitAngle, splitAxis) * relPos, tangentB, cotangentB, this, s.parent);
+                        if (i == 0)
+                        {
+                            splitNode.next[0] = nodeA;
+                            splitNode.next.Add(nodeB);
+                            prevA = nodeA;
+                            prevB = nodeB;
+                        }
+                        else
+                        {
+                            prevA.next.Add(nodeA);
+                            prevB.next.Add(nodeB);
+                            prevA = nodeA;
+                            prevB = nodeB;
+                        }
+                    }
+
+                    // mockup funkt!
+                    // 
+                    // node nodeA = new node(splitNode.point + splitDirA, splitNode.tangent[1], splitNode.cotangent, splitNode.gen, splitNode);
+                    // node nodeB = new node(splitNode.point + splitDirB, splitNode.tangent[2], splitNode.cotangent, splitNode.gen, splitNode);
+                    // 
+                    // splitNode.next[0] = nodeA;
+                    // splitNode.next.Add(nodeB);
+                }
+                return splitNode;
+
+            }
+            else
+            {
+                node splitNode = startNode;
+                int splitAfterNodeIndex = 0;
+                for (int i = 0; i < splitAfterNodeNr; i++)
+                {
+                    if (i == 0)
+                    {
+                        splitNode = splitNode.next[nextIndex];
+                    }
+                    else
+                    {
+                        splitNode = splitNode.next[0]; // nextIndex in first iteration, then 0!
+                    }
+                    splitAfterNodeIndex++;
+                }
+                if (splitNode == rootNode)
+                {
+                    Debug.Log("split at rootNode");
+                }
+                Debug.Log("in split() split point: " + splitNode.point);
+                node n = splitNode;
+
+                // add new node to split at
+                int ni = 0;
+                if (splitNode == startNode)
+                {
+                    ni = nextIndex;
+                }
+                splitNode = splitNode.subdivideSegment(ni, (float)(nrNodesToTip) * splitHeight - (float)splitAfterNodeNr);
+                Debug.Log("subdivideSegment() -> insert new node!");
+                return splitNode;
+            }
             
         }
+        return startNode;
+    }
+
+
+
+    public int intPow(int x, int exponent)
+    {
+        int y = 1;
+        for (int i = 0; i < exponent; i++)
+        {
+            y *= x; // Multiply y by x, exponent times
+        }
+        return y;
     }
 
 
@@ -451,22 +984,57 @@ public class treeGen3 : MonoBehaviour
         debugListGreen.Clear();
         debugListRed.Clear();
         debugListBlue.Clear();
-        rootNode = new node(new Vector3(0f, 0f, 0f), new Vector3(0f, 1f, 0f), this, null);
-        rootNode.cotangent = norm(Vector3.Cross(treeGrowDir, new Vector3(1f, 0f, 0f)));
+        rootNode = new node(new Vector3(0f, 0f, 0f), new Vector3(0f, 1f, 0f), Vector3.Cross(treeGrowDir, new Vector3(treeGrowDir.x, 0f, treeGrowDir.z)), this, null);
+        //if (Mathf.Abs(treeGrowDir.x) > Mathf.Abs(treeGrowDir.z))
+        //{
+        //    if (treeGrowDir.x > 0)
+        //    {
+        //        rootNode.cotangent = norm(Vector3.Cross(treeGrowDir, new Vector3(1f, 0f, 0f)));
+        //    }
+        //    else
+        //    {
+        //        rootNode.cotangent = norm(Vector3.Cross(treeGrowDir, new Vector3(-1f, 0f, 0f)));
+        //    }
+        //}
+        //else
+        //{
+        //    if (treeGrowDir.z > 0)
+        //    {
+        //        rootNode.cotangent = norm(Vector3.Cross(treeGrowDir, new Vector3(0f, 0f, 1f)));
+        //    }
+        //    else
+        //    {
+        //        rootNode.cotangent = norm(Vector3.Cross(treeGrowDir, new Vector3(0f, 0f, -1f)));
+        //    }
+        //}
+        //rootNode.cotangent = Vector3.Cross(treeGrowDir, new Vector3(treeGrowDir.x, 0f, treeGrowDir.z));
 
         if (rootNode.cotangent == new Vector3(0f, 0f, 0f))
         {
-            rootNode.cotangent = norm(Vector3.Cross(treeGrowDir, new Vector3(0f, 0f, 1f)));
+            rootNode.cotangent = norm(Vector3.Cross(treeGrowDir, new Vector3(1f, 0f, 0f)));
+            if (rootNode.cotangent == new Vector3(0f, 0f, 0f))
+            {
+                rootNode.cotangent = norm(Vector3.Cross(treeGrowDir, new Vector3(0f, 0f, 1f)));
+            }
         }
+        else
+        {
+            rootNode.cotangent = norm(rootNode.cotangent);
+        }
+        // improve cotangent
+        Vector3 dirB = Vector3.Cross(rootNode.tangent[0], rootNode.cotangent);
+        rootNode.cotangent = norm(Vector3.Cross(dirB, rootNode.tangent[0]));
+
         //rootNode.next[0].tangent[0] = norm(rootNode.next[0].point - (rootNode.point + rootNode.tangent[0] * vLength(rootNode.next[0].point - rootNode.point) / 3f));
 
         Vector3 nextTangent = norm(norm(treeGrowDir) * treeHeight - (rootNode.point + rootNode.tangent[0] * vLength(norm(treeGrowDir) * treeHeight - rootNode.point) * (1.5f / 3f)));
         
-        rootNode.next.Add(new node(norm(treeGrowDir) * treeHeight, nextTangent, this, rootNode));
-
+        rootNode.next.Add(new node(norm(treeGrowDir) * treeHeight, nextTangent, new Vector3(1f, 1f, 1f), this, rootNode));
         rootNode.next[0].cotangent = norm(Vector3.Cross(rootNode.next[0].tangent[0], Vector3.Cross(rootNode.cotangent, rootNode.next[0].tangent[0])));
+
         rootNode.resampleSpline(resampleNr, noiseAmplitudeLower, noiseAmplitudeUpper, noiseScale);
-        split(rootNode, testSplitHeight);
+        //split(rootNode, 0, testSplitHeight, testSplitAngle);
+        splitRecursive(rootNode, nrSplits, 30f);
         rootNode.calculateRadius();
 
         if (allSegments != null)
@@ -496,6 +1064,15 @@ public class treeGen3 : MonoBehaviour
             generateAllVerticesAndTriangles();
         }
         mesh.Clear(false);
+
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            if (float.IsNaN(vertices[i].x) == true)
+            {
+                vertices[i] = new Vector3(0f, 0f, 0f);
+            }
+        }
+
         mesh.SetVertices(vertices);
         mesh.SetUVs(0, UVs);
         mesh.SetTriangles(triangles, 0);
@@ -569,14 +1146,14 @@ public class treeGen3 : MonoBehaviour
                     arcLength += vLength(pos[j] - pos[j - 1]);
                 }
 
-                tangent[j] = norm(sampleSplineTangent(allSegments[s].start, controlPt1, controlPt2, allSegments[s].end, (float)j / (float)allSegments[s].sections));
+                tangent[j] = norm(sampleSplineTangentC(allSegments[s].start, controlPt1, controlPt2, allSegments[s].end, (float)j / (float)allSegments[s].sections));
 
                 dirA[j] = vLerp(allSegments[s].startCotangent, allSegments[s].endCotangent, (float)j / (float)allSegments[s].sections);// green
                 
                 dirB[j] = norm(Vector3.Cross(tangent[j], dirA[j])); // blue
 
                 // improve dirA!
-                dirA[j] = norm(Vector3.Cross(dirB[j], tangent[j])); // green // test off
+                dirA[j] = norm(Vector3.Cross(dirB[j], tangent[j])); // green
 
                 dirAdebugLines.Add(new line(pos[j], pos[j] + dirA[j] / 5f)); // green
 
@@ -739,11 +1316,11 @@ public class treeGen3 : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        Gizmos.color = Color.blue;
-        for (int i = 0; i < vertices.Count; i++)
-        {
-            Gizmos.DrawRay(vertices[i], normals[i] * normalGizmoSize);
-        }
+        //Gizmos.color = Color.blue;
+        //for (int i = 0; i < vertices.Count; i++)
+        //{
+        //    Gizmos.DrawRay(vertices[i], normals[i] * normalGizmoSize);
+        //}
 
         if (allSegments != null)
         {
@@ -755,18 +1332,25 @@ public class treeGen3 : MonoBehaviour
                 Gizmos.DrawSphere(s.start, gizmoRadius);
                 Gizmos.DrawSphere(s.end, gizmoRadius);
 
-                Gizmos.DrawRay(s.start, s.startTangent);
+                Gizmos.DrawRay(s.start, s.startTangent * normalGizmoSize);
+                Gizmos.DrawRay(s.end, s.endTangent * normalGizmoSize);
+                Gizmos.color = Color.green;
+                Gizmos.DrawRay(s.start, s.startCotangent * normalGizmoSize);
+                Gizmos.DrawRay(s.end, s.endCotangent * normalGizmoSize);
 
                 Gizmos.color = Color.blue;
                 Gizmos.DrawSphere(controlPt1, gizmoRadius);
                 Gizmos.DrawSphere(controlPt2, gizmoRadius);
             }   
+            
 
-            Gizmos.color = Color.green;
+            
             for (int i = 0; i < debugSamplePoints.Count; i++)
             {
+                Gizmos.color = Color.green;
                 Gizmos.DrawSphere(debugSamplePoints[i], gizmoRadius);
-                Gizmos.DrawRay(debugSamplePoints[i], debugSampleTangents[i]);
+                Gizmos.color = Color.red;
+                Gizmos.DrawRay(debugSamplePoints[i], debugSampleTangents[i] * normalGizmoSize);
             }
 
             Gizmos.color = new Color(1f, 1f, 0f);
@@ -774,6 +1358,10 @@ public class treeGen3 : MonoBehaviour
             Gizmos.DrawSphere(debugPrev, gizmoRadius / 2f);
 
             Gizmos.DrawSphere(debugSplitPoint, gizmoRadius * 2f);
+
+            Gizmos.DrawRay(debugSplitPoint, debugSplitDirA);
+            Gizmos.DrawRay(debugSplitPoint, debugSplitDirB);
+            
         }
     }
 
@@ -813,10 +1401,18 @@ public class treeGen3 : MonoBehaviour
     //Vector3 controlPt1 = allSegments[s].start + allSegments[s].startTangent * vLength(allSegments[s].end - allSegments[s].start) / 3f; //(1f / 3f) * (end - start);
     //        Vector3 controlPt2 = allSegments[s].end - allSegments[s].endTangent * vLength(allSegments[s].end - allSegments[s].start) / 3f;
 
-    static Vector3 sampleSplineTangent(Vector3 controlA, Vector3 controlB, Vector3 controlC, Vector3 controlD, float t)
+    static Vector3 sampleSplineTangentC(Vector3 controlA, Vector3 controlB, Vector3 controlC, Vector3 controlD, float t)
     {
         //return (3f * (1f - t) * (1f - t) * (controlB - controlA) + 6f * (1f - t) * t * (controlC - controlB) + 3f * t * t * (controlD - controlC));
         return norm(-3f * (1f - t) * (1f - t) * controlA + 3f * (3f * t * t - 4f * t + 1f) * controlB + 3f * (-3f * t * t + 2f * t) * controlC + 3f * t * t * controlD);
+    }
+
+    static Vector3 sampleSplineTangentT(Vector3 start, Vector3 end, Vector3 startTangent, Vector3 endTangent, float t)
+    {
+        Vector3 controlPt1 = start + startTangent * vLength(end - start) / 3f;
+        Vector3 controlPt2 = end - endTangent * vLength(end - start) / 3f;
+
+        return norm(-3f * (1f - t) * (1f - t) * start + 3f * (3f * t * t - 4f * t + 1f) * controlPt1 + 3f * (-3f * t * t + 2f * t) * controlPt2 + 3f * t * t * end);
     }
 
     static Vector3 sampleSplineCurvature(Vector3 controlA, Vector3 controlB, Vector3 controlC, Vector3 controlD, float t)
