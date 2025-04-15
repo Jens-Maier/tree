@@ -69,7 +69,6 @@ public class node
         {
             allLeafNodes.Add(this);
         }
-        
     }
 
     public void getAllStartNodes(List<node> startNodes, List<int> nrSplitsPassedAtStartNode, int nrSplitsPassed, int startLevel, int level)
@@ -157,9 +156,6 @@ public class node
                 //Debug.Log("child start point: " + c.point);
                 //Debug.Log("child next count: " + c.next.Count);
                 c.getAllSegments(allSegments, ringRes);
-
-                
-
             }
         }
     }
@@ -629,6 +625,10 @@ public class treeGen3 : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+
+    }
+    public void initTree()
+    {
         int seed = 2542423;
         random = new Random(seed);
 
@@ -686,12 +686,12 @@ public class treeGen3 : MonoBehaviour
         {
             // int r = random.Next() % startNodes.Count;
             // int n = random.Next() % startNodes[r].next.Count;
-            // float t = ((float)(random.Next() % 9999)) / 10000f;
+            // float t = (float)random.NextDouble();
 
             int startNodeIndex = (int)((float)startNodes.Count * (float)i / (float)nrChildren);
-            int n = random.Next() % startNodes[startNodeIndex].next.Count;
+            int n = random.Next(startNodes[startNodeIndex].next.Count);//random.Next() % startNodes[startNodeIndex].next.Count;
             
-            //float t = ((float)(random.Next() % 9999)) / 10000f;
+            //float t = (float)random.NextDouble();
             float t = (float)startNodes.Count * (float)i / (float)nrChildren - (float)startNodeIndex;
 
             // TODO: winding -> equal distances -> add random offsets
@@ -840,6 +840,22 @@ public class treeGen3 : MonoBehaviour
         }
     }
 
+    public void setTreeShape(int s)
+    {
+        switch (s)
+        {
+            case 0: treeShape = shape.conical; break;
+            case 1: treeShape = shape.cylindrical; break;
+            case 2: treeShape = shape.flame; break;
+            case 3: treeShape = shape.hemispherical; break;
+            case 4: treeShape = shape.inverseConical; break;
+            case 5: treeShape = shape.spherical; break;
+            case 6: treeShape = shape.taperedCylindrical; break;
+            case 7: treeShape = shape.tendFlame; break;
+            default: treeShape = shape.conical; break;
+        }
+    }
+
     public float shapeRatio(float tVal)
     {
         switch (treeShape)
@@ -891,6 +907,8 @@ public class treeGen3 : MonoBehaviour
 
         int meanLevelChild = (int)Mathf.Log((float)nrChildSplits / (float)allChildNodes.Count, 2f);
         Debug.Log("splitChildren: nrChildSplits: " + nrChildSplits + ", meanLevelChild: " + meanLevelChild + ", nrChildren: " + allChildNodes.Count); // 12, 0, 22
+
+        Debug.Log("nrChildren: " + allChildNodes.Count);
         
         if (nrChildSplits < allChildNodes.Count)
         {
@@ -1010,12 +1028,12 @@ public class treeGen3 : MonoBehaviour
                 {
                     break;
                 }
-                float r = ((float)(random.Next() % 9999)) / 10000f;
-                float h = ((float)(random.Next() % 9999)) / 10000f - 0.5f;
+                float r = (float)random.NextDouble();
+                float h = (float)random.NextDouble() - 0.5f;
                 if (r <= splitProbabilityInLevel[level])
                 {
                     // split
-                    int indexToSplit = random.Next() % nodeIndices.Count;
+                    int indexToSplit = random.Next(nodeIndices.Count);//random.Next() % nodeIndices.Count;
                     Debug.Log("splitChildren: indexToSplit: " + indexToSplit); // 0
                     Debug.Log("nodeIndices.Count: " + nodeIndices.Count); // 1
                     Debug.Log("nodeIndexToSplit: " + nodeIndices[indexToSplit]); // 0
@@ -1195,8 +1213,8 @@ public class treeGen3 : MonoBehaviour
                 {
                     break;
                 }
-                float r = ((float)(random.Next() % 9999)) / 10000f;
-                float h = ((float)(random.Next() % 9999)) / 10000f - 0.5f;
+                float r = (float)random.NextDouble();
+                float h = (float)random.NextDouble() - 0.5f;
                 if (r <= splitProbabilityInLevel[level])
                 {
                     // split
@@ -1700,6 +1718,14 @@ public class treeGen3 : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+
+    }
+
+    public void updateTree()
+    {
+        int seed = 2542423;
+        random = new Random(seed);
+        
         debugSamplePoints.Clear();
         debugSampleTangents.Clear();
         debugList.Clear();
@@ -1738,6 +1764,10 @@ public class treeGen3 : MonoBehaviour
         //}
         //rootNode.cotangent = Vector3.Cross(treeGrowDir, new Vector3(treeGrowDir.x, 0f, treeGrowDir.z));
 
+        if (splitHeightInLevel == null)
+        {
+            Debug.Log("ERROR: splitHeightInLevel is null!");
+        }
         if (splitHeightInLevel.Count < nrSplits)
         {
             int s = nrSplits - splitHeightInLevel.Count;
@@ -1871,7 +1901,10 @@ public class treeGen3 : MonoBehaviour
 
             // float ringSpacing = length / (float)(allSegments[s].sections); // TODO: global variable ringSpacing -> sections = rountToInt(length / ringSpacing)
                                                                             // branchRingSpacing = length / sections -> use branchRingSpacing here ...
-
+            if (ringSpacing == 0f)
+            {
+                ringSpacing = 1f;
+            }
             int sections = (int)Mathf.RoundToInt(length / ringSpacing);
             if (sections == 0)
             {
