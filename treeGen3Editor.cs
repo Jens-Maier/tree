@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 //using Random = System.Random;
 using UnityEditor;
 using System.IO;
+using Random = System.Random;
 
 public enum shape
 {
@@ -85,8 +86,10 @@ public class treeGen3Editor : Editor
     public static float setChildCurvature;
     static int nrChildSplits;
     public static int setNrChildSplits;
-
-
+    static int seed;
+    public static int setSeed;
+    public Random random;
+    public static bool setRandomize;
 
     
 
@@ -101,6 +104,7 @@ public class treeGen3Editor : Editor
     private void OnEnable()
     {
         // myFloatField = serializedObject.FindProperty("treeHeight"); // TODO: serializedObject ... (s. chatgtp...)
+        random = new Random(64345);
     }
 
 
@@ -242,6 +246,12 @@ public class treeGen3Editor : Editor
             setNrChildSplits = data.nrChildSplits;
             treeGenScript.nrChildSplits = data.nrChildSplits;
 
+            seed = data.seed;
+            setSeed = data.seed;
+            treeGenScript.seed = data.seed;
+
+
+
             treeGenScript.initTree();
             treeGenScript.updateTree();
         }
@@ -320,10 +330,21 @@ public class treeGen3Editor : Editor
         setChildrenStartLevel = EditorGUILayout.IntField("childrenStartLevel", setChildrenStartLevel);
         setChildCurvature = EditorGUILayout.FloatField("childCurvature", setChildCurvature);
         setNrChildSplits = EditorGUILayout.IntField("nrChildSplits", setNrChildSplits);
-
+        
+        setRandomize = EditorGUILayout.Toggle("randomizeSeed", setRandomize);
+        setSeed = EditorGUILayout.IntField("seed", setSeed);        
 
         if (GUILayout.Button("set Tree parameters"))
         {
+            if (setRandomize == true)
+            {
+                //setSeed += 1;
+                setSeed = random.Next();
+                seed = setSeed;
+                treeGenScript.seed = setSeed;
+                data.seed = setSeed;
+            }
+
             data = new treeData();
 
             Debug.Log("set tree parameters...");
@@ -447,6 +468,10 @@ public class treeGen3Editor : Editor
             nrChildSplits = setNrChildSplits;
             treeGenScript.nrChildSplits = setNrChildSplits;
             data.nrChildSplits = setNrChildSplits;
+
+            seed = setSeed;
+            treeGenScript.seed = setSeed;
+            data.seed = setSeed;
             
             Debug.Log("init tree...");
             treeGenScript.initTree();
@@ -489,6 +514,7 @@ public class treeData
     public int childrenStartLevel;
     public float childCurvature;
     public int nrChildSplits;
+    public int seed;
 
     public treeData()
     {

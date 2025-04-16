@@ -591,6 +591,7 @@ public class treeGen3 : MonoBehaviour
     [Range(-90f, 90f)]
     public float childCurvature;
     public int nrChildSplits;
+    public int seed;
 
     public List<int> nodeIndices;
     public int meanLevel;
@@ -629,7 +630,6 @@ public class treeGen3 : MonoBehaviour
     }
     public void initTree()
     {
-        int seed = 2542423;
         random = new Random(seed);
 
         tangentDebugLines = new List<line>();
@@ -1723,7 +1723,6 @@ public class treeGen3 : MonoBehaviour
 
     public void updateTree()
     {
-        int seed = 2542423;
         random = new Random(seed);
         
         debugSamplePoints.Clear();
