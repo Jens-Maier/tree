@@ -28,6 +28,12 @@ public enum shape
     tendFlame
 }
 
+public enum splitMode
+{
+    alternating,
+    horizontal
+}
+
 public class node
 {
     public Vector3 point;
@@ -576,21 +582,23 @@ public class treeGen3 : MonoBehaviour
     public float[] splitProbabilityInLevel;
     public int[] expectedSplitsInLevel;
 
-    public int nrChildren;
+    public int nrChildLevels;
+
+    public List<int> nrChildren;
     [Range(0f, 1f)]
-    public float relChildLength;
+    public List<float> relChildLength;
     [Range(0f, 45f)]
-    public float verticalRange;
+    public List<float> verticalRange;
     [Range(-90f, 90f)]
-    public float verticalAngleCrownStart;
+    public List<float> verticalAngleCrownStart;
     [Range(-90f, 90f)]
-    public float verticalAngleCrownEnd;
-    public float rotateAngle;
+    public List<float> verticalAngleCrownEnd;
+    public List<float> rotateAngle;
     //public bool symmetric; // TODO
-    public int childrenStartLevel;
+    public List<int> childrenStartLevel;
     [Range(-90f, 90f)]
-    public float childCurvature;
-    public int nrChildSplits;
+    public List<float> childCurvature;
+    public List<int> nrChildSplits;
     public int seed;
 
     public List<int> nodeIndices;
@@ -674,171 +682,215 @@ public class treeGen3 : MonoBehaviour
 
     public void addChildren()
     {
-        Debug.Log("add children");
-        Vector3[] childPoints = new Vector3[nrChildren];
-        List<node> startNodes = new List<node>();
-        List<int> nrSplitsPassedAtStartNode = new List<int>();
-        rootNode.getAllStartNodes(startNodes, nrSplitsPassedAtStartNode, 0, childrenStartLevel, 0);
-
-        float windingAngle = 0f;
+        Debug.Log("in addChildren: nrChildLevels: " + nrChildLevels);
+        Debug.Log("in addChildren: nrchildren.Count: " + nrChildren.Count);
+        for (int i = 0; i < nrChildren.Count; i++)
+        {
+            Debug.Log("in addChildren: nrChildren[" + i + "]: " + nrChildren[i]);
+        }
         
-        for (int i = 0; i < nrChildren; i++)
+        for (int l = 0; l < nrChildLevels; l++)
         {
-            // int r = random.Next() % startNodes.Count;
-            // int n = random.Next() % startNodes[r].next.Count;
-            // float t = (float)random.NextDouble();
-
-            int startNodeIndex = (int)((float)startNodes.Count * (float)i / (float)nrChildren);
-            int n = random.Next(startNodes[startNodeIndex].next.Count);//random.Next() % startNodes[startNodeIndex].next.Count;
-            
-            //float t = (float)random.NextDouble();
-            float t = (float)startNodes.Count * (float)i / (float)nrChildren - (float)startNodeIndex;
-
-            // TODO: winding -> equal distances -> add random offsets
-
-            Vector3 tangent;
-            if (startNodes[startNodeIndex].next.Count > 1)
+            Debug.Log("in addChildren: add children level " + l + ": nr: " + nrChildren[l]);
+            Vector3[] childPoints = new Vector3[nrChildren[l]];
+            List<node> startNodes = new List<node>();
+            List<int> nrSplitsPassedAtStartNode = new List<int>();
+            if (l == 0)
             {
-                tangent = startNodes[startNodeIndex].tangent[n + 1];
+                rootNode.getAllStartNodes(startNodes, nrSplitsPassedAtStartNode, 0, childrenStartLevel[0], 0); // TODO...
             }
             else
             {
-                tangent = startNodes[startNodeIndex].tangent[0];
-            }
-
-            Vector3 startPoint = sampleSplineT(startNodes[startNodeIndex].point, startNodes[startNodeIndex].next[n].point, tangent, startNodes[startNodeIndex].next[n].tangent[0], t);
-            Vector3 startPointTangent = sampleSplineTangentT(startNodes[startNodeIndex].point, startNodes[startNodeIndex].next[n].point, tangent, startNodes[startNodeIndex].next[n].tangent[0], t);
-            
-            Vector3 nextTangent = norm(norm(treeGrowDir) * treeHeight - (rootNode.point + rootNode.tangent[0] * vLength(norm(treeGrowDir) * treeHeight - rootNode.point) * (1.5f / 3f)));
-            
-            Vector3 centerPoint = sampleSplineT(rootNode.point, norm(treeGrowDir) * treeHeight, new Vector3(0f, 1f, 0f), nextTangent, startNodes[startNodeIndex].tVal);
-
-            Vector3 outwardDir = startNodes[startNodeIndex].point - centerPoint;
-            
-
-            if (outwardDir == Vector3.zero)
-            {
-                outwardDir = vLerp(startNodes[startNodeIndex].cotangent, startNodes[startNodeIndex].next[n].cotangent, t);
-            }
-            Debug.Log("outwardDir: " + outwardDir);
-
-            float dirRange = 180f / ((float)nrSplitsPassedAtStartNode[startNodeIndex] + 1f);
-            if (dirRange < 15f)
-            {
-                dirRange = 15f;
-            }
-
-            float verticalAngle = fLerp(verticalAngleCrownStart, verticalAngleCrownEnd, startNodes[startNodeIndex].tVal);
-
-            Vector3 dirStart = norm(Quaternion.AngleAxis(-dirRange, startPointTangent) * outwardDir);
-            Vector3 dirEnd = norm(Quaternion.AngleAxis(dirRange, startPointTangent) * outwardDir);
-            Vector3 verticalStart = norm(Quaternion.AngleAxis(-verticalAngle + verticalRange, norm(Vector3.Cross(startPointTangent, outwardDir))) * outwardDir);
-            Vector3 verticalEnd = norm(Quaternion.AngleAxis(-verticalAngle - verticalRange, norm(Vector3.Cross(startPointTangent, outwardDir))) * outwardDir);
-            
-            float angle = windingAngle % (2f * dirRange);
-            Vector3 centerDir = norm(Quaternion.AngleAxis(-verticalAngle, norm(Vector3.Cross(startPointTangent, outwardDir))) * outwardDir);
-            Debug.Log("centerDir: " + centerDir); // (0, 0, -1)
-            Debug.Log("startPointTangent: " + startPointTangent); // (0, 1, 0)
-            Debug.Log("dirRange: " + dirRange);
-            Debug.Log("angle: " + angle); // 
-            Vector3 childDir = Quaternion.AngleAxis(-dirRange + angle, startPointTangent) * centerDir;
-
-            Debug.Log("dir: " + childDir);
-
-            // There is no single continuous function that can generate a vector in R3 that is orthogonal to a given one for all vector inputs. https://en.wikipedia.org/wiki/Hairy_ball_theorem
-            Vector3 childCotangent;
-            if (childDir.x != 0f)
-            {
-                childCotangent = new Vector3(-childDir.y, childDir.x, 0f);
-            }
-            else
-            {
-                if (childDir.y != 0f)
+                rootNode.getAllChildNodes(startNodes); // TODO
+                for (int i = 0; i < startNodes.Count; i++)
                 {
-                    childCotangent = new Vector3(0f, -childDir.z, childDir.y);
-                }
-                else
-                {
-                    childCotangent = new Vector3(childDir.z, 0f, -childDir.x);
+                    nrSplitsPassedAtStartNode.Add(0); // TODO
                 }
             }
-            
-            Debug.Log("child cotangent: " + childCotangent);
-            node child = new node(startPoint, childDir, childCotangent, startNodes[startNodeIndex].tVal, taper / 2f, this, null); // TODO: taper[] for each level
-            //float branchLength = (1f - startNodes[startNodeIndex].tVal);
-            float branchLength = treeHeight * relChildLength * shapeRatio(startNodes[startNodeIndex].tVal);
-            float lengthToTip = startNodes[startNodeIndex].lengthToTip();
-            // lengthToTip -= t * vLength(startNodes[startNodeIndex].next[n].point - startNodes[startNodeIndex].point);
-            // if (branchLength > lengthToTip)
-            // {
-            //     branchLength = lengthToTip;
-            // }
-            child.next.Add(new node(startPoint + childDir * branchLength, childDir, childCotangent, startNodes[startNodeIndex].tVal, taper / 2f, this, child));
-            Debug.Log("children count: " + startNodes[startNodeIndex].children.Count + ", n: " + n);
-            if (startNodes[startNodeIndex].children.Count < n + 1)
+
+            float windingAngle = 0f;
+            Debug.Log("startNodes: " + startNodes.Count);
+            if (startNodes.Count > 0)
             {
-                for (int m = 0; m < startNodes[startNodeIndex].next.Count; m++)
+                for (int i = 0; i < nrChildren[0]; i++)
                 {
-                    startNodes[startNodeIndex].children.Add(new List<node>());
+                    // int r = random.Next() % startNodes.Count;
+                    // int n = random.Next() % startNodes[r].next.Count;
+                    // float t = (float)random.NextDouble();
+
+                    int startNodeIndex = (int)((float)startNodes.Count * (float)i / (float)nrChildren[0]);
+                    int n = random.Next(startNodes[startNodeIndex].next.Count);//random.Next() % startNodes[startNodeIndex].next.Count;
+
+                    //float t = (float)random.NextDouble();
+                    float t = (float)startNodes.Count * (float)i / (float)nrChildren[0] - (float)startNodeIndex;
+
+                    // TODO: winding -> equal distances -> add random offsets
+
+                    Vector3 tangent;
+                    if (startNodes[startNodeIndex].next.Count > 1)
+                    {
+                        tangent = startNodes[startNodeIndex].tangent[n + 1];
+                    }
+                    else
+                    {
+                        tangent = startNodes[startNodeIndex].tangent[0];
+                    }
+
+                    Vector3 startPoint = sampleSplineT(startNodes[startNodeIndex].point, startNodes[startNodeIndex].next[n].point, tangent, startNodes[startNodeIndex].next[n].tangent[0], t);
+                    Vector3 startPointTangent = sampleSplineTangentT(startNodes[startNodeIndex].point, startNodes[startNodeIndex].next[n].point, tangent, startNodes[startNodeIndex].next[n].tangent[0], t);
+
+                    Vector3 nextTangent = norm(norm(treeGrowDir) * treeHeight - (rootNode.point + rootNode.tangent[0] * vLength(norm(treeGrowDir) * treeHeight - rootNode.point) * (1.5f / 3f)));
+
+                    Vector3 centerPoint = sampleSplineT(rootNode.point, norm(treeGrowDir) * treeHeight, new Vector3(0f, 1f, 0f), nextTangent, startNodes[startNodeIndex].tVal);
+
+                    Vector3 outwardDir = startNodes[startNodeIndex].point - centerPoint;
+
+
+                    if (outwardDir == Vector3.zero)
+                    {
+                        outwardDir = vLerp(startNodes[startNodeIndex].cotangent, startNodes[startNodeIndex].next[n].cotangent, t);
+                    }
+                    Debug.Log("outwardDir: " + outwardDir);
+
+                    float dirRange = 180f / ((float)nrSplitsPassedAtStartNode[startNodeIndex] + 1f);
+                    if (dirRange < 15f)
+                    {
+                        dirRange = 15f;
+                    }
+
+                    float verticalAngle = fLerp(verticalAngleCrownStart[0], verticalAngleCrownEnd[0], startNodes[startNodeIndex].tVal);
+
+                    Vector3 dirStart = norm(Quaternion.AngleAxis(-dirRange, startPointTangent) * outwardDir);
+                    Vector3 dirEnd = norm(Quaternion.AngleAxis(dirRange, startPointTangent) * outwardDir);
+                    Vector3 verticalStart = norm(Quaternion.AngleAxis(-verticalAngle + verticalRange[0], norm(Vector3.Cross(startPointTangent, outwardDir))) * outwardDir);
+                    Vector3 verticalEnd = norm(Quaternion.AngleAxis(-verticalAngle - verticalRange[0], norm(Vector3.Cross(startPointTangent, outwardDir))) * outwardDir);
+
+                    float angle = windingAngle % (2f * dirRange);
+                    Vector3 centerDir = norm(Quaternion.AngleAxis(-verticalAngle, norm(Vector3.Cross(startPointTangent, outwardDir))) * outwardDir);
+                    Debug.Log("centerDir: " + centerDir); // (0, 0, -1)
+                    Debug.Log("startPointTangent: " + startPointTangent); // (0, 1, 0)
+                    Debug.Log("dirRange: " + dirRange);
+                    Debug.Log("angle: " + angle); // 
+                    Vector3 childDir = Quaternion.AngleAxis(-dirRange + angle, startPointTangent) * centerDir;
+
+                    Debug.Log("dir: " + childDir);
+
+                    // There is no single continuous function that can generate a vector in R3 that is orthogonal to a given one for all vector inputs. https://en.wikipedia.org/wiki/Hairy_ball_theorem
+                    Vector3 childCotangent;
+                    if (childDir.x != 0f)
+                    {
+                        childCotangent = new Vector3(-childDir.y, childDir.x, 0f);
+                    }
+                    else
+                    {
+                        if (childDir.y != 0f)
+                        {
+                            childCotangent = new Vector3(0f, -childDir.z, childDir.y);
+                        }
+                        else
+                        {
+                            childCotangent = new Vector3(childDir.z, 0f, -childDir.x);
+                        }
+                    }
+
+                    Debug.Log("child cotangent: " + childCotangent);
+                    node child = new node(startPoint, childDir, childCotangent, startNodes[startNodeIndex].tVal, taper / 1.5f, this, null); // TODO: taper[] for each level
+                    //float branchLength = (1f - startNodes[startNodeIndex].tVal);
+                    float branchLength = treeHeight * relChildLength[0] * shapeRatio(startNodes[startNodeIndex].tVal);
+                    float lengthToTip = startNodes[startNodeIndex].lengthToTip();
+                    // lengthToTip -= t * vLength(startNodes[startNodeIndex].next[n].point - startNodes[startNodeIndex].point);
+                    // if (branchLength > lengthToTip)
+                    // {
+                    //     branchLength = lengthToTip;
+                    // }
+                    child.next.Add(new node(startPoint + childDir * branchLength, childDir, childCotangent, startNodes[startNodeIndex].tVal, taper / 1.5f, this, child));
+                    Debug.Log("children count: " + startNodes[startNodeIndex].children.Count + ", n: " + n);
+                    if (startNodes[startNodeIndex].children.Count < n + 1)
+                    {
+                        for (int m = 0; m < startNodes[startNodeIndex].next.Count; m++)
+                        {
+                            startNodes[startNodeIndex].children.Add(new List<node>());
+                        }
+                        
+                        startNodes[startNodeIndex].children[n].Add(child);
+
+                        debugPointsRed.Add(startPoint);
+                        //debugLinesGreen.Add(new line(startPoint, startPoint + childDir * branchLength));
+
+                        //debugLinesRed.Add(new line(startPoint, startPoint + dirStart * branchLength));
+                        //debugLinesRed.Add(new line(startPoint, startPoint + dirEnd * branchLength));
+                        //
+                        //debugLinesRed.Add(new line(startPoint, startPoint + verticalStart * branchLength));
+                        //debugLinesRed.Add(new line(startPoint, startPoint + verticalEnd * branchLength));
+
+                        windingAngle += rotateAngle[0]; // TODO: fibonacci numbers: 1/2, 1/3, 2/5, 3/8 -> 180, 120, 144, 135, -> f(n)/f(n+2)
+
+                        Debug.Log("children[" + n + "] count: " + startNodes[startNodeIndex].children[n].Count);
+                        startNodes[startNodeIndex].children[n][0].resampleSpline(3, 0f, 0f, 1f);
+
+                        // curvature
+                        child.curveBranches(childCurvature[0], Vector3.Cross(startPointTangent, childDir));
+                        debugLinesGreen.Add(new line(startPoint, startPoint + norm(Vector3.Cross(startPointTangent, childDir))));
+                    }
                 }
+                // add one child at tip of spline -> do not clamp length by length to tip! -> TODO: smaller taper! -> store taper in nodes!
+                // TODO: add to child list!
+                List<node> leafNodes = new List<node>();
+                rootNode.getAllLeafNodes(leafNodes);
+                Debug.Log("leafNodes count: " + leafNodes.Count);
+                foreach (node n in leafNodes)
+                {
+
+                    float branchLength = treeHeight * relChildLength[0] * shapeRatio(1f);
+                    Vector3 childDir = n.tangent[0];
+                    Vector3 childCotangent;
+                    if (n.tangent[0].x != 0f)
+                    {
+                        childCotangent = new Vector3(-childDir.y, childDir.x, 0f);
+                    }
+                    else
+                    {
+                        if (childDir.y != 0f)
+                        {
+                            childCotangent = new Vector3(0f, -childDir.z, childDir.y);
+                        }
+                        else
+                        {
+                            childCotangent = new Vector3(childDir.z, 0f, -childDir.x);
+                        }
+                    }
+
+                    Vector3 nextTangent = norm(norm(treeGrowDir) * treeHeight - (rootNode.point + rootNode.tangent[0] * vLength(norm(treeGrowDir) * treeHeight - rootNode.point) * (1.5f / 3f)));
+                    Vector3 centerPoint = sampleSplineT(rootNode.point, norm(treeGrowDir) * treeHeight, new Vector3(0f, 1f, 0f), nextTangent, 1f);
+                    Vector3 outwardDir = n.point - centerPoint;
+
+                    if (outwardDir == Vector3.zero)
+                    {
+                        outwardDir = n.cotangent;
+                    }
+                    node child = new node(n.point + n.tangent[0] * branchLength, childDir, childCotangent, n.tVal, taper / 2f, this, n);
+
+                    // before
+                    //n.next.Add(child);
+                    //n.applyCurvature(splitCurvature, outwardDir);
+
+                    // -> add as child! (TEST!)
+                    if (n.children.Count == 0)
+                    {
+                        n.children.Add(new List<node>());
+                    }
+                    n.children[n.children.Count - 1].Add(new node(n.point, n.tangent[0], n.cotangent, n.tVal, n.taper, n.gen, n));
+                    n.children[n.children.Count - 1][n.children[n.children.Count - 1].Count - 1].next.Add(child);
+                    Debug.Log("add child at leafNode "); // TODO...
+                    n.applyCurvature(splitCurvature, outwardDir);
+                }
+
             }
-            startNodes[startNodeIndex].children[n].Add(child);
-
-            debugPointsRed.Add(startPoint);
-            //debugLinesGreen.Add(new line(startPoint, startPoint + childDir * branchLength));
-
-            //debugLinesRed.Add(new line(startPoint, startPoint + dirStart * branchLength));
-            //debugLinesRed.Add(new line(startPoint, startPoint + dirEnd * branchLength));
-            //
-            //debugLinesRed.Add(new line(startPoint, startPoint + verticalStart * branchLength));
-            //debugLinesRed.Add(new line(startPoint, startPoint + verticalEnd * branchLength));
-            
-            windingAngle += rotateAngle; // TODO: fibonacci numbers: 1/2, 1/3, 2/5, 3/8 -> 180, 120, 144, 135, -> f(n)/f(n+2)
-
-            Debug.Log("children[" + n + "] count: " + startNodes[startNodeIndex].children[n].Count);
-            startNodes[startNodeIndex].children[n][0].resampleSpline(3, 0f, 0f, 1f);
-
-            // curvature
-            child.curveBranches(childCurvature, Vector3.Cross(startPointTangent, childDir));
-            debugLinesGreen.Add(new line(startPoint, startPoint + norm(Vector3.Cross(startPointTangent, childDir))));
         }
-        // TODO: add one child at tip of spline -> do not clamp length by length to tip! -> TODO: smaller taper! -> store taper in nodes!
-        List<node> leafNodes = new List<node>();
-        rootNode.getAllLeafNodes(leafNodes);
-        foreach (node n in leafNodes)
-        {
-            float branchLength = treeHeight * relChildLength * shapeRatio(1f);
-            Vector3 childDir = n.tangent[0];
-            Vector3 childCotangent;
-            if (n.tangent[0].x != 0f)
-            {
-                childCotangent = new Vector3(-childDir.y, childDir.x, 0f);
-            }
-            else
-            {
-                if (childDir.y != 0f)
-                {
-                    childCotangent = new Vector3(0f, -childDir.z, childDir.y);
-                }
-                else
-                {
-                    childCotangent = new Vector3(childDir.z, 0f, -childDir.x);
-                }
-            }
-
-            Vector3 nextTangent = norm(norm(treeGrowDir) * treeHeight - (rootNode.point + rootNode.tangent[0] * vLength(norm(treeGrowDir) * treeHeight - rootNode.point) * (1.5f / 3f)));
-            Vector3 centerPoint = sampleSplineT(rootNode.point, norm(treeGrowDir) * treeHeight, new Vector3(0f, 1f, 0f), nextTangent, 1f);
-            Vector3 outwardDir = n.point - centerPoint;
-            
-            if (outwardDir == Vector3.zero)
-            {
-                outwardDir = n.cotangent;
-            }
-            node child = new node(n.point + n.tangent[0] * branchLength, childDir, childCotangent, n.tVal, taper / 2f, this, n);
-            n.next.Add(child);
-            n.applyCurvature(splitCurvature, outwardDir);
-        }
+    
     }
+    
+    
 
     public void setTreeShape(int s)
     {
@@ -897,7 +949,7 @@ public class treeGen3 : MonoBehaviour
         //return (1f - tVal);
     }
 
-    public void splitChildren(int nrChildSplits, float splitAngle, float splitPointAngle)
+    public void splitChildren(int nrChildSplits, float splitAngle, float splitPointAngle) // TODO: split child at tip of spline -> TODO: get all nodes... 
     {
         List<node> allChildNodes = new List<node>();
         rootNode.getAllChildNodes(allChildNodes);
@@ -945,8 +997,15 @@ public class treeGen3 : MonoBehaviour
             }
             for (int i = (int)Mathf.RoundToInt((float)meanLevelChild + variance * (float)meanLevelChild); i < nrChildSplits; i++)
             {
-                splitProbabilityInLevel[i] = 1f / 8f;
-                expectedSplitsInLevel[i] = allChildNodes.Count * (int)(splitProbabilityInLevel[i] * 2f * (float)expectedSplitsInLevel[i - 1]);
+                
+                Debug.Log("i: " + i + ", nrChildSplits: " + nrChildSplits + ", expectedSplitsInLevel length: " + expectedSplitsInLevel.Length + ", splitProbability length: " + splitProbabilityInLevel.Length);
+                if (i > 0)
+                {
+                    splitProbabilityInLevel[i] = 1f / 8f;
+                    expectedSplitsInLevel[i] = allChildNodes.Count * (int)(splitProbabilityInLevel[i] * 2f * (float)expectedSplitsInLevel[i - 1]); 
+                }
+                
+                //i: 0, nrChildSplits: 23, expectedSplitsInLevel length: 23, splitProbability length: 23
             }
         }
 
@@ -1135,6 +1194,8 @@ public class treeGen3 : MonoBehaviour
             //{
             //    expectedSplitsInLevel[i] = (int)(splitProbabilityInLevel[i] * Mathf.Pow(2f, (float)i));
             //}
+            Debug.Log("expecteSplitsInLevel length: " + expectedSplitsInLevel.Length + "splitProbabilityInLevel length: " + splitProbabilityInLevel.Length + ", i: " + i);
+
             expectedSplitsInLevel[i] = (int)(splitProbabilityInLevel[i] * 2f * (float)expectedSplitsInLevel[i - 1]);
         }
         for (int i = (int)Mathf.RoundToInt((float)meanLevel + variance * (float)meanLevel); i < nrSplits; i++)
@@ -1289,7 +1350,7 @@ public class treeGen3 : MonoBehaviour
         // {
         //     splitIndex.Add(new List<int>());
         // }
-// 
+        // 
         // List<List<(node, int)>> nodesInLevelNextIndex = new List<List<(node, int)>>();
         // for (int i = 0; i <= nrSplits; i++)
         // {
@@ -1326,7 +1387,7 @@ public class treeGen3 : MonoBehaviour
         //         int iteration = 0;
         //         int maxIterations = 20;
         //         int safetyCounter = 0;
-// 
+        // 
         //         Debug.Log("level: " + level);
         //         Debug.Log("expectedSplitsInLevel.Count: " + expectedSplitsInLevel.Length);
         //         //for (int s = 0; s < expectedSplitsInLevel[level]; s++)
@@ -1342,7 +1403,7 @@ public class treeGen3 : MonoBehaviour
         //                 break;
         //             }
         //             float r = ((float)(random.Next() % 9999)) / 10000f;
-// 
+        // 
         //             if (r <= splitProbabilityInLevel[level] && iteration < maxIterations) // is only called once per level! -> must be called multiple times!
         //             {
         //                 Debug.Log("split! level " + level); // 2
@@ -1361,17 +1422,17 @@ public class treeGen3 : MonoBehaviour
         //                     {
         //                         nodeIndices.RemoveAt(i);
         //                         // -> update range of i! 
-// 
+        // 
         //                         nodesInLevelNextIndex[level + 1].Add((splitNode, 0));//
         //                         nodesInLevelNextIndex[level + 1].Add((splitNode, 1));
         //                         int l = level + 1;
         //                         Debug.Log("adding two splitNodes to nodesInLevelNextIndex[level = " + l + "]");
-// 
+        // 
         //                         //expectedSplitsInLevel[level] += 1;
-// 
+        // 
         //                         // node split(node startNode, int nextIndex, float splitHeight, float splitAngle) 
         //                         // returns splitNode
-// 
+        // 
         //                         counter += 1;
         //                         totalSplitCounter += 1;
         //                         Debug.Log("totalSplitCounter: " + totalSplitCounter);
@@ -1391,7 +1452,7 @@ public class treeGen3 : MonoBehaviour
         //                 {
         //                     Debug.Log("ERROR: nodesInLevelNextIndex[level].Count: " + nodesInLevelNextIndex[level].Count + ", nodeIndices[i]: " + nodeIndices[i]);
         //                 }
-// 
+        // 
         //                 Debug.Log("nodesInLevelNextIndex.Count: " + nodesInLevelNextIndex.Count + ", level: " + level);
         //                 for (int c = 0; c < nodesInLevelNextIndex.Count; c++)
         //                 {
@@ -1572,7 +1633,7 @@ public class treeGen3 : MonoBehaviour
                     }
                     else
                     {
-                        calculateSplitData(splitNode, splitAngle, splitPointAngle, level);
+                        calculateSplitData(splitNode, splitAngle, splitPointAngle, level, splitMode.alternating);
                     }
                     return splitNode;
 
@@ -1626,7 +1687,7 @@ public class treeGen3 : MonoBehaviour
                     newSplitNode.next.Add(splitAfterNode.next[nextIndex]);
                     splitAfterNode.next[nextIndex] = newSplitNode;
                     
-                    calculateSplitData(newSplitNode, splitAngle, splitPointAngle, level);
+                    calculateSplitData(newSplitNode, splitAngle, splitPointAngle, level, splitMode.alternating);
 
                     return newSplitNode;
                 }
@@ -1637,7 +1698,7 @@ public class treeGen3 : MonoBehaviour
         return startNode;
     }
 
-    void calculateSplitData(node splitNode, float splitAngle, float splitPointAngle, int level)
+    void calculateSplitData(node splitNode, float splitAngle, float splitPointAngle, int level, splitMode sMode)
     {
         node n = splitNode;
         int nodesAfterSplitNode = 0;
@@ -1647,10 +1708,29 @@ public class treeGen3 : MonoBehaviour
             n = n.next[0];
         }
 
-        Vector3 splitAxis = norm(splitNode.cotangent);
-        if (level % 2 == 1)
+        // TODO splitAxis mode...
+        Vector3 splitAxis;
+        switch(sMode)
         {
-            splitAxis = Quaternion.AngleAxis(90f, splitNode.tangent[0]) * splitAxis;
+            case splitMode.alternating:
+                splitAxis = norm(splitNode.cotangent);
+                if (level % 2 == 1)
+                {
+                    splitAxis = Quaternion.AngleAxis(90f, splitNode.tangent[0]) * splitAxis;
+                }
+                break;
+
+            case splitMode.horizontal:
+                splitAxis = splitNode.cotangent; // TODO...
+                break;
+            default:
+                Debug.Log("ERROR: invalid splitMode!");
+                splitAxis = norm(splitNode.cotangent);
+                if (level % 2 == 1)
+                {
+                    splitAxis = Quaternion.AngleAxis(90f, splitNode.tangent[0]) * splitAxis;
+                }
+                break;
         }
 
         //debugLinesBlue.Add(new line(splitNode.point, splitAxis)); 
@@ -1810,9 +1890,12 @@ public class treeGen3 : MonoBehaviour
         rootNode.applyCurvature(splitCurvature, axis);
        
         addChildren();
-        if (nrChildSplits > 0)
+        if (nrChildSplits.Count > 0)
         {
-            splitChildren(nrChildSplits, testSplitAngle, testSplitPointAngle);
+            if (nrChildSplits[0] > 0)
+            {
+                splitChildren(nrChildSplits[0], testSplitAngle, testSplitPointAngle);
+            }
         }
 
         rootNode.shyBranches();
@@ -2010,7 +2093,7 @@ public class treeGen3 : MonoBehaviour
             //    {
             //        // normals
             //        Vector3 n = new Vector3(0f, 0f, 0f);
-//
+            //
             //        if (j < sections)
             //        {
             //            n = Vector3.Cross(vertices[j * (2 * st + 1) + (i + 1) % (2 * st)] - vertices[j * (2 * st + 1) + i],
@@ -2027,7 +2110,7 @@ public class treeGen3 : MonoBehaviour
             //                 Vector3.Cross(vertices[j * (2 * st + 1) + (i - 1 + 2 * st) % (2 * st)] - vertices[j * (2 * st + 1) + i],
             //                               vertices[(j - 1) * (2 * st + 1) + i]                     - vertices[j * (2 * st + 1) + i]);  //  -|
             //        }
-//
+            //
             //        if (n == new Vector3(0f, 0f, 0f)) // tip
             //        {
             //            n = Vector3.Cross(vertices[(j - 1) * (2 * st + 1) + (i + 1) % (2 * st)] - vertices[(j - 1) * (2 * st + 1) + i],
@@ -2114,6 +2197,7 @@ public class treeGen3 : MonoBehaviour
 
     void OnDrawGizmos()
     {
+        
         //Gizmos.color = Color.blue;
         //for (int i = 0; i < vertices.Count; i++)
         //{

@@ -26,12 +26,14 @@ public class treeGen3Editor : Editor
 {
     //public json treeData; // TODO: use json! (do not use scriptableObject to store data (scriptableObjects are read only!)
 
+    static float gizmoRadius;
+    static float setGizmoRadius;
     static float treeHeight;
     public static float setTreeHeight;
     static Vector3 treeGrowDir;
     public static Vector3 setTreeGrowDir;
     static int treeShape;
-    public static int setTreeShape;
+    public static shape setTreeShape;
     static float taper;
     public static float setTaper;
     static float branchTipRadius;
@@ -68,24 +70,29 @@ public class treeGen3Editor : Editor
     public static float setTestSplitAngle;
     static float testSplitPointAngle;
     public static float setTestSplitPointAngle;
-    static int nrChildren;
-    public static int setNrChildren;
-    static float relChildLength;
-    public static float setRelChildLength;
-    static float verticalRange;
-    public static float setVerticalRange;
-    static float verticalAngleCrownStart;
-    public static float setVerticalAngleCrownStart;
-    static float verticalAngleCrownEnd;
-    public static float setVerticalAngleCrownEnd;
-    static float rotateAngle;
-    public static float setRotateAngle;
-    static int childrenStartLevel;
-    public static int setChildrenStartLevel;
-    static float childCurvature;
-    public static float setChildCurvature;
-    static int nrChildSplits;
-    public static int setNrChildSplits;
+
+    static int childLevels;
+    public static int setChildLevels;
+
+    static List<int> nrChildren;
+    public static List<int> setNrChildren;
+    static List<float> relChildLength;
+    public static List<float> setRelChildLength;
+    static List<float> verticalRange;
+    public static List<float> setVerticalRange;
+    static List<float> verticalAngleCrownStart;
+    public static List<float> setVerticalAngleCrownStart;
+    static List<float> verticalAngleCrownEnd;
+    public static List<float> setVerticalAngleCrownEnd;
+    static List<float> rotateAngle;
+    public static List<float> setRotateAngle;
+    static List<int> childrenStartLevel;
+    public static List<int> setChildrenStartLevel;
+    static List<float> childCurvature;
+    public static List<float> setChildCurvature;
+    static List<int> nrChildSplits;
+    public static List<int> setNrChildSplits;
+
     static int seed;
     public static int setSeed;
     public Random random;
@@ -134,7 +141,7 @@ public class treeGen3Editor : Editor
             treeGenScript.treeGrowDir = data.treeGrowDir;
 
             treeShape = data.treeShape;
-            setTreeShape = data.treeShape;
+            setTreeShape = (shape)data.treeShape;
             treeGenScript.setTreeShape(data.treeShape);
             
 
@@ -259,6 +266,8 @@ public class treeGen3Editor : Editor
        
         saveFileName = EditorGUILayout.TextField("saveAs", saveFileName);
 
+        
+
         if (GUILayout.Button("save Tree parameters"))
         {
             //data = new treeData();
@@ -279,58 +288,190 @@ public class treeGen3Editor : Editor
             }
         }
 
+        setGizmoRadius = EditorGUILayout.FloatField("gizmoRadius", setGizmoRadius);
+
+        EditorGUILayout.LabelField("-------------------------------------------------------------------------------------------------------------------------------");
+        EditorGUILayout.LabelField("tree parameters");
+        EditorGUILayout.Space();
+        
         if (setTreeHeight == 0f)
         {
             setTreeHeight = 1f;
         }
+
         setTreeHeight = EditorGUILayout.FloatField("treeHeight", setTreeHeight);
         if (treeGrowDir == new Vector3(0f, 0f, 0f))
         {
             treeGrowDir = new Vector3(0f, 1f, 0f);
         }
         setTreeGrowDir = EditorGUILayout.Vector3Field("treeGrowDir", setTreeGrowDir);
-        setTreeShape = EditorGUILayout.IntField("treeShape", setTreeShape);
+        setTreeShape = (shape)EditorGUILayout.EnumPopup("treeShape", setTreeShape);
         setTaper = EditorGUILayout.FloatField("taper", setTaper);
         setBranchTipRadius = EditorGUILayout.FloatField("branchTipRadius", setBranchTipRadius);
         setRingSpacing = EditorGUILayout.FloatField("ringSpacing", setRingSpacing);
         setStemRingResolution = EditorGUILayout.IntField("stemRingResolution", setStemRingResolution);
         setResampleNr = EditorGUILayout.IntField("resampleNr", setResampleNr);
+        
+        EditorGUILayout.LabelField("-------------------------------------------------------------------------------------------------------------------------------");
+        EditorGUILayout.LabelField("noise settings");
+        EditorGUILayout.Space();
         setNoiseAmplitudeLower = EditorGUILayout.FloatField("noiseAmplitudeLower", setNoiseAmplitudeLower);
         setNoiseAmplitudeUpper = EditorGUILayout.FloatField("noiseAmplitudeUpper", setNoiseAmplitudeUpper);
         setNoiseAmplitudeLowerUpperExponent = EditorGUILayout.FloatField("noiseAmplitudeLowerUpperExponent", setNoiseAmplitudeLowerUpperExponent);
         setNoiseScale = EditorGUILayout.FloatField("noiseScale", setNoiseScale);
+        EditorGUILayout.Space();
+        
+        EditorGUILayout.LabelField("-------------------------------------------------------------------------------------------------------------------------------");
+        EditorGUILayout.LabelField("split settings");
+        EditorGUILayout.Space();
+        setNrSplits = EditorGUILayout.IntField("nrSplits", setNrSplits);
         setSplitCurvature = EditorGUILayout.FloatField("splitCurvature", setSplitCurvature);
         setTestRecursionStop = EditorGUILayout.IntField("testRecursionStop", setTestRecursionStop);
-        setNrSplits = EditorGUILayout.IntField("nrSplits", setNrSplits);
         setVariance = EditorGUILayout.FloatField("variance", setVariance);
         setCurvOffsetStrength = EditorGUILayout.FloatField("curvOffsetStrength", setCurvOffsetStrength);
         if (setSplitHeightInLevel == null)
         {
             setSplitHeightInLevel = new List<float>();
-            setSplitHeightInLevel.Add(0.5f);
+            //setSplitHeightInLevel.Add(0.5f);
         }
-        for (int i = 0; i < setSplitHeightInLevel.Count; i++)
+        int displayMax = setSplitHeightInLevel.Count < 10 ? setSplitHeightInLevel.Count : 10;
+        for (int i = 0; i < displayMax; i++)
         {
             setSplitHeightInLevel[i] = EditorGUILayout.FloatField("splitHeightInLevel " + i, setSplitHeightInLevel[i]);
         }
-        if (GUILayout.Button("add Level"))
+        if (setSplitHeightInLevel.Count < 10)
         {
-            setSplitHeightInLevel.Add(0.5f);
+            if (GUILayout.Button("add split Level"))
+            {
+                setSplitHeightInLevel.Add(0.5f);
+            }
         }
 
         setSplitHeightVariation = EditorGUILayout.FloatField("splitHeightVariation", setSplitHeightVariation);
         setTestSplitAngle = EditorGUILayout.FloatField("testSplitAngle", setTestSplitAngle);
         setTestSplitPointAngle = EditorGUILayout.FloatField("testSplitPointAngle", setTestSplitPointAngle);
-        setNrChildren = EditorGUILayout.IntField("nrChildren", setNrChildren);
-        setRelChildLength = EditorGUILayout.FloatField("relChildLength", setRelChildLength);
-        setVerticalRange = EditorGUILayout.FloatField("verticalRange", setVerticalRange);
-        setVerticalAngleCrownStart = EditorGUILayout.FloatField("verticalAngleCrownStart", setVerticalAngleCrownStart);
-        setVerticalAngleCrownEnd = EditorGUILayout.FloatField("verticalAngleCrownEnd", setVerticalAngleCrownEnd);
-        setRotateAngle = EditorGUILayout.FloatField("rotateAngle", setRotateAngle);
-        setChildrenStartLevel = EditorGUILayout.IntField("childrenStartLevel", setChildrenStartLevel);
-        setChildCurvature = EditorGUILayout.FloatField("childCurvature", setChildCurvature);
-        setNrChildSplits = EditorGUILayout.IntField("nrChildSplits", setNrChildSplits);
+
+        EditorGUILayout.LabelField("-------------------------------------------------------------------------------------------------------------------------------");
+        EditorGUILayout.LabelField("child settings");
+        EditorGUILayout.Space();
+        if (GUILayout.Button("add child Level"))
+        {
+            setChildLevels += 1;
+            if (setNrChildren == null)
+            {
+                setNrChildren = new List<int>();
+            }
+            setNrChildren.Add(0);
+            if (setRelChildLength == null)
+            {
+                setRelChildLength = new List<float>();
+            }
+            setRelChildLength.Add(1f);
+            if (setVerticalRange == null)
+            {
+                setVerticalRange = new List<float>();
+            }
+            setVerticalRange.Add(0f);
+            if (setVerticalAngleCrownStart == null)
+            {
+                setVerticalAngleCrownStart = new List<float>();
+            }
+            setVerticalAngleCrownStart.Add(0.5f);
+            if (setVerticalAngleCrownEnd == null)
+            {
+                setVerticalAngleCrownEnd = new List<float>();
+            }
+            setVerticalAngleCrownEnd.Add(1f);
+            if (setRotateAngle == null)
+            {
+                setRotateAngle = new List<float>();
+            }
+            setRotateAngle.Add(0f);
+            if (setChildrenStartLevel == null)
+            {
+                setChildrenStartLevel = new List<int>();
+            }
+            setChildrenStartLevel.Add(0);
+            if (setChildCurvature == null)
+            {
+                setChildCurvature = new List<float>();
+            }
+            setChildCurvature.Add(0f);
+            if (setNrChildSplits == null)
+            {
+                setNrChildSplits = new List<int>();
+            }
+            setNrChildSplits.Add(0);
+        }
+        if (GUILayout.Button("remove child Level"))
+        {
+            if (setChildLevels > 0)
+            {
+                if (setNrChildren.Count > 0)
+                {
+                    setChildLevels -= 1;
+                    setNrChildren.RemoveAt(setNrChildren.Count - 1);
+                    setRelChildLength.RemoveAt(setRelChildLength.Count - 1);
+                    setVerticalRange.RemoveAt(setVerticalRange.Count - 1);
+                    setVerticalAngleCrownStart.RemoveAt(setVerticalAngleCrownStart.Count - 1);
+                    setVerticalAngleCrownEnd.RemoveAt(setVerticalAngleCrownEnd.Count - 1);
+                    setRotateAngle.RemoveAt(setRotateAngle.Count - 1);
+                    setChildrenStartLevel.RemoveAt(setChildrenStartLevel.Count - 1);
+                    setChildCurvature.RemoveAt(setChildCurvature.Count - 1);
+                    setNrChildSplits.Remove(setNrChildSplits.Count - 1);
+                }
+                else
+                {
+                    Debug.Log("ERROR! nr child levels incorrect!");
+                }
+            }
+
+        }
+        //if (setChildLevels < 1)
+        //{
+        //    setChildLevels = 1;
+        //    if (setNrChildren.Count < 1)
+        //    {
+        //        setNrChildren.Add(0);
+        //        setRelChildLength.Add(1f);
+        //        setVerticalRange.Add(0f);
+        //        setVerticalAngleCrownStart.Add(0.5f);
+        //        setVerticalAngleCrownEnd.Add(1f);
+        //        setRotateAngle.Add(0f);
+        //        setChildrenStartLevel.Add(0);
+        //        setChildCurvature.Add(0f);
+        //        setNrChildSplits.Add(0);
+        //    }
+        //}
+
+        if (setNrChildren != null)
+        {
+            if (setNrChildren.Count == setChildLevels)
+            {
+                for (int i = 0; i < setChildLevels; i++)
+                {
+                    EditorGUILayout.LabelField("child level " + i);
+                    setNrChildren[i] = EditorGUILayout.IntField("nrChildren", setNrChildren[i]);
+                    setRelChildLength[i] = EditorGUILayout.FloatField("relChildLength", setRelChildLength[i]);
+                    setVerticalRange[i] = EditorGUILayout.FloatField("verticalRange", setVerticalRange[i]);
+                    setVerticalAngleCrownStart[i] = EditorGUILayout.FloatField("verticalAngleCrownStart", setVerticalAngleCrownStart[i]);
+                    setVerticalAngleCrownEnd[i] = EditorGUILayout.FloatField("verticalAngleCrownEnd", setVerticalAngleCrownEnd[i]);
+                    setRotateAngle[i] = EditorGUILayout.FloatField("rotateAngle", setRotateAngle[i]);
+                    setChildrenStartLevel[i] = EditorGUILayout.IntField("childrenStartLevel", setChildrenStartLevel[i]);
+                    setChildCurvature[i] = EditorGUILayout.FloatField("childCurvature", setChildCurvature[i]);
+                    setNrChildSplits[i] = EditorGUILayout.IntField("nrChildSplits", setNrChildSplits[i]);
+                    EditorGUILayout.Space();
+                }
+            }
+            else
+            {
+                Debug.Log("ERROR! setChildLevels: " + setChildLevels + ", setNrChildrenCount: " + setNrChildren.Count);
+            }
+        }
+
         
+        
+        EditorGUILayout.LabelField("-------------------------------------------------------------------------------------------------------------------------------");
         setRandomize = EditorGUILayout.Toggle("randomizeSeed", setRandomize);
         setSeed = EditorGUILayout.IntField("seed", setSeed);        
 
@@ -348,6 +489,11 @@ public class treeGen3Editor : Editor
             data = new treeData();
 
             Debug.Log("set tree parameters...");
+
+            
+            treeGenScript.gizmoRadius = setGizmoRadius;
+
+
             // treeHeight = EditorGUILayout.FloatField("treeHeight", treeHeight);
             treeHeight = setTreeHeight;
             treeGenScript.treeHeight = setTreeHeight;
@@ -357,9 +503,9 @@ public class treeGen3Editor : Editor
             treeGenScript.treeGrowDir = setTreeGrowDir;
             data.treeGrowDir = setTreeGrowDir;
 
-            treeShape = setTreeShape;
+            treeShape = (int)setTreeShape;
             treeGenScript.setTreeShape(treeShape);
-            data.treeShape = setTreeShape;
+            data.treeShape = (int)setTreeShape;
             
             taper = setTaper;
             treeGenScript.taper = setTaper;
@@ -433,6 +579,10 @@ public class treeGen3Editor : Editor
             treeGenScript.testSplitPointAngle = setTestSplitPointAngle;
             data.testSplitPointAngle = setTestSplitPointAngle;
 
+            childLevels = setChildLevels;
+            treeGenScript.nrChildLevels = childLevels;
+            // TODO...
+
             nrChildren = setNrChildren;
             treeGenScript.nrChildren = setNrChildren;
             data.nrChildren = setNrChildren;
@@ -505,15 +655,40 @@ public class treeData
     public float splitHeightVariation;
     public float testSplitAngle;
     public float testSplitPointAngle;
-    public int nrChildren;
-    public float relChildLength;
-    public float verticalRange;
-    public float verticalAngleCrownStart;
-    public float verticalAngleCrownEnd;
-    public float rotateAngle;
-    public int childrenStartLevel;
-    public float childCurvature;
-    public int nrChildSplits;
+
+    //
+    // static int childLevels;
+    // public static int setChildLevels;
+// 
+    // static List<int> nrChildren;
+    // public static List<int> setNrChildren;
+    // static List<float> relChildLength;
+    // public static List<float> setRelChildLength;
+    // static List<float> verticalRange;
+    // public static List<float> setVerticalRange;
+    // static List<float> verticalAngleCrownStart;
+    // public static List<float> setVerticalAngleCrownStart;
+    // static List<float> verticalAngleCrownEnd;
+    // public static List<float> setVerticalAngleCrownEnd;
+    // static List<float> rotateAngle;
+    // public static List<float> setRotateAngle;
+    // static List<int> childrenStartLevel;
+    // public static List<int> setChildrenStartLevel;
+    // static List<float> childCurvature;
+    // public static List<float> setChildCurvature;
+    // static List<int> nrChildSplits;
+    // public static List<int> setNrChildSplits;
+//
+    public int childLevels;
+    public List<int> nrChildren;
+    public List<float> relChildLength;
+    public List<float> verticalRange;
+    public List<float> verticalAngleCrownStart;
+    public List<float> verticalAngleCrownEnd;
+    public List<float> rotateAngle;
+    public List<int> childrenStartLevel;
+    public List<float> childCurvature;
+    public List<int> nrChildSplits;
     public int seed;
 
     public treeData()
