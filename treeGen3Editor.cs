@@ -56,6 +56,8 @@ public class treeGen3Editor : Editor
     public static float setSplitCurvature;
     static int testRecursionStop;
     public static int setTestRecursionStop;
+    public static int shyBranchesIterations;
+    public static int setShyBranchesIterations;
     static int nrSplits;
     public static int setNrSplits;
     static float variance;
@@ -188,6 +190,10 @@ public class treeGen3Editor : Editor
             testRecursionStop = data.testRecursionStop;
             setTestRecursionStop = data.testRecursionStop;
             treeGenScript.testRecursionStop = data.testRecursionStop;
+
+            shyBranchesIterations = data.shyBranchesIterations;
+            setShyBranchesIterations = data.shyBranchesIterations;
+            treeGenScript.shyBranchesIterations = data.shyBranchesIterations;
 
             nrSplits = data.nrSplits;
             setNrSplits = data.nrSplits;
@@ -324,6 +330,7 @@ public class treeGen3Editor : Editor
         EditorGUILayout.LabelField("-------------------------------------------------------------------------------------------------------------------------------");
         EditorGUILayout.LabelField("split settings");
         EditorGUILayout.Space();
+        setShyBranchesIterations = EditorGUILayout.IntField("shyBranchesIterations", setShyBranchesIterations);
         setNrSplits = EditorGUILayout.IntField("nrSplits", setNrSplits);
         setSplitCurvature = EditorGUILayout.FloatField("splitCurvature", setSplitCurvature);
         setTestRecursionStop = EditorGUILayout.IntField("testRecursionStop", setTestRecursionStop);
@@ -477,6 +484,8 @@ public class treeGen3Editor : Editor
 
         if (GUILayout.Button("set Tree parameters"))
         {
+            data = new treeData();
+            
             if (setRandomize == true)
             {
                 //setSeed += 1;
@@ -486,7 +495,6 @@ public class treeGen3Editor : Editor
                 data.seed = setSeed;
             }
 
-            data = new treeData();
 
             Debug.Log("set tree parameters...");
 
@@ -550,6 +558,10 @@ public class treeGen3Editor : Editor
             testRecursionStop = setTestRecursionStop;
             treeGenScript.testRecursionStop = setTestRecursionStop;
             data.testRecursionStop = setTestRecursionStop;
+
+            shyBranchesIterations = setShyBranchesIterations;
+            treeGenScript.shyBranchesIterations = setShyBranchesIterations;
+            data.shyBranchesIterations = setShyBranchesIterations;
             
             nrSplits = setNrSplits;
             treeGenScript.nrSplits = setNrSplits;
@@ -648,6 +660,7 @@ public class treeData
     public float noiseScale;
     public float splitCurvature;
     public int testRecursionStop;
+    public int shyBranchesIterations;
     public int nrSplits;
     public float variance;
     public float curvOffsetStrength;
