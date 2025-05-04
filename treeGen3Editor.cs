@@ -58,6 +58,8 @@ public class treeGen3Editor : Editor
     public static int setTestRecursionStop;
     public static int shyBranchesIterations;
     public static int setShyBranchesIterations;
+    public static float shyBranchesMaxDistance;
+    public static float setShyBranchesMaxDistance;
     static int nrSplits;
     public static int setNrSplits;
     static float variance;
@@ -66,6 +68,8 @@ public class treeGen3Editor : Editor
     public static float setCurvOffsetStrength;
     static List<float> splitHeightInLevel;
     public static List<float> setSplitHeightInLevel;
+    static List<List<float>> childSplitHeightInLevel;
+    public static List<List<float>> setChildSplitHeightInLevel;
     static float splitHeightVariation;
     public static float setSplitHeightVariation;
     static float testSplitAngle;
@@ -195,6 +199,10 @@ public class treeGen3Editor : Editor
             setShyBranchesIterations = data.shyBranchesIterations;
             treeGenScript.shyBranchesIterations = data.shyBranchesIterations;
 
+            shyBranchesMaxDistance = data.shyBranchesMaxDistance;
+            setShyBranchesMaxDistance = data.shyBranchesMaxDistance;
+            treeGenScript.shyBranchesMaxDistance = data.shyBranchesMaxDistance;
+
             nrSplits = data.nrSplits;
             setNrSplits = data.nrSplits;
             treeGenScript.nrSplits = data.nrSplits;
@@ -210,6 +218,10 @@ public class treeGen3Editor : Editor
             splitHeightInLevel = data.splitHeightInLevel;
             setSplitHeightInLevel = data.splitHeightInLevel;
             treeGenScript.splitHeightInLevel = data.splitHeightInLevel;
+
+            childSplitHeightInLevel = data.childSplitHeightInLevel;
+            setChildSplitHeightInLevel = data.childSplitHeightInLevel;
+            treeGenScript.childSplitHeightInLevel = data.childSplitHeightInLevel;
 
             splitHeightVariation = data.splitHeightVariation;
             setSplitHeightVariation = data.splitHeightVariation;
@@ -287,7 +299,7 @@ public class treeGen3Editor : Editor
             if (saveFileName != "")
             {
                 string path = "Assets/Resources/" + saveFileName + ".json";
-                StreamWriter writer = new StreamWriter(path, true);
+                StreamWriter writer = new StreamWriter(path, false);
                 writer.Write(jsonString);
                 writer.Close();
                 Debug.Log("file saved as " + saveFileName + ".json");
@@ -331,6 +343,7 @@ public class treeGen3Editor : Editor
         EditorGUILayout.LabelField("split settings");
         EditorGUILayout.Space();
         setShyBranchesIterations = EditorGUILayout.IntField("shyBranchesIterations", setShyBranchesIterations);
+        setShyBranchesMaxDistance = EditorGUILayout.FloatField("shyBranchesMaxDistance", setShyBranchesMaxDistance);
         setNrSplits = EditorGUILayout.IntField("nrSplits", setNrSplits);
         setSplitCurvature = EditorGUILayout.FloatField("splitCurvature", setSplitCurvature);
         setTestRecursionStop = EditorGUILayout.IntField("testRecursionStop", setTestRecursionStop);
@@ -409,6 +422,13 @@ public class treeGen3Editor : Editor
                 setNrChildSplits = new List<int>();
             }
             setNrChildSplits.Add(0);
+
+            if (childSplitHeightInLevel == null)
+            {
+                childSplitHeightInLevel = new List<List<float>>();
+            }
+
+            
         }
         if (GUILayout.Button("remove child Level"))
         {
@@ -425,7 +445,8 @@ public class treeGen3Editor : Editor
                     setRotateAngle.RemoveAt(setRotateAngle.Count - 1);
                     setChildrenStartLevel.RemoveAt(setChildrenStartLevel.Count - 1);
                     setChildCurvature.RemoveAt(setChildCurvature.Count - 1);
-                    setNrChildSplits.Remove(setNrChildSplits.Count - 1);
+                    setNrChildSplits.RemoveAt(setNrChildSplits.Count - 1);
+                    setChildSplitHeightInLevel.RemoveAt(setChildSplitHeightInLevel.Count - 1);
                 }
                 else
                 {
@@ -467,12 +488,45 @@ public class treeGen3Editor : Editor
                     setChildrenStartLevel[i] = EditorGUILayout.IntField("childrenStartLevel", setChildrenStartLevel[i]);
                     setChildCurvature[i] = EditorGUILayout.FloatField("childCurvature", setChildCurvature[i]);
                     setNrChildSplits[i] = EditorGUILayout.IntField("nrChildSplits", setNrChildSplits[i]);
+                    if (setChildSplitHeightInLevel == null)
+                    {
+                        setChildSplitHeightInLevel = new List<List<float>>();
+                    }
+
+                    if (setChildSplitHeightInLevel.Count < 10)
+                    {
+                        if (GUILayout.Button("add child split Level"))
+                        {
+                            if (setChildSplitHeightInLevel.Count < i + 1)
+                            {
+                                setChildSplitHeightInLevel.Add(new List<float>());
+                            }
+                            setChildSplitHeightInLevel[i].Add(0.5f);
+                            
+                            Debug.Log("add child split level, child level: " + i + ", setChildSplitHeightInLevel.Count: " + setChildSplitHeightInLevel.Count + 
+                            ", setChildSplitHeightInLevel[0].Count: " + setChildSplitHeightInLevel[i].Count);
+                            
+                        }
+                    }
+
+                    if (setChildSplitHeightInLevel.Count > i)
+                    {
+                        int childDisplayMax = setChildSplitHeightInLevel[i].Count < 10 ? setChildSplitHeightInLevel[i].Count : 10;
+
+                        for (int c = 0; c < childDisplayMax; c++)
+                        {
+                            setChildSplitHeightInLevel[i][c] = EditorGUILayout.FloatField("childSplitHeightInLevel " + i, setChildSplitHeightInLevel[i][c]);
+                        }
+                    }
+                    
+
                     EditorGUILayout.Space();
                 }
             }
             else
             {
                 Debug.Log("ERROR! setChildLevels: " + setChildLevels + ", setNrChildrenCount: " + setNrChildren.Count);
+                setChildLevels = setNrChildren.Count;
             }
         }
 
@@ -562,6 +616,10 @@ public class treeGen3Editor : Editor
             shyBranchesIterations = setShyBranchesIterations;
             treeGenScript.shyBranchesIterations = setShyBranchesIterations;
             data.shyBranchesIterations = setShyBranchesIterations;
+
+            shyBranchesMaxDistance = setShyBranchesMaxDistance;
+            treeGenScript.shyBranchesMaxDistance = setShyBranchesMaxDistance;
+            data.shyBranchesMaxDistance = setShyBranchesMaxDistance;
             
             nrSplits = setNrSplits;
             treeGenScript.nrSplits = setNrSplits;
@@ -593,7 +651,10 @@ public class treeGen3Editor : Editor
 
             childLevels = setChildLevels;
             treeGenScript.nrChildLevels = childLevels;
-            // TODO...
+            
+            childSplitHeightInLevel = setChildSplitHeightInLevel;
+            treeGenScript.childSplitHeightInLevel = setChildSplitHeightInLevel;
+            data.childSplitHeightInLevel = setChildSplitHeightInLevel;
 
             nrChildren = setNrChildren;
             treeGenScript.nrChildren = setNrChildren;
@@ -642,10 +703,18 @@ public class treeGen3Editor : Editor
         }
         
     }
+    
 }
 
 public class treeData
 {
+    //void OnDrawGizmos()
+    //{
+    //    Debug.Log("OnDrawGizmos");
+    //    Gizmos.color = Color.red;
+    //    Gizmos.DrawSphere(new Vector3(0f, 0f, 0f), 10f);
+    //}
+
     public float treeHeight;
     public Vector3 treeGrowDir;
     public int treeShape;
@@ -661,10 +730,12 @@ public class treeData
     public float splitCurvature;
     public int testRecursionStop;
     public int shyBranchesIterations;
+    public float shyBranchesMaxDistance;
     public int nrSplits;
     public float variance;
     public float curvOffsetStrength;
     public List<float> splitHeightInLevel;
+    public List<List<float>> childSplitHeightInLevel;
     public float splitHeightVariation;
     public float testSplitAngle;
     public float testSplitPointAngle;
@@ -708,4 +779,6 @@ public class treeData
     {
 
     }
+
+    
 }
