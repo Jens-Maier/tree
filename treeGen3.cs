@@ -632,6 +632,7 @@ public class treeGen3 : MonoBehaviour
     
     public List<float> splitHeightInLevel;
     public List<List<float>> childSplitHeightInLevel;
+    public List<float> childSplitHeightVariation;
     [Range(0f, 1f)]
     public float splitHeightVariation;
     [Range(0f, 90f)]
@@ -785,17 +786,17 @@ public class treeGen3 : MonoBehaviour
             
             if (startNodes.Count > 0)
             {
-                for (int i = 0; i < nrChildren[0]; i++)
+                for (int i = 0; i < nrChildren[l]; i++) // nrChildren[0]
                 {
                     // int r = random.Next() % startNodes.Count;
                     // int n = random.Next() % startNodes[r].next.Count;
                     // float t = (float)random.NextDouble();
 
-                    int startNodeIndex = (int)((float)startNodes.Count * (float)i / (float)nrChildren[0]);
+                    int startNodeIndex = (int)((float)startNodes.Count * (float)i / (float)nrChildren[l]); // nrChildren[0]
                     int n = random.Next(startNodes[startNodeIndex].next.Count);//random.Next() % startNodes[startNodeIndex].next.Count;
 
                     //float t = (float)random.NextDouble();
-                    float t = (float)startNodes.Count * (float)i / (float)nrChildren[0] - (float)startNodeIndex;
+                    float t = (float)startNodes.Count * (float)i / (float)nrChildren[l] - (float)startNodeIndex; // nrChildren[0]
 
                     // TODO: winding -> equal distances -> add random offsets
 
@@ -888,7 +889,7 @@ public class treeGen3 : MonoBehaviour
                     Debug.Log("child cotangent: " + childCotangent);
                     node child = new node(startPoint, childDir, childCotangent, startNodes[startNodeIndex].tVal, taper / 1.5f, this, null); // TODO: taper[] for each level
                     //float branchLength = (1f - startNodes[startNodeIndex].tVal);
-                    float branchLength = treeHeight * relChildLength[0] * shapeRatio(startNodes[startNodeIndex].tVal);
+                    float branchLength = treeHeight * relChildLength[l] * shapeRatio(startNodes[startNodeIndex].tVal);
                     float lengthToTip = startNodes[startNodeIndex].lengthToTip();
                     // lengthToTip -= t * vLength(startNodes[startNodeIndex].next[n].point - startNodes[startNodeIndex].point);
                     // if (branchLength > lengthToTip)
@@ -915,13 +916,13 @@ public class treeGen3 : MonoBehaviour
                         //debugLinesRed.Add(new line(startPoint, startPoint + verticalStart * branchLength));
                         //debugLinesRed.Add(new line(startPoint, startPoint + verticalEnd * branchLength));
 
-                        windingAngle += rotateAngle[0]; // TODO: fibonacci numbers: 1/2, 1/3, 2/5, 3/8 -> 180, 120, 144, 135, -> f(n)/f(n+2)
+                        windingAngle += rotateAngle[l]; // TODO: fibonacci numbers: 1/2, 1/3, 2/5, 3/8 -> 180, 120, 144, 135, -> f(n)/f(n+2)
 
                         Debug.Log("children[" + n + "] count: " + startNodes[startNodeIndex].children[n].Count);
                         startNodes[startNodeIndex].children[n][0].resampleSpline(3, 0f, 0f, 1f);
 
                         // curvature
-                        child.curveBranches(childCurvature[0], Vector3.Cross(startPointTangent, childDir));
+                        child.curveBranches(childCurvature[l], Vector3.Cross(startPointTangent, childDir));
                         debugLinesGreen.Add(new line(startPoint, startPoint + norm(Vector3.Cross(startPointTangent, childDir))));
                     }
                 }
@@ -932,7 +933,6 @@ public class treeGen3 : MonoBehaviour
                 Debug.Log("leafNodes count: " + leafNodes.Count);
                 foreach (node n in leafNodes)
                 {
-
                     float branchLength = treeHeight * relChildLength[0] * shapeRatio(1f);
                     Vector3 childDir = n.tangent[0];
                     Vector3 childCotangent;
@@ -1043,7 +1043,7 @@ public class treeGen3 : MonoBehaviour
         //return (1f - tVal);
     }
 
-    public void splitChildren(int nrChildSplits, float splitAngle, float splitPointAngle) // TODO: split child at tip of spline -> TODO: get all nodes... 
+    public void splitChildren(int childLevel, int nrChildSplits, float splitAngle, float splitPointAngle) // TODO: split child at tip of spline -> TODO: get all nodes... 
     {
         Debug.Log("splitChildren()");
         List<node> allChildNodes = new List<node>();
@@ -1177,34 +1177,16 @@ public class treeGen3 : MonoBehaviour
                     Debug.Log("nodeIndices.Count: " + nodeIndices.Count); // 1
                     Debug.Log("nodeIndexToSplit: " + nodeIndices[indexToSplit]); // 0
                     Debug.Log("nodesInLevelNextIndex[level = " + level + "].Count: " + nodesInLevelNextIndex[level].Count); // level 0, Count 31
-                    if (nodeIndices.Count > indexToSplit)
+                    if (nodeIndices.Count > indexToSplit && childSplitHeightInLevel.Count > childLevel)
                     {
-                        float splitHeight = childSplitHeightInLevel[0][level];
-                        if (h * splitHeightVariation < 0)
-                        {
-                            if (splitHeight + h * splitHeightVariation > 0f)
-                            {
-                                splitHeight += h * splitHeightVariation;
-                            }
-                            else
-                            {
-                                splitHeight = 0.05f;
-                            }
-                        }
-                        else
-                        {
-                            if (splitHeight + h * splitHeightVariation < 1f)
-                            {
-                                splitHeight += h * splitHeightVariation;
-                            }
-                            else
-                            {
-                                splitHeight = 0.95f; // TODO...
-                            }
-                        }
-                        Debug.Log("splitHeight: " + splitHeight + ", h: " + h);
+                        Debug.Log("childSplitHeightInLevel.Count: " + childSplitHeightInLevel.Count + 
+                        "childSplitHeightInLevel[0].Count: " + childSplitHeightInLevel[0].Count + ", childLevel: " + childLevel + ", level: " + level);
+                        
+                        float childSplitHeight = Mathf.Clamp(childSplitHeightInLevel[childLevel][level] + h * childSplitHeightVariation[childLevel], 0.1f, 0.9f);
+                        
+                        Debug.Log("splitHeight: " + childSplitHeight + ", h: " + h);
                         node splitNode = split(nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item1, nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item2, 
-                                            splitHeight, splitAngle, splitPointAngle, level);
+                                            childSplitHeight, splitAngle, splitPointAngle, level, splitMode.horizontal);
                         
                         // TODO: in split() -> split between two nodes -> insert new node!
                         
@@ -1397,7 +1379,7 @@ public class treeGen3 : MonoBehaviour
                         }
                         Debug.Log("splitHeight: " + splitHeight + ", h: " + h);
                         node splitNode = split(nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item1, nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item2, 
-                                            splitHeight, splitAngle, splitPointAngle, level);
+                                            splitHeight, splitAngle, splitPointAngle, level, splitMode.alternating);
 
                         // TODO: in split() -> split between two nodes -> insert new node!
 
@@ -1670,7 +1652,7 @@ public class treeGen3 : MonoBehaviour
     }
 
 
-    public node split(node startNode, int nextIndex, float splitHeight, float splitAngle, float splitPointAngle, int level) // splitHeight: [0, 1]
+    public node split(node startNode, int nextIndex, float splitHeight, float splitAngle, float splitPointAngle, int level, splitMode mode) // splitHeight: [0, 1]
     {
         Debug.Log("in split()!");
         // split after resampleSpline!  //  in resampleSpline(): t_value = (float)i / (float)n
@@ -1773,7 +1755,7 @@ public class treeGen3 : MonoBehaviour
                     newSplitNode.next.Add(splitAfterNode.next[nextIndex]);
                     splitAfterNode.next[nextIndex] = newSplitNode;
                     
-                    calculateSplitData(newSplitNode, splitAngle, splitPointAngle, level, splitMode.alternating);
+                    calculateSplitData(newSplitNode, splitAngle, splitPointAngle, level, mode);
 
                     return newSplitNode;
                 }
@@ -1808,6 +1790,28 @@ public class treeGen3 : MonoBehaviour
 
             case splitMode.horizontal:
                 splitAxis = splitNode.cotangent; // TODO...
+
+                Vector3 right = Vector3.Cross(splitNode.tangent[0], new Vector3(0f, 1f, 0f));
+                splitAxis = Vector3.Cross(right, splitNode.tangent[0]);
+
+                
+                
+                debugLinesRed.Add(new line(splitNode.point, splitNode.point + splitAxis));
+                
+
+
+                // splitAxis = Vector3.Cross(splitNode.tangent[0], new Vector3(0f, 1f, 0f));
+                // splitAxis = Vector3.Cross(splitAxis, splitAxis);
+                // if (vLength(splitAxis) < 0.001f)
+                // {
+                //     splitAxis = norm(splitNode.cotangent);
+                // }
+                // else
+                // {
+                //     splitAxis = norm(splitAxis);
+                // }
+
+
                 break;
             default:
                 Debug.Log("ERROR: invalid splitMode!");
@@ -1942,13 +1946,21 @@ public class treeGen3 : MonoBehaviour
             }
         }
 
-        if (childSplitHeightInLevel.Count < nrChildSplits[0])
+        for (int childLevel = 0; childLevel < nrChildLevels; childLevel++)
         {
-            int s = nrChildSplits[0] - childSplitHeightInLevel.Count;
-            for(int i = 0; i < s; i++)
+            if (childSplitHeightInLevel.Count < childLevel + 1)
             {
                 childSplitHeightInLevel.Add(new List<float>());
-                childSplitHeightInLevel[childSplitHeightInLevel.Count - 1].Add(0.5f);
+                childSplitHeightVariation.Add(0f);
+            }
+            
+            if (childSplitHeightInLevel[childLevel].Count < nrChildSplits[childLevel])
+            {
+                int s = nrChildSplits[childLevel] - childSplitHeightInLevel[childLevel].Count;
+                for(int i = 0; i < s; i++)
+                {
+                    childSplitHeightInLevel[childLevel].Add(0.5f);
+                }
             }
         }
 
@@ -1992,7 +2004,7 @@ public class treeGen3 : MonoBehaviour
             {
                 if (nrChildSplits[0] > 0)
                 {
-                    splitChildren(nrChildSplits[0], testSplitAngle, testSplitPointAngle);
+                    splitChildren(0, nrChildSplits[0], testSplitAngle, testSplitPointAngle); // TODO: split all levels!
                 }
             }
         }

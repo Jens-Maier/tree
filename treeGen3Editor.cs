@@ -70,6 +70,8 @@ public class treeGen3Editor : Editor
     public static List<float> setSplitHeightInLevel;
     static List<List<float>> childSplitHeightInLevel;
     public static List<List<float>> setChildSplitHeightInLevel;
+    static List<float> childSplitHeightVariation;
+    public static List<float> setChildSplitHeightVariation;
     static float splitHeightVariation;
     public static float setSplitHeightVariation;
     static float testSplitAngle;
@@ -222,6 +224,10 @@ public class treeGen3Editor : Editor
             childSplitHeightInLevel = data.childSplitHeightInLevel;
             setChildSplitHeightInLevel = data.childSplitHeightInLevel;
             treeGenScript.childSplitHeightInLevel = data.childSplitHeightInLevel;
+
+            childSplitHeightVariation = data.childSplitHeightVariation;
+            setChildSplitHeightVariation = data.childSplitHeightVariation;
+            treeGenScript.childSplitHeightVariation = data.childSplitHeightVariation;
 
             splitHeightVariation = data.splitHeightVariation;
             setSplitHeightVariation = data.splitHeightVariation;
@@ -423,10 +429,17 @@ public class treeGen3Editor : Editor
             }
             setNrChildSplits.Add(0);
 
-            if (childSplitHeightInLevel == null)
+            if (setChildSplitHeightInLevel == null)
             {
-                childSplitHeightInLevel = new List<List<float>>();
+                setChildSplitHeightInLevel = new List<List<float>>();
             }
+
+            if (setChildSplitHeightVariation == null)
+            {
+                setChildSplitHeightVariation = new List<float>();
+            }
+            setChildSplitHeightVariation.Add(0.5f);
+
 
             
         }
@@ -447,6 +460,7 @@ public class treeGen3Editor : Editor
                     setChildCurvature.RemoveAt(setChildCurvature.Count - 1);
                     setNrChildSplits.RemoveAt(setNrChildSplits.Count - 1);
                     setChildSplitHeightInLevel.RemoveAt(setChildSplitHeightInLevel.Count - 1);
+                    setChildSplitHeightVariation.RemoveAt(setChildSplitHeightVariation.Count - 1);
                 }
                 else
                 {
@@ -487,14 +501,22 @@ public class treeGen3Editor : Editor
                     setRotateAngle[i] = EditorGUILayout.FloatField("rotateAngle", setRotateAngle[i]);
                     setChildrenStartLevel[i] = EditorGUILayout.IntField("childrenStartLevel", setChildrenStartLevel[i]);
                     setChildCurvature[i] = EditorGUILayout.FloatField("childCurvature", setChildCurvature[i]);
+                    
+                    if (setChildSplitHeightVariation == null)
+                    {
+                        setChildSplitHeightVariation = new List<float>();
+                    }
                     setNrChildSplits[i] = EditorGUILayout.IntField("nrChildSplits", setNrChildSplits[i]);
+                    setChildSplitHeightVariation[i] = EditorGUILayout.FloatField("childSplitHeightVariation", setChildSplitHeightVariation[i]);
+                    
                     if (setChildSplitHeightInLevel == null)
                     {
                         setChildSplitHeightInLevel = new List<List<float>>();
                     }
+                    
 
-                    if (setChildSplitHeightInLevel.Count < 10)
-                    {
+                    //if (setChildSplitHeightInLevel.Count < 10) // TEST OFF
+                    //{
                         if (GUILayout.Button("add child split Level"))
                         {
                             if (setChildSplitHeightInLevel.Count < i + 1)
@@ -502,12 +524,14 @@ public class treeGen3Editor : Editor
                                 setChildSplitHeightInLevel.Add(new List<float>());
                             }
                             setChildSplitHeightInLevel[i].Add(0.5f);
+
+                            setChildSplitHeightVariation.Add(0f);
                             
                             Debug.Log("add child split level, child level: " + i + ", setChildSplitHeightInLevel.Count: " + setChildSplitHeightInLevel.Count + 
                             ", setChildSplitHeightInLevel[0].Count: " + setChildSplitHeightInLevel[i].Count);
                             
                         }
-                    }
+                    //}
 
                     if (setChildSplitHeightInLevel.Count > i)
                     {
@@ -656,6 +680,10 @@ public class treeGen3Editor : Editor
             treeGenScript.childSplitHeightInLevel = setChildSplitHeightInLevel;
             data.childSplitHeightInLevel = setChildSplitHeightInLevel;
 
+            childSplitHeightVariation = setChildSplitHeightVariation;
+            treeGenScript.childSplitHeightVariation = setChildSplitHeightVariation;
+            data.childSplitHeightVariation = setChildSplitHeightVariation;
+
             nrChildren = setNrChildren;
             treeGenScript.nrChildren = setNrChildren;
             data.nrChildren = setNrChildren;
@@ -736,6 +764,7 @@ public class treeData
     public float curvOffsetStrength;
     public List<float> splitHeightInLevel;
     public List<List<float>> childSplitHeightInLevel;
+    public List<float> childSplitHeightVariation;
     public float splitHeightVariation;
     public float testSplitAngle;
     public float testSplitPointAngle;
