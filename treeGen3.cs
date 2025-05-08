@@ -28,6 +28,12 @@ public enum Shape
     tendFlame
 }
 
+public enum angleMode
+{
+    symmetric,
+    winding
+}
+
 public enum splitMode
 {
     alternating,
@@ -77,26 +83,45 @@ public class node
         }
     }
 
-    public void getAllStartNodes(List<node> startNodes, List<int> nrSplitsPassedAtStartNode, int nrSplitsPassed, int startLevel, int level)
+    public void getAllStartNodes(List<node> startNodes, List<int> nrSplitsPassedAtStartNode, int nrSplitsPassed, int startLevel, int level, int parentLevel, int parentLevelCounter)
     {
-        // TODO: calculate dirStart, dirEnd
-        if (level >= startLevel)
+        if (parentLevel == parentLevelCounter)
         {
-            if (next.Count > 0)
+            if (level >= startLevel)
             {
-                startNodes.Add(this);
-                nrSplitsPassedAtStartNode.Add(nrSplitsPassed);
+                if (next.Count > 0)
+                {
+                    startNodes.Add(this);
+                    nrSplitsPassedAtStartNode.Add(nrSplitsPassed);
+                }
+            }
+            if (next.Count > 1)
+            {
+                nrSplitsPassed += 1;
+            }
+            foreach (node n in next)
+            {
+                n.getAllStartNodes(startNodes, nrSplitsPassedAtStartNode, nrSplitsPassed, startLevel, level + 1, parentLevel, parentLevelCounter);
             }
         }
-        if (next.Count > 1)
+        else
         {
-            nrSplitsPassed += 1;
+            foreach (node n in next)
+            {
+                n.getAllStartNodes(startNodes, nrSplitsPassedAtStartNode, nrSplitsPassed, startLevel, level, parentLevel, parentLevelCounter);
+            }
+            foreach (List<node> c in children)
+            {
+                foreach (node n in c)
+                {
+                    n.getAllStartNodes(startNodes, nrSplitsPassedAtStartNode, nrSplitsPassed, startLevel, level, parentLevel, parentLevelCounter + 1);
+                }
+            }
         }
-        foreach (node n in next)
-        {
-            n.getAllStartNodes(startNodes, nrSplitsPassedAtStartNode, nrSplitsPassed, startLevel, level + 1);
-        }
+
     }
+
+
 
     public void getAllNodes(List<node> allNodes)
     {
@@ -645,6 +670,7 @@ public class treeGen3 : MonoBehaviour
 
     public int nrChildLevels;
 
+    public List<int> parentLevelIndex;
     public List<int> nrChildren;
     [Range(0f, 1f)]
     public List<float> relChildLength;
@@ -660,6 +686,8 @@ public class treeGen3 : MonoBehaviour
     [Range(-90f, 90f)]
     public List<float> childCurvature;
     public List<int> nrChildSplits;
+
+    public List<angleMode> childAngleMode;
     public int seed;
 
     public List<int> nodeIndices;
@@ -769,11 +797,15 @@ public class treeGen3 : MonoBehaviour
             List<int> nrSplitsPassedAtStartNode = new List<int>();
             if (l == 0)
             {
-                rootNode.getAllStartNodes(startNodes, nrSplitsPassedAtStartNode, 0, childrenStartLevel[0], 0); // TODO...
+                rootNode.getAllStartNodes(startNodes, nrSplitsPassedAtStartNode, 0, childrenStartLevel[0], 0, 0, 0); // TODO...
+                Debug.Log("in addChildren: childLevel: l = 0, getAllStartNodes: parentLevelIndex[0]: " + parentLevelIndex[0]);
             }
             else
             {
-                rootNode.getAllChildNodes(startNodes, l, 0); // TODO... -> add int childLevel to node -> select only nodes of correct level..
+                rootNode.getAllStartNodes(startNodes, nrSplitsPassedAtStartNode, 0, childrenStartLevel[l], 0, parentLevelIndex[l], 0);
+                Debug.Log("in addChildren: childLevel: " + l + ", getAllStartNodes: parentLevelIndex[l]: " + parentLevelIndex[l]);
+
+                // rootNode.getAllChildNodes(startNodes, l, 0); // TODO... -> add int childLevel to node -> select only nodes of correct level..
 
                 for (int i = 0; i < startNodes.Count; i++)
                 {
@@ -782,7 +814,7 @@ public class treeGen3 : MonoBehaviour
             }
 
             float windingAngle = 0f;
-            Debug.Log("startNodes: " + startNodes.Count); // ERROR HERE: startNodes: 0
+            Debug.Log("childLevel: " + l + ", startNodes: " + startNodes.Count); // ERROR HERE: startNodes: 0
             
             if (startNodes.Count > 0)
             {
@@ -858,13 +890,35 @@ public class treeGen3 : MonoBehaviour
                     Vector3 verticalStart = norm(Quaternion.AngleAxis(-verticalAngle + verticalRange[0], norm(Vector3.Cross(startPointTangent, outwardDir))) * outwardDir);
                     Vector3 verticalEnd = norm(Quaternion.AngleAxis(-verticalAngle - verticalRange[0], norm(Vector3.Cross(startPointTangent, outwardDir))) * outwardDir);
 
-                    float angle = windingAngle % (2f * dirRange);
+                    
                     Vector3 centerDir = norm(Quaternion.AngleAxis(-verticalAngle, norm(Vector3.Cross(startPointTangent, outwardDir))) * outwardDir);
                     Debug.Log("centerDir: " + centerDir); // (0, 0, -1)
                     Debug.Log("startPointTangent: " + startPointTangent); // (0, 1, 0)
                     Debug.Log("dirRange: " + dirRange);
-                    Debug.Log("angle: " + angle); // 
-                    Vector3 childDir = Quaternion.AngleAxis(-dirRange + angle, startPointTangent) * centerDir;
+
+                    Vector3 childDir = new Vector3(0f, 0f, 0f);
+                    Debug.Log("childAngleMode count: " + childAngleMode.Count + ", l: " + l);
+                    if (childAngleMode[l] == angleMode.winding) // TODO................
+                    {
+                        float angle = windingAngle % (2f * dirRange);
+                        Debug.Log("angle: " + angle); // 
+                        childDir = Quaternion.AngleAxis(-dirRange + angle, startPointTangent) * centerDir;
+                    }
+                    if (childAngleMode[l] == angleMode.symmetric)
+                    {
+                        // TODO...
+                        if (i % 2 == 0)
+                        {
+                            childDir = Quaternion.AngleAxis(-rotateAngle[l], startPointTangent) * centerDir;
+                        }
+                        else
+                        {
+                            childDir = Quaternion.AngleAxis(rotateAngle[l], startPointTangent) * centerDir;
+                        }
+                    }
+
+
+                    
 
                     Debug.Log("dir: " + childDir);
 
@@ -999,6 +1053,27 @@ public class treeGen3 : MonoBehaviour
             case 6: treeShape = Shape.taperedCylindrical; break;
             case 7: treeShape = Shape.tendFlame; break;
             default: treeShape = Shape.conical; break;
+        }
+    }
+
+    public void setChildAngleMode(List<int> modes)
+    {
+        if (childAngleMode == null)
+        {
+            childAngleMode = new List<angleMode>();
+        }
+        else
+        {
+            childAngleMode.Clear();
+        }
+        foreach (int m in modes)
+        {
+            switch (m)
+            {
+                case 0: childAngleMode.Add(angleMode.symmetric); break;
+                case 1: childAngleMode.Add(angleMode.winding); break;
+                default: childAngleMode.Add(angleMode.winding); break;
+            }
         }
     }
 
@@ -1948,6 +2023,10 @@ public class treeGen3 : MonoBehaviour
 
         for (int childLevel = 0; childLevel < nrChildLevels; childLevel++)
         {
+            if (childSplitHeightInLevel == null)
+            {
+                childSplitHeightInLevel = new List<List<float>>();
+            }
             if (childSplitHeightInLevel.Count < childLevel + 1)
             {
                 childSplitHeightInLevel.Add(new List<float>());
@@ -2080,11 +2159,11 @@ public class treeGen3 : MonoBehaviour
             n.getAllLeafNodes(allLeafNodes);
         }
 
-        Debug.Log("allLeafNodes.Count: " + allLeafNodes.Count);
-        foreach (node n in allLeafNodes)
-        {
-            Debug.Log("leaf node: " + n.point);
-        }
+        //Debug.Log("allLeafNodes.Count: " + allLeafNodes.Count);
+        //foreach (node n in allLeafNodes)
+        //{
+        //    Debug.Log("leaf node: " + n.point);
+        //}
         
         Dictionary<node, List<(node neighbor, float distance)>> nearestNeighbors = new Dictionary<node, List<(node, float)>>();
         
@@ -2138,8 +2217,8 @@ public class treeGen3 : MonoBehaviour
                     {
 
                     }
-                    Debug.Log("displacement line: " + n1.point + " -> " + n2.point);
-                        debugDisplacementLines.Add(new line(n1.point, n2.point));
+                    // Debug.Log("displacement line: " + n1.point + " -> " + n2.point);
+                    //     debugDisplacementLines.Add(new line(n1.point, n2.point));
                 }
             }
             nearestNeighbors[n1] = neighbors;
@@ -2189,7 +2268,7 @@ public class treeGen3 : MonoBehaviour
                 {
                     if (parent != null)
                     {
-                        Debug.Log("displacement to parent");
+                        //Debug.Log("displacement to parent");
                         parent.point += displacementMap[n];
 
                         // Reduce the displacement for parent nodes -> they get contributions from all children
@@ -2244,14 +2323,14 @@ public class treeGen3 : MonoBehaviour
                 ringSpacing = 1f;
             }
             int sections = (int)Mathf.RoundToInt(length / ringSpacing);
-            if (sections == 0)
+            if (sections <= 0)
             {
                 sections = 1;
             }
             float branchRingSpacing = length / sections;
             //ringSpacing = rSpacing;
 
-            //Debug.Log("sections: " + sections);
+            Debug.Log("sections: " + sections);
             Vector3[] dirA = new Vector3[sections + 1];
             Vector3[] dirB = new Vector3[sections + 1];
             Vector3[] tangent = new Vector3[sections + 1];

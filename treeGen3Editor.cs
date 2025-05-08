@@ -21,6 +21,12 @@ public enum shape
     tendFlame
 }
 
+public enum angleMode
+{
+    symmetric,
+    winding
+}
+
 [CustomEditor(typeof(treeGen3))]
 public class treeGen3Editor : Editor
 {
@@ -82,6 +88,9 @@ public class treeGen3Editor : Editor
     static int childLevels;
     public static int setChildLevels;
 
+
+    static List<int> parentLevelIndex;
+    public static List<int> setParentLevelIndex;
     static List<int> nrChildren;
     public static List<int> setNrChildren;
     static List<float> relChildLength;
@@ -100,6 +109,8 @@ public class treeGen3Editor : Editor
     public static List<float> setChildCurvature;
     static List<int> nrChildSplits;
     public static List<int> setNrChildSplits;
+    static List<int> childAngleMode;
+    public static List<angleMode> setChildAngleMode;
 
     static int seed;
     public static int setSeed;
@@ -122,10 +133,48 @@ public class treeGen3Editor : Editor
         random = new Random(64345);
     }
 
+    private List<string> dropdownItems = new List<string> { "1", "2", "3" }; // Initial dropdown items
+    private int selectedIndex = 0; // Currently selected index
+    
+    
 
     public override void OnInspectorGUI()
     {
         treeGen3 treeGenScript = (treeGen3)target;
+
+        // TEST drop down menu ----------- -> multiple children per level possible ---------------------------------
+
+        // Render the dropdown menu
+        selectedIndex = EditorGUILayout.Popup("Children of Level", selectedIndex, dropdownItems.ToArray());
+
+        // Button to add a new item
+        if (GUILayout.Button("Add Item"))
+        {
+            if (!dropdownItems.Contains((dropdownItems.Count + 1).ToString())) // Avoid duplicates
+            {
+                dropdownItems.Add((dropdownItems.Count + 1).ToString());
+            }
+        }
+        if (GUILayout.Button("Remove Item"))
+        {
+            if (dropdownItems.Count > 1)
+            {
+                if (selectedIndex < dropdownItems.Count - 1)
+                {
+                    dropdownItems.RemoveAt(dropdownItems.Count - 1);
+                }
+            }
+        }
+
+        // Display the selected item
+        EditorGUILayout.LabelField("Selected Item: " + dropdownItems[selectedIndex]);
+
+        // Call base inspector GUI
+        // base.OnInspectorGUI();
+
+        // -> TODO: child layers -> affect level ...
+
+        // ------------------------------------------------------------------
 
         
         loadFileName = EditorGUILayout.TextField("loadFile", loadFileName);
@@ -241,6 +290,10 @@ public class treeGen3Editor : Editor
             setTestSplitPointAngle = data.testSplitPointAngle;
             treeGenScript.testSplitPointAngle = data.testSplitPointAngle;
 
+            parentLevelIndex = data.parentLevelIndex;
+            setParentLevelIndex = data.parentLevelIndex;
+            // treeGenScript.parentLevelIndex = data.parentLevelIndex;
+
             nrChildren = data.nrChildren;
             setNrChildren = data.nrChildren;
             treeGenScript.nrChildren = data.nrChildren;
@@ -276,6 +329,19 @@ public class treeGen3Editor : Editor
             nrChildSplits = data.nrChildSplits;
             setNrChildSplits = data.nrChildSplits;
             treeGenScript.nrChildSplits = data.nrChildSplits;
+
+
+            // treeShape = data.treeShape;
+            // setTreeShape = (shape)data.treeShape;
+            // treeGenScript.setTreeShape(data.treeShape);
+            // 
+
+            childAngleMode = data.childAngleMode;
+            foreach (int mode in data.childAngleMode)
+            {
+                setChildAngleMode.Add((angleMode)mode);
+            }
+            treeGenScript.setChildAngleMode(data.childAngleMode);
 
             seed = data.seed;
             setSeed = data.seed;
@@ -383,6 +449,11 @@ public class treeGen3Editor : Editor
         if (GUILayout.Button("add child Level"))
         {
             setChildLevels += 1;
+            if (setParentLevelIndex == null)
+            {
+                setParentLevelIndex = new List<int>();
+            }
+            setParentLevelIndex.Add(0);
             if (setNrChildren == null)
             {
                 setNrChildren = new List<int>();
@@ -440,6 +511,11 @@ public class treeGen3Editor : Editor
             }
             setChildSplitHeightVariation.Add(0.5f);
 
+            if (setChildAngleMode == null)
+            {
+                setChildAngleMode = new List<angleMode>();
+            }
+            setChildAngleMode.Add(angleMode.winding);
 
             
         }
@@ -450,6 +526,7 @@ public class treeGen3Editor : Editor
                 if (setNrChildren.Count > 0)
                 {
                     setChildLevels -= 1;
+                    setParentLevelIndex.RemoveAt(setParentLevelIndex.Count - 1);
                     setNrChildren.RemoveAt(setNrChildren.Count - 1);
                     setRelChildLength.RemoveAt(setRelChildLength.Count - 1);
                     setVerticalRange.RemoveAt(setVerticalRange.Count - 1);
@@ -461,6 +538,7 @@ public class treeGen3Editor : Editor
                     setNrChildSplits.RemoveAt(setNrChildSplits.Count - 1);
                     setChildSplitHeightInLevel.RemoveAt(setChildSplitHeightInLevel.Count - 1);
                     setChildSplitHeightVariation.RemoveAt(setChildSplitHeightVariation.Count - 1);
+                    setChildAngleMode.RemoveAt(setChildAngleMode.Count - 1);
                 }
                 else
                 {
@@ -492,7 +570,24 @@ public class treeGen3Editor : Editor
             {
                 for (int i = 0; i < setChildLevels; i++)
                 {
-                    EditorGUILayout.LabelField("child level " + i);
+                    EditorGUILayout.LabelField("child level " + i + ", setChildLevels: " + setChildLevels);
+
+                    List<string> items = new List<string>();
+                    items.Add("stem");
+                    if (i > 0)
+                    {
+                        for (int j = 0; j < i; j++)
+                        {
+                            items.Add(j.ToString());
+                        }
+                    }
+                    
+                    setParentLevelIndex[i] = EditorGUILayout.Popup("Parent Level", setParentLevelIndex[i], items.ToArray());
+                    Debug.Log("items.Count: " + items.Count + ", setParentLevelIndex.Count: " + setParentLevelIndex.Count + ", parentLevelIndex level " + i + ": " + setParentLevelIndex[i]);
+                    // "stem" -> 0
+                    // "0"    -> 1
+                    // "1"    -> 2
+
                     setNrChildren[i] = EditorGUILayout.IntField("nrChildren", setNrChildren[i]);
                     setRelChildLength[i] = EditorGUILayout.FloatField("relChildLength", setRelChildLength[i]);
                     setVerticalRange[i] = EditorGUILayout.FloatField("verticalRange", setVerticalRange[i]);
@@ -542,6 +637,16 @@ public class treeGen3Editor : Editor
                             setChildSplitHeightInLevel[i][c] = EditorGUILayout.FloatField("childSplitHeightInLevel " + i, setChildSplitHeightInLevel[i][c]);
                         }
                     }
+
+                    if (setChildAngleMode == null)
+                    {
+                        setChildAngleMode = new List<angleMode>();
+                    }
+                    if (setChildAngleMode.Count < i + 1)
+                    {
+                        setChildAngleMode.Add(angleMode.winding);
+                    }
+                    setChildAngleMode[i] = (angleMode)EditorGUILayout.EnumPopup("childAngleMode", setChildAngleMode[i]);
                     
 
                     EditorGUILayout.Space();
@@ -550,7 +655,8 @@ public class treeGen3Editor : Editor
             else
             {
                 Debug.Log("ERROR! setChildLevels: " + setChildLevels + ", setNrChildrenCount: " + setNrChildren.Count);
-                setChildLevels = setNrChildren.Count;
+                setChildLevels = 0;
+                setNrChildren.Clear();
             }
         }
 
@@ -684,6 +790,10 @@ public class treeGen3Editor : Editor
             treeGenScript.childSplitHeightVariation = setChildSplitHeightVariation;
             data.childSplitHeightVariation = setChildSplitHeightVariation;
 
+            parentLevelIndex = setParentLevelIndex;
+            treeGenScript.parentLevelIndex = setParentLevelIndex;
+            data.parentLevelIndex = setParentLevelIndex;
+
             nrChildren = setNrChildren;
             treeGenScript.nrChildren = setNrChildren;
             data.nrChildren = setNrChildren;
@@ -719,6 +829,25 @@ public class treeGen3Editor : Editor
             nrChildSplits = setNrChildSplits;
             treeGenScript.nrChildSplits = setNrChildSplits;
             data.nrChildSplits = setNrChildSplits;
+
+            if (childAngleMode == null)
+            {
+                childAngleMode = new List<int>();
+            }
+            else
+            {
+                childAngleMode.Clear();
+            }
+
+            if (setChildAngleMode != null)
+            {
+                foreach (angleMode mode in setChildAngleMode)
+                {
+                    childAngleMode.Add((int)mode);
+                }
+                treeGenScript.setChildAngleMode(childAngleMode);
+                data.childAngleMode = childAngleMode;
+            }
 
             seed = setSeed;
             treeGenScript.seed = setSeed;
@@ -793,6 +922,7 @@ public class treeData
     // public static List<int> setNrChildSplits;
 //
     public int childLevels;
+    public List<int> parentLevelIndex;
     public List<int> nrChildren;
     public List<float> relChildLength;
     public List<float> verticalRange;
@@ -802,6 +932,7 @@ public class treeData
     public List<int> childrenStartLevel;
     public List<float> childCurvature;
     public List<int> nrChildSplits;
+    public List<int> childAngleMode;
     public int seed;
 
     public treeData()
