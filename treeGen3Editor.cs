@@ -85,12 +85,14 @@ public class treeGen3Editor : Editor
     static float testSplitPointAngle;
     public static float setTestSplitPointAngle;
 
-    static int branchLevels;
-    public static int setBranchLevels;
+    static int branchClusters;
+    public static int setBranchClusters;
 
 
-    static List<int> parentLevelIndex;
-    public static List<int> setParentLevelIndex;
+    // static List<int> parentClusterIndex;
+    // public static List<int> setParentClusterIndex;
+    static List<List<bool>> parentClusterBools;
+    public List<List<bool>> setParentClusterBools = new List<List<bool>>();
     static List<int> nrBranches;
     public static List<int> setNrBranches;
     static List<float> relBranchLength;
@@ -299,9 +301,13 @@ public class treeGen3Editor : Editor
             setTestSplitPointAngle = data.testSplitPointAngle;
             treeGenScript.testSplitPointAngle = data.testSplitPointAngle;
 
-            parentLevelIndex = data.parentLevelIndex;
-            setParentLevelIndex = data.parentLevelIndex;
-            treeGenScript.parentLevelIndex = data.parentLevelIndex;
+            // parentClusterIndex = data.parentClusterIndex;
+            // setParentClusterIndex = data.parentClusterIndex;
+            // treeGenScript.parentClusterIndex = data.parentClusterIndex;
+
+            parentClusterBools = data.parentClusterBools;
+            setParentClusterBools = data.parentClusterBools;
+            treeGenScript.parentClusterBools = data.parentClusterBools;
 
             nrBranches = data.nrBranches;
             setNrBranches = data.nrBranches;
@@ -354,6 +360,10 @@ public class treeGen3Editor : Editor
             // 
 
             branchAngleMode = data.branchAngleMode;
+            if (setBranchAngleMode == null)
+            {
+                setBranchAngleMode = new List<angleMode>();
+            }
             foreach (int mode in data.branchAngleMode)
             {
                 setBranchAngleMode.Add((angleMode)mode);
@@ -468,17 +478,23 @@ public class treeGen3Editor : Editor
         setTestSplitAngle = EditorGUILayout.FloatField("testSplitAngle", setTestSplitAngle);
         setTestSplitPointAngle = EditorGUILayout.FloatField("testSplitPointAngle", setTestSplitPointAngle);
 
-        EditorGUILayout.LabelField("-------------------------------------------------------------------------------------------------------------------------------");
+        EditorGUILayout.LabelField("------------------------------------------------------------------------------------------------------------------------------");
         EditorGUILayout.LabelField("branch settings");
         EditorGUILayout.Space();
-        if (GUILayout.Button("add branch Level"))
+        if (GUILayout.Button("add branch Cluster"))
         {
-            setBranchLevels += 1;
-            if (setParentLevelIndex == null)
+            setBranchClusters += 1;
+            // if (setParentClusterIndex == null)
+            // {
+            //     setParentClusterIndex = new List<int>();
+            // }
+            // setParentClusterIndex.Add(0);
+            if (setParentClusterBools == null)
             {
-                setParentLevelIndex = new List<int>();
+                setParentClusterBools = new List<List<bool>>();
             }
-            setParentLevelIndex.Add(0);
+            setParentClusterBools.Add(new List<bool>());
+
             if (setNrBranches == null)
             {
                 setNrBranches = new List<int>();
@@ -554,14 +570,15 @@ public class treeGen3Editor : Editor
 
             
         }
-        if (GUILayout.Button("remove branch Level"))
+        if (GUILayout.Button("remove branch Cluster"))
         {
-            if (setBranchLevels > 0)
+            if (setBranchClusters > 0)
             {
                 if (setNrBranches.Count > 0)
                 {
-                    setBranchLevels -= 1;
-                    setParentLevelIndex.RemoveAt(setParentLevelIndex.Count - 1);
+                    setBranchClusters -= 1;
+                    // setParentClusterIndex.RemoveAt(setParentClusterIndex.Count - 1);
+                    setParentClusterBools.RemoveAt(setParentClusterBools.Count - 1);
                     setNrBranches.RemoveAt(setNrBranches.Count - 1);
                     setRelBranchLength.RemoveAt(setRelBranchLength.Count - 1);
                     setVerticalRange.RemoveAt(setVerticalRange.Count - 1);
@@ -587,11 +604,11 @@ public class treeGen3Editor : Editor
 
         if (setNrBranches != null)
         {
-            if (setNrBranches.Count == setBranchLevels)
+            if (setNrBranches.Count == setBranchClusters)
             {
-                for (int i = 0; i < setBranchLevels; i++)
+                for (int i = 0; i < setBranchClusters; i++)
                 {
-                    EditorGUILayout.LabelField("branch level " + i + ", setBranchLevels: " + setBranchLevels);
+                    EditorGUILayout.LabelField("branch cluster: " + i);
 
                     List<string> items = new List<string>();
                     items.Add("stem");
@@ -602,14 +619,63 @@ public class treeGen3Editor : Editor
                             items.Add(j.ToString());
                         }
                     }
-                    
-                    setParentLevelIndex[i] = EditorGUILayout.Popup("Parent Level", setParentLevelIndex[i], items.ToArray());
-                    //Debug.Log("items.Count: " + items.Count + ", setParentLevelIndex.Count: " + setParentLevelIndex.Count + ", parentLevelIndex level " + i + ": " + setParentLevelIndex[i]);
+
+                    // if (setParentClusterIndex == null)
+                    // {
+                    //     Debug.Log("ERROR! setParentClusterIndex == null");
+                    // }
+                    // if (setParentClusterIndex.Count < i + 1)
+                    // {
+                    //     Debug.Log("ERROR! setParentClusterIndex.Count < i + 1");
+                    // }
+                    // 
+                    // setParentClusterIndex[i] = EditorGUILayout.Popup("Parent Cluster", setParentClusterIndex[i], items.ToArray());
+
+                    //Debug.Log("items.Count: " + items.Count + ", setParentClusterIndex.Count: " + setParentClusterIndex.Count + ", parentClusterIndex level " + i + ": " + setParentClusterIndex[i]);
                     // "stem" -> 0
                     // "0"    -> 1
                     // "1"    -> 2
 
-                    setNrBranches[i] = EditorGUILayout.IntField("nrBranches", setNrBranches[i]);
+
+                    //--test
+                    
+                    if (setParentClusterBools == null)
+                    {
+                        setParentClusterBools = new List<List<bool>>();
+                        setParentClusterBools.Add(new List<bool>());
+                    }
+                    
+                    // Ensure bool list is the correct size
+                    while (setParentClusterBools.Count <= i)
+                        setParentClusterBools.Add(new List<bool>());
+                    while (setParentClusterBools[i].Count < items.Count)
+                        setParentClusterBools[i].Add(false);
+                    while (setParentClusterBools[i].Count > items.Count)
+                        setParentClusterBools[i].RemoveAt(setParentClusterBools[i].Count - 1);
+
+                    // Draw checkboxes
+                    EditorGUILayout.LabelField("Parent Clusters:");
+                    for (int k = 0; k < items.Count; k++)
+                    {
+                        setParentClusterBools[i][k] = EditorGUILayout.ToggleLeft(items[k], setParentClusterBools[i][k]);
+                    }
+
+                    bool allFalse = true;
+                    foreach (bool b in setParentClusterBools[i])
+                    {
+                        if (b == true)
+                        {
+                            allFalse = false;
+                            break;
+                        }
+                    }
+                    if (allFalse == true)
+                    {
+                        setParentClusterBools[i][0] = true;
+                    }
+                    //------
+
+                        setNrBranches[i] = EditorGUILayout.IntField("nrBranches", setNrBranches[i]);
                     setRelBranchLength[i] = EditorGUILayout.FloatField("relBranchLength", setRelBranchLength[i]);
                     setVerticalRange[i] = EditorGUILayout.FloatField("verticalRange", setVerticalRange[i]);
                     setVerticalAngleCrownStart[i] = EditorGUILayout.FloatField("verticalAngleCrownStart", setVerticalAngleCrownStart[i]);
@@ -677,8 +743,8 @@ public class treeGen3Editor : Editor
             }
             else
             {
-                Debug.Log("ERROR! setBranchLevels: " + setBranchLevels + ", setNrBranchesCount: " + setNrBranches.Count);
-                setBranchLevels = 0;
+                Debug.Log("ERROR! setBranchClusters: " + setBranchClusters + ", setNrBranchesCount: " + setNrBranches.Count);
+                setBranchClusters = 0;
                 setNrBranches.Clear();
             }
         }
@@ -807,9 +873,9 @@ public class treeGen3Editor : Editor
             treeGenScript.testSplitPointAngle = setTestSplitPointAngle;
             data.testSplitPointAngle = setTestSplitPointAngle;
 
-            branchLevels = setBranchLevels;
-            treeGenScript.nrBranchLevels = setBranchLevels;
-            data.branchLevels = setBranchLevels;
+            branchClusters = setBranchClusters;
+            treeGenScript.nrBranchClusters = setBranchClusters;
+            data.branchClusters = setBranchClusters;
             
             branchSplitHeightInLevel = setBranchSplitHeightInLevel;
             treeGenScript.branchSplitHeightInLevel = setBranchSplitHeightInLevel;
@@ -819,9 +885,13 @@ public class treeGen3Editor : Editor
             treeGenScript.branchSplitHeightVariation = setBranchSplitHeightVariation;
             data.branchSplitHeightVariation = setBranchSplitHeightVariation;
 
-            parentLevelIndex = setParentLevelIndex;
-            treeGenScript.parentLevelIndex = setParentLevelIndex;
-            data.parentLevelIndex = setParentLevelIndex;
+            // parentClusterIndex = setParentClusterIndex;
+            // treeGenScript.parentClusterIndex = setParentClusterIndex;
+            // data.parentClusterIndex = setParentClusterIndex;
+
+            parentClusterBools = setParentClusterBools;
+            treeGenScript.parentClusterBools = setParentClusterBools;
+            data.parentClusterBools = setParentClusterBools;
 
             nrBranches = setNrBranches;
             treeGenScript.nrBranches = setNrBranches;
@@ -944,8 +1014,9 @@ public class treeData
     public float testSplitPointAngle;
 
 
-    public int branchLevels;
-    public List<int> parentLevelIndex;
+    public int branchClusters;
+    // public List<int> parentClusterIndex;
+    public List<List<bool>> parentClusterBools;
     public List<int> nrBranches;
     public List<float> relBranchLength;
     public List<float> verticalRange;
