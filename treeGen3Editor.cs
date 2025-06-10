@@ -1,3 +1,4 @@
+#pragma warning disable IDE1006 // Naming Styles
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -107,10 +108,10 @@ public class treeGen3Editor : Editor
     public static List<float> setRotateAngle;
     static List<float> rotateAngleRange;
     public static List<float> setRotateAngleRange;
-    static List<int> branchesStartLevel;
-    public static List<int> setBranchesStartLevel;
-    static List<int> branchesEndLevel;
-    public static List<int> setBranchesEndLevel;
+    static List<float> branchesStartHeight;
+    public static List<float> setBranchesStartHeight;
+    static List<float> branchesEndHeight;
+    public static List<float> setBranchesEndHeight;
     static List<float> branchCurvature;
     public static List<float> setBranchCurvature;
     static List<float> nrSplitsPerBranch;
@@ -337,13 +338,13 @@ public class treeGen3Editor : Editor
             setRotateAngleRange = data.rotateAngleRange;
             treeGenScript.rotateAngleRange = data.rotateAngleRange;
 
-            branchesStartLevel = data.branchesStartLevel;
-            setBranchesStartLevel = data.branchesStartLevel;
-            treeGenScript.branchesStartLevel = data.branchesStartLevel;
+            branchesStartHeight = data.branchesStartHeight;
+            setBranchesStartHeight = data.branchesStartHeight;
+            treeGenScript.branchesStartHeight = data.branchesStartHeight;
 
-            branchesEndLevel = data.branchesEndLevel;
-            setBranchesEndLevel = data.branchesEndLevel;
-            treeGenScript.branchesEndLevel = data.branchesEndLevel;
+            branchesEndHeight = data.branchesEndHeight;
+            setBranchesEndHeight = data.branchesEndHeight;
+            treeGenScript.branchesEndHeight = data.branchesEndHeight;
 
             branchCurvature = data.branchCurvature;
             setBranchCurvature = data.branchCurvature;
@@ -530,16 +531,16 @@ public class treeGen3Editor : Editor
                 setRotateAngleRange = new List<float>();
             }
             setRotateAngleRange.Add(0f);
-            if (setBranchesStartLevel == null)
+            if (setBranchesStartHeight == null)
             {
-                setBranchesStartLevel = new List<int>();
+                setBranchesStartHeight = new List<float>();
             }
-            setBranchesStartLevel.Add(0);
-            if (setBranchesEndLevel == null)
+            setBranchesStartHeight.Add(0f);
+            if (setBranchesEndHeight == null)
             {
-                setBranchesEndLevel = new List<int>();
+                setBranchesEndHeight = new List<float>();
             }
-            setBranchesEndLevel.Add(999);
+            setBranchesEndHeight.Add(999f);
             if (setBranchCurvature == null)
             {
                 setBranchCurvature = new List<float>();
@@ -586,8 +587,8 @@ public class treeGen3Editor : Editor
                     setVerticalAngleCrownEnd.RemoveAt(setVerticalAngleCrownEnd.Count - 1);
                     setRotateAngle.RemoveAt(setRotateAngle.Count - 1);
                     setRotateAngleRange.RemoveAt(setRotateAngleRange.Count - 1);
-                    setBranchesStartLevel.RemoveAt(setBranchesStartLevel.Count - 1);
-                    setBranchesEndLevel.RemoveAt(setBranchesEndLevel.Count - 1);
+                    setBranchesStartHeight.RemoveAt(setBranchesStartHeight.Count - 1);
+                    setBranchesEndHeight.RemoveAt(setBranchesEndHeight.Count - 1);
                     setBranchCurvature.RemoveAt(setBranchCurvature.Count - 1);
                     setNrSplitsPerBranch.RemoveAt(setNrSplitsPerBranch.Count - 1);
                     setBranchSplitHeightInLevel.RemoveAt(setBranchSplitHeightInLevel.Count - 1);
@@ -647,11 +648,17 @@ public class treeGen3Editor : Editor
                     
                     // Ensure bool list is the correct size
                     while (setParentClusterBools.Count <= i)
+                    {
                         setParentClusterBools.Add(new List<bool>());
+                    }
                     while (setParentClusterBools[i].Count < items.Count)
+                    {
                         setParentClusterBools[i].Add(false);
+                    }
                     while (setParentClusterBools[i].Count > items.Count)
+                    {
                         setParentClusterBools[i].RemoveAt(setParentClusterBools[i].Count - 1);
+                    }
 
                     // Draw checkboxes
                     EditorGUILayout.LabelField("Parent Clusters:");
@@ -663,27 +670,26 @@ public class treeGen3Editor : Editor
                     bool allFalse = true;
                     foreach (bool b in setParentClusterBools[i])
                     {
-                        if (b == true)
-                        {
-                            allFalse = false;
-                            break;
-                        }
+                    if (b == true)
+                    {
+                        allFalse = false;
+                        break;
+                    }
                     }
                     if (allFalse == true)
                     {
                         setParentClusterBools[i][0] = true;
                     }
-                    //------
-
-                        setNrBranches[i] = EditorGUILayout.IntField("nrBranches", setNrBranches[i]);
+                    
+                    setNrBranches[i] = EditorGUILayout.IntField("nrBranches", setNrBranches[i]);
                     setRelBranchLength[i] = EditorGUILayout.FloatField("relBranchLength", setRelBranchLength[i]);
                     setVerticalRange[i] = EditorGUILayout.FloatField("verticalRange", setVerticalRange[i]);
                     setVerticalAngleCrownStart[i] = EditorGUILayout.FloatField("verticalAngleCrownStart", setVerticalAngleCrownStart[i]);
                     setVerticalAngleCrownEnd[i] = EditorGUILayout.FloatField("verticalAngleCrownEnd", setVerticalAngleCrownEnd[i]);
                     setRotateAngle[i] = EditorGUILayout.FloatField("rotateAngle", setRotateAngle[i]);
                     setRotateAngleRange[i] = EditorGUILayout.FloatField("rotateAngleRange", setRotateAngleRange[i]);
-                    setBranchesStartLevel[i] = EditorGUILayout.IntField("branchesStartLevel", setBranchesStartLevel[i]);
-                    setBranchesEndLevel[i] = EditorGUILayout.IntField("branchesEndLevel", setBranchesEndLevel[i]);
+                    setBranchesStartHeight[i] = EditorGUILayout.Slider("branchesStartHeight", setBranchesStartHeight[i], 0f, 1f);
+                    setBranchesEndHeight[i] = EditorGUILayout.Slider("branchesEndHeight", setBranchesEndHeight[i], 0f, 1f);
                     setBranchCurvature[i] = EditorGUILayout.FloatField("branchCurvature", setBranchCurvature[i]);
                     
                     if (setBranchSplitHeightVariation == null)
@@ -701,20 +707,20 @@ public class treeGen3Editor : Editor
 
                     //if (setBranchSplitHeightInLevel.Count < 10) // TEST OFF
                     //{
-                        if (GUILayout.Button("add branch split Level"))
+                    if (GUILayout.Button("add branch split Level"))
+                    {
+                        if (setBranchSplitHeightInLevel.Count < i + 1)
                         {
-                            if (setBranchSplitHeightInLevel.Count < i + 1)
-                            {
-                                setBranchSplitHeightInLevel.Add(new List<float>());
-                            }
-                            setBranchSplitHeightInLevel[i].Add(0.5f);
-
-                            setBranchSplitHeightVariation.Add(0f);
-                            
-                            Debug.Log("add branch split level, branch level: " + i + ", setBranchSplitHeightInLevel.Count: " + setBranchSplitHeightInLevel.Count + 
-                            ", setBranchSplitHeightInLevel[0].Count: " + setBranchSplitHeightInLevel[i].Count);
-                            
+                            setBranchSplitHeightInLevel.Add(new List<float>());
                         }
+                        setBranchSplitHeightInLevel[i].Add(0.5f);
+
+                        setBranchSplitHeightVariation.Add(0f);
+                        
+                        Debug.Log("add branch split level, branch level: " + i + ", setBranchSplitHeightInLevel.Count: " + setBranchSplitHeightInLevel.Count + 
+                        ", setBranchSplitHeightInLevel[0].Count: " + setBranchSplitHeightInLevel[i].Count);
+                        
+                    }
                     //}
 
                     if (setBranchSplitHeightInLevel.Count > i)
@@ -921,13 +927,13 @@ public class treeGen3Editor : Editor
             treeGenScript.rotateAngleRange = setRotateAngleRange;
             data.rotateAngleRange = setRotateAngleRange;
             
-            branchesStartLevel = setBranchesStartLevel;
-            treeGenScript.branchesStartLevel = setBranchesStartLevel;
-            data.branchesStartLevel = setBranchesStartLevel;
+            branchesStartHeight = setBranchesStartHeight;
+            treeGenScript.branchesStartHeight = setBranchesStartHeight;
+            data.branchesStartHeight = setBranchesStartHeight;
 
-            branchesEndLevel = setBranchesEndLevel;
-            treeGenScript.branchesEndLevel = setBranchesEndLevel;
-            data.branchesEndLevel = setBranchesEndLevel;
+            branchesEndHeight = setBranchesEndHeight;
+            treeGenScript.branchesEndHeight = setBranchesEndHeight;
+            data.branchesEndHeight = setBranchesEndHeight;
             
             branchCurvature = setBranchCurvature;
             treeGenScript.branchCurvature = setBranchCurvature;
@@ -1024,8 +1030,8 @@ public class treeData
     public List<float> verticalAngleCrownEnd;
     public List<float> rotateAngle;
     public List<float> rotateAngleRange;
-    public List<int> branchesStartLevel;
-    public List<int> branchesEndLevel;
+    public List<float> branchesStartHeight;
+    public List<float> branchesEndHeight;
     public List<float> branchCurvature;
     public List<float> nrSplitsPerBranch;
     public List<int> branchAngleMode;
