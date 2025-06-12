@@ -31,9 +31,13 @@ public enum angleMode
 public enum splitMode
 {
     rotateAngle,
-    alternating,
     horizontal
 }
+//public enum splitMode
+//{
+//    rotateAngle, 
+//    horizontal
+//}
 
 [CustomEditor(typeof(treeGen3))]
 public class treeGen3Editor : Editor
@@ -111,6 +115,8 @@ public class treeGen3Editor : Editor
     public static List<int> setNrBranches;
     public List<int> branchSplitMode;
     public static List<splitMode> setBranchSplitMode;
+    public List<float> branchSplitRotateAngle;
+    public static List<float> setBranchSplitRotateAngle;
     static List<float> relBranchLength;
     public static List<float> setRelBranchLength;
     static List<float> verticalRange;
@@ -365,6 +371,30 @@ public class treeGen3Editor : Editor
             {
                 treeGenScript.setBranchSplitMode(data.branchSplitMode);
             }
+
+            branchSplitRotateAngle = data.branchSplitRotateAngle;
+            setBranchSplitRotateAngle = data.branchSplitRotateAngle;
+            treeGenScript.branchSplitRotateAngle = data.branchSplitRotateAngle;
+
+            // if (setBranchSplitRotateAngle == null)
+            // {
+            //     setBranchSplitRotateAngle = new List<float>();
+            // }
+            // if (data.branchSplitRotateAngle == null)
+            // {
+            //     List<float> newBranchSplitRotateAngle = new List<float>();
+            //     for (int i = 0; i < nrBranches.Count; i++)
+            //     {
+            //         newBranchSplitRotateAngle.Add(0f);
+            //     }
+            //     treeGenScript.branchSplitRotateAngle = newBranchSplitRotateAngle;
+            // }
+            // else
+            // {
+            //     treeGenScript.branchSplitRotateAngle = data.branchSplitRotateAngle;
+            // }
+
+
             // branchAngleMode = data.branchAngleMode;
             // if (setBranchAngleMode == null)
             // {
@@ -579,7 +609,14 @@ public class treeGen3Editor : Editor
             {
                 setBranchSplitMode = new List<splitMode>();
             }
-            setBranchSplitMode.Add(splitMode.alternating);
+            setBranchSplitMode.Add(splitMode.horizontal);
+
+            if (setBranchSplitRotateAngle == null)
+            {
+                setBranchSplitRotateAngle = new List<float>();
+            }
+            setBranchSplitRotateAngle.Add(0f);
+
             if (setRelBranchLength == null)
             {
                 setRelBranchLength = new List<float>();
@@ -775,6 +812,14 @@ public class treeGen3Editor : Editor
                     
                     setNrBranches[i] = EditorGUILayout.IntField("nrBranches", setNrBranches[i]);
                     setBranchSplitMode[i] = (splitMode)EditorGUILayout.EnumPopup("branchSplitMode", setBranchSplitMode[i]);
+                    if (setBranchSplitMode[i] == splitMode.rotateAngle)
+                    {
+                        setBranchSplitRotateAngle[i] = EditorGUILayout.FloatField("branchSplitRotateAngle", setBranchSplitRotateAngle[i]);
+                    }
+                    else
+                    {
+                        setBranchSplitRotateAngle[i] = 0f;
+                    }
                     setRelBranchLength[i] = EditorGUILayout.FloatField("relBranchLength", setRelBranchLength[i]);
                     setTaperFactor[i] = EditorGUILayout.Slider("taperFactor", setTaperFactor[i], 0f, 1f);
                     setVerticalRange[i] = EditorGUILayout.FloatField("verticalRange", setVerticalRange[i]);
@@ -1179,6 +1224,7 @@ public class treeData
     public List<List<bool>> parentClusterBools;
     public List<int> nrBranches;
     public List<int> branchSplitMode;
+    public List<float> branchSplitRotateAngle;
     public List<float> relBranchLength;
     public List<float> taperFactor;
     public List<float> verticalRange;
