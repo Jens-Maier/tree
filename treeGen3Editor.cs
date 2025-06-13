@@ -799,11 +799,11 @@ public class treeGen3Editor : Editor
                     bool allFalse = true;
                     foreach (bool b in setParentClusterBools[i])
                     {
-                    if (b == true)
-                    {
-                        allFalse = false;
-                        break;
-                    }
+                        if (b == true)
+                        {
+                            allFalse = false;
+                            break;
+                        }
                     }
                     if (allFalse == true)
                     {
@@ -837,7 +837,7 @@ public class treeGen3Editor : Editor
                     }
                     setNrSplitsPerBranch[i] = EditorGUILayout.FloatField("nrSplitsPerBranch", setNrSplitsPerBranch[i]);
                     setSplitsPerBranchVariation[i] = EditorGUILayout.FloatField("splitsPerBranchVariation", setSplitsPerBranchVariation[i]);
-                    setBranchSplitHeightVariation[i] = EditorGUILayout.FloatField("branchSplitHeightVariation", setBranchSplitHeightVariation[i]);
+                    setBranchSplitHeightVariation[i] = EditorGUILayout.Slider("branchSplitHeightVariation", setBranchSplitHeightVariation[i], 0f, 1f);
                     
                     if (setBranchSplitHeightInLevel == null)
                     {

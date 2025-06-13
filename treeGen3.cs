@@ -902,54 +902,17 @@ public class treeGen3 : MonoBehaviour
                 // NEW: startNodeIndex calculation (AI) ----------------------------
                 // 1. Calculate segment lengths and total length
 
+
+                //----------------
                 List<float> segmentLengths = new List<float>();
-                List<float> segmentTStart = new List<float>();
-                List<float> segmentTEnd = new List<float>();
-                float totalLength = 0f;
+                float totalLength = calculateSegmentLengthsAndTotalLength(startNodesNextIndex, segmentLengths, clusterIndex);
+                //List<float> segmentTStart = new List<float>();
+                //List<float> segmentTEnd = new List<float>();
                 
                 Debug.Log("startNodesNextIndex.Count: " + startNodesNextIndex.Count);
                 
-                for (int i = 0; i < startNodesNextIndex.Count; i++)
-                {
-                    Debug.Log("in loop: i = " + i + ", startNodesNextIndex.Count: " + startNodesNextIndex.Count);
-                    var (node, nextIdx) = startNodesNextIndex[i];
-                    float segLen = node.next[nextIdx] != null ? vLength(node.next[nextIdx].point - node.point) : 0f;
-
-                    float tA = node.tVal;
-                    float tB = node.next[nextIdx].tVal;
-
-                    if (tA > tB)
-                    {
-                        // Swap to ensure tA < tB
-                        float temp = tA;
-                        tA = tB;
-                        tB = temp;
-                    }
-                    if (tB <= branchesStartHeight[clusterIndex])
-                    {
-                        Debug.Log("continue: tB <= branchesStartHeight[clusterIndex]: " + tB + " <= " + branchesStartHeight[clusterIndex]); 
-                        continue; // Skip segments that are below the start height
-                    }
-                    float tStart = Mathf.Max(tA, branchesStartHeight[clusterIndex]);
-                    float tEnd = tB;
-
-                    // Fraction of segment above minT
-                    float frac = (tEnd - tStart) / (tB - tA);
-
-                    float segLenAbove = segLen * frac;
-
-
-                    segmentTStart.Add(tStart);
-                    segmentTEnd.Add(tEnd);
-                    int debugStartIndex = segmentTStart.Count - 1;
-                    int debugEndIndex = segmentTEnd.Count - 1;
-                    Debug.Log("segmentTStart[" + debugStartIndex + "] added: " + segmentTStart[segmentTStart.Count - 1] +
-                              ", segmentTEnd[" + debugEndIndex + "] added: " + segmentTEnd[segmentTEnd.Count - 1]);
-                    segmentLengths.Add(segLenAbove);
-                    totalLength += segLenAbove;
-                }
                 Debug.Log("startNodesNextIndex.Count: " + startNodesNextIndex.Count + ", totalLength: " + totalLength); // 30, 0
-                Debug.Log("segmentTStart.Count: " + segmentTStart.Count + ", segmentTEnd.Count: " + segmentTEnd.Count + ", segmentLengths.Count: " + segmentLengths.Count);
+                //Debug.Log("segmentTStart.Count: " + segmentTStart.Count + ", segmentTEnd.Count: " + segmentTEnd.Count + ", segmentLengths.Count: " + segmentLengths.Count);
                 //                                         0                                                 0                                              0
                 //-----------------------------------------------------------------
 
@@ -996,8 +959,8 @@ public class treeGen3 : MonoBehaviour
                         tangent = startNodesNextIndex[startNodeIndex].Item1.tangent[0];
                     }
                     // Map t from [0,1] to [tA, tB]
-                    Debug.Log("startNodeIndex: " + startNodeIndex + ", startNodesNextIndex.Count: " + startNodesNextIndex.Count + ", segmentTStart.Count: " + segmentTStart.Count + ", segmentTEnd.Count: " + segmentTEnd.Count);
-                    float tVal = segmentTStart[startNodeIndex] + t * (segmentTEnd[startNodeIndex] - segmentTStart[startNodeIndex]);
+                    //Debug.Log("startNodeIndex: " + startNodeIndex + ", startNodesNextIndex.Count: " + startNodesNextIndex.Count + ", segmentTStart.Count: " + segmentTStart.Count + ", segmentTEnd.Count: " + segmentTEnd.Count);
+                    //float tVal = segmentTStart[startNodeIndex] + t * (segmentTEnd[startNodeIndex] - segmentTStart[startNodeIndex]);
                     
                     Vector3 startPoint = sampleSplineT(startNodesNextIndex[startNodeIndex].Item1.point,
                                                        startNodesNextIndex[startNodeIndex].Item1.next[startNodeNextIndex].point,
@@ -1237,6 +1200,59 @@ public class treeGen3 : MonoBehaviour
     
     }
 
+    public float calculateSegmentLengthsAndTotalLength(List<(node, int)> startNodesNextIndex, List<float> segmentLengths, int clusterIndex)
+    {
+        float totalLength = 0f;
+        for (int i = 0; i < startNodesNextIndex.Count; i++)
+        {
+            Debug.Log("in loop: i = " + i + ", startNodesNextIndex.Count: " + startNodesNextIndex.Count);
+            var (startNode, nextIdx) = startNodesNextIndex[i];
+            float segLen = startNode.next[nextIdx] != null ? vLength(startNode.next[nextIdx].point - startNode.point) : 0f;
+
+            float tA = startNode.tVal;
+            float tB = startNode.next[nextIdx].tVal;
+
+            if (tA > tB)
+            {
+                // Swap to ensure tA < tB
+                float temp = tA;
+                tA = tB;
+                tB = temp;
+            }
+            if (tB <= branchesStartHeight[clusterIndex])
+            {
+                Debug.Log("continue: tB <= branchesStartHeight[clusterIndex]: " + tB + " <= " + branchesStartHeight[clusterIndex]); 
+                continue; // Skip segments that are below the start height
+            }
+            float tStart = Mathf.Max(tA, branchesStartHeight[clusterIndex]);
+            float tEnd = tB;
+            float frac;
+            if (tB - tA == 0f)
+            {
+                Debug.Log("ERROR: tB - tA == 0f, tA: " + tA + ", tB: " + tB + ", startNode.tVal: " + startNode.tVal + ", nextIdx: " + nextIdx);
+                frac = 0f;
+            }
+            else
+            {
+                // Fraction of segment above minT
+                frac = (tEnd - tStart) / (tB - tA);
+                Debug.Log("frac: " + frac);
+            }
+            float segLenAbove = segLen * frac;
+
+
+            // segmentTStart.Add(tStart); // tVal of the segment start
+            // segmentTEnd.Add(tEnd);
+            // int debugStartIndex = segmentTStart.Count - 1;
+            // int debugEndIndex = segmentTEnd.Count - 1;
+            // Debug.Log("segmentTStart[" + debugStartIndex + "] added: " + segmentTStart[segmentTStart.Count - 1] +
+            //           ", segmentTEnd[" + debugEndIndex + "] added: " + segmentTEnd[segmentTEnd.Count - 1]);
+            segmentLengths.Add(segLenAbove);
+            totalLength += segLenAbove;
+        }
+        return totalLength;
+    }
+
 
     public void splitBranches(int branchCluster, int nrBranchSplits, float splitAngle, float splitPointAngle) // TODO: split branch at tip of spline -> TODO: get all nodes... 
     {
@@ -1244,10 +1260,10 @@ public class treeGen3 : MonoBehaviour
         List<node> allBranchNodes = new List<node>();
         rootNode.getAllBranchNodes(allBranchNodes, branchCluster);
         Debug.Log("nrBranches: " + allBranchNodes.Count);
-        
+
         splitProbabilityInLevel = new float[nrBranchSplits];
         expectedSplitsInLevel = new int[nrBranchSplits];
-        
+
         int meanLevelBranch = (int)Mathf.Log((float)nrBranchSplits / (float)allBranchNodes.Count, 2f);
         Debug.Log("splitBranches: nrBranchSplits: " + nrBranchSplits + ", meanLevelBranch: " + meanLevelBranch + ", nrBranches: " + allBranchNodes.Count);
         //                               1,                                    -4,                                   31
@@ -1337,7 +1353,7 @@ public class treeGen3 : MonoBehaviour
                 Debug.Log("nodesInLevelNextIndex[" + i + "].Count: " + nodesInLevelNextIndexSplitsPerBranch[i].Count);
             }
 
-            
+
             // 
             // //TODO...
             // 
@@ -1434,6 +1450,7 @@ public class treeGen3 : MonoBehaviour
                             Debug.Log("branchSplitHeightInLevel.Count: " + branchSplitHeightInLevel.Count +
                             "branchSplitHeightInLevel[0].Count: " + branchSplitHeightInLevel[0].Count + ", branchLevel: " + branchCluster + ", level: " + level);
 
+                            // TODO: better split height variation
                             float branchSplitHeight = Mathf.Clamp(branchSplitHeightInLevel[branchCluster][level] + h * branchSplitHeightVariation[branchCluster] *
                                 Mathf.Min(branchSplitHeightInLevel[branchCluster][level], 1f - branchSplitHeightInLevel[branchCluster][level]), 0.05f, 0.95f);
 
@@ -1533,17 +1550,118 @@ public class treeGen3 : MonoBehaviour
         Debug.Log("addLeaves: nrLeaves: " + nrLeaves);
         float leafStartHeight = 0.5f; // TODO: make this a parameter
         float leafEndHeight = 1f; // TODO: make this a parameter
-        List<(node, int)> nodesNextIndex = new List<(node, int)>();
+        List<(node, int)> leafStartNodesNextIndex = new List<(node, int)>();
         List<bool> leafClusterBools = new List<bool>();
+        //for (int i = 0; i < nrBranchClusters; i++)
+        //{
+        //    leafClusterBools.Add(true);
+        //}
+
+        float totalLength = 0f;
+        List<float> segmentLengths = new List<float>();
         for (int i = 0; i < nrBranchClusters; i++)
         {
-            leafClusterBools.Add(true);
+            for (int j = 0; j < nrBranchClusters; j++) // TEST (AI)
+            {
+                leafClusterBools.Add(j == i);
+            }
+
+            List<node> branchNodes = new List<node>();
+            rootNode.getAllBranchNodes(branchNodes, i);
+            List<(node, int)> clusterStartNodesNextIndex = new List<(node, int)>();
+            List<int> nrSplitsPassedAtStartNode = new List<int>();
+            foreach (node n in branchNodes)
+            {
+                n.getAllStartNodes(clusterStartNodesNextIndex, nrSplitsPassedAtStartNode, 0, 0f, 1f, 0, leafClusterBools, 0);
+            }
+
+            // calculateSegmentLengthsAndTotalLength(List<(node, int)> startNodesNextIndex, List<float> segmentLengths, int clusterIndex)
+            List<float> clusterSegmentLengths = new List<float>();
+            totalLength += calculateSegmentLengthsAndTotalLength(clusterStartNodesNextIndex, clusterSegmentLengths, i);
+            leafStartNodesNextIndex.AddRange(clusterStartNodesNextIndex);
+            segmentLengths.AddRange(clusterSegmentLengths);
+            Debug.Log("cluster " + i + ": totalLength: " + totalLength + ", segmentLengths.Count: " + segmentLengths.Count);
         }
-        List<int> nrSplitsPassed = new List<int>();
-        rootNode.getAllStartNodes(nodesNextIndex, nrSplitsPassed, 0, leafStartHeight, leafEndHeight, 0, leafClusterBools, 0);
-        Debug.Log("addLeaves: nodesNextIndex.Count: " + nodesNextIndex.Count);
-        
+        Debug.Log("addLeaves: nodesNextIndex.Count: " + leafStartNodesNextIndex.Count);
+
+
+        //-----------
+        for (int nodeIndex = 0; nodeIndex < leafStartNodesNextIndex.Count; nodeIndex++)
+        {
+            // NEW: startNodeIndex calculation (AI) ---------------------------
+            float leafPos = (nodeIndex + 0.5f) * totalLength / leafStartNodesNextIndex.Count; // +0.5 for center of segment
+
+            // add random offset to branchPos (AI)
+            float avgSegmentLength = totalLength / leafStartNodesNextIndex.Count;
+            float leafPosOffset = ((float)random.NextDouble() - 0.5f) * 0.2f * avgSegmentLength;
+            leafPos += leafPosOffset;
+
+            // Find which segment this branch falls into
+            float accumLength = 0f;
+            int startNodeIndex = 0;
+            float t = 0f;
+            for (int i = 0; i < segmentLengths.Count; i++)
+            {
+                if (accumLength + segmentLengths[i] >= leafPos)
+                {
+                    startNodeIndex = i;
+                    float segStart = accumLength;
+                    float segLen = segmentLengths[i];
+                    t = segLen > 0f ? (leafPos - segStart) / segLen : 0f;
+                    break;
+                }
+                accumLength += segmentLengths[i];
+            }
+
+            int leafStartNodeNextIndex = leafStartNodesNextIndex[startNodeIndex].Item2;
+            //-----------------------------------------------------------------
+
+            // TODO: winding -> equal distances -> add random offsets
+
+            Vector3 tangent;
+            if (leafStartNodesNextIndex[startNodeIndex].Item1.next.Count > 1)
+            {
+                tangent = leafStartNodesNextIndex[startNodeIndex].Item1.tangent[leafStartNodeNextIndex + 1];
+            }
+            else
+            {
+                tangent = leafStartNodesNextIndex[startNodeIndex].Item1.tangent[0];
+            }
+            // Map t from [0,1] to [tA, tB]
+            //Debug.Log("startNodeIndex: " + startNodeIndex + ", startNodesNextIndex.Count: " + startNodesNextIndex.Count + ", segmentTStart.Count: " + segmentTStart.Count + ", segmentTEnd.Count: " + segmentTEnd.Count);
+            //float tVal = segmentTStart[startNodeIndex] + t * (segmentTEnd[startNodeIndex] - segmentTStart[startNodeIndex]);
+
+            Vector3 startPoint = sampleSplineT(leafStartNodesNextIndex[startNodeIndex].Item1.point,
+                                               leafStartNodesNextIndex[startNodeIndex].Item1.next[leafStartNodeNextIndex].point,
+                                               tangent,
+                                               leafStartNodesNextIndex[startNodeIndex].Item1.next[leafStartNodeNextIndex].tangent[0],
+                                               t);
+        }
     }
+
+    //for (int j = 0; j < parentClusterBools[clusterIndex].Count; j++)
+    //{
+    //    if (parentClusterBools[clusterIndex][j] == true)
+    //    {
+    //        if (j == 0)
+    //        {
+    //            // Start from the stem
+    //            rootNode.getAllStartNodes(startNodesNextIndex, nrSplitsPassedAtStartNode, 0,
+    //                branchesStartHeight[clusterIndex], branchesEndHeight[clusterIndex], j, parentClusterBools[clusterIndex], 0);
+    //        }
+    //        else
+    //        {
+    //            // Start from all nodes in cluster j
+    //            List<node> parentNodes = new List<node>();
+    //            rootNode.getAllBranchNodes(parentNodes, j);
+    //            foreach (node n in parentNodes)
+    //            {
+    //                n.getAllStartNodes(startNodesNextIndex, nrSplitsPassedAtStartNode, 0,
+    //                    branchesStartHeight[clusterIndex], branchesEndHeight[clusterIndex], j, parentClusterBools[clusterIndex], 0);
+    //            }
+    //        }
+    //    }
+    //}
     
 
     public void setTreeShape(int s)
