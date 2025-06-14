@@ -2277,7 +2277,7 @@ public class treeGen3 : MonoBehaviour
             if (branchSplitHeightInLevel.Count < branchLevel + 1)
             {
                 branchSplitHeightInLevel.Add(new List<float>());
-                branchSplitHeightVariation.Add(0f);
+                //branchSplitHeightVariation.Add(0f);
             }
 
             if ((float)branchSplitHeightInLevel[branchLevel].Count < nrSplitsPerBranch[branchLevel] * (float)nrBranches[branchLevel])
