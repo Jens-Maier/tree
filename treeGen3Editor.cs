@@ -395,10 +395,10 @@ public class treeGen3Editor : Editor
             {
                 treeGenScript.setBranchSplitMode(data.branchSplitMode);
             }
-            Debug.Log("branchSplitMode.Count: " + branchSplitMode.Count);
-            Debug.Log("setBranchSplitMode.Count: " + setBranchSplitMode.Count);
-            Debug.Log("data.branchSplitMode.Count: " + data.branchSplitMode.Count);
-            Debug.Log("treeGenScript.branchSplitMode.Count: " + treeGenScript.branchSplitMode.Count);
+            //Debug.Log("branchSplitMode.Count: " + branchSplitMode.Count);
+            //Debug.Log("setBranchSplitMode.Count: " + setBranchSplitMode.Count);
+            //Debug.Log("data.branchSplitMode.Count: " + data.branchSplitMode.Count);
+            //Debug.Log("treeGenScript.branchSplitMode.Count: " + treeGenScript.branchSplitMode.Count);
 
             branchSplitRotateAngle = data.branchSplitRotateAngle;
             if (branchSplitRotateAngle == null)
@@ -1084,7 +1084,7 @@ public class treeGen3Editor : Editor
             branchSplitHeightVariation = setBranchSplitHeightVariation;
             treeGenScript.branchSplitHeightVariation = setBranchSplitHeightVariation;
             data.branchSplitHeightVariation = setBranchSplitHeightVariation;
-            Debug.Log("setting tree parameters, branchSplitHeightVariation.Count: " + setBranchSplitHeightVariation.Count);
+            //Debug.Log("setting tree parameters, branchSplitHeightVariation.Count: " + setBranchSplitHeightVariation.Count);
 
             // parentClusterIndex = setParentClusterIndex;
             // treeGenScript.parentClusterIndex = setParentClusterIndex;
@@ -1215,9 +1215,9 @@ public class treeGen3Editor : Editor
             treeGenScript.seed = setSeed;
             data.seed = setSeed;
             
-            Debug.Log("init tree...");
+            //Debug.Log("init tree...");
             treeGenScript.initTree();
-            Debug.Log("update tree...");
+            //Debug.Log("update tree...");
             treeGenScript.updateTree();
         }
         
