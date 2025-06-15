@@ -277,7 +277,7 @@ public class node
         Vector3 splitPoint = sampleSpline(point, next[nextIndex].point, tangent[nextIndex], next[nextIndex].tangent[0], splitHeight);
         Vector3 splitTangent = sampleSplineTangentT(point, next[nextIndex].point, tangent[nextIndex], next[nextIndex].tangent[0], splitHeight);
         Vector3 splitCotangent = vLerp(cotangent, next[nextIndex].cotangent, splitHeight);
-        float t_global = fLerp(tValGlobal, next[nextIndex].tValGlobal, splitHeight);
+        float t_global = fLerp(tValGlobal, next[nextIndex].tValGlobal, splitHeight); // TODO: only if node is in stem!
         float t_branch = 0f;
         Debug.Log("new node: clusterIndex: " + clusterIndex);
         node newNode = new node(splitPoint, splitTangent, splitCotangent, t_global, t_branch, taper, gen, this, clusterIndex);
@@ -332,20 +332,20 @@ public class node
 
                 dirB = norm(Vector3.Cross(sampleTangent, sampleCotangent)); // TODO (find better strategy)
 
-                float sampleTval = fLerp(tValGlobal, nodeNext.tValGlobal, (float)i / (float)n);
-                float tValBranch = 0f;
+                float sampleTvalGlobal = fLerp(tValGlobal, nodeNext.tValGlobal, (float)i / (float)n);
+                float sampleTvalBranch = fLerp(tValBranch, nodeNext.tValBranch, (float)i / (float)n);
                 // improve sampleCotangent!
                 sampleCotangent = norm(Vector3.Cross(dirB, sampleTangent));
                 node newNode;
                 if (i == 1)
                 {
                     //Debug.Log("new node: clusterIndex: " + clusterIndex);
-                    newNode = new node(samplePoint, sampleTangent, sampleCotangent, sampleTval, tValBranch, taper, gen, this, clusterIndex);
+                    newNode = new node(samplePoint, sampleTangent, sampleCotangent, sampleTvalGlobal, sampleTvalBranch, taper, gen, this, clusterIndex);
                 }
                 else
                 {
                     //Debug.Log("new node: clusterIndex: " + clusterIndex);
-                    newNode = new node(samplePoint, sampleTangent, sampleCotangent, sampleTval, tValBranch, taper, gen, currentNode, clusterIndex);
+                    newNode = new node(samplePoint, sampleTangent, sampleCotangent, sampleTvalGlobal, sampleTvalBranch, taper, gen, currentNode, clusterIndex);
                 }
 
                 if (currentNode.next.Count == 0)
@@ -710,7 +710,8 @@ public class treeGen3 : MonoBehaviour
     public List<float> rotateAngle;
     public List<float> rotateAngleRange;
     //public bool symmetric; // TODO
-    public List<float> branchesStartHeight;
+    public List<float> branchesStartHeightGlobal;
+    public List<float> branchesStartHeightCluster;
     public List<float> branchesEndHeight;
     [Range(-90f, 90f)]
     public List<float> branchCurvature;
@@ -876,7 +877,7 @@ public class treeGen3 : MonoBehaviour
                     {
                         // Start from the stem
                         rootNode.getAllStartNodes(startNodesNextIndex, nrSplitsPassedAtStartNode, 0,
-                            branchesStartHeight[clusterIndex], branchesEndHeight[clusterIndex], j, parentClusterBools[clusterIndex], 0);
+                            branchesStartHeightGlobal[clusterIndex], branchesEndHeight[clusterIndex], j, parentClusterBools[clusterIndex], 0);
                         Debug.Log("in addBranches: parentClsuterBool[clusterIndex=" + clusterIndex + "][" + j + "], startNodesNextIndex.Count: " + startNodesNextIndex.Count);
                     }
                     else
@@ -888,7 +889,7 @@ public class treeGen3 : MonoBehaviour
                         foreach (node n in parentNodes)
                         {
                             n.getAllStartNodes(startNodesNextIndex, nrSplitsPassedAtStartNode, 0,
-                                branchesStartHeight[clusterIndex], branchesEndHeight[clusterIndex], j, parentClusterBools[clusterIndex], 0); // startNodesNextIndex.Count = 49 OK !!!
+                                branchesStartHeightGlobal[clusterIndex], branchesEndHeight[clusterIndex], j, parentClusterBools[clusterIndex], 0); // startNodesNextIndex.Count = 49 OK !!!
                         }
                         Debug.Log("in addBranches: parentClusterBool[clusterIndex=" + clusterIndex + "][" + j + "], startNodesNextIndex.Count: " + startNodesNextIndex.Count + ", parentNodes.Count: " + parentNodes.Count);
                     }
@@ -1098,7 +1099,7 @@ public class treeGen3 : MonoBehaviour
 
                     //debugLinesGreen.Add(new line(startPoint, startPoint + outwardDir)); 
                     debugLinesGreen.Add(new line(startPoint, startPoint + branchCotangent));
-                    debugLinesBlue.Add(new line(startPoint, startPoint + norm(Vector3.Cross(startPointTangent, outwardDir))));
+                    //debugLinesBlue.Add(new line(startPoint, startPoint + norm(Vector3.Cross(startPointTangent, outwardDir))));
 
                     //Debug.Log("branch cotangent: " + branchCotangent);
                     //Debug.Log("new node: clusterIndex: " + clusterIndex);
@@ -1223,6 +1224,10 @@ public class treeGen3 : MonoBehaviour
 
     public float calculateSegmentLengthsAndTotalLength(List<(node, int)> startNodesNextIndex, List<float> segmentLengths, int clusterIndex, bool useTvalBranch)
     {
+        // TEST
+        useTvalBranch = true; // TODO: remove
+
+
         float totalLength = 0f;
         if (clusterIndex == 1)
         {
@@ -1234,19 +1239,76 @@ public class treeGen3 : MonoBehaviour
             //(var) (node startNode, int nextIndex) = startNodesNextIndex[i];
             (node, int) startNodeNextIndex = startNodesNextIndex[i];
             float segLen = startNodeNextIndex.Item1.next[startNodeNextIndex.Item2] != null ? vLength(startNodeNextIndex.Item1.next[startNodeNextIndex.Item2].point - startNodeNextIndex.Item1.point) : 0f;
-
+            
             float tA_global = startNodeNextIndex.Item1.tValGlobal;
             float tB_global = startNodeNextIndex.Item1.next[startNodeNextIndex.Item2].tValGlobal;
-
+            
             float tA_branch = startNodeNextIndex.Item1.tValBranch; 
             float tB_branch = startNodeNextIndex.Item1.next[startNodeNextIndex.Item2].tValBranch;
-
+            
             Debug.Log("tA_global: " + tA_global + ", tB_global: " + tB_global + ", tA_branch: " + tA_branch + ", tB_branch: " + tB_branch);
 
-            float segLenAbove;
+            // new code (AI)
+            //
+            // 
+            // if (tA_branch > tB_branch)
+            // {
+            //     // Swap to ensure tA < tB
+            //     float temp = tA_branch;
+            //     tA_branch = tB_branch;
+            //     tB_branch = temp;
+            // }
+            //
+            // if (tA_global > tB_global)
+            // {
+            //     // Swap to ensure tA < tB
+            //     float temp = tA_global;
+            //     tA_global = tB_global;
+            //     tB_global = temp;
+            // }
+            // 
+            // // ---  AI
+            // // Only include segment if both conditions are satisfied
+            // if (tB_branch <= branchesStartHeightCluster[clusterIndex] ||
+            //     tB_global <= branchesStartHeightGlobal[clusterIndex])
+            // {
+            //     continue; // Skip segments that are below the start height in either system
+            // }
+            // 
+            // // Clamp tStart to the higher of the two thresholds
+            // float tStart_branch = Mathf.Max(tA_branch, branchesStartHeightCluster[clusterIndex]);
+            // float tStart_global = Mathf.Max(tA_global, branchesStartHeightGlobal[clusterIndex]);
+            // float tStart = Mathf.Max(tStart_branch, tStart_global);
+            // 
+            // float tEnd_branch = tB_branch;
+            // float tEnd_global = tB_global;
+            // float tEnd = Mathf.Min(tEnd_branch, tEnd_global);
+            // 
+            // // Compute fractions for both systems
+            // float frac_branch = (tB_branch - tStart_branch) / (tB_branch - tA_branch == 0f ? 1f : tB_branch - tA_branch);
+            // float frac_global = (tB_global - tStart_global) / (tB_global - tA_global == 0f ? 1f : tB_global - tA_global);
+            //
+            // // branch: frac = (tEnd - tStart) / (tB_branch - tA_branch);
+            // // global: frac = (tEnd - tStart) / (tB_global - tA_global);
+            // 
+            // // Use the minimum fraction to ensure both conditions are satisfied
+            // float frac = Mathf.Min(frac_branch, frac_global);
+            //
+            // if (clusterIndex == 0)
+            // {
+            //     frac = frac_global;
+            // }
+            // 
+            // float segLenAbove = segLen * frac;
+            // // ---
 
+            // old code
+            //
+            float segLenAbove;
             if (useTvalBranch == true)
             {
+                Debug.Log("useTvalBranch == true, clusterIndex: " + clusterIndex + ", tA_branch: " + tA_branch + ", tB_branch: " + tB_branch +
+                            ", branchesStartHeightCluster[clusterIndex]: " + branchesStartHeightCluster[clusterIndex]);
                 if (tA_branch > tB_branch)
                 {
                     // Swap to ensure tA < tB
@@ -1254,13 +1316,13 @@ public class treeGen3 : MonoBehaviour
                     tA_branch = tB_branch;
                     tB_branch = temp;
                 }
-
-                if (tB_global <= branchesStartHeight[clusterIndex])
+            
+                if (tB_branch <= branchesStartHeightCluster[clusterIndex])
                 {
-                    //Debug.Log("continue: tB <= branchesStartHeight[clusterIndex]: " + tB_global + " <= " + branchesStartHeight[clusterIndex]); 
+                    Debug.Log("continue: tB <= branchesStartHeight[clusterIndex]: " + tB_global + " <= " + branchesStartHeightCluster[clusterIndex]); 
                     continue; // Skip segments that are below the start height
                 }
-                float tStart = Mathf.Max(tA_branch, branchesStartHeight[clusterIndex]);
+                float tStart = Mathf.Max(tA_branch, branchesStartHeightCluster[clusterIndex]);
                 float tEnd = tB_branch;
                 float frac;
                 if (tB_branch - tA_branch == 0f)
@@ -1275,7 +1337,7 @@ public class treeGen3 : MonoBehaviour
                     //Debug.Log("frac: " + frac);
                 }
                 segLenAbove = segLen * frac;
-
+            
             }
             else
             {
@@ -1286,12 +1348,12 @@ public class treeGen3 : MonoBehaviour
                     tA_global = tB_global;
                     tB_global = temp;
                 }
-                if (tB_global <= branchesStartHeight[clusterIndex])
+                if (tB_global <= branchesStartHeightGlobal[clusterIndex])
                 {
                     //Debug.Log("continue: tB <= branchesStartHeight[clusterIndex]: " + tB + " <= " + branchesStartHeight[clusterIndex]); 
                     continue; // Skip segments that are below the start height
                 }
-                float tStart = Mathf.Max(tA_global, branchesStartHeight[clusterIndex]);
+                float tStart = Mathf.Max(tA_global, branchesStartHeightGlobal[clusterIndex]);
                 float tEnd = tB_global;
                 float frac;
                 if (tB_global - tA_global == 0f)
@@ -2270,7 +2332,7 @@ public class treeGen3 : MonoBehaviour
             Vector3 offsetB = Quaternion.AngleAxis(-splitAngle, splitAxis) * relPos;
 
             //Debug.Log("new node: clusterIndex: " + splitNode.clusterIndex);
-            float tValBranch = 0f;
+            float tValBranch = 0f; // TODO... (?)
             node nodeA = new node(splitNode.point + offsetA + curvOffset, tangentA, cotangentA, s.tValGlobal, tValBranch, s.taper, this, s.parent, splitNode.clusterIndex);
             node nodeB = new node(splitNode.point + offsetB + curvOffset, tangentB, cotangentB, s.tValGlobal, tValBranch, s.taper, this, s.parent, splitNode.clusterIndex);
 
