@@ -1209,7 +1209,14 @@ public class treeGen3 : MonoBehaviour
                             startNodeIndex = i;
                             float segStart = accumLength;
                             float segLen = segmentLengths[i];
-                            t = segLen > 0f ? (branchPos - segStart) / segLen : 0f;
+                            t = segLen > 0f ? (branchPos - segStart) / segLen : 0f; // TODO: startTval...
+
+                            // Ensure t is above startTval if startTval > 0
+                            float startTval = startNodesNextIndexStartTval[startNodeIndex].Item3;
+                            if (startTval > 0f && t < startTval)
+                            {
+                                t = startTval;
+                            }
                             break;
                         }
                         accumLength += segmentLengths[i];

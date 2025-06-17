@@ -129,8 +129,10 @@ public class treeGen3Editor : Editor
     public static List<float> setRotateAngle;
     static List<float> rotateAngleRange;
     public static List<float> setRotateAngleRange;
-    static List<float> branchesStartHeight;
-    public static List<float> setBranchesStartHeight;
+    static List<float> branchesStartHeightGlobal;
+    public static List<float> setBranchesStartHeightGlobal;
+    static List<float> branchesStartHeightCluster;
+    public static List<float> setBranchesStartHeightCluster;
     static List<float> branchesEndHeight;
     public static List<float> setBranchesEndHeight;
     static List<float> branchCurvature;
@@ -152,7 +154,7 @@ public class treeGen3Editor : Editor
     public Random random;
     public static bool setRandomize;
 
-    
+
 
     private SerializedProperty myFloatField;
 
@@ -170,8 +172,8 @@ public class treeGen3Editor : Editor
 
     //private List<string> dropdownItems = new List<string> { "1", "2", "3" }; // Initial dropdown items
     //private int selectedIndex = 0; // Currently selected index
-    
-    
+
+
 
     public override void OnInspectorGUI()
     {
@@ -211,7 +213,7 @@ public class treeGen3Editor : Editor
 
         // ------------------------------------------------------------------
 
-        
+
         loadFileName = EditorGUILayout.TextField("loadFile", loadFileName);
 
         if (GUILayout.Button("load Tree"))
@@ -235,7 +237,7 @@ public class treeGen3Editor : Editor
             treeShape = data.treeShape;
             setTreeShape = (shape)data.treeShape;
             treeGenScript.setTreeShape(data.treeShape);
-            
+
             taper = data.taper;
             setTaper = data.taper;
             treeGenScript.taper = data.taper;
@@ -251,7 +253,7 @@ public class treeGen3Editor : Editor
             ringSpacing = data.ringSpacing;
             setRingSpacing = data.ringSpacing;
             treeGenScript.ringSpacing = data.ringSpacing;
-            
+
             stemRingResolution = data.stemRingResolution;
             setStemRingResolution = data.stemRingResolution;
             treeGenScript.stemRingResolution = data.stemRingResolution;
@@ -303,7 +305,7 @@ public class treeGen3Editor : Editor
             stemSplitMode = data.stemSplitMode;
             setStemSplitMode = (splitMode)data.stemSplitMode;
             treeGenScript.setStemSplitMode(data.stemSplitMode);
-            
+
             stemSplitRotateAngle = data.stemSplitRotateAngle;
             setStemSplitRotateAngle = data.stemSplitRotateAngle;
             treeGenScript.stemSplitRotateAngle = data.stemSplitRotateAngle;
@@ -345,9 +347,23 @@ public class treeGen3Editor : Editor
             setBranchClusters = data.branchClusters;
             treeGenScript.nrBranchClusters = data.branchClusters;
 
-            parentClusterBools = data.parentClusterBools;
-            setParentClusterBools = data.parentClusterBools;
-            treeGenScript.parentClusterBools = data.parentClusterBools;
+            //parentClusterBools = data.parentClusterBools;
+            setParentClusterBools = new List<List<bool>>();
+            treeGenScript.parentClusterBools = new List<List<bool>>();
+            List<BoolListWrapper> dataBoolListWrapper = data.parentClusterBools;
+            foreach (BoolListWrapper boolListWrapperData in dataBoolListWrapper)
+            {
+                setParentClusterBools.Add(new List<bool>());
+                treeGenScript.parentClusterBools.Add(new List<bool>());
+                foreach (bool b in boolListWrapperData.boolList)
+                {
+                    setParentClusterBools[setParentClusterBools.Count - 1].Add(b);
+                    treeGenScript.parentClusterBools[treeGenScript.parentClusterBools.Count - 1].Add(b);
+                }
+            }
+            //setParentClusterBools = data.parentClusterBools;
+
+            //treeGenScript.parentClusterBools = data.parentClusterBools;
             if (parentClusterBools == null)
             {
                 parentClusterBools = new List<List<bool>>();
@@ -358,6 +374,17 @@ public class treeGen3Editor : Editor
                 setParentClusterBools = parentClusterBools;
                 treeGenScript.parentClusterBools = parentClusterBools;
             }
+
+            // foreach (List<bool> innerList in parentClusterBools)
+            // {
+            //     BoolListWrapper newBoolListWrapper = new BoolListWrapper();
+            //     newBoolListWrapper.boolList = new List<bool>();
+            //     foreach (bool b in innerList)
+            //     {
+            //         newBoolListWrapper.boolList.Add(b);
+            //     }
+            //     data.parentClusterBools.Add(newBoolListWrapper);
+            // }
 
             nrBranches = data.nrBranches;
             setNrBranches = data.nrBranches;
@@ -467,9 +494,13 @@ public class treeGen3Editor : Editor
             setRotateAngleRange = data.rotateAngleRange;
             treeGenScript.rotateAngleRange = data.rotateAngleRange;
 
-            branchesStartHeight = data.branchesStartHeight;
-            setBranchesStartHeight = data.branchesStartHeight;
-            treeGenScript.branchesStartHeight = data.branchesStartHeight;
+            branchesStartHeightGlobal = data.branchesStartHeightGlobal;
+            setBranchesStartHeightGlobal = data.branchesStartHeightGlobal;
+            treeGenScript.branchesStartHeightGlobal = data.branchesStartHeightGlobal;
+
+            branchesStartHeightCluster = data.branchesStartHeightCluster;
+            setBranchesStartHeightCluster = data.branchesStartHeightCluster;
+            treeGenScript.branchesStartHeightCluster = data.branchesStartHeightCluster;
 
             branchesEndHeight = data.branchesEndHeight;
             setBranchesEndHeight = data.branchesEndHeight;
@@ -506,7 +537,7 @@ public class treeGen3Editor : Editor
             leafSize = data.leafSize;
             setLeafSize = data.leafSize;
             treeGenScript.leafSize = data.leafSize;
-            
+
             nrLeaves = data.nrLeaves;
             setNrLeaves = data.nrLeaves;
             treeGenScript.nrLeaves = data.nrLeaves;
@@ -521,10 +552,10 @@ public class treeGen3Editor : Editor
             treeGenScript.updateTree();
         }
 
-       
+
         saveFileName = EditorGUILayout.TextField("saveAs", saveFileName);
 
-        
+
 
         if (GUILayout.Button("save Tree parameters"))
         {
@@ -551,7 +582,7 @@ public class treeGen3Editor : Editor
         EditorGUILayout.LabelField("-------------------------------------------------------------------------------------------------------------------------------");
         EditorGUILayout.LabelField("tree parameters");
         EditorGUILayout.Space();
-        
+
         if (setTreeHeight == 0f)
         {
             setTreeHeight = 1f;
@@ -569,7 +600,7 @@ public class treeGen3Editor : Editor
         setRingSpacing = EditorGUILayout.FloatField("ringSpacing", setRingSpacing);
         setStemRingResolution = EditorGUILayout.IntField("stemRingResolution", setStemRingResolution);
         setResampleNr = EditorGUILayout.IntField("resampleNr", setResampleNr);
-        
+
         EditorGUILayout.LabelField("-------------------------------------------------------------------------------------------------------------------------------");
         EditorGUILayout.LabelField("noise settings");
         EditorGUILayout.Space();
@@ -578,7 +609,7 @@ public class treeGen3Editor : Editor
         setNoiseAmplitudeLowerUpperExponent = EditorGUILayout.FloatField("noiseAmplitudeLowerUpperExponent", setNoiseAmplitudeLowerUpperExponent);
         setNoiseScale = EditorGUILayout.FloatField("noiseScale", setNoiseScale);
         EditorGUILayout.Space();
-        
+
         EditorGUILayout.LabelField("-------------------------------------------------------------------------------------------------------------------------------");
         EditorGUILayout.LabelField("split settings");
         EditorGUILayout.Space();
@@ -697,11 +728,17 @@ public class treeGen3Editor : Editor
             }
             setRotateAngleRange.Add(0f);
 
-            if (setBranchesStartHeight == null)
+            if (setBranchesStartHeightGlobal == null)
             {
-                setBranchesStartHeight = new List<float>();
+                setBranchesStartHeightGlobal = new List<float>();
             }
-            setBranchesStartHeight.Add(0f);
+            setBranchesStartHeightGlobal.Add(0f);
+
+            if (setBranchesStartHeightCluster == null)
+            {
+                setBranchesStartHeightCluster = new List<float>();
+            }
+            setBranchesStartHeightCluster.Add(0f);
 
             if (setBranchesEndHeight == null)
             {
@@ -745,7 +782,7 @@ public class treeGen3Editor : Editor
             }
             setBranchAngleMode.Add(angleMode.winding);
 
-            
+
         }
         if (GUILayout.Button("remove branch Cluster"))
         {
@@ -765,7 +802,8 @@ public class treeGen3Editor : Editor
                     setVerticalAngleCrownEnd.RemoveAt(setVerticalAngleCrownEnd.Count - 1);
                     setRotateAngle.RemoveAt(setRotateAngle.Count - 1);
                     setRotateAngleRange.RemoveAt(setRotateAngleRange.Count - 1);
-                    setBranchesStartHeight.RemoveAt(setBranchesStartHeight.Count - 1);
+                    setBranchesStartHeightGlobal.RemoveAt(setBranchesStartHeightGlobal.Count - 1);
+                    setBranchesStartHeightCluster.RemoveAt(setBranchesStartHeightCluster.Count - 1);
                     setBranchesEndHeight.RemoveAt(setBranchesEndHeight.Count - 1);
                     setBranchCurvature.RemoveAt(setBranchCurvature.Count - 1);
                     setNrSplitsPerBranch.RemoveAt(setNrSplitsPerBranch.Count - 1);
@@ -819,13 +857,13 @@ public class treeGen3Editor : Editor
 
 
                     //--test
-                    
+
                     if (setParentClusterBools == null)
                     {
                         setParentClusterBools = new List<List<bool>>();
                         setParentClusterBools.Add(new List<bool>());
                     }
-                    
+
                     // Ensure bool list is the correct size
                     while (setParentClusterBools.Count <= i)
                     {
@@ -860,14 +898,14 @@ public class treeGen3Editor : Editor
                     {
                         setParentClusterBools[i][0] = true;
                     }
-                    
+
                     setNrBranches[i] = EditorGUILayout.IntField("nrBranches", setNrBranches[i]);
                     setBranchSplitMode[i] = (splitMode)EditorGUILayout.EnumPopup("branchSplitMode", setBranchSplitMode[i]);
                     if (setBranchSplitMode[i] == splitMode.rotateAngle)
                     {
                         setBranchSplitRotateAngle[i] = EditorGUILayout.FloatField("branchSplitRotateAngle", setBranchSplitRotateAngle[i]);
                     }
-                    
+
                     setRelBranchLength[i] = EditorGUILayout.FloatField("relBranchLength", setRelBranchLength[i]);
                     setTaperFactor[i] = EditorGUILayout.Slider("taperFactor", setTaperFactor[i], 0f, 1f);
                     setVerticalRange[i] = EditorGUILayout.FloatField("verticalRange", setVerticalRange[i]);
@@ -875,10 +913,11 @@ public class treeGen3Editor : Editor
                     setVerticalAngleCrownEnd[i] = EditorGUILayout.FloatField("verticalAngleCrownEnd", setVerticalAngleCrownEnd[i]);
                     setRotateAngle[i] = EditorGUILayout.FloatField("rotateAngle", setRotateAngle[i]);
                     setRotateAngleRange[i] = EditorGUILayout.FloatField("rotateAngleRange", setRotateAngleRange[i]);
-                    setBranchesStartHeight[i] = EditorGUILayout.Slider("branchesStartHeight", setBranchesStartHeight[i], 0f, 1f);
+                    setBranchesStartHeightGlobal[i] = EditorGUILayout.Slider("branchesStartHeightGlobal", setBranchesStartHeightGlobal[i], 0f, 1f);
+                    setBranchesStartHeightCluster[i] = EditorGUILayout.Slider("branchesStartHeightCluster", setBranchesStartHeightCluster[i], 0f, 1f);
                     setBranchesEndHeight[i] = EditorGUILayout.Slider("branchesEndHeight", setBranchesEndHeight[i], 0f, 1f);
                     setBranchCurvature[i] = EditorGUILayout.FloatField("branchCurvature", setBranchCurvature[i]);
-                    
+
                     if (setBranchSplitHeightVariation == null)
                     {
                         setBranchSplitHeightVariation = new List<float>();
@@ -886,12 +925,12 @@ public class treeGen3Editor : Editor
                     setNrSplitsPerBranch[i] = EditorGUILayout.FloatField("nrSplitsPerBranch", setNrSplitsPerBranch[i]);
                     setSplitsPerBranchVariation[i] = EditorGUILayout.FloatField("splitsPerBranchVariation", setSplitsPerBranchVariation[i]);
                     setBranchSplitHeightVariation[i] = EditorGUILayout.Slider("branchSplitHeightVariation", setBranchSplitHeightVariation[i], 0f, 1f);
-                    
+
                     if (setBranchSplitHeightInLevel == null)
                     {
                         setBranchSplitHeightInLevel = new List<List<float>>();
                     }
-                    
+
 
                     //if (setBranchSplitHeightInLevel.Count < 10) // TEST OFF
                     //{
@@ -902,10 +941,10 @@ public class treeGen3Editor : Editor
                             setBranchSplitHeightInLevel.Add(new List<float>());
                         }
                         setBranchSplitHeightInLevel[i].Add(0.5f);
-                        
-                        Debug.Log("add branch split level, branch level: " + i + ", setBranchSplitHeightInLevel.Count: " + setBranchSplitHeightInLevel.Count + 
+
+                        Debug.Log("add branch split level, branch level: " + i + ", setBranchSplitHeightInLevel.Count: " + setBranchSplitHeightInLevel.Count +
                         ", setBranchSplitHeightInLevel[0].Count: " + setBranchSplitHeightInLevel[i].Count);
-                        
+
                     }
                     //}
 
@@ -928,7 +967,7 @@ public class treeGen3Editor : Editor
                         setBranchAngleMode.Add(angleMode.winding);
                     }
                     setBranchAngleMode[i] = (angleMode)EditorGUILayout.EnumPopup("branchAngleMode", setBranchAngleMode[i]);
-                    
+
 
                     EditorGUILayout.Space();
                 }
@@ -946,16 +985,16 @@ public class treeGen3Editor : Editor
         EditorGUILayout.LabelField("leaf settings");
         setNrLeaves = EditorGUILayout.IntField("nrLeaves", setNrLeaves);
         setLeafSize = EditorGUILayout.FloatField("leafSize", setLeafSize);
-        
-        
+
+
         EditorGUILayout.LabelField("-------------------------------------------------------------------------------------------------------------------------------");
         setRandomize = EditorGUILayout.Toggle("randomizeSeed", setRandomize);
-        setSeed = EditorGUILayout.IntField("seed", setSeed);        
+        setSeed = EditorGUILayout.IntField("seed", setSeed);
 
         if (GUILayout.Button("set Tree parameters"))
         {
             data = new treeData();
-            
+
             if (setRandomize == true)
             {
                 //setSeed += 1;
@@ -968,7 +1007,7 @@ public class treeGen3Editor : Editor
 
             Debug.Log("set tree parameters...");
 
-            
+
             treeGenScript.gizmoRadius = setGizmoRadius;
 
 
@@ -984,15 +1023,15 @@ public class treeGen3Editor : Editor
             treeShape = (int)setTreeShape;
             treeGenScript.setTreeShape(treeShape);
             data.treeShape = (int)setTreeShape;
-            
+
             taper = setTaper;
             treeGenScript.taper = setTaper;
             data.taper = setTaper;
-            
+
             branchTipRadius = setBranchTipRadius;
             treeGenScript.branchTipRadius = setBranchTipRadius;
             data.branchTipRadius = setBranchTipRadius;
-            
+
             ringSpacing = setRingSpacing;
             treeGenScript.ringSpacing = setRingSpacing;
             data.ringSpacing = setRingSpacing;
@@ -1000,7 +1039,7 @@ public class treeGen3Editor : Editor
             stemRingResolution = setStemRingResolution;
             treeGenScript.stemRingResolution = setStemRingResolution;
             data.stemRingResolution = setStemRingResolution;
-            
+
             resampleNr = setResampleNr;
             treeGenScript.resampleNr = setResampleNr;
             data.resampleNr = setResampleNr;
@@ -1012,19 +1051,19 @@ public class treeGen3Editor : Editor
             noiseAmplitudeUpper = setNoiseAmplitudeUpper;
             treeGenScript.noiseAmplitudeUpper = setNoiseAmplitudeUpper;
             data.noiseAmplitudeUpper = setNoiseAmplitudeUpper;
-            
+
             noiseAmplitudeLowerUpperExponent = setNoiseAmplitudeLowerUpperExponent;
             treeGenScript.noiseAmplitudeLowerUpperExponent = setNoiseAmplitudeLowerUpperExponent;
             data.noiseAmplitudeLowerUpperExponent = setNoiseAmplitudeLowerUpperExponent;
-            
+
             noiseScale = setNoiseScale;
             treeGenScript.noiseScale = setNoiseScale;
             data.noiseScale = setNoiseScale;
-            
+
             splitCurvature = setSplitCurvature;
             treeGenScript.splitCurvature = setSplitCurvature;
             data.splitCurvature = setSplitCurvature;
-            
+
             testRecursionStop = setTestRecursionStop;
             treeGenScript.testRecursionStop = setTestRecursionStop;
             data.testRecursionStop = setTestRecursionStop;
@@ -1036,11 +1075,11 @@ public class treeGen3Editor : Editor
             shyBranchesMaxDistance = setShyBranchesMaxDistance;
             treeGenScript.shyBranchesMaxDistance = setShyBranchesMaxDistance;
             data.shyBranchesMaxDistance = setShyBranchesMaxDistance;
-            
+
             nrSplits = setNrSplits;
             treeGenScript.nrSplits = setNrSplits;
             data.nrSplits = setNrSplits;
-            
+
             variance = setVariance;
             treeGenScript.variance = setVariance;
             data.variance = setVariance;
@@ -1052,23 +1091,23 @@ public class treeGen3Editor : Editor
             stemSplitRotateAngle = setStemSplitRotateAngle;
             treeGenScript.stemSplitRotateAngle = setStemSplitRotateAngle;
             data.stemSplitRotateAngle = setStemSplitRotateAngle;
-            
+
             curvOffsetStrength = setCurvOffsetStrength;
             treeGenScript.curvOffsetStrength = setCurvOffsetStrength;
             data.curvOffsetStrength = setCurvOffsetStrength;
-            
+
             splitHeightInLevel = setSplitHeightInLevel;
             treeGenScript.splitHeightInLevel = setSplitHeightInLevel;
             data.splitHeightInLevel = setSplitHeightInLevel;
-            
+
             splitHeightVariation = setSplitHeightVariation;
             treeGenScript.splitHeightVariation = setSplitHeightVariation;
             data.splitHeightVariation = setSplitHeightVariation;
-            
+
             testSplitAngle = setTestSplitAngle;
             treeGenScript.testSplitAngle = setTestSplitAngle;
             data.testSplitAngle = setTestSplitAngle;
-            
+
             testSplitPointAngle = setTestSplitPointAngle;
             treeGenScript.testSplitPointAngle = setTestSplitPointAngle;
             data.testSplitPointAngle = setTestSplitPointAngle;
@@ -1076,7 +1115,7 @@ public class treeGen3Editor : Editor
             branchClusters = setBranchClusters;
             treeGenScript.nrBranchClusters = setBranchClusters;
             data.branchClusters = setBranchClusters;
-            
+
             branchSplitHeightInLevel = setBranchSplitHeightInLevel;
             treeGenScript.branchSplitHeightInLevel = setBranchSplitHeightInLevel;
             data.branchSplitHeightInLevel = setBranchSplitHeightInLevel;
@@ -1092,7 +1131,18 @@ public class treeGen3Editor : Editor
 
             parentClusterBools = setParentClusterBools;
             treeGenScript.parentClusterBools = setParentClusterBools;
-            data.parentClusterBools = setParentClusterBools;
+            //data.parentClusterBools = setParentClusterBools;
+            data.parentClusterBools = new List<BoolListWrapper>();
+            foreach (List<bool> innerList in parentClusterBools)
+            {
+                BoolListWrapper newBoolListWrapper = new BoolListWrapper();
+                newBoolListWrapper.boolList = new List<bool>();
+                foreach (bool b in innerList)
+                {
+                    newBoolListWrapper.boolList.Add(b);
+                }
+                data.parentClusterBools.Add(newBoolListWrapper);
+            }
 
             nrBranches = setNrBranches;
             treeGenScript.nrBranches = setNrBranches;
@@ -1143,19 +1193,19 @@ public class treeGen3Editor : Editor
             taperFactor = setTaperFactor;
             treeGenScript.taperFactor = setTaperFactor;
             data.taperFactor = setTaperFactor;
-            
+
             verticalRange = setVerticalRange;
             treeGenScript.verticalRange = setVerticalRange;
             data.verticalRange = setVerticalRange;
-            
+
             verticalAngleCrownStart = setVerticalAngleCrownStart;
             treeGenScript.verticalAngleCrownStart = setVerticalAngleCrownStart;
             data.verticalAngleCrownStart = setVerticalAngleCrownStart;
-            
+
             verticalAngleCrownEnd = setVerticalAngleCrownEnd;
             treeGenScript.verticalAngleCrownEnd = setVerticalAngleCrownEnd;
             data.verticalAngleCrownEnd = setVerticalAngleCrownEnd;
-            
+
             rotateAngle = setRotateAngle;
             treeGenScript.rotateAngle = setRotateAngle;
             data.rotateAngle = setRotateAngle;
@@ -1163,19 +1213,23 @@ public class treeGen3Editor : Editor
             rotateAngleRange = setRotateAngleRange;
             treeGenScript.rotateAngleRange = setRotateAngleRange;
             data.rotateAngleRange = setRotateAngleRange;
-            
-            branchesStartHeight = setBranchesStartHeight;
-            treeGenScript.branchesStartHeight = setBranchesStartHeight;
-            data.branchesStartHeight = setBranchesStartHeight;
+
+            branchesStartHeightGlobal = setBranchesStartHeightGlobal;
+            treeGenScript.branchesStartHeightGlobal = setBranchesStartHeightGlobal;
+            data.branchesStartHeightGlobal = setBranchesStartHeightGlobal;
+
+            branchesStartHeightCluster = setBranchesStartHeightCluster;
+            treeGenScript.branchesStartHeightCluster = setBranchesStartHeightCluster;
+            data.branchesStartHeightCluster = setBranchesStartHeightCluster;
 
             branchesEndHeight = setBranchesEndHeight;
             treeGenScript.branchesEndHeight = setBranchesEndHeight;
             data.branchesEndHeight = setBranchesEndHeight;
-            
+
             branchCurvature = setBranchCurvature;
             treeGenScript.branchCurvature = setBranchCurvature;
             data.branchCurvature = setBranchCurvature;
-            
+
             nrSplitsPerBranch = setNrSplitsPerBranch;
             treeGenScript.nrSplitsPerBranch = setNrSplitsPerBranch;
             data.nrSplitsPerBranch = setNrSplitsPerBranch;
@@ -1214,16 +1268,24 @@ public class treeGen3Editor : Editor
             seed = setSeed;
             treeGenScript.seed = setSeed;
             data.seed = setSeed;
-            
+
             //Debug.Log("init tree...");
             treeGenScript.initTree();
             //Debug.Log("update tree...");
             treeGenScript.updateTree();
         }
-        
+
     }
-    
+
 }
+
+[System.Serializable]
+public class BoolListWrapper
+{
+    public List<bool> boolList;
+}
+
+
 
 public class treeData
 {
@@ -1265,7 +1327,7 @@ public class treeData
 
     public int branchClusters;
     // public List<int> parentClusterIndex;
-    public List<List<bool>> parentClusterBools;
+    public List<BoolListWrapper> parentClusterBools;
     public List<int> nrBranches;
     public List<int> branchSplitMode;
     public List<float> branchSplitRotateAngle;
@@ -1276,7 +1338,8 @@ public class treeData
     public List<float> verticalAngleCrownEnd;
     public List<float> rotateAngle;
     public List<float> rotateAngleRange;
-    public List<float> branchesStartHeight;
+    public List<float> branchesStartHeightGlobal;
+    public List<float> branchesStartHeightCluster;
     public List<float> branchesEndHeight;
     public List<float> branchCurvature;
     public List<float> nrSplitsPerBranch;
@@ -1291,5 +1354,5 @@ public class treeData
 
     }
 
-    
+
 }
