@@ -106,7 +106,7 @@ public class node
         }
     }
 
-    public void getAllStartNodes(List<(node, int)> startNodesNextIndex, List<List<(node, int)>> branchNodesNextIndex, int activeBranchIndex, List<int> nrSplitsPassedAtStartNode, int nrSplitsPassed, float startHeightGlobal, float startHeightCluster, float endHeight, int level, List<bool> parentClusterBools, int parentLevelCounter)
+    public void getAllStartNodes(List<(node, int, float)> startNodesNextIndexStartTval, List<List<(node, int, float)>> branchNodesNextIndexStartTval, int activeBranchIndex, List<int> nrSplitsPassedAtStartNode, int nrSplitsPassed, float startHeightGlobal, float startHeightCluster, float endHeight, int level, List<bool> parentClusterBools, int parentLevelCounter)
     {
         // branchNodesNextIndex: one list<(node, int)> for each branch
 
@@ -115,16 +115,59 @@ public class node
         {
             // stem
             //Debug.Log("start nodes in stem!");
-            if (tValGlobal >= startHeightGlobal && tValGlobal <= endHeight && tValBranch >= startHeightCluster)
+            if (tValGlobal >= startHeightGlobal && tValBranch >= startHeightCluster && tValGlobal <= endHeight)
             {
                 if (next.Count > 0)
                 {
                     for (int n = 0; n < next.Count; n++)
                     {
-                        startNodesNextIndex.Add((this, n));
+                        startNodesNextIndexStartTval.Add((this, n, 0f)); // TODO: startTval [0..1] from startNode to startNode.next!!!
                     }
                     nrSplitsPassedAtStartNode.Add(nrSplitsPassed);
                 }
+            }
+            else
+            {
+                if (next.Count > 0)
+                {
+                    for (int n = 0; n < next.Count; n++)
+                    {
+                        if (next[n].tValBranch >= startHeightCluster && tValGlobal <= endHeight)
+                        {
+                            float tVal = (startHeightCluster - tValBranch) / (next[n].tValBranch - tValBranch);
+
+                            //   |------*-------*---------*
+                            //          ^   ^   ^-next[n].tValBranch
+                            //          |   -startHeightCluster 
+                            //          -tValBranch
+
+                            startNodesNextIndexStartTval.Add((this, n, tVal));
+                        }
+                        else
+                        {
+                            if (next[n].tValBranch < startHeightCluster)
+                            {
+                                if (tValGlobal > endHeight)
+                                {
+                                    Debug.Log("startNode not added because next[n].tValBranch < startHeightCluster AND tValGlobal > endHeight");
+                                }
+                                else
+                                {
+                                    Debug.Log("startNode not added because next[n].tValBranch < startHeightCluster");
+                                }
+                            }
+                            else
+                            {
+                                if (tValGlobal > endHeight)
+                                {
+                                    Debug.Log("startNode not added because tValGlobal > endHeight");
+                                }
+                            }
+                        }
+                    }
+                    nrSplitsPassedAtStartNode.Add(nrSplitsPassed);
+                }
+
             }
             if (next.Count > 1)
             {
@@ -132,7 +175,7 @@ public class node
             }
             foreach (node n in next)
             {
-                n.getAllStartNodes(startNodesNextIndex, branchNodesNextIndex, activeBranchIndex, nrSplitsPassedAtStartNode, nrSplitsPassed, startHeightGlobal, startHeightCluster, endHeight, level + 1, parentClusterBools, parentLevelCounter);
+                n.getAllStartNodes(startNodesNextIndexStartTval, branchNodesNextIndexStartTval, activeBranchIndex, nrSplitsPassedAtStartNode, nrSplitsPassed, startHeightGlobal, startHeightCluster, endHeight, level + 1, parentClusterBools, parentLevelCounter);
             }
         }
         else
@@ -141,16 +184,89 @@ public class node
 
             if (parentClusterBools[clusterIndex + 1] == true) // TEST +1 TEST !!!
             {
-                if (tValGlobal >= startHeightGlobal && tValGlobal <= endHeight && tValBranch >= startHeightCluster)
+                Debug.Log("cluster: " + clusterIndex + ", tValBranch: " + tValBranch + ", startHeightCluster: " + startHeightCluster);
+                if (next.Count > 0)
                 {
-                    if (next.Count > 0)
+                    if (tValGlobal >= startHeightGlobal && tValGlobal <= endHeight && next[0].tValBranch >= startHeightCluster) // TODO! next[0]: quick fix... ERROR HERE !!! tValBranch = 0 or 1
                     {
-                        for (int n = 0; n < next.Count; n++)
+                        if (next.Count > 0)
                         {
-                            startNodesNextIndex.Add((this, n));
-                            branchNodesNextIndex[activeBranchIndex].Add((this, n));
+                            for (int n = 0; n < next.Count; n++)
+                            {
+                                if (next[n].tValBranch >= startHeightCluster && tValGlobal <= endHeight)
+                                {
+                                    float startTval = (startHeightCluster - tValBranch) / (next[n].tValBranch - tValBranch);
+
+                                    //   |------*-------*---------*
+                                    //          ^   ^   ^-next[n].tValBranch
+                                    //          |   -startHeightCluster 
+                                    //          -tValBranch
+
+                                    startNodesNextIndexStartTval.Add((this, n, startTval)); // TODO
+                                                                                    // branchNodesNextIndexStartTval[activeBranchIndex].Add((this, n, (startHeightCluster - tValBranch) / (next[0].tValBranch - tValBranch))); // startTval: tval between startNode and startNode.next
+                                                                                    // Debug.Log("in getAllStartNodes: branchNodesNextIndexStartTval[" + activeBranchIndex + "][" + n + "]: " + branchNodesNextIndexStartTval[activeBranchIndex][branchNodesNextIndexStartTval[activeBranchIndex].Count - 1]);
+                                    if (activeBranchIndex != -1)
+                                    {
+                                        float tVal = (startHeightCluster - tValBranch) / (next[n].tValBranch - tValBranch);
+                                        branchNodesNextIndexStartTval[activeBranchIndex].Add((this, n, tVal));
+                                    }
+                                }
+
+                            }
+                            nrSplitsPassedAtStartNode.Add(nrSplitsPassed); //     |------*----v---*-------*
+                            //                                                    0     0.3      0.6      1
                         }
-                        nrSplitsPassedAtStartNode.Add(nrSplitsPassed);
+                    }
+                }
+                else
+                {
+                    if (tValGlobal >= startHeightGlobal && tValGlobal <= endHeight) // it next.Count == 0 then tValBranch is 1 > startHeightCluster
+                    {
+                        if (next.Count > 0)
+                        {
+                            for (int n = 0; n < next.Count; n++)
+                            {
+                                if (next[n].tValBranch >= startHeightCluster && tValGlobal <= endHeight)
+                                {
+                                    float startTval = (startHeightCluster - tValBranch) / (next[n].tValBranch - tValBranch);
+
+                                    //   |------*-------*---------*
+                                    //          ^   ^   ^-next[n].tValBranch
+                                    //          |   -startHeightCluster 
+                                    //          -tValBranch
+
+                                    startNodesNextIndexStartTval.Add((this, n, startTval)); // TODO
+                                    // branchNodesNextIndexStartTval[activeBranchIndex].Add((this, n, 0)); // 0 (?)
+                                    if (activeBranchIndex != -1)
+                                    {
+                                        float tVal = (startHeightCluster - tValBranch) / (next[n].tValBranch - tValBranch);
+                                        branchNodesNextIndexStartTval[activeBranchIndex].Add((this, n, tVal));
+                                    }
+                                }
+                            }
+                            nrSplitsPassedAtStartNode.Add(nrSplitsPassed);
+                        }
+                    }
+                    else
+                    {
+                        if (tValGlobal > endHeight)
+                        {
+                            if (tValGlobal < startHeightGlobal)
+                            {
+                                Debug.Log("branch startNode not added because (tValGlobal = " + tValGlobal + ") < (startHeightGlobal = " + startHeightGlobal + ") AND (tValGlobal = " + tValGlobal + ") > (endHeight = " + endHeight + ")");
+                            }
+                            else
+                            {
+                                Debug.Log("branch startNode not added because (tValGlobal = " + tValGlobal + ") > endHeight = " + endHeight + ")");
+                            }
+                        }
+                        else
+                        {
+                            if (tValGlobal < startHeightGlobal)
+                            {
+                                Debug.Log("branch startNode not added because (tValGlobal = " + tValGlobal + ") < (startHeightGlobal = " + startHeightGlobal + ") | tValBranch: " + tValBranch + ", startHeightCluster: " + startHeightCluster);
+                            }
+                        }
                     }
                 }
                 if (next.Count > 1)
@@ -159,28 +275,28 @@ public class node
                 }
                 foreach (node n in next)
                 {
-                    n.getAllStartNodes(startNodesNextIndex, branchNodesNextIndex, activeBranchIndex, nrSplitsPassedAtStartNode, nrSplitsPassed, startHeightGlobal, startHeightCluster, endHeight, level + 1, parentClusterBools, parentLevelCounter);
+                    n.getAllStartNodes(startNodesNextIndexStartTval, branchNodesNextIndexStartTval, activeBranchIndex, nrSplitsPassedAtStartNode, nrSplitsPassed, startHeightGlobal, startHeightCluster, endHeight, level + 1, parentClusterBools, parentLevelCounter);
                 }
             }
             else
             {
                 foreach (node n in next)
                 {
-                    n.getAllStartNodes(startNodesNextIndex, branchNodesNextIndex, activeBranchIndex, nrSplitsPassedAtStartNode, nrSplitsPassed, startHeightGlobal, startHeightCluster, endHeight, level, parentClusterBools, parentLevelCounter);
+                    n.getAllStartNodes(startNodesNextIndexStartTval, branchNodesNextIndexStartTval, activeBranchIndex, nrSplitsPassedAtStartNode, nrSplitsPassed, startHeightGlobal, startHeightCluster, endHeight, level, parentClusterBools, parentLevelCounter);
                 }
-                int branchIndex = 0;
+                //int branchIndex = 0; // test!
                 foreach (List<node> c in branches) // branchNodesNextIndex: one list<(node, int)> for each branch
                 {
-                    branchNodesNextIndex.Add(new List<(node, int)>());
+                    branchNodesNextIndexStartTval.Add(new List<(node, int, float)>());
                     foreach (node n in c)
                     {
                         for (int i = 0; i < n.next.Count; i++)
                         {
-                            branchNodesNextIndex[branchNodesNextIndex.Count - 1].Add((n, i));
+                            branchNodesNextIndexStartTval[branchNodesNextIndexStartTval.Count - 1].Add((n, i, 0)); // 0 (?)
                         }
-                        n.getAllStartNodes(startNodesNextIndex, branchNodesNextIndex, branchIndex, nrSplitsPassedAtStartNode, nrSplitsPassed, startHeightGlobal, startHeightCluster, endHeight, level, parentClusterBools, parentLevelCounter + 1);
+                        n.getAllStartNodes(startNodesNextIndexStartTval, branchNodesNextIndexStartTval, activeBranchIndex, nrSplitsPassedAtStartNode, nrSplitsPassed, startHeightGlobal, startHeightCluster, endHeight, level, parentClusterBools, parentLevelCounter + 1);
                     }
-                    branchIndex += 1;
+                    //branchIndex += 1; // test!
                 }
             }
         }
@@ -924,11 +1040,11 @@ public class treeGen3 : MonoBehaviour
         for (int clusterIndex = 0; clusterIndex < nrBranchClusters; clusterIndex++)
         {
             Debug.Log("in addBranches: add branches cluster " + clusterIndex + ": nr: " + nrBranches[clusterIndex]);
-            List<(node, int)> startNodesNextIndex = new List<(node, int)>(); // (startNode, nextIndex)
-            List<List<(node, int)>> branchNodesNextIndex = new List<List<(node, int)>>(); // one list for each branch
-            for (int i = 0; i < nrBranches[clusterIndex]; i++)
+            List<(node, int, float)> startNodesNextIndexStartTval = new List<(node, int, float)>(); // (startNode, nextIndex, startTval) // startTval: 0..1 from startNode to startNode.next
+            List<List<(node, int, float)>> branchNodesNextIndexStartTval = new List<List<(node, int, float)>>(); // one list for each branch, startTvalNode
+            for (int i = 0; i < nrBranches[clusterIndex - 1 >= 0 ? clusterIndex - 1 : clusterIndex]; i++) // TEST!
             {
-                branchNodesNextIndex.Add(new List<(node, int)>());
+                branchNodesNextIndexStartTval.Add(new List<(node, int, float)>());
             }
             List<int> nrSplitsPassedAtStartNode = new List<int>();
 
@@ -977,9 +1093,14 @@ public class treeGen3 : MonoBehaviour
                     if (j == 0)
                     {
                         // Start from the stem
-                        rootNode.getAllStartNodes(startNodesNextIndex, branchNodesNextIndex, 0, nrSplitsPassedAtStartNode, 0,
+                        rootNode.getAllStartNodes(startNodesNextIndexStartTval, branchNodesNextIndexStartTval, -1, nrSplitsPassedAtStartNode, 0,
                             branchesStartHeightGlobal[clusterIndex], branchesStartHeightCluster[clusterIndex], branchesEndHeight[clusterIndex], j, parentClusterBools[clusterIndex], 0);
-                        Debug.Log("in addBranches: parentClsuterBool[clusterIndex=" + clusterIndex + "][" + j + "], startNodesNextIndex.Count: " + startNodesNextIndex.Count);
+                        Debug.Log("in addBranches: parentClsuterBool[clusterIndex=" + clusterIndex + "][" + j + "], startNodesNextIndex.Count: " + startNodesNextIndexStartTval.Count);
+
+                        for (int b = 0; b < branchNodesNextIndexStartTval.Count; b++)
+                        {
+                            Debug.Log("clusterIndex=" + clusterIndex + ", j: " + j + ", branchNodesNextIndex[" + b + "].Count: " + branchNodesNextIndexStartTval[b].Count);
+                        }
                     }
                     else
                     {
@@ -987,12 +1108,19 @@ public class treeGen3 : MonoBehaviour
                         List<node> parentNodes = new List<node>();
                         rootNode.getAllBranchNodes(parentNodes, j - 1); // !!!
                         Debug.Log("in addBranches: clusterIndex: " + clusterIndex + ", parentNodes.Count: " + parentNodes.Count); // OK
+                        int activeBranchIndex = -1;
                         foreach (node n in parentNodes)
                         {
-                            n.getAllStartNodes(startNodesNextIndex, branchNodesNextIndex, 0, nrSplitsPassedAtStartNode, 0,
+                            n.getAllStartNodes(startNodesNextIndexStartTval, branchNodesNextIndexStartTval, activeBranchIndex, nrSplitsPassedAtStartNode, 0,
                                 branchesStartHeightGlobal[clusterIndex], branchesStartHeightCluster[clusterIndex], branchesEndHeight[clusterIndex], j, parentClusterBools[clusterIndex], 0); // startNodesNextIndex.Count = 49 OK !!!
+                            activeBranchIndex += 1; // TEST!
                         }
-                        Debug.Log("in addBranches: parentClusterBool[clusterIndex=" + clusterIndex + "][" + j + "], startNodesNextIndex.Count: " + startNodesNextIndex.Count + ", parentNodes.Count: " + parentNodes.Count);
+                        Debug.Log("in addBranches: parentClusterBool[clusterIndex=" + clusterIndex + "][" + j + "], startNodesNextIndex.Count: " + startNodesNextIndexStartTval.Count + ", parentNodes.Count: " + parentNodes.Count);
+                        // ERROR HERE: startNodesNextIndex.Count = 0 for clusterIndex=1 and branchesStartHeightCluster > 0 !!!
+                        for (int b = 0; b < branchNodesNextIndexStartTval.Count; b++)
+                        {
+                            Debug.Log("clusterIndex=" + clusterIndex + ", j: " + j + ", branchNodesNextIndex[" + b + "].Count: " + branchNodesNextIndexStartTval[b].Count);
+                        }
                     }
                 }  // branchNodesNextIndex: one list<(node, int)> for each branch
             }
@@ -1002,7 +1130,7 @@ public class treeGen3 : MonoBehaviour
 
             if (clusterIndex > 0)
             {
-                for (int i = 0; i < startNodesNextIndex.Count; i++)
+                for (int i = 0; i < startNodesNextIndexStartTval.Count; i++)
                 {
                     nrSplitsPassedAtStartNode.Add(0); // TODO
                 }
@@ -1011,7 +1139,7 @@ public class treeGen3 : MonoBehaviour
             float windingAngle = 0f;
             //Debug.Log("branchCluster: " + clusterIndex + ", startNodes: " + startNodesNextIndex.Count);
             
-            if (startNodesNextIndex.Count > 0)
+            if (startNodesNextIndexStartTval.Count > 0)
             {
                 // NEW: startNodeIndex calculation (AI) ----------------------------
                 // 1. Calculate segment lengths and total length
@@ -1024,12 +1152,34 @@ public class treeGen3 : MonoBehaviour
                 {
                     useTvalBranch = false;
                 }
-                float totalLength = calculateSegmentLengthsAndTotalLength(startNodesNextIndex, branchNodesNextIndex, segmentLengths, clusterIndex, useTvalBranch);
+                Debug.Log("useTvalBranch: " + useTvalBranch);
+                float totalLength = calculateSegmentLengthsAndTotalLength(startNodesNextIndexStartTval, branchNodesNextIndexStartTval, segmentLengths, clusterIndex, useTvalBranch);
                 //List<float> segmentTStart = new List<float>();
                 //List<float> segmentTEnd = new List<float>();
                 
-                Debug.Log("clusterIndex: " + clusterIndex + ", startNodesNextIndex.Count: " + startNodesNextIndex.Count + ", totalLength: " + totalLength);
+                Debug.Log("clusterIndex: " + clusterIndex + ", startNodesNextIndex.Count: " + startNodesNextIndexStartTval.Count + ", totalLength: " + totalLength);
                 // ERROR HERE: clusterIndex: 1, startNodesNextIndex.Count: 124, totalLength: 0
+
+                Debug.Log("clusterIndex: " + clusterIndex + ", startNodesNextIndex.Count: " + startNodesNextIndexStartTval.Count + ", branchNodesNextIndexStartTval.Count: " + branchNodesNextIndexStartTval.Count);
+
+                for (int i = 0; i < branchNodesNextIndexStartTval.Count; i++)
+                {
+                    Debug.Log("branch: " + i);
+                    for (int j = 0; j < branchNodesNextIndexStartTval[i].Count; j++)
+                    {
+                        Debug.Log("branchNodesNextIndexStartTval[" + i + "][" + j + "]: startTval:" + branchNodesNextIndexStartTval[i][j].Item3); // OK ([0...1] for entire branch!)
+                    }
+                }
+
+                // in getAllStartNodes: 
+                //
+                // for (int n = 0; n < next.Count; n++)
+                // {
+                //     startNodesNextIndex.Add((this, n));
+                //     branchNodesNextIndexStartTval[activeBranchIndex].Add((this, n, (startHeightCluster - tValBranch) / (next[0].tValBranch - tValBranch))); // startTval: tval between startNode and startNode.next
+                // }
+                // nrSplitsPassedAtStartNode.Add(nrSplitsPassed); //     |------*----v---*-------*
+                // //                                                    0     0.3      0.6      1
 
 
                 //Debug.Log("startNodesNextIndex.Count: " + startNodesNextIndex.Count + ", totalLength: " + totalLength); // 30, 0
@@ -1038,7 +1188,7 @@ public class treeGen3 : MonoBehaviour
                 //-----------------------------------------------------------------
 
                 //Debug.Log("nrBranches[" + clusterIndex + "]: " + nrBranches[clusterIndex]);
-                for (int branchIndex = 0; branchIndex < nrBranches[clusterIndex]; branchIndex++) // nrBranches[0]
+                for (int branchIndex = 0; branchIndex < nrBranches[clusterIndex]; branchIndex++) // nrBranches[0] // TODO: get the branch of the startNode!
                 {
                     // NEW: startNodeIndex calculation (AI) ---------------------------
                     float branchPos = (branchIndex + 0.5f) * totalLength / nrBranches[clusterIndex]; // +0.5 for center of segment
@@ -1065,46 +1215,49 @@ public class treeGen3 : MonoBehaviour
                         accumLength += segmentLengths[i];
                     }
 
-                    int startNodeNextIndex = startNodesNextIndex[startNodeIndex].Item2;
+                    int startNodeNextIndex = startNodesNextIndexStartTval[startNodeIndex].Item2;
                     //-----------------------------------------------------------------
+
+                    node nStart = startNodesNextIndexStartTval[startNodeIndex].Item1;  // TODO: get the branch of the startNode!
+                    //nStart.
 
                     // TODO: winding -> equal distances -> add random offsets
 
                     Vector3 tangent;
-                    if (startNodesNextIndex[startNodeIndex].Item1.next.Count > 1)
+                    if (startNodesNextIndexStartTval[startNodeIndex].Item1.next.Count > 1)
                     {
-                        tangent = startNodesNextIndex[startNodeIndex].Item1.tangent[startNodeNextIndex + 1];
+                        tangent = startNodesNextIndexStartTval[startNodeIndex].Item1.tangent[startNodeNextIndex + 1];
                     }
                     else
                     {
-                        tangent = startNodesNextIndex[startNodeIndex].Item1.tangent[0];
+                        tangent = startNodesNextIndexStartTval[startNodeIndex].Item1.tangent[0];
                     }
                     // Map t from [0,1] to [tA, tB]
                     //Debug.Log("startNodeIndex: " + startNodeIndex + ", startNodesNextIndex.Count: " + startNodesNextIndex.Count + ", segmentTStart.Count: " + segmentTStart.Count + ", segmentTEnd.Count: " + segmentTEnd.Count);
                     //float tVal = segmentTStart[startNodeIndex] + t * (segmentTEnd[startNodeIndex] - segmentTStart[startNodeIndex]);
 
-                    Vector3 startPoint = sampleSplineT(startNodesNextIndex[startNodeIndex].Item1.point,
-                                                       startNodesNextIndex[startNodeIndex].Item1.next[startNodeNextIndex].point,
+                    Vector3 startPoint = sampleSplineT(startNodesNextIndexStartTval[startNodeIndex].Item1.point,
+                                                       startNodesNextIndexStartTval[startNodeIndex].Item1.next[startNodeNextIndex].point,
                                                        tangent,
-                                                       startNodesNextIndex[startNodeIndex].Item1.next[startNodeNextIndex].tangent[0],
+                                                       startNodesNextIndexStartTval[startNodeIndex].Item1.next[startNodeNextIndex].tangent[0],
                                                        t);
-                    Vector3 startPointTangent = sampleSplineTangentT(startNodesNextIndex[startNodeIndex].Item1.point,
-                                                                     startNodesNextIndex[startNodeIndex].Item1.next[startNodeNextIndex].point,
+                    Vector3 startPointTangent = sampleSplineTangentT(startNodesNextIndexStartTval[startNodeIndex].Item1.point,
+                                                                     startNodesNextIndexStartTval[startNodeIndex].Item1.next[startNodeNextIndex].point,
                                                                      tangent,
-                                                                     startNodesNextIndex[startNodeIndex].Item1.next[startNodeNextIndex].tangent[0],
+                                                                     startNodesNextIndexStartTval[startNodeIndex].Item1.next[startNodeNextIndex].tangent[0],
                                                                      t);
 
                     Vector3 branchDir = new Vector3(0f, 0f, 0f);
 
                     Vector3 nextTangent = norm(norm(treeGrowDir) * treeHeight - (rootNode.point + rootNode.tangent[0] * vLength(norm(treeGrowDir) * treeHeight - rootNode.point) * (1.5f / 3f)));
 
-                    Vector3 centerPoint = sampleSplineT(rootNode.point, norm(treeGrowDir) * treeHeight, new Vector3(0f, 1f, 0f), nextTangent, startNodesNextIndex[startNodeIndex].Item1.tValGlobal);
+                    Vector3 centerPoint = sampleSplineT(rootNode.point, norm(treeGrowDir) * treeHeight, new Vector3(0f, 1f, 0f), nextTangent, startNodesNextIndexStartTval[startNodeIndex].Item1.tValGlobal);
                     //debugPointsRed.Add(centerPoint);
-                    Vector3 outwardDir = vLerp(startNodesNextIndex[startNodeIndex].Item1.point, startNodesNextIndex[startNodeIndex].Item1.next[startNodeNextIndex].point, t) - centerPoint;
+                    Vector3 outwardDir = vLerp(startNodesNextIndexStartTval[startNodeIndex].Item1.point, startNodesNextIndexStartTval[startNodeIndex].Item1.next[startNodeNextIndex].point, t) - centerPoint;
 
                     if (outwardDir == Vector3.zero)
                     {
-                        outwardDir = vLerp(startNodesNextIndex[startNodeIndex].Item1.cotangent, startNodesNextIndex[startNodeIndex].Item1.next[startNodeNextIndex].cotangent, t);
+                        outwardDir = vLerp(startNodesNextIndexStartTval[startNodeIndex].Item1.cotangent, startNodesNextIndexStartTval[startNodeIndex].Item1.next[startNodeNextIndex].cotangent, t);
                         //Debug.Log("outwardDir is zero, using cotangent: " + outwardDir);
                     }
                     //Debug.Log("outwardDir: " + outwardDir);
@@ -1114,7 +1267,7 @@ public class treeGen3 : MonoBehaviour
 
                     if (outwardDir == Vector3.zero)
                     {
-                        outwardDir = vLerp(startNodesNextIndex[startNodeIndex].Item1.cotangent, startNodesNextIndex[startNodeIndex].Item1.next[startNodeNextIndex].cotangent, t);
+                        outwardDir = vLerp(startNodesNextIndexStartTval[startNodeIndex].Item1.cotangent, startNodesNextIndexStartTval[startNodeIndex].Item1.next[startNodeNextIndex].cotangent, t);
                         //Debug.Log("outwardDir is zero, using cotangent: " + outwardDir);
                     }
                     outwardDir = norm(outwardDir);
@@ -1129,7 +1282,7 @@ public class treeGen3 : MonoBehaviour
                     //float tValBranchesStartLevel = startNodesNextIndex[0].Item1.tVal;
                     //(1f - tValBranchesStartLevel) * startNodes[startNodeIndex].tVal + tValBranchesStartLevel
 
-                    float verticalAngle = fLerp(verticalAngleCrownStart[clusterIndex], verticalAngleCrownEnd[clusterIndex], startNodesNextIndex[startNodeIndex].Item1.tValGlobal);
+                    float verticalAngle = fLerp(verticalAngleCrownStart[clusterIndex], verticalAngleCrownEnd[clusterIndex], startNodesNextIndexStartTval[startNodeIndex].Item1.tValGlobal);
                     //Debug.Log("verticalAngleCrownStart[0]: " + verticalAngleCrownStart[clusterIndex] + ", verticalAngleCrownEnd[0]: " + verticalAngleCrownEnd[clusterIndex] + ", verticalAngle: " + verticalAngle);
 
                     // float newVerticalAngle = fLerp(verticalAngleCrownStart[0], verticalAngleCrownEnd[0], (1f - tValBranchesStartLevel) * startNodes[startNodeIndex].tVal + tValBranchesStartLevel);
@@ -1207,28 +1360,28 @@ public class treeGen3 : MonoBehaviour
                     //Debug.Log("branch cotangent: " + branchCotangent);
                     //Debug.Log("new node: clusterIndex: " + clusterIndex);
                     float tValBranchStart = 0f;
-                    node branch = new node(startPoint, branchDir, branchCotangent, startNodesNextIndex[startNodeIndex].Item1.tValGlobal, tValBranchStart, taper * taperFactor[clusterIndex], this, null, clusterIndex); // taper[] for each level
+                    node branch = new node(startPoint, branchDir, branchCotangent, startNodesNextIndexStartTval[startNodeIndex].Item1.tValGlobal, tValBranchStart, taper * taperFactor[clusterIndex], this, null, clusterIndex); // taper[] for each level
 
-                    float branchLength = treeHeight * relBranchLength[clusterIndex] * shapeRatio(startNodesNextIndex[startNodeIndex].Item1.tValGlobal);
-                    float lengthToTip = startNodesNextIndex[startNodeIndex].Item1.lengthToTip();
-                    lengthToTip -= t * vLength(startNodesNextIndex[startNodeIndex].Item1.next[startNodeNextIndex].point - startNodesNextIndex[startNodeIndex].Item1.point);
+                    float branchLength = treeHeight * relBranchLength[clusterIndex] * shapeRatio(startNodesNextIndexStartTval[startNodeIndex].Item1.tValGlobal);
+                    float lengthToTip = startNodesNextIndexStartTval[startNodeIndex].Item1.lengthToTip();
+                    lengthToTip -= t * vLength(startNodesNextIndexStartTval[startNodeIndex].Item1.next[startNodeNextIndex].point - startNodesNextIndexStartTval[startNodeIndex].Item1.point);
                     if (branchLength > lengthToTip)
                     {
                         branchLength = lengthToTip;
                     }
                     //Debug.Log("new node: clusterIndex: " + clusterIndex);
                     float tValBranchEnd = 1f;
-                    branch.next.Add(new node(startPoint + branchDir * branchLength, branchDir, branchCotangent, startNodesNextIndex[startNodeIndex].Item1.tValGlobal, tValBranchEnd, taper * taperFactor[clusterIndex], this, branch, clusterIndex));
+                    branch.next.Add(new node(startPoint + branchDir * branchLength, branchDir, branchCotangent, startNodesNextIndexStartTval[startNodeIndex].Item1.tValGlobal, tValBranchEnd, taper * taperFactor[clusterIndex], this, branch, clusterIndex));
                     //Debug.Log("branches count: " + startNodesNextIndex[startNodeIndex].Item1.branches.Count + ", n: " + startNodeNextIndex);
-                    if (startNodesNextIndex[startNodeIndex].Item1.branches.Count < startNodeNextIndex + 1)
+                    if (startNodesNextIndexStartTval[startNodeIndex].Item1.branches.Count < startNodeNextIndex + 1)
                     {
-                        for (int m = 0; m < startNodesNextIndex[startNodeIndex].Item1.next.Count; m++)
+                        for (int m = 0; m < startNodesNextIndexStartTval[startNodeIndex].Item1.next.Count; m++)
                         {
-                            startNodesNextIndex[startNodeIndex].Item1.branches.Add(new List<node>());
+                            startNodesNextIndexStartTval[startNodeIndex].Item1.branches.Add(new List<node>());
                         }
                     }
 
-                    startNodesNextIndex[startNodeIndex].Item1.branches[startNodeNextIndex].Add(branch);
+                    startNodesNextIndexStartTval[startNodeIndex].Item1.branches[startNodeNextIndex].Add(branch);
                     //Debug.Log("added branch!");
 
                     // debugPointsRed.Add(startPoint);
@@ -1249,6 +1402,9 @@ public class treeGen3 : MonoBehaviour
                     branch.curveBranches(branchCurvature[clusterIndex], Vector3.Cross(startPointTangent, branchDir));
                     //debugLinesGreen.Add(new line(startPoint, startPoint + norm(Vector3.Cross(startPointTangent, branchDir))));
 
+
+                    // resample
+                    branch.resampleSpline(3, 0f, 0f, 1f); // TODO: make parameter!
                 }
                 // add one branch at tip of spline -> do not clamp length by length to tip! -> smaller taper!
                 // TODO: add to branch list!
@@ -1305,34 +1461,36 @@ public class treeGen3 : MonoBehaviour
 
             }
 
+            
             // split branches
-            if (nrSplitsPerBranch != null)
-            {
-                if (nrSplitsPerBranch.Count > clusterIndex)
+                if (nrSplitsPerBranch != null)
                 {
-                    if (nrSplitsPerBranch[clusterIndex] > 0f) // nrSplitsPerBranch[branchLevel] * (float)nrBranches[branchLevel]
+                    if (nrSplitsPerBranch.Count > clusterIndex)
                     {
-                        //Debug.Log("in addBranches: splitBranches: branchLevel:" + clusterIndex); // 0
-                        splitBranches(clusterIndex, (int)(nrSplitsPerBranch[clusterIndex] * (float)nrBranches[clusterIndex]), testSplitAngle, testSplitPointAngle); // TODO: split before adding next branch level!
-                        // splitBranches() treats stem as branch level 0
-                        // addBranches() counts branchLevels from 0 (not including stem)
+                        if (nrSplitsPerBranch[clusterIndex] > 0f) // nrSplitsPerBranch[branchLevel] * (float)nrBranches[branchLevel]
+                        {
+                            //Debug.Log("in addBranches: splitBranches: branchLevel:" + clusterIndex); // 0
+                            splitBranches(clusterIndex, (int)(nrSplitsPerBranch[clusterIndex] * (float)nrBranches[clusterIndex]), testSplitAngle, testSplitPointAngle); // TODO: split before adding next branch level!
+                                                                                                                                                                        // splitBranches() treats stem as branch level 0
+                                                                                                                                                                        // addBranches() counts branchLevels from 0 (not including stem)
+                        }
                     }
                 }
-            }
         }
         //Debug.Log("minAngle: " + minAngle);
         //Debug.Log("maxAngle: " + maxAngle);
     
     }
 
-    public float calculateSegmentLengthsAndTotalLength(List<(node, int)> startNodesNextIndex, List<List<(node, int)>> branchNodesNextIndex, List<float> segmentLengths, int clusterIndex, bool useTvalBranch)
+    public float calculateSegmentLengthsAndTotalLength(List<(node, int, float)> startNodesNextIndexStartTval, List<List<(node, int, float)>> branchNodesNextIndexStartTval, List<float> segmentLengths, int clusterIndex, bool useTvalBranch)
     {
-        // branchNodesNextIndex: all startNodes that are the start of a branch (not inbetween nodes), one list<(node, int)> for each branch
+        // branchNodesNextIndexStartTval: all startNodes that are the start of a branch (not inbetween nodes), one list<(node, int)> for each branch
+        // TODO: startTval...
 
         float totalLength = 0f;
         if (clusterIndex == 1)
         {
-            Debug.Log("calculateSegmentLengthsAndTotalLength: clusterIndex: " + clusterIndex + ", startNodesNextIndex.Count: " + startNodesNextIndex.Count);
+            Debug.Log("calculateSegmentLengthsAndTotalLength: clusterIndex: " + clusterIndex + ", startNodesNextIndex.Count: " + startNodesNextIndexStartTval.Count);
         }
         // for (int i = 0; i < startNodesNextIndex.Count; i++)
         // {
@@ -1415,15 +1573,16 @@ public class treeGen3 : MonoBehaviour
 
         if (useTvalBranch == true) // ERROR HERE -> do not use startNodes -> use branches! (branches have startNodes inbetween!!!)
         {
-            for (int branchNode = 0; branchNode < branchNodesNextIndex.Count; branchNode++)
+            for (int branchNode = 0; branchNode < branchNodesNextIndexStartTval.Count; branchNode++)
             {
-                for (int i = 0; i < branchNodesNextIndex[branchNode].Count; i++)
+                for (int i = 0; i < branchNodesNextIndexStartTval[branchNode].Count; i++)
                 {
-                    (node, int) startNodeNextIndex = branchNodesNextIndex[branchNode][i];
-                    float segLen = startNodeNextIndex.Item1.next[startNodeNextIndex.Item2] != null ? vLength(startNodeNextIndex.Item1.next[startNodeNextIndex.Item2].point - startNodeNextIndex.Item1.point) : 0f;
+                    (node, int, float) startNodeNextIndexStartTval = branchNodesNextIndexStartTval[branchNode][i];
+                    float segLen = startNodeNextIndexStartTval.Item1.next[startNodeNextIndexStartTval.Item2] != null ? vLength(startNodeNextIndexStartTval.Item1.next[startNodeNextIndexStartTval.Item2].point - startNodeNextIndexStartTval.Item1.point) : 0f;
 
-                    float tA_branch = startNodeNextIndex.Item1.tValBranch;
-                    float tB_branch = startNodeNextIndex.Item1.next[startNodeNextIndex.Item2].tValBranch;
+                    float tA_branch = startNodeNextIndexStartTval.Item1.tValBranch;
+                    float tB_branch = startNodeNextIndexStartTval.Item1.next[startNodeNextIndexStartTval.Item2].tValBranch;
+                    float startTval = startNodeNextIndexStartTval.Item3;
 
                     Debug.Log("tA_branch: " + tA_branch + ", tB_branch: " + tB_branch);
 
@@ -1434,7 +1593,7 @@ public class treeGen3 : MonoBehaviour
                     Debug.Log("useTvalBranch == true, clusterIndex: " + clusterIndex);
                     Debug.Log("clusterIndex: " + clusterIndex + ", tA_branch: " + tA_branch + ", tB_branch: " + tB_branch +
                                 ", branchesStartHeightCluster[clusterIndex]: " + branchesStartHeightCluster[clusterIndex] +
-                                ", brnachNodesNextIndex[" + branchNode + "].Count: " + branchNodesNextIndex[branchNode].Count);
+                                ", brnachNodesNextIndex[" + branchNode + "].Count: " + branchNodesNextIndexStartTval[branchNode].Count);
                     if (tA_branch > tB_branch)
                     {
                         // Swap to ensure tA < tB
@@ -1453,7 +1612,7 @@ public class treeGen3 : MonoBehaviour
                     float frac;
                     if (tB_branch - tA_branch == 0f)
                     {
-                        Debug.Log("ERROR: tB_branch - tA_branch == 0f, tA: " + tA_branch + ", tB: " + tB_branch + ", startNode.tValGlobal: " + startNodeNextIndex.Item1.tValGlobal + ", nextIdx: " + startNodeNextIndex.Item2);
+                        Debug.Log("ERROR: tB_branch - tA_branch == 0f, tA: " + tA_branch + ", tB: " + tB_branch + ", startNode.tValGlobal: " + startNodeNextIndexStartTval.Item1.tValGlobal + ", nextIdx: " + startNodeNextIndexStartTval.Item2);
                         frac = 0f;
                     }
                     else
@@ -1477,13 +1636,13 @@ public class treeGen3 : MonoBehaviour
         }
         else // OK
         {
-            for (int i = 0; i < startNodesNextIndex.Count; i++)
+            for (int i = 0; i < startNodesNextIndexStartTval.Count; i++)
             {
-                (node, int) startNodeNextIndex = startNodesNextIndex[i];
-                float segLen = startNodeNextIndex.Item1.next[startNodeNextIndex.Item2] != null ? vLength(startNodeNextIndex.Item1.next[startNodeNextIndex.Item2].point - startNodeNextIndex.Item1.point) : 0f;
+                (node, int, float) startNodeNextIndexStartTval = startNodesNextIndexStartTval[i];
+                float segLen = startNodeNextIndexStartTval.Item1.next[startNodeNextIndexStartTval.Item2] != null ? vLength(startNodeNextIndexStartTval.Item1.next[startNodeNextIndexStartTval.Item2].point - startNodeNextIndexStartTval.Item1.point) : 0f;
 
-                float tA_global = startNodeNextIndex.Item1.tValGlobal;
-                float tB_global = startNodeNextIndex.Item1.next[startNodeNextIndex.Item2].tValGlobal;
+                float tA_global = startNodeNextIndexStartTval.Item1.tValGlobal;
+                float tB_global = startNodeNextIndexStartTval.Item1.next[startNodeNextIndexStartTval.Item2].tValGlobal;
 
                 Debug.Log("tA_global: " + tA_global + ", tB_global: " + tB_global);
 
@@ -1508,7 +1667,7 @@ public class treeGen3 : MonoBehaviour
                 float frac;
                 if (tB_global - tA_global == 0f)
                 {
-                    Debug.Log("ERROR: tB - tA == 0f, tA: " + tA_global + ", tB: " + tB_global + ", startNode.tValGlobal: " + startNodeNextIndex.Item1.tValGlobal + ", nextIdx: " + startNodeNextIndex.Item2);
+                    Debug.Log("ERROR: tB - tA == 0f, tA: " + tA_global + ", tB: " + tB_global + ", startNode.tValGlobal: " + startNodeNextIndexStartTval.Item1.tValGlobal + ", nextIdx: " + startNodeNextIndexStartTval.Item2);
                     frac = 0f;
                 }
                 else
@@ -1836,7 +1995,7 @@ public class treeGen3 : MonoBehaviour
         //Debug.Log("addLeaves: nrLeaves: " + nrLeaves);
         float leafStartHeight = 0.5f; // TODO: make this a parameter
         float leafEndHeight = 1f; // TODO: make this a parameter
-        List<(node, int)> leafStartNodesNextIndex = new List<(node, int)>();
+        List<(node, int, float)> leafStartNodesNextIndexStartTval = new List<(node, int, float)>();
         List<bool> leafClusterBools = new List<bool>();
         //for (int i = 0; i < nrBranchClusters; i++)
         //{
@@ -1854,18 +2013,18 @@ public class treeGen3 : MonoBehaviour
 
             List<node> branchNodes = new List<node>();
             rootNode.getAllBranchNodes(branchNodes, i);
-            List<(node, int)> clusterStartNodesNextIndex = new List<(node, int)>();
-            List<List<(node, int)>> clusterBranchNodesNextIndex = new List<List<(node, int)>>();
+            List<(node, int, float)> clusterStartNodesNextIndexStartTval = new List<(node, int, float)>();
+            List<List<(node, int, float)>> clusterBranchNodesNextIndexStartTval = new List<List<(node, int, float)>>();
             List<int> nrSplitsPassedAtStartNode = new List<int>();
             foreach (node n in branchNodes)
             {
-                n.getAllStartNodes(clusterStartNodesNextIndex, clusterBranchNodesNextIndex, 0, nrSplitsPassedAtStartNode, 0, 0f, 0f, 1f, 0, leafClusterBools, 0);
+                n.getAllStartNodes(clusterStartNodesNextIndexStartTval, clusterBranchNodesNextIndexStartTval, -1, nrSplitsPassedAtStartNode, 0, 0f, 0f, 1f, 0, leafClusterBools, 0);
             }
 
             // calculateSegmentLengthsAndTotalLength(List<(node, int)> startNodesNextIndex, List<float> segmentLengths, int clusterIndex)
             List<float> clusterSegmentLengths = new List<float>();
-            totalLength += calculateSegmentLengthsAndTotalLength(clusterStartNodesNextIndex, clusterBranchNodesNextIndex, clusterSegmentLengths, i, false); // TODO: useTvalBranch ...
-            leafStartNodesNextIndex.AddRange(clusterStartNodesNextIndex);
+            totalLength += calculateSegmentLengthsAndTotalLength(clusterStartNodesNextIndexStartTval, clusterBranchNodesNextIndexStartTval, clusterSegmentLengths, i, false); // TODO: useTvalBranch ...
+            leafStartNodesNextIndexStartTval.AddRange(clusterStartNodesNextIndexStartTval);
             segmentLengths.AddRange(clusterSegmentLengths);
             //Debug.Log("cluster " + i + ": totalLength: " + totalLength + ", segmentLengths.Count: " + segmentLengths.Count);
         }
@@ -1873,13 +2032,13 @@ public class treeGen3 : MonoBehaviour
 
 
         //-----------
-        for (int nodeIndex = 0; nodeIndex < leafStartNodesNextIndex.Count; nodeIndex++)
+        for (int nodeIndex = 0; nodeIndex < leafStartNodesNextIndexStartTval.Count; nodeIndex++)
         {
             // NEW: startNodeIndex calculation (AI) ---------------------------
-            float leafPos = (nodeIndex + 0.5f) * totalLength / leafStartNodesNextIndex.Count; // +0.5 for center of segment
+            float leafPos = (nodeIndex + 0.5f) * totalLength / leafStartNodesNextIndexStartTval.Count; // +0.5 for center of segment
 
             // add random offset to branchPos (AI)
-            float avgSegmentLength = totalLength / leafStartNodesNextIndex.Count;
+            float avgSegmentLength = totalLength / leafStartNodesNextIndexStartTval.Count;
             float leafPosOffset = ((float)random.NextDouble() - 0.5f) * 0.2f * avgSegmentLength;
             leafPos += leafPosOffset;
 
@@ -1900,28 +2059,28 @@ public class treeGen3 : MonoBehaviour
                 accumLength += segmentLengths[i];
             }
 
-            int leafStartNodeNextIndex = leafStartNodesNextIndex[startNodeIndex].Item2;
+            int leafStartNodeNextIndex = leafStartNodesNextIndexStartTval[startNodeIndex].Item2;
             //-----------------------------------------------------------------
 
             // TODO: winding -> equal distances -> add random offsets
 
             Vector3 tangent;
-            if (leafStartNodesNextIndex[startNodeIndex].Item1.next.Count > 1)
+            if (leafStartNodesNextIndexStartTval[startNodeIndex].Item1.next.Count > 1)
             {
-                tangent = leafStartNodesNextIndex[startNodeIndex].Item1.tangent[leafStartNodeNextIndex + 1];
+                tangent = leafStartNodesNextIndexStartTval[startNodeIndex].Item1.tangent[leafStartNodeNextIndex + 1];
             }
             else
             {
-                tangent = leafStartNodesNextIndex[startNodeIndex].Item1.tangent[0];
+                tangent = leafStartNodesNextIndexStartTval[startNodeIndex].Item1.tangent[0];
             }
             // Map t from [0,1] to [tA, tB]
             //Debug.Log("startNodeIndex: " + startNodeIndex + ", startNodesNextIndex.Count: " + startNodesNextIndex.Count + ", segmentTStart.Count: " + segmentTStart.Count + ", segmentTEnd.Count: " + segmentTEnd.Count);
             //float tVal = segmentTStart[startNodeIndex] + t * (segmentTEnd[startNodeIndex] - segmentTStart[startNodeIndex]);
 
-            Vector3 startPoint = sampleSplineT(leafStartNodesNextIndex[startNodeIndex].Item1.point,
-                                               leafStartNodesNextIndex[startNodeIndex].Item1.next[leafStartNodeNextIndex].point,
+            Vector3 startPoint = sampleSplineT(leafStartNodesNextIndexStartTval[startNodeIndex].Item1.point,
+                                               leafStartNodesNextIndexStartTval[startNodeIndex].Item1.next[leafStartNodeNextIndex].point,
                                                tangent,
-                                               leafStartNodesNextIndex[startNodeIndex].Item1.next[leafStartNodeNextIndex].tangent[0],
+                                               leafStartNodesNextIndexStartTval[startNodeIndex].Item1.next[leafStartNodeNextIndex].tangent[0],
                                                t);
         }
     }
