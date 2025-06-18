@@ -133,8 +133,10 @@ public class treeGen3Editor : Editor
     public static List<float> setBranchesStartHeightGlobal;
     static List<float> branchesStartHeightCluster;
     public static List<float> setBranchesStartHeightCluster;
-    static List<float> branchesEndHeight;
-    public static List<float> setBranchesEndHeight;
+    static List<float> branchesEndHeightGlobal;
+    public static List<float> setBranchesEndHeightGlobal;
+    static List<float> branchesEndHeightCluster;
+    public static List<float> setBranchesEndHeightCluster;
     static List<float> branchCurvature;
     public static List<float> setBranchCurvature;
     static List<float> nrSplitsPerBranch;
@@ -502,9 +504,13 @@ public class treeGen3Editor : Editor
             setBranchesStartHeightCluster = data.branchesStartHeightCluster;
             treeGenScript.branchesStartHeightCluster = data.branchesStartHeightCluster;
 
-            branchesEndHeight = data.branchesEndHeight;
-            setBranchesEndHeight = data.branchesEndHeight;
-            treeGenScript.branchesEndHeight = data.branchesEndHeight;
+            branchesEndHeightGlobal = data.branchesEndHeightGlobal;
+            setBranchesEndHeightGlobal = data.branchesEndHeightGlobal;
+            treeGenScript.branchesEndHeightGlobal = data.branchesEndHeightGlobal;
+
+            branchesEndHeightCluster = data.branchesEndHeightCluster;
+            setBranchesEndHeightCluster = data.branchesEndHeightCluster;
+            treeGenScript.branchesEndHeightCluster = data.branchesEndHeightCluster;
 
             branchCurvature = data.branchCurvature;
             setBranchCurvature = data.branchCurvature;
@@ -740,11 +746,17 @@ public class treeGen3Editor : Editor
             }
             setBranchesStartHeightCluster.Add(0f);
 
-            if (setBranchesEndHeight == null)
+            if (setBranchesEndHeightGlobal == null)
             {
-                setBranchesEndHeight = new List<float>();
+                setBranchesEndHeightGlobal = new List<float>();
             }
-            setBranchesEndHeight.Add(999f);
+            setBranchesEndHeightGlobal.Add(1f);
+
+            if (setBranchesEndHeightCluster == null)
+            {
+                setBranchesEndHeightCluster = new List<float>();
+            }
+            setBranchesEndHeightCluster.Add(1f);
 
             if (setBranchCurvature == null)
             {
@@ -804,7 +816,8 @@ public class treeGen3Editor : Editor
                     setRotateAngleRange.RemoveAt(setRotateAngleRange.Count - 1);
                     setBranchesStartHeightGlobal.RemoveAt(setBranchesStartHeightGlobal.Count - 1);
                     setBranchesStartHeightCluster.RemoveAt(setBranchesStartHeightCluster.Count - 1);
-                    setBranchesEndHeight.RemoveAt(setBranchesEndHeight.Count - 1);
+                    setBranchesEndHeightGlobal.RemoveAt(setBranchesEndHeightGlobal.Count - 1);
+                    setBranchesEndHeightCluster.RemoveAt(setBranchesEndHeightCluster.Count - 1);
                     setBranchCurvature.RemoveAt(setBranchCurvature.Count - 1);
                     setNrSplitsPerBranch.RemoveAt(setNrSplitsPerBranch.Count - 1);
                     setSplitsPerBranchVariation.RemoveAt(setSplitsPerBranchVariation.Count - 1);
@@ -900,7 +913,21 @@ public class treeGen3Editor : Editor
                     }
 
                     setNrBranches[i] = EditorGUILayout.IntField("nrBranches", setNrBranches[i]);
-                    setBranchSplitMode[i] = (splitMode)EditorGUILayout.EnumPopup("branchSplitMode", setBranchSplitMode[i]);
+                    if (setBranchSplitMode != null)
+                    {
+                        if (setBranchSplitMode.Count > i)
+                        {
+                            setBranchSplitMode[i] = (splitMode)EditorGUILayout.EnumPopup("branchSplitMode", setBranchSplitMode[i]);
+                        }
+                        else
+                        {
+                            Debug.Log("ERROR: branchSplitMode.Count: " + branchSplitMode.Count + ", i: " + i);
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log("ERROR: branchSplitMode = null");
+                    }
                     if (setBranchSplitMode[i] == splitMode.rotateAngle)
                     {
                         setBranchSplitRotateAngle[i] = EditorGUILayout.FloatField("branchSplitRotateAngle", setBranchSplitRotateAngle[i]);
@@ -914,8 +941,9 @@ public class treeGen3Editor : Editor
                     setRotateAngle[i] = EditorGUILayout.FloatField("rotateAngle", setRotateAngle[i]);
                     setRotateAngleRange[i] = EditorGUILayout.FloatField("rotateAngleRange", setRotateAngleRange[i]);
                     setBranchesStartHeightGlobal[i] = EditorGUILayout.Slider("branchesStartHeightGlobal", setBranchesStartHeightGlobal[i], 0f, 1f);
+                    setBranchesEndHeightGlobal[i] = EditorGUILayout.Slider("branchesEndHeightGlobal", setBranchesEndHeightGlobal[i], 0f, 1f);
                     setBranchesStartHeightCluster[i] = EditorGUILayout.Slider("branchesStartHeightCluster", setBranchesStartHeightCluster[i], 0f, 1f);
-                    setBranchesEndHeight[i] = EditorGUILayout.Slider("branchesEndHeight", setBranchesEndHeight[i], 0f, 1f);
+                    setBranchesEndHeightCluster[i] = EditorGUILayout.Slider("branchesEndHeightCluster", setBranchesEndHeightCluster[i], 0f, 1f);
                     setBranchCurvature[i] = EditorGUILayout.FloatField("branchCurvature", setBranchCurvature[i]);
 
                     if (setBranchSplitHeightVariation == null)
@@ -1222,9 +1250,13 @@ public class treeGen3Editor : Editor
             treeGenScript.branchesStartHeightCluster = setBranchesStartHeightCluster;
             data.branchesStartHeightCluster = setBranchesStartHeightCluster;
 
-            branchesEndHeight = setBranchesEndHeight;
-            treeGenScript.branchesEndHeight = setBranchesEndHeight;
-            data.branchesEndHeight = setBranchesEndHeight;
+            branchesEndHeightGlobal = setBranchesEndHeightGlobal;
+            treeGenScript.branchesEndHeightGlobal = setBranchesEndHeightGlobal;
+            data.branchesEndHeightGlobal = setBranchesEndHeightGlobal;
+
+            branchesEndHeightCluster = setBranchesEndHeightCluster;
+            treeGenScript.branchesEndHeightCluster = setBranchesEndHeightCluster;
+            data.branchesEndHeightCluster = setBranchesEndHeightCluster;
 
             branchCurvature = setBranchCurvature;
             treeGenScript.branchCurvature = setBranchCurvature;
@@ -1340,7 +1372,8 @@ public class treeData
     public List<float> rotateAngleRange;
     public List<float> branchesStartHeightGlobal;
     public List<float> branchesStartHeightCluster;
-    public List<float> branchesEndHeight;
+    public List<float> branchesEndHeightGlobal;
+    public List<float> branchesEndHeightCluster;
     public List<float> branchCurvature;
     public List<float> nrSplitsPerBranch;
     public List<float> splitsPerBranchVariation;
