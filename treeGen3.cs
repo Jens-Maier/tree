@@ -115,7 +115,7 @@ public class node
         {
             // stem
             //Debug.Log("start nodes in stem!");
-            if (tValGlobal >= startHeightGlobal && tValBranch >= startHeightCluster && tValGlobal <= endHeightGlobal)
+            if (tValGlobal >= startHeightGlobal && tValGlobal <= endHeightGlobal)// && tValBranch >= startHeightCluster) // no startHeightCluster in stem!
             {
                 if (next.Count > 0)
                 {
@@ -132,16 +132,16 @@ public class node
                 {
                     for (int n = 0; n < next.Count; n++)
                     {
-                        if (next[n].tValBranch >= startHeightCluster && tValGlobal <= endHeightGlobal)
+                        if (tValGlobal <= endHeightGlobal)// && next[n].tValBranch >= startHeightCluster) // no startHeightCluster in stem!
                         {
-                            float tVal = (startHeightCluster - tValBranch) / (next[n].tValBranch - tValBranch);
+                            // float tVal = (startHeightCluster - tValBranch) / (next[n].tValBranch - tValBranch);
 
                             //   |------*-------*---------*
                             //          ^   ^   ^-next[n].tValBranch
                             //          |   -startHeightCluster 
                             //          -tValBranch
 
-                            startNodesNextIndexStartTval.Add((this, n, tVal));
+                            startNodesNextIndexStartTval.Add((this, n, 0f)); //tVal));
                         }
                         else
                         {
@@ -842,6 +842,7 @@ public class treeGen3 : MonoBehaviour
 
     public float treeHeight;
     public Shape treeShape;
+    public List<Shape> branchShape;
     public Vector3 treeGrowDir;
 
     [Range(0f, 0.5f)]
@@ -908,6 +909,8 @@ public class treeGen3 : MonoBehaviour
     public List<float> verticalAngleCrownStart;
     [Range(-90f, 90f)]
     public List<float> verticalAngleCrownEnd;
+    public List<float> verticalAngleBranchStart;
+    public List<float> verticalAngleBranchEnd;
     public List<float> rotateAngle;
     public List<float> rotateAngleRange;
     //public bool symmetric; // TODO
@@ -1302,7 +1305,20 @@ public class treeGen3 : MonoBehaviour
                     //float tValBranchesStartLevel = startNodesNextIndex[0].Item1.tVal;
                     //(1f - tValBranchesStartLevel) * startNodes[startNodeIndex].tVal + tValBranchesStartLevel
 
-                    float verticalAngle = fLerp(verticalAngleCrownStart[clusterIndex], verticalAngleCrownEnd[clusterIndex], startNodesNextIndexStartTval[startNodeIndex].Item1.tValGlobal);
+                    float globalVerticalAngle = fLerp(verticalAngleCrownStart[clusterIndex], verticalAngleCrownEnd[clusterIndex], startNodesNextIndexStartTval[startNodeIndex].Item1.tValGlobal);
+                    float branchVerticalAngle = 0f;
+                    if (verticalAngleBranchEnd.Count > clusterIndex)
+                    {
+                        branchVerticalAngle = fLerp(verticalAngleBranchStart[clusterIndex], verticalAngleBranchEnd[clusterIndex], startNodesNextIndexStartTval[startNodeIndex].Item1.tValBranch);
+                    }
+                    else
+                    {
+                        Debug.Log("ERROR: verticalAngleBranchEnd...");
+                    }
+
+                    float verticalAngle = globalVerticalAngle + branchVerticalAngle;
+
+
 
                     // 90 -> 0
                     // 0 -> -90
@@ -1436,7 +1452,22 @@ public class treeGen3 : MonoBehaviour
                     float tValBranchStart = 0f;
                     node branch = new node(startPoint, branchDir, branchCotangent, startNodesNextIndexStartTval[startNodeIndex].Item1.tValGlobal, tValBranchStart, taper * taperFactor[clusterIndex], this, null, clusterIndex); // taper[] for each level
 
-                    float branchLength = treeHeight * relBranchLength[clusterIndex] * shapeRatio(startNodesNextIndexStartTval[startNodeIndex].Item1.tValGlobal);
+
+                    //Vector3 startPoint = sampleSplineT(startNodesNextIndexStartTval[startNodeIndex].Item1.point,
+                    //                                   startNodesNextIndexStartTval[startNodeIndex].Item1.next[startNodeNextIndex].point,
+                    //                                   tangent,
+                    //                                   startNodesNextIndexStartTval[startNodeIndex].Item1.next[startNodeNextIndex].tangent[0],
+                    //                                   t);
+                    float branchLength = 0f;
+                    if (clusterIndex == 0)
+                    {
+                        branchLength = treeHeight * relBranchLength[clusterIndex] * shapeRatio(startNodesNextIndexStartTval[startNodeIndex].Item1.tValGlobal);
+                    }
+                    else
+                    {
+                        Debug.Log("clusterIndex: " + clusterIndex);
+                        branchLength = treeHeight * relBranchLength[clusterIndex] * shapeRatioBranch(clusterIndex, startNodesNextIndexStartTval[startNodeIndex].Item1.tValBranch); // TODO...
+                    }
                     float lengthToTip = startNodesNextIndexStartTval[startNodeIndex].Item1.lengthToTip();
                     lengthToTip -= t * vLength(startNodesNextIndexStartTval[startNodeIndex].Item1.next[startNodeNextIndex].point - startNodesNextIndexStartTval[startNodeIndex].Item1.point);
                     if (branchLength > lengthToTip)
@@ -1683,7 +1714,7 @@ public class treeGen3 : MonoBehaviour
                         continue; // Skip segments that are below the start height
                     }
                     float tStart = Mathf.Max(tA_branch, branchesStartHeightCluster[clusterIndex]);
-                    float tEnd = Mathf.Min(tB_branch, branchesEndHeightCluster[clusterIndex]);
+                    float tEnd = Mathf.Min(tB_branch, branchesEndHeightCluster[clusterIndex]); // ERROR HERE !!!
                     float frac;
                     if (tB_branch - tA_branch == 0f)
                     {
@@ -2201,6 +2232,27 @@ public class treeGen3 : MonoBehaviour
         }
     }
 
+    public void setBranchShape(List<int> s)
+    {
+        branchShape = new List<Shape>();
+        foreach (int i in s)
+        {
+            switch (i)
+            {
+                case 0: branchShape.Add(Shape.conical); break;
+                case 1: branchShape.Add(Shape.cylindrical); break;
+                case 2: branchShape.Add(Shape.flame); break;
+                case 3: branchShape.Add(Shape.hemispherical); break;
+                case 4: branchShape.Add(Shape.inverseConical); break;
+                case 5: branchShape.Add(Shape.spherical); break;
+                case 6: branchShape.Add(Shape.taperedCylindrical); break;
+                case 7: branchShape.Add(Shape.tendFlame); break;
+                default: branchShape.Add(Shape.conical); break;
+            }
+        }
+        Debug.Log("setBranchShape: branchShape.Count = " + branchShape.Count);
+    }
+
     public void setBranchAngleMode(List<int> modes)
     {
         if (branchAngleMode == null)
@@ -2299,6 +2351,48 @@ public class treeGen3 : MonoBehaviour
         }
         //return (1f - tVal);
     }
+
+    public float shapeRatioBranch(int clusterIndex, float tValBranch)
+    {
+        Debug.Log("branchShape.Count: " + branchShape.Count + ", clusterIndex: " + clusterIndex);
+        switch (branchShape[clusterIndex])
+        {
+            case Shape.conical:
+                return 0.2f + 0.8f * tValBranch;
+            case Shape.spherical:
+                return 0.2f + 0.8f * Mathf.Sin(Mathf.PI * tValBranch);
+            case Shape.hemispherical:
+                return 0.2f + 0.8f * Mathf.Sin(0.5f * Mathf.PI * tValBranch);
+            case Shape.cylindrical:
+                return 1f;
+            case Shape.taperedCylindrical:
+                return 0.5f + 0.5f * tValBranch;
+            case Shape.flame:
+                if (tValBranch <= 0.7)
+                {
+                    return tValBranch / 0.7f;
+                }
+                else
+                {
+                    return (1f - tValBranch) / 0.3f;
+                }
+            case Shape.inverseConical:
+                return 1f - 0.8f * tValBranch;
+            case Shape.tendFlame:
+                if (tValBranch <= 0.7f)
+                {
+                    return 0.5f + 0.5f * tValBranch / 0.7f;
+                }
+                else
+                {
+                    return 0.5f + 0.5f * (1f - tValBranch) / 0.3f;
+                }
+            default:
+                Debug.Log("ERROR: invalid tree shape!");
+                return 0f;
+        }
+    }
+
     public void splitRecursive(node startNode, int nrSplits, float splitAngle, float splitPointAngle)
     {
         int minSegments = (int)Mathf.Ceil(Mathf.Log(nrSplits + 1, 2));
@@ -2333,9 +2427,9 @@ public class treeGen3 : MonoBehaviour
         {
             for (int i = (int)Mathf.RoundToInt((float)meanLevel - variance * (float)meanLevel); i < (int)Mathf.RoundToInt((float)meanLevel + variance * (float)meanLevel); i++)
             {
-                splitProbabilityInLevel[i] = 1f - (7f / 8f) * (float)(i - (int)Mathf.RoundToInt((float)meanLevel - variance * (float)meanLevel)) / 
+                splitProbabilityInLevel[i] = 1f - (7f / 8f) * (float)(i - (int)Mathf.RoundToInt((float)meanLevel - variance * (float)meanLevel)) /
                                                 (Mathf.RoundToInt((float)meanLevel + variance * (float)meanLevel) - Mathf.RoundToInt((float)meanLevel - variance * (float)meanLevel));
-                
+
                 //Debug.Log("expecteSplitsInLevel length: " + expectedSplitsInLevel.Length + "splitProbabilityInLevel length: " + splitProbabilityInLevel.Length + ", i: " + i);
 
                 expectedSplitsInLevel[i] = (int)(splitProbabilityInLevel[i] * 2f * (float)expectedSplitsInLevel[i - 1]);
@@ -2343,7 +2437,7 @@ public class treeGen3 : MonoBehaviour
             for (int i = (int)Mathf.RoundToInt((float)meanLevel + variance * (float)meanLevel); i < nrSplits; i++)
             {
                 splitProbabilityInLevel[i] = 1f / 8f;
-                
+
                 expectedSplitsInLevel[i] = (int)(splitProbabilityInLevel[i] * 2f * (float)expectedSplitsInLevel[i - 1]);
             }
         }
@@ -2397,7 +2491,7 @@ public class treeGen3 : MonoBehaviour
         {
             int splitsInLevel = 0;
             int safetyCounter = 0;
-            
+
             nodeIndices = new List<int>();
             for (int i = 0; i < nodesInLevelNextIndex[level].Count; i++)
             {
@@ -2409,14 +2503,14 @@ public class treeGen3 : MonoBehaviour
             //    //Debug.Log("nodeIndices[" + i + "]: " + nodeIndices[i]);
             //}
 
-            while(splitsInLevel < expectedSplitsInLevel[level])
+            while (splitsInLevel < expectedSplitsInLevel[level])
             {
                 //Debug.Log("begin of iteration: nodeIndices.Count: " + nodeIndices.Count);
                 if (nodeIndices.Count == 0)
                 {
                     break;
                 }
-                
+
                 if (totalSplitCounter == nrSplits)
                 {
                     break;
@@ -2458,7 +2552,7 @@ public class treeGen3 : MonoBehaviour
                         }
                         //Debug.Log("in splitRecursive: stemSplitMode: " + stemSplitMode);
                         //Debug.Log("splitHeight: " + splitHeight + ", h: " + h + ", stemSplitRotateAngle: " + stemSplitRotateAngle);
-                        node splitNode = split(nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item1, nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item2, 
+                        node splitNode = split(nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item1, nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item2,
                                             splitHeight, splitAngle, splitPointAngle, level, stemSplitMode, stemSplitRotateAngle);
 
                         if (splitNode == nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item1)
