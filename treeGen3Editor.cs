@@ -125,6 +125,8 @@ public class treeGen3Editor : Editor
     public static List<float> setVerticalAngleCrownStart;
     static List<float> verticalAngleCrownEnd;
     public static List<float> setVerticalAngleCrownEnd;
+    static List<int> branchAngleMode;
+    public static List<angleMode> setBranchAngleMode;
     static List<float> rotateAngle;
     public static List<float> setRotateAngle;
     static List<float> rotateAngleRange;
@@ -143,8 +145,7 @@ public class treeGen3Editor : Editor
     public static List<float> setNrSplitsPerBranch;
     static List<float> splitsPerBranchVariation;
     public static List<float> setSplitsPerBranchVariation;
-    static List<int> branchAngleMode;
-    public static List<angleMode> setBranchAngleMode;
+    
 
     static int nrLeaves;
     public static int setNrLeaves;
@@ -460,18 +461,6 @@ public class treeGen3Editor : Editor
             //     treeGenScript.branchSplitRotateAngle = data.branchSplitRotateAngle;
             // }
 
-
-            // branchAngleMode = data.branchAngleMode;
-            // if (setBranchAngleMode == null)
-            // {
-            //     setBranchAngleMode = new List<angleMode>();
-            // }
-            // foreach (int mode in data.branchAngleMode)
-            // {
-            //     setBranchAngleMode.Add((angleMode)mode);
-            // }
-            // treeGenScript.setBranchAngleMode(data.branchAngleMode);
-
             relBranchLength = data.relBranchLength;
             setRelBranchLength = data.relBranchLength;
             treeGenScript.relBranchLength = data.relBranchLength;
@@ -487,6 +476,17 @@ public class treeGen3Editor : Editor
             verticalAngleCrownEnd = data.verticalAngleCrownEnd;
             setVerticalAngleCrownEnd = data.verticalAngleCrownEnd;
             treeGenScript.verticalAngleCrownEnd = data.verticalAngleCrownEnd;
+
+            branchAngleMode = data.branchAngleMode;
+            if (setBranchAngleMode == null)
+            {
+                setBranchAngleMode = new List<angleMode>();
+            }
+            foreach (int mode in data.branchAngleMode)
+            {
+                setBranchAngleMode.Add((angleMode)mode);
+            }
+            treeGenScript.setBranchAngleMode(data.branchAngleMode);
 
             rotateAngle = data.rotateAngle;
             setRotateAngle = data.rotateAngle;
@@ -529,16 +529,7 @@ public class treeGen3Editor : Editor
             // treeGenScript.setTreeShape(data.treeShape);
             // 
 
-            branchAngleMode = data.branchAngleMode;
-            if (setBranchAngleMode == null)
-            {
-                setBranchAngleMode = new List<angleMode>();
-            }
-            foreach (int mode in data.branchAngleMode)
-            {
-                setBranchAngleMode.Add((angleMode)mode);
-            }
-            treeGenScript.setBranchAngleMode(data.branchAngleMode);
+            
 
             leafSize = data.leafSize;
             setLeafSize = data.leafSize;
@@ -722,6 +713,12 @@ public class treeGen3Editor : Editor
             }
             setVerticalAngleCrownEnd.Add(1f);
 
+            if (setBranchAngleMode == null)
+            {
+                setBranchAngleMode = new List<angleMode>();
+            }
+            setBranchAngleMode.Add(angleMode.winding);
+
             if (setRotateAngle == null)
             {
                 setRotateAngle = new List<float>();
@@ -788,11 +785,7 @@ public class treeGen3Editor : Editor
             setBranchSplitHeightVariation.Add(0f);
             Debug.Log("after adding branch cluster: setBranchSplitHeightVariation.Count: " + setBranchSplitHeightVariation.Count);
 
-            if (setBranchAngleMode == null)
-            {
-                setBranchAngleMode = new List<angleMode>();
-            }
-            setBranchAngleMode.Add(angleMode.winding);
+            
 
 
         }
@@ -812,6 +805,7 @@ public class treeGen3Editor : Editor
                     setVerticalRange.RemoveAt(setVerticalRange.Count - 1);
                     setVerticalAngleCrownStart.RemoveAt(setVerticalAngleCrownStart.Count - 1);
                     setVerticalAngleCrownEnd.RemoveAt(setVerticalAngleCrownEnd.Count - 1);
+                    setBranchAngleMode.RemoveAt(setBranchAngleMode.Count - 1);
                     setRotateAngle.RemoveAt(setRotateAngle.Count - 1);
                     setRotateAngleRange.RemoveAt(setRotateAngleRange.Count - 1);
                     setBranchesStartHeightGlobal.RemoveAt(setBranchesStartHeightGlobal.Count - 1);
@@ -823,7 +817,7 @@ public class treeGen3Editor : Editor
                     setSplitsPerBranchVariation.RemoveAt(setSplitsPerBranchVariation.Count - 1);
                     setBranchSplitHeightInLevel.RemoveAt(setBranchSplitHeightInLevel.Count - 1);
                     setBranchSplitHeightVariation.RemoveAt(setBranchSplitHeightVariation.Count - 1);
-                    setBranchAngleMode.RemoveAt(setBranchAngleMode.Count - 1);
+                    
                 }
                 else
                 {
@@ -923,27 +917,57 @@ public class treeGen3Editor : Editor
                         {
                             Debug.Log("ERROR: branchSplitMode.Count: " + branchSplitMode.Count + ", i: " + i);
                         }
+
+                        if (setBranchSplitMode[i] == splitMode.rotateAngle)
+                        {
+                            setBranchSplitRotateAngle[i] = EditorGUILayout.FloatField("branchSplitRotateAngle", setBranchSplitRotateAngle[i]);
+                        }
                     }
                     else
                     {
                         Debug.Log("ERROR: branchSplitMode = null");
                     }
-                    if (setBranchSplitMode[i] == splitMode.rotateAngle)
+
+                    //TEST                    
+                    //EditorGUILayout.BeginHorizontal();
+                    //EditorGUILayout.LabelField("relBranchLength", GUILayout.Width(120));
+                    //GUILayout.FlexibleSpace();
+                    //setRelBranchLength[i] = EditorGUILayout.FloatField(setRelBranchLength[i], GUILayout.Width(100));
+                    //EditorGUILayout.EndHorizontal();
+                    if (setRelBranchLength.Count > i)
                     {
-                        setBranchSplitRotateAngle[i] = EditorGUILayout.FloatField("branchSplitRotateAngle", setBranchSplitRotateAngle[i]);
+                        setRelBranchLength[i] = EditorGUILayout.FloatField("relBranchLength", setRelBranchLength[i]);//, GUILayout.Width(350));
                     }
 
-                    setRelBranchLength[i] = EditorGUILayout.FloatField("relBranchLength", setRelBranchLength[i]);
                     setTaperFactor[i] = EditorGUILayout.Slider("taperFactor", setTaperFactor[i], 0f, 1f);
                     setVerticalRange[i] = EditorGUILayout.FloatField("verticalRange", setVerticalRange[i]);
                     setVerticalAngleCrownStart[i] = EditorGUILayout.FloatField("verticalAngleCrownStart", setVerticalAngleCrownStart[i]);
                     setVerticalAngleCrownEnd[i] = EditorGUILayout.FloatField("verticalAngleCrownEnd", setVerticalAngleCrownEnd[i]);
+                    if (setBranchAngleMode == null)
+                    {
+                        setBranchAngleMode = new List<angleMode>();
+                    }
+                    if (setBranchAngleMode.Count < i + 1)
+                    {
+                        setBranchAngleMode.Add(angleMode.winding);
+                    }
+                    setBranchAngleMode[i] = (angleMode)EditorGUILayout.EnumPopup("branchAngleMode", setBranchAngleMode[i]);
                     setRotateAngle[i] = EditorGUILayout.FloatField("rotateAngle", setRotateAngle[i]);
-                    setRotateAngleRange[i] = EditorGUILayout.FloatField("rotateAngleRange", setRotateAngleRange[i]);
+                    if (setBranchAngleMode[i] == angleMode.winding)
+                    {
+                        setRotateAngleRange[i] = EditorGUILayout.FloatField("rotateAngleRange", setRotateAngleRange[i]);
+                    }
                     setBranchesStartHeightGlobal[i] = EditorGUILayout.Slider("branchesStartHeightGlobal", setBranchesStartHeightGlobal[i], 0f, 1f);
+                    while (setBranchesEndHeightGlobal.Count < i + 1)
+                    {
+                        setBranchesEndHeightGlobal.Add(1f);
+                    }
                     setBranchesEndHeightGlobal[i] = EditorGUILayout.Slider("branchesEndHeightGlobal", setBranchesEndHeightGlobal[i], 0f, 1f);
                     setBranchesStartHeightCluster[i] = EditorGUILayout.Slider("branchesStartHeightCluster", setBranchesStartHeightCluster[i], 0f, 1f);
-                    setBranchesEndHeightCluster[i] = EditorGUILayout.Slider("branchesEndHeightCluster", setBranchesEndHeightCluster[i], 0f, 1f);
+                    if (setBranchesEndHeightCluster.Count > i)
+                    {
+                        setBranchesEndHeightCluster[i] = EditorGUILayout.Slider("branchesEndHeightCluster", setBranchesEndHeightCluster[i], 0f, 1f);
+                    }
                     setBranchCurvature[i] = EditorGUILayout.FloatField("branchCurvature", setBranchCurvature[i]);
 
                     if (setBranchSplitHeightVariation == null)
@@ -986,16 +1010,7 @@ public class treeGen3Editor : Editor
                         }
                     }
 
-                    if (setBranchAngleMode == null)
-                    {
-                        setBranchAngleMode = new List<angleMode>();
-                    }
-                    if (setBranchAngleMode.Count < i + 1)
-                    {
-                        setBranchAngleMode.Add(angleMode.winding);
-                    }
-                    setBranchAngleMode[i] = (angleMode)EditorGUILayout.EnumPopup("branchAngleMode", setBranchAngleMode[i]);
-
+                    
 
                     EditorGUILayout.Space();
                 }
@@ -1234,6 +1249,25 @@ public class treeGen3Editor : Editor
             treeGenScript.verticalAngleCrownEnd = setVerticalAngleCrownEnd;
             data.verticalAngleCrownEnd = setVerticalAngleCrownEnd;
 
+            if (branchAngleMode == null)
+            {
+                branchAngleMode = new List<int>();
+            }
+            else
+            {
+                branchAngleMode.Clear();
+            }
+
+            if (setBranchAngleMode != null)
+            {
+                foreach (angleMode mode in setBranchAngleMode)
+                {
+                    branchAngleMode.Add((int)mode);
+                }
+                treeGenScript.setBranchAngleMode(branchAngleMode);
+                data.branchAngleMode = branchAngleMode;
+            }
+
             rotateAngle = setRotateAngle;
             treeGenScript.rotateAngle = setRotateAngle;
             data.rotateAngle = setRotateAngle;
@@ -1270,24 +1304,7 @@ public class treeGen3Editor : Editor
             treeGenScript.splitsPerBranchVariation = setSplitsPerBranchVariation;
             data.splitsPerBranchVariation = setSplitsPerBranchVariation;
 
-            if (branchAngleMode == null)
-            {
-                branchAngleMode = new List<int>();
-            }
-            else
-            {
-                branchAngleMode.Clear();
-            }
-
-            if (setBranchAngleMode != null)
-            {
-                foreach (angleMode mode in setBranchAngleMode)
-                {
-                    branchAngleMode.Add((int)mode);
-                }
-                treeGenScript.setBranchAngleMode(branchAngleMode);
-                data.branchAngleMode = branchAngleMode;
-            }
+            
 
             nrLeaves = setNrLeaves;
             treeGenScript.nrLeaves = setNrLeaves;
@@ -1368,6 +1385,7 @@ public class treeData
     public List<float> verticalRange;
     public List<float> verticalAngleCrownStart;
     public List<float> verticalAngleCrownEnd;
+    public List<int> branchAngleMode;
     public List<float> rotateAngle;
     public List<float> rotateAngleRange;
     public List<float> branchesStartHeightGlobal;
@@ -1377,7 +1395,7 @@ public class treeData
     public List<float> branchCurvature;
     public List<float> nrSplitsPerBranch;
     public List<float> splitsPerBranchVariation;
-    public List<int> branchAngleMode;
+    
     public int nrLeaves;
     public float leafSize;
     public int seed;

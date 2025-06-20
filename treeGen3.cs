@@ -1076,14 +1076,20 @@ public class treeGen3 : MonoBehaviour
             // }
 
             bool useTvalBranch = true; // TODO...
-            if (parentClusterBools[clusterIndex][0] == true) // TODO...
+            if (parentClusterBools.Count > clusterIndex)
             {
-                useTvalBranch = false;
+                if (parentClusterBools[clusterIndex].Count > 0)
+                {
+                    if (parentClusterBools[clusterIndex][0] == true) // TODO...
+                    {
+                        useTvalBranch = false;
+                    }
+                }
             }
-
+            
             if (useTvalBranch == true)
             {
-                
+
             }
 
             // new code (AI)
@@ -1093,10 +1099,15 @@ public class treeGen3 : MonoBehaviour
                 {
                     if (j == 0)
                     {
+                        Debug.Log("branchesStartHeightGlobal.Count: " + branchesStartHeightGlobal.Count + ", branchesStartHeightCluster.Count: " + branchesStartHeightCluster.Count + "startNodesNextIndexStartTval.Count: " + startNodesNextIndexStartTval.Count + ", clusterIndex: " + clusterIndex);
                         // Start from the stem
+                        Debug.Log("in addBranches: parentClsuterBool[clusterIndex=" + clusterIndex + "][" + j + "], startNodesNextIndexStartTval.Count: " + startNodesNextIndexStartTval.Count);
+
                         rootNode.getAllStartNodes(startNodesNextIndexStartTval, branchNodesNextIndexStartTval, -1, nrSplitsPassedAtStartNode, 0,
-                            branchesStartHeightGlobal[clusterIndex], branchesStartHeightCluster[clusterIndex], branchesEndHeightGlobal[clusterIndex], branchesEndHeightCluster[clusterIndex], j, parentClusterBools[clusterIndex], 0);
-                        Debug.Log("in addBranches: parentClsuterBool[clusterIndex=" + clusterIndex + "][" + j + "], startNodesNextIndex.Count: " + startNodesNextIndexStartTval.Count);
+                                                    branchesStartHeightGlobal[clusterIndex], branchesStartHeightCluster[clusterIndex], branchesEndHeightGlobal[clusterIndex],
+                                                    branchesEndHeightCluster[clusterIndex], j, parentClusterBools[clusterIndex], 0);
+
+                        Debug.Log("startNodesNextIndexStartTval.Count: " + startNodesNextIndexStartTval.Count);
 
                         for (int b = 0; b < branchNodesNextIndexStartTval.Count; b++)
                         {
@@ -1113,7 +1124,8 @@ public class treeGen3 : MonoBehaviour
                         foreach (node n in parentNodes)
                         {
                             n.getAllStartNodes(startNodesNextIndexStartTval, branchNodesNextIndexStartTval, activeBranchIndex, nrSplitsPassedAtStartNode, 0,
-                                branchesStartHeightGlobal[clusterIndex], branchesStartHeightCluster[clusterIndex], branchesEndHeightGlobal[clusterIndex], branchesEndHeightCluster[clusterIndex], j, parentClusterBools[clusterIndex], 0); // startNodesNextIndex.Count = 49 OK !!!
+                                                branchesStartHeightGlobal[clusterIndex], branchesStartHeightCluster[clusterIndex], branchesEndHeightGlobal[clusterIndex],
+                                                branchesEndHeightCluster[clusterIndex], j, parentClusterBools[clusterIndex], 0); // startNodesNextIndex.Count = 49 OK !!!
                             activeBranchIndex += 1; // TEST!
                         }
                         Debug.Log("in addBranches: parentClusterBool[clusterIndex=" + clusterIndex + "][" + j + "], startNodesNextIndex.Count: " + startNodesNextIndexStartTval.Count + ", parentNodes.Count: " + parentNodes.Count);
@@ -1291,6 +1303,11 @@ public class treeGen3 : MonoBehaviour
                     //(1f - tValBranchesStartLevel) * startNodes[startNodeIndex].tVal + tValBranchesStartLevel
 
                     float verticalAngle = fLerp(verticalAngleCrownStart[clusterIndex], verticalAngleCrownEnd[clusterIndex], startNodesNextIndexStartTval[startNodeIndex].Item1.tValGlobal);
+
+                    // 90 -> 0
+                    // 0 -> -90
+
+
                     //Debug.Log("verticalAngleCrownStart[0]: " + verticalAngleCrownStart[clusterIndex] + ", verticalAngleCrownEnd[0]: " + verticalAngleCrownEnd[clusterIndex] + ", verticalAngle: " + verticalAngle);
 
                     // float newVerticalAngle = fLerp(verticalAngleCrownStart[0], verticalAngleCrownEnd[0], (1f - tValBranchesStartLevel) * startNodes[startNodeIndex].tVal + tValBranchesStartLevel);
@@ -1352,6 +1369,7 @@ public class treeGen3 : MonoBehaviour
                     //Vector3 projectedUp = norm(Vector3.up - Vector3.Dot(Vector3.up, norm(startPointTangent)) * norm(startPointTangent));
                     //Vector3 centerDir = Quaternion.AngleAxis(verticalAngle, norm(startPointTangent)) * projectedUp;
 
+                    
 
 
                     debugLinesGreen.Add(new line(startPoint, startPoint + centerDir));
@@ -1372,11 +1390,22 @@ public class treeGen3 : MonoBehaviour
                         if (branchIndex % 2 == 0)
                         {
                             branchDir = Quaternion.AngleAxis(-rotateAngle[clusterIndex], startPointTangent) * centerDir;
+                            if (clusterIndex == 1)
+                            {
+                                debugLinesRed.Add(new line(startPoint, startPoint + Vector3.Cross(startPointTangent, branchDir))); // axis for rotate verticalAngle 
+                            }
+                            branchDir = Quaternion.AngleAxis(verticalAngle - 90f, Vector3.Cross(startPointTangent, branchDir)) * branchDir;
                         }
                         else
                         {
                             branchDir = Quaternion.AngleAxis(rotateAngle[clusterIndex], startPointTangent) * centerDir;
+                            if (clusterIndex == 1)
+                            {
+                                debugLinesRed.Add(new line(startPoint, startPoint + Vector3.Cross(startPointTangent, -branchDir))); // axis for rotate verticalAngle 
+                            }
+                            branchDir = Quaternion.AngleAxis(-verticalAngle + 90f, Vector3.Cross(startPointTangent, -branchDir)) * branchDir;
                         }
+
                     }
                     //Debug.Log("dir: " + branchDir);
 
