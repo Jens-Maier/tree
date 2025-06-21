@@ -1,6 +1,3 @@
-// This is a change!
-
-
 #pragma warning disable IDE1006 // Naming Styles
 using System.Collections;
 using System.Collections.Generic;
@@ -118,6 +115,60 @@ public class node
         {
             // stem
             //Debug.Log("start nodes in stem!");
+            // if (tValGlobal >= startHeightGlobal && tValGlobal <= endHeightGlobal)// && tValBranch >= startHeightCluster) // no startHeightCluster in stem!
+            // {
+            //     if (next.Count > 0)
+            //     {
+            //         for (int n = 0; n < next.Count; n++)
+            //         {
+            //             startNodesNextIndexStartTval.Add((this, n, 0f)); // TODO: startTval [0..1] from startNode to startNode.next!!!
+            //         }
+            //         nrSplitsPassedAtStartNode.Add(nrSplitsPassed);
+            //     }
+            // }
+            // else
+            // {
+            //     if (next.Count > 0)
+            //     {
+            //         for (int n = 0; n < next.Count; n++)
+            //         {
+            //             if (tValGlobal <= endHeightGlobal)// && next[n].tValBranch >= startHeightCluster) // no startHeightCluster in stem!
+            //             {
+            //                 // float tVal = (startHeightCluster - tValBranch) / (next[n].tValBranch - tValBranch);
+            // 
+            //                 //   |------*-------*---------*
+            //                 //          ^   ^   ^-next[n].tValBranch
+            //                 //          |   -startHeightCluster 
+            //                 //          -tValBranch
+            // 
+            //                 startNodesNextIndexStartTval.Add((this, n, 0f)); //tVal));
+            //             }
+            //             else
+            //             {
+            //                 if (next[n].tValBranch < startHeightCluster)
+            //                 {
+            //                     if (tValGlobal > endHeightGlobal)
+            //                     {
+            //                         Debug.Log("startNode not added because next[n].tValBranch < startHeightCluster AND tValGlobal > endHeight");
+            //                     }
+            //                     else
+            //                     {
+            //                         Debug.Log("startNode not added because next[n].tValBranch < startHeightCluster");
+            //                     }
+            //                 }
+            //                 else
+            //                 {
+            //                     if (tValGlobal > endHeightGlobal)
+            //                     {
+            //                         Debug.Log("startNode not added because tValGlobal > endHeight");
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //         nrSplitsPassedAtStartNode.Add(nrSplitsPassed);
+            //     }
+            // }
+
             if (tValGlobal >= startHeightGlobal && tValGlobal <= endHeightGlobal)// && tValBranch >= startHeightCluster) // no startHeightCluster in stem!
             {
                 if (next.Count > 0)
@@ -129,49 +180,7 @@ public class node
                     nrSplitsPassedAtStartNode.Add(nrSplitsPassed);
                 }
             }
-            else
-            {
-                if (next.Count > 0)
-                {
-                    for (int n = 0; n < next.Count; n++)
-                    {
-                        if (tValGlobal <= endHeightGlobal)// && next[n].tValBranch >= startHeightCluster) // no startHeightCluster in stem!
-                        {
-                            // float tVal = (startHeightCluster - tValBranch) / (next[n].tValBranch - tValBranch);
-
-                            //   |------*-------*---------*
-                            //          ^   ^   ^-next[n].tValBranch
-                            //          |   -startHeightCluster 
-                            //          -tValBranch
-
-                            startNodesNextIndexStartTval.Add((this, n, 0f)); //tVal));
-                        }
-                        else
-                        {
-                            if (next[n].tValBranch < startHeightCluster)
-                            {
-                                if (tValGlobal > endHeightGlobal)
-                                {
-                                    Debug.Log("startNode not added because next[n].tValBranch < startHeightCluster AND tValGlobal > endHeight");
-                                }
-                                else
-                                {
-                                    Debug.Log("startNode not added because next[n].tValBranch < startHeightCluster");
-                                }
-                            }
-                            else
-                            {
-                                if (tValGlobal > endHeightGlobal)
-                                {
-                                    Debug.Log("startNode not added because tValGlobal > endHeight");
-                                }
-                            }
-                        }
-                    }
-                    nrSplitsPassedAtStartNode.Add(nrSplitsPassed);
-                }
-
-            }
+            
             if (next.Count > 1)
             {
                 nrSplitsPassed += 1;
@@ -206,8 +215,8 @@ public class node
                                     //          -tValBranch
 
                                     startNodesNextIndexStartTval.Add((this, n, startTval)); // TODO
-                                                                                    // branchNodesNextIndexStartTval[activeBranchIndex].Add((this, n, (startHeightCluster - tValBranch) / (next[0].tValBranch - tValBranch))); // startTval: tval between startNode and startNode.next
-                                                                                    // Debug.Log("in getAllStartNodes: branchNodesNextIndexStartTval[" + activeBranchIndex + "][" + n + "]: " + branchNodesNextIndexStartTval[activeBranchIndex][branchNodesNextIndexStartTval[activeBranchIndex].Count - 1]);
+                                    // branchNodesNextIndexStartTval[activeBranchIndex].Add((this, n, (startHeightCluster - tValBranch) / (next[0].tValBranch - tValBranch))); // startTval: tval between startNode and startNode.next
+                                    // Debug.Log("in getAllStartNodes: branchNodesNextIndexStartTval[" + activeBranchIndex + "][" + n + "]: " + branchNodesNextIndexStartTval[activeBranchIndex][branchNodesNextIndexStartTval[activeBranchIndex].Count - 1]);
                                     if (activeBranchIndex != -1)
                                     {
                                         float tVal = (startHeightCluster - tValBranch) / (next[n].tValBranch - tValBranch);
@@ -1506,8 +1515,29 @@ public class treeGen3 : MonoBehaviour
                     //Debug.Log("branches[" + startNodeNextIndex + "] count: " + startNodesNextIndex[startNodeIndex].Item1.branches[startNodeNextIndex].Count);
                     // startNodes[startNodeIndex].branches[n][0].resampleSpline(3, 0f, 0f, 1f);
 
+
+
+
                     // curvature
-                    branch.curveBranches(branchCurvature[clusterIndex], Vector3.Cross(startPointTangent, branchDir));
+                    Vector3 axis;
+                    if (clusterIndex == 0)
+                    {
+                        branch.curveBranches(branchCurvature[clusterIndex], Vector3.Cross(startPointTangent, branchDir)); // TODO: more than one cluster from stem... TODO: curve axis...
+                    }
+                    else
+                    {
+                        if (Vector3.Dot(Vector3.Cross(branchDir, startPointTangent), centerDir) > 0f)
+                        {
+                            branch.curveBranches(branchCurvature[clusterIndex], startPointTangent);
+                        }
+                        else
+                        {
+                            branch.curveBranches(branchCurvature[clusterIndex], -startPointTangent);
+                        }
+                    }
+
+
+
                     //debugLinesGreen.Add(new line(startPoint, startPoint + norm(Vector3.Cross(startPointTangent, branchDir))));
 
 
@@ -1768,7 +1798,7 @@ public class treeGen3 : MonoBehaviour
                 }
                 if (tB_global <= branchesStartHeightGlobal[clusterIndex])
                 {
-                    //Debug.Log("continue: tB <= branchesStartHeight[clusterIndex]: " + tB + " <= " + branchesStartHeight[clusterIndex]); 
+                    Debug.Log("continue: tB_global <= branchesStartHeightGlobal[clusterIndex]: " + tB_global + " <= " + branchesStartHeightGlobal[clusterIndex]); 
                     continue; // Skip segments that are below the start height
                 }
                 float tStart = Mathf.Max(tA_global, branchesStartHeightGlobal[clusterIndex]);

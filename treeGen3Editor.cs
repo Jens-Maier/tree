@@ -10,6 +10,8 @@ using UnityEditor;
 using System.IO;
 using Random = System.Random;
 
+// test editor changed!
+
 public enum shape
 {
     conical,
@@ -859,7 +861,10 @@ public class treeGen3Editor : Editor
                     setBranchCurvature.RemoveAt(setBranchCurvature.Count - 1);
                     setNrSplitsPerBranch.RemoveAt(setNrSplitsPerBranch.Count - 1);
                     setSplitsPerBranchVariation.RemoveAt(setSplitsPerBranchVariation.Count - 1);
-                    setBranchSplitHeightInLevel.RemoveAt(setBranchSplitHeightInLevel.Count - 1);
+                    if (setBranchSplitHeightInLevel.Count > 0)
+                    {
+                        setBranchSplitHeightInLevel.RemoveAt(setBranchSplitHeightInLevel.Count - 1);
+                    }
                     setBranchSplitHeightVariation.RemoveAt(setBranchSplitHeightVariation.Count - 1);
 
                 }
@@ -989,6 +994,10 @@ public class treeGen3Editor : Editor
                     //GUILayout.FlexibleSpace();
                     //setRelBranchLength[i] = EditorGUILayout.FloatField(setRelBranchLength[i], GUILayout.Width(100));
                     //EditorGUILayout.EndHorizontal();
+                    if (setRelBranchLength == null)
+                    {
+                        setRelBranchLength = new List<float>();
+                    }
                     if (setRelBranchLength.Count > i)
                     {
                         setRelBranchLength[i] = EditorGUILayout.FloatField("relBranchLength", setRelBranchLength[i]);//, GUILayout.Width(350));
