@@ -137,45 +137,47 @@ public class node
             }
             else
             {
-                if (next.Count > 0)
-                {
-                    for (int n = 0; n < next.Count; n++)
-                    {
-                        if (tValGlobal <= endHeightGlobal)// && next[n].tValBranch >= startHeightCluster) // no startHeightCluster in stem!
-                        {
-                            // float tVal = (startHeightCluster - tValBranch) / (next[n].tValBranch - tValBranch);
-
-                            //   |------*-------*---------*
-                            //          ^   ^   ^-next[n].tValBranch
-                            //          |   -startHeightCluster 
-                            //          -tValBranch
-
-                            startNodesNextIndexStartTvalEndTval.Add((this, n, 0f, 1f)); //tVal));
-                        }
-                        else
-                        {
-                            if (next[n].tValBranch < startHeightCluster)
-                            {
-                                if (tValGlobal > endHeightGlobal)
-                                {
-                                    Debug.Log("startNode not added because next[n].tValBranch < startHeightCluster AND tValGlobal > endHeight");
-                                }
-                                else
-                                {
-                                    Debug.Log("startNode not added because next[n].tValBranch < startHeightCluster");
-                                }
-                            }
-                            else
-                            {
-                                if (tValGlobal > endHeightGlobal)
-                                {
-                                    Debug.Log("startNode not added because tValGlobal > endHeight");
-                                }
-                            }
-                        }
-                    }
-                    nrSplitsPassedAtStartNode.Add(nrSplitsPassed);
-                }
+                // TODO! (s. else...)
+                //
+                // if (next.Count > 0)
+                // {
+                //     for (int n = 0; n < next.Count; n++)
+                //     {
+                //         if (tValGlobal <= endHeightGlobal)// && next[n].tValBranch >= startHeightCluster) // no startHeightCluster in stem!
+                //         {
+                //             // float tVal = (startHeightCluster - tValBranch) / (next[n].tValBranch - tValBranch);
+                // 
+                //             //   |------*-------*---------*
+                //             //          ^   ^   ^-next[n].tValBranch
+                //             //          |   -startHeightCluster 
+                //             //          -tValBranch
+                // 
+                //             startNodesNextIndexStartTvalEndTval.Add((this, n, 0f, 1f)); //tVal));
+                //         }
+                //         else
+                //         {
+                //             if (next[n].tValBranch < startHeightCluster)
+                //             {
+                //                 if (tValGlobal > endHeightGlobal)
+                //                 {
+                //                     Debug.Log("startNode not added because next[n].tValBranch < startHeightCluster AND tValGlobal > endHeight");
+                //                 }
+                //                 else
+                //                 {
+                //                     Debug.Log("startNode not added because next[n].tValBranch < startHeightCluster");
+                //                 }
+                //             }
+                //             else
+                //             {
+                //                 if (tValGlobal > endHeightGlobal)
+                //                 {
+                //                     Debug.Log("startNode not added because tValGlobal > endHeight");
+                //                 }
+                //             }
+                //         }
+                //     }
+                //     nrSplitsPassedAtStartNode.Add(nrSplitsPassed);
+                // }
 
             }
             if (next.Count > 1)
@@ -282,7 +284,7 @@ public class node
                             //         float startTval = (startHeightCluster - tValBranch) / (next[n].tValBranch - tValBranch);
                             // 
                             //         float endTval = (endHeightCluster - tValBranch) / (next[n].tValBranch - tValBranch);
-                            // 
+                            // 1
                             //         //   |------*-------*---------*
                             //         //          ^   ^   ^-next[n].tValBranch
                             //         //          |   -startHeightCluster 
