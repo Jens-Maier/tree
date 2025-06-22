@@ -109,8 +109,8 @@ public class treeGen3Editor : Editor
     public static int setBranchClusters;
 
 
-    // static List<int> parentClusterIndex;
-    // public static List<int> setParentClusterIndex;
+    public List<int> ringResolution;
+    public static List<int> setRingResolution;
     static List<List<bool>> parentClusterBools;
     public List<List<bool>> setParentClusterBools = new List<List<bool>>();
     static List<int> nrBranches;
@@ -357,6 +357,10 @@ public class treeGen3Editor : Editor
             branchClusters = data.branchClusters;
             setBranchClusters = data.branchClusters;
             treeGenScript.nrBranchClusters = data.branchClusters;
+
+            ringResolution = data.ringResolution;
+            setRingResolution = data.ringResolution;
+            treeGenScript.ringResolution = data.ringResolution;
 
             //parentClusterBools = data.parentClusterBools;
             setParentClusterBools = new List<List<bool>>();
@@ -684,6 +688,12 @@ public class treeGen3Editor : Editor
             //     setParentClusterIndex = new List<int>();
             // }
             // setParentClusterIndex.Add(0);
+            if (setRingResolution == null)
+            {
+                setRingResolution = new List<int>();
+            }
+            setRingResolution.Add(4);
+
             if (setParentClusterBools == null)
             {
                 setParentClusterBools = new List<List<bool>>();
@@ -840,6 +850,7 @@ public class treeGen3Editor : Editor
                 {
                     setBranchClusters -= 1;
                     // setParentClusterIndex.RemoveAt(setParentClusterIndex.Count - 1);
+                    setRingResolution.RemoveAt(setRingResolution.Count - 1);
                     setParentClusterBools.RemoveAt(setParentClusterBools.Count - 1);
                     setNrBranches.RemoveAt(setNrBranches.Count - 1);
                     setBranchShape.RemoveAt(setBranchShape.Count - 1);
@@ -885,6 +896,13 @@ public class treeGen3Editor : Editor
                 for (int i = 0; i < setBranchClusters; i++)
                 {
                     EditorGUILayout.LabelField("branch cluster: " + i);
+
+                    while (setRingResolution.Count <= i + 1)
+                    {
+                        setRingResolution.Add(6);
+                    }
+
+                    setRingResolution[i] = EditorGUILayout.IntField("ringResolution", setRingResolution[i]);
 
                     List<string> items = new List<string>();
                     items.Add("stem");
@@ -1262,6 +1280,10 @@ public class treeGen3Editor : Editor
             // treeGenScript.parentClusterIndex = setParentClusterIndex;
             // data.parentClusterIndex = setParentClusterIndex;
 
+            ringResolution = setRingResolution;
+            treeGenScript.ringResolution = setRingResolution;
+            data.ringResolution = setRingResolution;
+
             parentClusterBools = setParentClusterBools;
             treeGenScript.parentClusterBools = setParentClusterBools;
             //data.parentClusterBools = setParentClusterBools;
@@ -1504,6 +1526,7 @@ public class treeData
 
     public int branchClusters;
     // public List<int> parentClusterIndex;
+    public List<int> ringResolution;
     public List<BoolLstWrapper> parentClusterBools;
     public List<int> nrBranches;
     public List<int> branchShape;
