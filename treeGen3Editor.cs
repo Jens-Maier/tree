@@ -968,15 +968,20 @@ public class treeGen3Editor : Editor
                             //Debug.Log("ERROR: branchSplitMode.Count: " + branchSplitMode.Count + ", i: " + i);
                         }
 
-                        if (setBranchSplitMode[i] == splitMode.rotateAngle)
+                        if (setBranchSplitRotateAngle != null)
                         {
-                            setBranchSplitRotateAngle[i] = EditorGUILayout.FloatField("branchSplitRotateAngle", setBranchSplitRotateAngle[i]);
+
+                            if (setBranchSplitMode[i] == splitMode.rotateAngle)
+                            {
+                                setBranchSplitRotateAngle[i] = EditorGUILayout.FloatField("branchSplitRotateAngle", setBranchSplitRotateAngle[i]);
+                            }
                         }
                     }
                     else
                     {
                         Debug.Log("ERROR: branchSplitMode = null");
                     }
+                    
 
                     if (setBranchShape == null)
                     {
@@ -1004,7 +1009,10 @@ public class treeGen3Editor : Editor
                     }
 
                     setTaperFactor[i] = EditorGUILayout.Slider("taperFactor", setTaperFactor[i], 0f, 1f);
-                    setVerticalRange[i] = EditorGUILayout.FloatField("verticalRange", setVerticalRange[i]);
+                    if (setVerticalRange.Count > i)
+                    {
+                        setVerticalRange[i] = EditorGUILayout.FloatField("verticalRange", setVerticalRange[i]);
+                    }
                     setVerticalAngleCrownStart[i] = EditorGUILayout.FloatField("verticalAngleCrownStart", setVerticalAngleCrownStart[i]);
                     setVerticalAngleCrownEnd[i] = EditorGUILayout.FloatField("verticalAngleCrownEnd", setVerticalAngleCrownEnd[i]);
                     if (setVerticalAngleBranchStart != null)
