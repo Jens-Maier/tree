@@ -1027,9 +1027,12 @@ public class treeGen3Editor : Editor
                     }
 
                     setTaperFactor[i] = EditorGUILayout.Slider("taperFactor", setTaperFactor[i], 0f, 1f);
-                    if (setVerticalRange.Count > i)
+                    if (setVerticalRange != null)
                     {
-                        setVerticalRange[i] = EditorGUILayout.FloatField("verticalRange", setVerticalRange[i]);
+                        if (setVerticalRange.Count > i)
+                        {
+                            setVerticalRange[i] = EditorGUILayout.FloatField("verticalRange", setVerticalRange[i]);
+                        }
                     }
                     setVerticalAngleCrownStart[i] = EditorGUILayout.FloatField("verticalAngleCrownStart", setVerticalAngleCrownStart[i]);
                     setVerticalAngleCrownEnd[i] = EditorGUILayout.FloatField("verticalAngleCrownEnd", setVerticalAngleCrownEnd[i]);
