@@ -552,6 +552,10 @@ public class node
                 int index = nextIndex + 1;
                 //Debug.Log("tangent count: " + tangent.Count + ", using tangent index " + index + ", next count: " + next.Count);
                 //Debug.Log("next[0].point: " + next[0].point + ", next[1].point: " + next[1].point);
+                if (next[nextIndex].ringResolution != ringResolution)
+                {
+                    Debug.Log("ERROR: different ringResolution!");
+                }
 
                 allSegments.Add(new segment(point, next[nextIndex].point, tangent[nextIndex + 1], next[nextIndex].tangent[0], cotangent, next[nextIndex].cotangent, radius, next[nextIndex].radius, ringResolution, false, gen));
                 // Vector3 a = norm(next[nextIndex].point - point);
@@ -567,6 +571,10 @@ public class node
             }
             else
             {
+                if (next[nextIndex].ringResolution != ringResolution)
+                {
+                    Debug.Log("ERROR: different ringResolution!");
+                }
                 //Debug.Log("tangent count: " + tangent.Count); // 1
                 //Debug.Log("next count: " + next.Count); // 1
 
@@ -3321,7 +3329,7 @@ public class treeGen3 : MonoBehaviour
 
                 // TODO: automatic tangents -> connecttion line from previous to next vertex -> tangent!
 
-                Vector3 controlPt1 = allSegments[s].start + norm(allSegments[s].startTangent) * vLength(allSegments[s].end - allSegments[s].start) / 3f; //(1f / 3f) * (end - start);
+            Vector3 controlPt1 = allSegments[s].start + norm(allSegments[s].startTangent) * vLength(allSegments[s].end - allSegments[s].start) / 3f; //(1f / 3f) * (end - start);
             Vector3 controlPt2 = allSegments[s].end - norm(allSegments[s].endTangent) * vLength(allSegments[s].end - allSegments[s].start) / 3f;     //(2f / 3f) * (end - start);
 
             //Debug.Log("startTangent: " + allSegments[s].startTangent);
@@ -3475,7 +3483,7 @@ public class treeGen3 : MonoBehaviour
         int count = 0;
         for (int j = 0; j < Sections; j++)
         {
-            for (int i = 0; i < ringRes + 1; i++)
+            for (int i = 0; i < ringRes ; i++) 
             {
                 if (j % 2 == 1)
                 {
