@@ -971,7 +971,7 @@ public class treeGen3 : MonoBehaviour
     [Range(0.001f, 1f)]
     public float ringSpacing;
     public int stemRingResolution;
-    public List<int> ringResolution; // for each branch cluster
+    public List<int> clusterRingResolution; // for each branch cluster
     [Range(1, 25)]
     public int resampleNr;
     [Range(0f, 1f)]
@@ -1573,7 +1573,7 @@ public class treeGen3 : MonoBehaviour
                     //Debug.Log("branch cotangent: " + branchCotangent);
                     //Debug.Log("new node: clusterIndex: " + clusterIndex);
                     float tValBranchStart = 0f;
-                    node branch = new node(startPoint, branchDir, branchCotangent, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal, tValBranchStart, taper * taperFactor[clusterIndex], this, null, clusterIndex, ringResolution[clusterIndex]); // taper[] for each level
+                    node branch = new node(startPoint, branchDir, branchCotangent, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal, tValBranchStart, taper * taperFactor[clusterIndex], this, null, clusterIndex, clusterRingResolution[clusterIndex]); // taper[] for each level
 
 
                     //Vector3 startPoint = sampleSplineT(startNodesNextIndexStartTval[startNodeIndex].Item1.point,
@@ -1599,7 +1599,7 @@ public class treeGen3 : MonoBehaviour
                     }
                     //Debug.Log("new node: clusterIndex: " + clusterIndex);
                     float tValBranchEnd = 1f;
-                    branch.next.Add(new node(startPoint + branchDir * branchLength, branchDir, branchCotangent, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal, tValBranchEnd, taper * taperFactor[clusterIndex], this, branch, clusterIndex, ringResolution[clusterIndex]));
+                    branch.next.Add(new node(startPoint + branchDir * branchLength, branchDir, branchCotangent, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal, tValBranchEnd, taper * taperFactor[clusterIndex], this, branch, clusterIndex, clusterRingResolution[clusterIndex]));
                     //Debug.Log("branches count: " + startNodesNextIndex[startNodeIndex].Item1.branches.Count + ", n: " + startNodeNextIndex);
                     if (startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.branches.Count < startNodeNextIndex + 1)
                     {
@@ -1670,7 +1670,7 @@ public class treeGen3 : MonoBehaviour
                     }
                     //Debug.Log("new node: clusterIndex: " + clusterIndex);
                     float tValBranch = 0f;
-                    node branch = new node(n.point + n.tangent[0] * branchLength, branchDir, branchCotangent, n.tValGlobal, tValBranch, taper * taperFactor[clusterIndex], this, n, clusterIndex, ringResolution[clusterIndex]);
+                    node branch = new node(n.point + n.tangent[0] * branchLength, branchDir, branchCotangent, n.tValGlobal, tValBranch, taper * taperFactor[clusterIndex], this, n, clusterIndex, clusterRingResolution[clusterIndex]);
 
                     // before
                     //n.next.Add(branch); // TODO: store node level in node! (-> TODO: update getAllBranchNodes())
@@ -2838,8 +2838,18 @@ public class treeGen3 : MonoBehaviour
                     // {
                     //     ringResolution.Add(6);
                     // }
-                    Debug.Log("ringResolution.Count: " + ringResolution.Count + ", splitAfterNode.clusterIndex: " + splitAfterNode.clusterIndex + ", newSplitNode.ringResolution: " + stemRingResolution);
-                    node newSplitNode = new node(newPoint, newTangent, newCotangent, newTvalGlobal, tValBranch, splitAfterNode.taper, this, splitAfterNode, splitAfterNode.clusterIndex, stemRingResolution); // (TODO: smaller ringResolution after splits -> based on radius)
+                    Debug.Log("ringResolution.Count: " + clusterRingResolution.Count + ", splitAfterNode.clusterIndex: " + splitAfterNode.clusterIndex + ", newSplitNode.ringResolution: " + stemRingResolution);
+
+                    int ringRes = 0;
+                    if (splitAfterNode.clusterIndex == -1)
+                    {
+                        ringRes = stemRingResolution;
+                    }
+                    else
+                    {
+                        ringRes = clusterRingResolution[splitAfterNode.clusterIndex];
+                    }
+                    node newSplitNode = new node(newPoint, newTangent, newCotangent, newTvalGlobal, tValBranch, splitAfterNode.taper, this, splitAfterNode, splitAfterNode.clusterIndex, ringRes); // (TODO: smaller ringResolution after splits -> based on radius)
 
                     newSplitNode.next.Add(splitAfterNode.next[nextIndex]);
                     splitAfterNode.next[nextIndex] = newSplitNode;
@@ -2958,12 +2968,19 @@ public class treeGen3 : MonoBehaviour
             //Debug.Log("new node: clusterIndex: " + splitNode.clusterIndex);
             float tValBranch = 0f; // TODO... (?)
             int ringResIndex = splitNode.clusterIndex;
+            int ringResolution;
             if (ringResIndex == -1)
             {
-                ringResIndex = 0;
+                ringResolution = stemRingResolution;
+                //ringResIndex = 0;
             }
-            node nodeA = new node(splitNode.point + offsetA + curvOffset, tangentA, cotangentA, s.tValGlobal, tValBranch, s.taper, this, s.parent, splitNode.clusterIndex, ringResolution[ringResIndex]);
-            node nodeB = new node(splitNode.point + offsetB + curvOffset, tangentB, cotangentB, s.tValGlobal, tValBranch, s.taper, this, s.parent, splitNode.clusterIndex, ringResolution[ringResIndex]);
+            else
+            {
+                ringResolution = clusterRingResolution[ringResIndex];
+            }
+            node nodeA = new node(splitNode.point + offsetA + curvOffset, tangentA, cotangentA, s.tValGlobal, tValBranch, s.taper, this, s.parent, splitNode.clusterIndex, ringResolution);
+            node nodeB = new node(splitNode.point + offsetB + curvOffset, tangentB, cotangentB, s.tValGlobal, tValBranch, s.taper, this, s.parent, splitNode.clusterIndex, ringResolution);
+            Debug.Log("in calculateSplitData: splitNode.clusterIndex: " + splitNode.clusterIndex + ", ringResIndex: " + ringResIndex + ", ringResolution: " + ringResolution);
 
             //Debug.Log("curvOffset: " + curvOffset);
             if (i == 0)
@@ -3294,11 +3311,17 @@ public class treeGen3 : MonoBehaviour
         
         for(int s = 0; s < allSegments.Count; s++)
         {
+            // TEST (A)
+            if (allSegments[s].connectedToPrevious == false)
+            {
+                offset = vertices.Count;
+            }
+
             //Debug.Log("in generateMesh(): segment: ");
 
-            // TODO: automatic tangents -> connecttion line from previous to next vertex -> tangent!
+                // TODO: automatic tangents -> connecttion line from previous to next vertex -> tangent!
 
-            Vector3 controlPt1 = allSegments[s].start + norm(allSegments[s].startTangent) * vLength(allSegments[s].end - allSegments[s].start) / 3f; //(1f / 3f) * (end - start);
+                Vector3 controlPt1 = allSegments[s].start + norm(allSegments[s].startTangent) * vLength(allSegments[s].end - allSegments[s].start) / 3f; //(1f / 3f) * (end - start);
             Vector3 controlPt2 = allSegments[s].end - norm(allSegments[s].endTangent) * vLength(allSegments[s].end - allSegments[s].start) / 3f;     //(2f / 3f) * (end - start);
 
             //Debug.Log("startTangent: " + allSegments[s].startTangent);
@@ -3387,9 +3410,9 @@ public class treeGen3 : MonoBehaviour
 
                 dirBdebugLines.Add(new line(pos[j], pos[j] + dirB[j] / 5f)); // blue
 
-                for (int i = 0; i <= 2 * allSegments[s].ringResolution; i++)
+                for (int i = 0; i <= allSegments[s].ringResolution; i++)
                 {
-                    float angle = (Mathf.PI / (float)allSegments[s].ringResolution) * (float)i;
+                    float angle = (float)i * 2f * Mathf.PI / (float)allSegments[s].ringResolution;
 
                     float f = (float)j / (float)(length / branchRingSpacing) * Mathf.Cos(angle) + fLerp(allSegments[s].startRadius, allSegments[s].endRadius, (float)j / (float)(length / ringSpacing));
                     
@@ -3398,7 +3421,7 @@ public class treeGen3 : MonoBehaviour
 
                     
                     Vector2 uv = new Vector2(angle / (2f * Mathf.PI), arcLength);
-                    if (i == 2 * allSegments[s].ringResolution)
+                    if (i == allSegments[s].ringResolution)
                     {
                         uv.x = 1f;
                     }
@@ -3428,47 +3451,10 @@ public class treeGen3 : MonoBehaviour
                 }
             }
 
-            //int st = ringResolution;
-
-            //for (int j = 0; j < sections + 1; j++)
-            //{
-            //    for (int i = 0; i <= 2 * st; i++)
-            //    {
-            //        // normals
-            //        Vector3 n = new Vector3(0f, 0f, 0f);
-            //
-            //        if (j < sections)
-            //        {
-            //            n = Vector3.Cross(vertices[j * (2 * st + 1) + (i + 1) % (2 * st)] - vertices[j * (2 * st + 1) + i],
-            //                              vertices[(j + 1) * (2 * st + 1) + i]            - vertices[j * (2 * st + 1) + i]) + //  |_
-            //        
-            //                Vector3.Cross(vertices[(j + 1) * (2 * st + 1) + i]                     - vertices[j * (2 * st + 1) + i],
-            //                              vertices[j * (2 * st + 1) + (i - 1 + 2 * st) % (2 * st)] - vertices[j * (2 * st + 1) + i]);  //  _|
-            //        }
-            //        if (j > 0)
-            //        {
-            //            n += Vector3.Cross(vertices[(j - 1) * (2 * st + 1) + i]            - vertices[j * (2 * st + 1) + i],
-            //                               vertices[j * (2 * st + 1) + (i + 1) % (2 * st)] - vertices[j * (2 * st + 1) + i]) +  //  |-
-            //         
-            //                 Vector3.Cross(vertices[j * (2 * st + 1) + (i - 1 + 2 * st) % (2 * st)] - vertices[j * (2 * st + 1) + i],
-            //                               vertices[(j - 1) * (2 * st + 1) + i]                     - vertices[j * (2 * st + 1) + i]);  //  -|
-            //        }
-            //
-            //        if (n == new Vector3(0f, 0f, 0f)) // tip
-            //        {
-            //            n = Vector3.Cross(vertices[(j - 1) * (2 * st + 1) + (i + 1) % (2 * st)] - vertices[(j - 1) * (2 * st + 1) + i],
-            //                              vertices[j * (2 * st + 1) + i]                        - vertices[(j - 1) * (2 * st + 1) + i]) + //  |_
-            //        
-            //                Vector3.Cross(vertices[j * (2 * st + 1) + i]                                 - vertices[(j - 1) * (2 * st + 1) + i],
-            //                              vertices[(j - 1) * (2 * st + 1) + (i - 1 + 2 * st) % (2 * st)] - vertices[(j - 1) * (2 * st + 1) + i]);  //  _|
-            //        }
-            //        normals.Add(norm(n));
-            //    }
-            //}
-
             //Debug.Log("vertex count: " + vertices.Count);
             generateTriangles(sections, allSegments[s].ringResolution, offset, connectedToPrevious);
             offset += counter;
+            //offset += (sections + 1) * (allSegments[s].ringResolution + 1);
             counter = 0;
             //Debug.Log("triangle count: " + triangles.Count);
         }
@@ -3483,58 +3469,58 @@ public class treeGen3 : MonoBehaviour
         if (connectedToPrevious == true)
         {
             // TODO
-            offset -= 2 * ringRes + 1;
+            offset -= ringRes + 1;
         }
 
         int count = 0;
         for (int j = 0; j < Sections; j++)
         {
-            for (int i = 0; i < 2 * ringRes + 1; i++)
+            for (int i = 0; i < ringRes + 1; i++)
             {
                 if (j % 2 == 1)
                 {
                     if (i % 2 == 1)
                     {
-                        triangles.Add(offset + j * (2 * ringRes + 1) + i);
-                        triangles.Add(offset + j * (2 * ringRes + 1) + (i + 1) % (2 * ringRes + 1));
-                        triangles.Add(offset + j * (2 * ringRes + 1) + 2 * ringRes + 1 + i);
+                        triangles.Add(offset + j * (ringRes + 1) + i);
+                        triangles.Add(offset + j * (ringRes + 1) + (i + 1) % (ringRes + 1));
+                        triangles.Add(offset + j * (ringRes + 1) + ringRes + 1 + i);
 
-                        triangles.Add(offset + j * (2 * ringRes + 1) + (i + 1) % (2 * ringRes + 1));
-                        triangles.Add(offset + j * (2 * ringRes + 1) + 2 * ringRes + 1 + ((i + 1) % (2 * ringRes + 1)));
-                        triangles.Add(offset + j * (2 * ringRes + 1) + 2 * ringRes + 1 + i);
+                        triangles.Add(offset + j * (ringRes + 1) + (i + 1) % (ringRes + 1));
+                        triangles.Add(offset + j * (ringRes + 1) + ringRes + 1 + ((i + 1) % (2 * ringRes + 1)));
+                        triangles.Add(offset + j * (ringRes + 1) + ringRes + 1 + i);
                     }
                     else
                     {
-                        triangles.Add(offset + j * (2 * ringRes + 1) + i);
-                        triangles.Add(offset + j * (2 * ringRes + 1) + (i + 1) % (2 * ringRes + 1));
-                        triangles.Add(offset + j * (2 * ringRes + 1) + 2 * ringRes + 1 + ((i + 1) % (2 * ringRes + 1)));
+                        triangles.Add(offset + j * (ringRes + 1) + i);
+                        triangles.Add(offset + j * (ringRes + 1) + (i + 1) % (ringRes + 1));
+                        triangles.Add(offset + j * (ringRes + 1) + ringRes + 1 + ((i + 1) % (ringRes + 1)));
 
-                        triangles.Add(offset + j * (2 * ringRes + 1) + 2 * ringRes + 1 + ((i) % (2 * ringRes + 1)));
-                        triangles.Add(offset + j * (2 * ringRes + 1) + i);
-                        triangles.Add(offset + j * (2 * ringRes + 1) + 2 * ringRes + 1 + ((i + 1) % (2 * ringRes + 1)));
+                        triangles.Add(offset + j * (ringRes + 1) + ringRes + 1 + (i % (ringRes + 1)));
+                        triangles.Add(offset + j * (ringRes + 1) + i);
+                        triangles.Add(offset + j * (ringRes + 1) + ringRes + 1 + ((i + 1) % (ringRes + 1)));
                     }
                 }
                 else
                 {
                     if (i % 2 == 1)
                     {
-                        triangles.Add(offset + j * (2 * ringRes + 1) + i);
-                        triangles.Add(offset + j * (2 * ringRes + 1) + (i + 1) % (2 * ringRes + 1));
-                        triangles.Add(offset + j * (2 * ringRes + 1) + 2 * ringRes + 1 + ((i + 1) % (2 * ringRes + 1)));
+                        triangles.Add(offset + j * (ringRes + 1) + i);
+                        triangles.Add(offset + j * (ringRes + 1) + (i + 1) % (ringRes + 1));
+                        triangles.Add(offset + j * (ringRes + 1) + ringRes + 1 + ((i + 1) % (ringRes + 1)));
 
-                        triangles.Add(offset + j * (2 * ringRes + 1) + 2 * ringRes + 1 + ((i) % (2 * ringRes + 1)));
-                        triangles.Add(offset + j * (2 * ringRes + 1) + i);
-                        triangles.Add(offset + j * (2 * ringRes + 1) + 2 * ringRes + 1 + ((i + 1) % (2 * ringRes + 1)));
+                        triangles.Add(offset + j * (ringRes + 1) + ringRes + 1 + (i % (ringRes + 1)));
+                        triangles.Add(offset + j * (ringRes + 1) + i);
+                        triangles.Add(offset + j * (ringRes + 1) + ringRes + 1 + ((i + 1) % (ringRes + 1)));
                     }
                     else
                     {
-                        triangles.Add(offset + j * (2 * ringRes + 1) + i);
-                        triangles.Add(offset + j * (2 * ringRes + 1) + (i + 1) % (2 * ringRes + 1));
-                        triangles.Add(offset + j * (2 * ringRes + 1) + 2 * ringRes + 1 + i);
+                        triangles.Add(offset + j * (ringRes + 1) + i);
+                        triangles.Add(offset + j * (ringRes + 1) + (i + 1) % (ringRes + 1));
+                        triangles.Add(offset + j * (ringRes + 1) + ringRes + 1 + i);
 
-                        triangles.Add(offset + j * (2 * ringRes + 1) + (i + 1) % (2 * ringRes + 1));
-                        triangles.Add(offset + j * (2 * ringRes + 1) + 2 * ringRes + 1 + ((i + 1) % (2 * ringRes + 1)));
-                        triangles.Add(offset + j * (2 * ringRes + 1) + 2 * ringRes + 1 + i);
+                        triangles.Add(offset + j * (ringRes + 1) + (i + 1) % (ringRes + 1));
+                        triangles.Add(offset + j * (ringRes + 1) + ringRes + 1 + ((i + 1) % (ringRes + 1)));
+                        triangles.Add(offset + j * (ringRes + 1) + ringRes + 1 + i);
                     }
                 }
                 count += 6;

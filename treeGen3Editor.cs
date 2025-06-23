@@ -360,7 +360,7 @@ public class treeGen3Editor : Editor
 
             ringResolution = data.ringResolution;
             setRingResolution = data.ringResolution;
-            treeGenScript.ringResolution = data.ringResolution;
+            treeGenScript.clusterRingResolution = data.ringResolution;
 
             //parentClusterBools = data.parentClusterBools;
             setParentClusterBools = new List<List<bool>>();
@@ -1284,7 +1284,7 @@ public class treeGen3Editor : Editor
             // data.parentClusterIndex = setParentClusterIndex;
 
             ringResolution = setRingResolution;
-            treeGenScript.ringResolution = setRingResolution;
+            treeGenScript.clusterRingResolution = setRingResolution;
             data.ringResolution = setRingResolution;
 
             parentClusterBools = setParentClusterBools;
