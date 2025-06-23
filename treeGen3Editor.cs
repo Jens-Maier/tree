@@ -639,8 +639,8 @@ public class treeGen3Editor : Editor
         EditorGUILayout.LabelField("-------------------------------------------------------------------------------------------------------------------------------");
         EditorGUILayout.LabelField("split settings");
         EditorGUILayout.Space();
-        setShyBranchesIterations = EditorGUILayout.IntField("shyBranchesIterations", setShyBranchesIterations);
-        setShyBranchesMaxDistance = EditorGUILayout.FloatField("shyBranchesMaxDistance", setShyBranchesMaxDistance);
+        //setShyBranchesIterations = EditorGUILayout.IntField("shyBranchesIterations", setShyBranchesIterations);
+        //setShyBranchesMaxDistance = EditorGUILayout.FloatField("shyBranchesMaxDistance", setShyBranchesMaxDistance);
         setNrSplits = EditorGUILayout.IntField("nrSplits", setNrSplits);
         setSplitCurvature = EditorGUILayout.FloatField("splitCurvature", setSplitCurvature);
         setTestRecursionStop = EditorGUILayout.IntField("testRecursionStop", setTestRecursionStop);
