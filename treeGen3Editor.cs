@@ -157,6 +157,8 @@ public class treeGen3Editor : Editor
 
     static int nrLeaves;
     public static int setNrLeaves;
+    static List<bool> leafParentClusterBools;
+    public List<bool> setLeafParentClusterBools;
     static float leafSize;
     public static float setLeafSize;
 
@@ -564,6 +566,10 @@ public class treeGen3Editor : Editor
             setLeafSize = data.leafSize;
             treeGenScript.leafSize = data.leafSize;
 
+            leafParentClusterBools = data.leafParentClusterBools;
+            setLeafParentClusterBools = data.leafParentClusterBools;
+            treeGenScript.leafParentClusterBools = data.leafParentClusterBools;
+
             nrLeaves = data.nrLeaves;
             setNrLeaves = data.nrLeaves;
             treeGenScript.nrLeaves = data.nrLeaves;
@@ -838,7 +844,17 @@ public class treeGen3Editor : Editor
             setBranchSplitHeightVariation.Add(0f);
             Debug.Log("after adding branch cluster: setBranchSplitHeightVariation.Count: " + setBranchSplitHeightVariation.Count);
 
-
+            while (setLeafParentClusterBools.Count < branchClusters)
+            {
+                setLeafParentClusterBools.Add(false);
+            }
+            while (setLeafParentClusterBools.Count > branchClusters)
+            {
+                if (setLeafParentClusterBools.Count > 0)
+                {
+                    setLeafParentClusterBools.RemoveAt(setLeafParentClusterBools.Count - 1);
+                }
+            }
 
 
         }
@@ -877,6 +893,18 @@ public class treeGen3Editor : Editor
                         setBranchSplitHeightInLevel.RemoveAt(setBranchSplitHeightInLevel.Count - 1);
                     }
                     setBranchSplitHeightVariation.RemoveAt(setBranchSplitHeightVariation.Count - 1);
+
+                    while (setLeafParentClusterBools.Count < branchClusters)
+                    {
+                        setLeafParentClusterBools.Add(false);
+                    }
+                    while (setLeafParentClusterBools.Count > branchClusters)
+                    {
+                        if (setLeafParentClusterBools.Count > 0)
+                        {
+                            setLeafParentClusterBools.RemoveAt(setLeafParentClusterBools.Count - 1);
+                        }
+                    }
 
                 }
                 else
@@ -1139,6 +1167,23 @@ public class treeGen3Editor : Editor
         EditorGUILayout.LabelField("leaf settings");
         setNrLeaves = EditorGUILayout.IntField("nrLeaves", setNrLeaves);
         setLeafSize = EditorGUILayout.FloatField("leafSize", setLeafSize);
+
+        EditorGUILayout.LabelField("Leaf Parent Clusters:");
+        while (setLeafParentClusterBools.Count < branchClusters)
+        {
+            setLeafParentClusterBools.Add(false);
+        }
+        while (setLeafParentClusterBools.Count > branchClusters)
+        {
+            if (setLeafParentClusterBools.Count > 0)
+            {
+                setLeafParentClusterBools.RemoveAt(setLeafParentClusterBools.Count - 1);
+            }
+        }
+        for (int i = 0; i < branchClusters; i++)
+        {
+            setLeafParentClusterBools[i] = EditorGUILayout.ToggleLeft("" + i, setLeafParentClusterBools[i]);
+        }
 
 
         EditorGUILayout.LabelField("-------------------------------------------------------------------------------------------------------------------------------");
@@ -1448,6 +1493,10 @@ public class treeGen3Editor : Editor
             treeGenScript.leafSize = setLeafSize;
             data.leafSize = setLeafSize;
 
+            leafParentClusterBools = setLeafParentClusterBools;
+            treeGenScript.leafParentClusterBools = setLeafParentClusterBools;
+            data.leafParentClusterBools = setLeafParentClusterBools;
+
             seed = setSeed;
             treeGenScript.seed = setSeed;
             data.seed = setSeed;
@@ -1555,6 +1604,7 @@ public class treeData
     
     public int nrLeaves;
     public float leafSize;
+    public List<bool> leafParentClusterBools;
     public int seed;
 
     public treeData()

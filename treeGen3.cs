@@ -1113,6 +1113,7 @@ public class treeGen3 : MonoBehaviour
     public List<float> branchSplitRotateAngle;
     public int nrLeaves;
     public float leafSize;
+    public List<bool> leafParentClusterBools;
     public int seed;
 
     public List<int> nodeIndices;
