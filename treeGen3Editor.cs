@@ -239,6 +239,10 @@ public class treeGen3Editor : Editor
             data = JsonUtility.FromJson<treeData>(jsonString);
             Debug.Log("data: treeHeight: " + data.treeHeight);
 
+            gizmoRadius = data.gizmoRadius;
+            setGizmoRadius = data.gizmoRadius;
+            treeGenScript.gizmoRadius = data.gizmoRadius;
+
             treeHeight = data.treeHeight;
             setTreeHeight = data.treeHeight;
             treeGenScript.treeHeight = data.treeHeight;
@@ -1016,10 +1020,12 @@ public class treeGen3Editor : Editor
 
                         if (setBranchSplitRotateAngle != null)
                         {
-
-                            if (setBranchSplitMode[i] == splitMode.rotateAngle)
+                            if (setBranchSplitMode.Count > i)
                             {
-                                setBranchSplitRotateAngle[i] = EditorGUILayout.FloatField("branchSplitRotateAngle", setBranchSplitRotateAngle[i]);
+                                if (setBranchSplitMode[i] == splitMode.rotateAngle)
+                                {
+                                    setBranchSplitRotateAngle[i] = EditorGUILayout.FloatField("branchSplitRotateAngle", setBranchSplitRotateAngle[i]);
+                                }
                             }
                         }
                     }
@@ -1169,20 +1175,23 @@ public class treeGen3Editor : Editor
         setLeafSize = EditorGUILayout.FloatField("leafSize", setLeafSize);
 
         EditorGUILayout.LabelField("Leaf Parent Clusters:");
-        while (setLeafParentClusterBools.Count < branchClusters)
+        if (setLeafParentClusterBools != null)
         {
-            setLeafParentClusterBools.Add(false);
-        }
-        while (setLeafParentClusterBools.Count > branchClusters)
-        {
-            if (setLeafParentClusterBools.Count > 0)
+            while (setLeafParentClusterBools.Count < branchClusters)
             {
-                setLeafParentClusterBools.RemoveAt(setLeafParentClusterBools.Count - 1);
+                setLeafParentClusterBools.Add(false);
             }
-        }
-        for (int i = 0; i < branchClusters; i++)
-        {
-            setLeafParentClusterBools[i] = EditorGUILayout.ToggleLeft("" + i, setLeafParentClusterBools[i]);
+            while (setLeafParentClusterBools.Count > branchClusters)
+            {
+                if (setLeafParentClusterBools.Count > 0)
+                {
+                    setLeafParentClusterBools.RemoveAt(setLeafParentClusterBools.Count - 1);
+                }
+            }
+            for (int i = 0; i < branchClusters; i++)
+            {
+                setLeafParentClusterBools[i] = EditorGUILayout.ToggleLeft("" + i, setLeafParentClusterBools[i]);
+            }
         }
 
 
@@ -1206,9 +1215,9 @@ public class treeGen3Editor : Editor
 
             Debug.Log("set tree parameters...");
 
-
+            gizmoRadius = setGizmoRadius;
             treeGenScript.gizmoRadius = setGizmoRadius;
-
+            data.gizmoRadius = setGizmoRadius;
 
             // treeHeight = EditorGUILayout.FloatField("treeHeight", treeHeight);
             treeHeight = setTreeHeight;
@@ -1547,6 +1556,7 @@ public class treeData
     //    Gizmos.DrawSphere(new Vector3(0f, 0f, 0f), 10f);
     //}
 
+    public float gizmoRadius;
     public float treeHeight;
     public Vector3 treeGrowDir;
     public int treeShape;
