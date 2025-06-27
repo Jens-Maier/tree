@@ -1068,8 +1068,20 @@ public class treeGen3Editor : Editor
                             setVerticalRange[i] = EditorGUILayout.FloatField("verticalRange", setVerticalRange[i]);
                         }
                     }
-                    setVerticalAngleCrownStart[i] = EditorGUILayout.FloatField("verticalAngleCrownStart", setVerticalAngleCrownStart[i]);
-                    setVerticalAngleCrownEnd[i] = EditorGUILayout.FloatField("verticalAngleCrownEnd", setVerticalAngleCrownEnd[i]);
+                    if (setVerticalAngleCrownStart != null)
+                    {
+                        if (setVerticalAngleCrownStart.Count > i)
+                        {
+                            setVerticalAngleCrownStart[i] = EditorGUILayout.FloatField("verticalAngleCrownStart", setVerticalAngleCrownStart[i]);
+                        }
+                    }
+                    if (setVerticalAngleCrownEnd != null)
+                    {
+                        if (setVerticalAngleCrownEnd.Count > i)
+                        {
+                            setVerticalAngleCrownEnd[i] = EditorGUILayout.FloatField("verticalAngleCrownEnd", setVerticalAngleCrownEnd[i]);
+                        }
+                    }
                     if (setVerticalAngleBranchStart != null)
                     {
                         if (setVerticalAngleBranchStart.Count > i)
@@ -1085,9 +1097,9 @@ public class treeGen3Editor : Editor
                     }
 
                     if (setBranchAngleMode == null)
-                        {
-                            setBranchAngleMode = new List<angleMode>();
-                        }
+                    {
+                        setBranchAngleMode = new List<angleMode>();
+                    }
                     if (setBranchAngleMode.Count < i + 1)
                     {
                         setBranchAngleMode.Add(angleMode.winding);
