@@ -1105,7 +1105,25 @@ public class treeGen3Editor : Editor
                         setBranchAngleMode.Add(angleMode.winding);
                     }
                     setBranchAngleMode[i] = (angleMode)EditorGUILayout.EnumPopup("branchAngleMode", setBranchAngleMode[i]);
-                    setRotateAngle[i] = EditorGUILayout.FloatField("rotateAngle", setRotateAngle[i]);
+                    if (setRotateAngle != null)
+                    {
+                        if (setRotateAngle.Count > i)
+                        {
+                            setRotateAngle[i] = EditorGUILayout.FloatField("rotateAngle", setRotateAngle[i]);
+                        }
+                    }
+                    else
+                    {
+                        setRotateAngle = new List<float>();
+                    }
+                    while (setRotateAngle.Count < i + 1)
+                    {
+                        setRotateAngle.Add(0f);
+                    }
+                    if (setRotateAngleRange == null)
+                    {
+                        setRotateAngleRange = new List<float>();
+                    }
                     if (setBranchAngleMode[i] == angleMode.winding)
                     {
                         setRotateAngleRange[i] = EditorGUILayout.FloatField("rotateAngleRange", setRotateAngleRange[i]);
@@ -1203,6 +1221,14 @@ public class treeGen3Editor : Editor
             for (int i = 0; i < branchClusters; i++)
             {
                 setLeafParentClusterBools[i] = EditorGUILayout.ToggleLeft("" + i, setLeafParentClusterBools[i]);
+            }
+        }
+        else
+        {
+            setLeafParentClusterBools = new List<bool>();
+            for (int i = 0; i < branchClusters; i++)
+            {
+                setLeafParentClusterBools.Add(false);
             }
         }
 

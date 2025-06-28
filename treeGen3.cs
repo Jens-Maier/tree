@@ -90,6 +90,22 @@ public struct startPointData
     }
 }
 
+public struct leaf
+{
+    public Vector3 pos;
+    public Vector3 tangent;
+    public Vector3 cotangent;
+    public float size;
+
+    public leaf(Vector3 Pos, Vector3 Tangent, Vector3 Cotangent, float Size)
+    {
+        pos = Pos;
+        tangent = Tangent;
+        cotangent = Cotangent;
+        size = Size;
+    }
+}
+
 public class node
 {
     public Vector3 point;
@@ -1199,6 +1215,13 @@ public class treeGen3 : MonoBehaviour
     public int nrLeaves;
     public float leafSize;
     public List<bool> leafParentClusterBools;
+    public List<leaf> leafData; // one type of leaves for now
+    public List<Vector3> leafVertices;
+    public List<int> leafTriangles;
+    public List<Vector3> leafNormals;
+    public GameObject leafGameObject;
+    public Mesh leafMesh;
+    public MeshFilter leafMeshFilter;
     public int seed;
 
     public List<int> nodeIndices;
@@ -1242,6 +1265,12 @@ public class treeGen3 : MonoBehaviour
     {
         random = new Random(seed);
 
+        if (leafGameObject == null)
+        {
+            leafGameObject = new GameObject("leaves");
+        }
+        leafMeshFilter = leafGameObject.GetComponent<MeshFilter>();
+
         debugDisplacementLines = new List<line>();
         debugRepulsionForces = new List<line>();
         tangentDebugLines = new List<line>();
@@ -1271,6 +1300,7 @@ public class treeGen3 : MonoBehaviour
         meshFilter = GetComponent<MeshFilter>();
 
         mesh = new Mesh();
+        leafMesh = new Mesh();
     }
 
     List<segment> getAllSegments()
@@ -1819,12 +1849,6 @@ public class treeGen3 : MonoBehaviour
 
     public startPointData generateStartPointData(List<startNodeInfo> startNodesNextIndexStartTvalEndTval, List<float> segmentLengths, float branchPos, bool calledFromAddLeaves)
     {
-        //
-        // TODO: only adds startPoints when two consecuntive clusters are selected!
-        // 
-        
-
-
         // Find which segment this branch falls into
         float accumLength = 0f;
         int startNodeIndex = 0;
@@ -2436,6 +2460,17 @@ public class treeGen3 : MonoBehaviour
     {
         Debug.Log("addLeaves: nrLeaves: " + nrLeaves);
 
+        leafData = new List<leaf>();
+
+        if (leafGameObject.GetComponent<MeshFilter>() == null)
+        {
+            leafGameObject.AddComponent<MeshFilter>();
+        }
+        if (leafGameObject.GetComponent<MeshRenderer>() == null)
+        {
+            leafGameObject.AddComponent<MeshRenderer>();
+        }
+
         float leafStartHeight = 0.5f; // TODO: make this a parameter
         float leafEndHeight = 1f; // TODO: make this a parameter
         List<startNodeInfo> leafStartNodesNextIndexStartTvalEndTval = new List<startNodeInfo>();
@@ -2506,6 +2541,11 @@ public class treeGen3 : MonoBehaviour
                 //float leafPos = (leafIndex + 0f) * totalLength / leafStartNodesNextIndexStartTvalEndTval.Count; // +0.5 for center of segment
                 float leafPos = (leafIndex + 0f) * totalLength / nrLeaves; // +0.5 for center of segment
 
+                // // add random offset to branchPos (AI)
+                // float avgSegmentLength = totalLength / leafStartNodesNextIndexStartTvalEndTval.Count;
+                // float leafPosOffset = ((float)random.NextDouble() - 0.5f) * 0.2f * avgSegmentLength;
+                // leafPos += leafPosOffset;
+
                 // in branches: float branchPos = branchIndex * totalLength / nrBranches[clusterIndex];
 
                 //-----------
@@ -2520,64 +2560,17 @@ public class treeGen3 : MonoBehaviour
 
                 Debug.Log("totalLength: " + totalLength + ", leafIndex: " + leafIndex + ", leafPos: " + leafPos + ", leafStartPointData.startPoint: " + leafStartPointData.startPoint + ", leafStartNodesNextIndexStartTvalEndTval.Count: " + leafStartNodesNextIndexStartTvalEndTval.Count);
 
-                // ERROR: totalLength -> 0 !!!
+                Vector3 leafStartPoint = leafStartPointData.startPoint;
+                Vector3 leafOutwardDir = leafStartPointData.outwardDir;
+                Vector3 branchTangent = leafStartPointData.tangent;
+                node leafStartNode = leafStartPointData.startNode;
+                int leafStartNodeIndex = leafStartPointData.startNodeIndex;
+                int leafStartNodeNextIndex = leafStartPointData.startNodeNextIndex;
+                float leafTval = leafStartPointData.t;
+                Vector3 leafStartPointTangent = leafStartPointData.tangent;
 
-                // Vector3 leafStartPoint = leafStartPointData.startPoint;
-                // Vector3 leafOutwardDir = leafStartPointData.outwardDir;
-                // node leafStartNode = leafStartPointData.startNode;
-                // int leafStartNodeIndex = leafStartPointData.startNodeIndex;
-                // int leafStartNodeNextIndex = leafStartPointData.startNodeNextIndex;
-                // float leafTval = leafStartPointData.t;
-                // Vector3 leafStartPointTangent = leafStartPointData.tangent;
-                // 
-                // 
-                // //-----------
-                // 
-                // // add random offset to branchPos (AI)
-                // float avgSegmentLength = totalLength / leafStartNodesNextIndexStartTvalEndTval.Count;
-                // float leafPosOffset = ((float)random.NextDouble() - 0.5f) * 0.2f * avgSegmentLength;
-                // leafPos += leafPosOffset;
-                // 
-                // // Find which segment this branch falls into
-                // float accumLength = 0f;
-                // int startNodeIndex = 0;
-                // float t = 0f;
-                // for (int i = 0; i < segmentLengths.Count; i++)
-                // {
-                //     if (accumLength + segmentLengths[i] >= leafPos)
-                //     {
-                //         startNodeIndex = i;
-                //         float segStart = accumLength;
-                //         float segLen = segmentLengths[i];
-                //         t = segLen > 0f ? (leafPos - segStart) / segLen : 0f;
-                //         break;
-                //     }
-                //     accumLength += segmentLengths[i];
-                // }
-                // 
-                // int leafStartNodeNextIndex = leafStartNodesNextIndexStartTvalEndTval[startNodeIndex].nextIndex;
-                // //-----------------------------------------------------------------
-                // 
-                // // TODO: winding -> equal distances -> add random offsets
-                // 
-                // Vector3 tangent;
-                // if (leafStartNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next.Count > 1)
-                // {
-                //     tangent = leafStartNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tangent[leafStartNodeNextIndex + 1];
-                // }
-                // else
-                // {
-                //     tangent = leafStartNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tangent[0];
-                // }
-                // // Map t from [0,1] to [tA, tB]
-                // //Debug.Log("startNodeIndex: " + startNodeIndex + ", startNodesNextIndex.Count: " + startNodesNextIndex.Count + ", segmentTStart.Count: " + segmentTStart.Count + ", segmentTEnd.Count: " + segmentTEnd.Count);
-                // //float tVal = segmentTStart[startNodeIndex] + t * (segmentTEnd[startNodeIndex] - segmentTStart[startNodeIndex]);
-                // 
-                // Vector3 startPoint = sampleSplineT(leafStartNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point,
-                //                                    leafStartNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[leafStartNodeNextIndex].point,
-                //                                    tangent,
-                //                                    leafStartNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[leafStartNodeNextIndex].tangent[0],
-                //                                    t);
+                Debug.Log("adding leaf to leafData in addLeaves()");
+                leafData.Add(new leaf(leafStartPoint, leafOutwardDir, branchTangent, leafSize)); // TODO...
             }
         }
         else
@@ -3371,7 +3364,7 @@ public class treeGen3 : MonoBehaviour
 
         rootNode.applyCurvature(splitCurvature, axis);
 
-        addBranches(); 
+        addBranches();
 
         shyBranches();
 
@@ -3392,9 +3385,21 @@ public class treeGen3 : MonoBehaviour
         triangles.Clear();
         normals.Clear();
         UVs.Clear();
+
+        addLeaves();
+
         if (allSegments != null)
         {
             generateAllVerticesAndTriangles();
+            if (leafData != null)
+            {
+                Debug.Log("generateLeafVerticesAndTriangles()");
+                generateLeafVerticesAndTriangles();
+            }
+            else
+            {
+                Debug.Log("leafData is null!");
+            }
         }
         mesh.Clear(false);
 
@@ -3413,7 +3418,13 @@ public class treeGen3 : MonoBehaviour
 
         meshFilter.mesh = mesh;
 
-        addLeaves();
+        leafMesh.Clear(false);
+        leafMesh.SetVertices(leafVertices);
+        leafMesh.SetTriangles(leafTriangles, 0);
+        leafMesh.SetNormals(leafNormals);
+
+        leafMeshFilter.mesh = leafMesh;
+
 
     }
 
@@ -3563,6 +3574,35 @@ public class treeGen3 : MonoBehaviour
                 }
             }
         }
+
+    }
+
+    void generateLeafVerticesAndTriangles()
+    {
+        leafVertices = new List<Vector3>();
+        leafTriangles = new List<int>();
+        leafNormals = new List<Vector3>();
+
+        Debug.Log("in generateLeafVerticesAndTriangles(): leafData.Count: " + leafData.Count);
+        int tCount = 0;
+        foreach (leaf l in leafData)
+        {
+            Debug.Log("drawing leaf: " + l.pos + ", size: " + l.size + ", tangent: " + l.tangent + ", cotangent: " + l.cotangent);
+            leafVertices.Add(l.pos + l.cotangent * l.size / 2f);
+            leafVertices.Add(l.pos + l.cotangent * l.size / 2f + l.tangent * l.size / 2f);
+            leafVertices.Add(l.pos - l.cotangent * l.size / 2f + l.tangent * l.size / 2f);
+            leafVertices.Add(l.pos - l.cotangent * l.size / 2f);
+
+            leafTriangles.Add(tCount);
+            leafTriangles.Add(tCount + 1);
+            leafTriangles.Add(tCount + 2);
+            leafTriangles.Add(tCount);
+            leafTriangles.Add(tCount + 2);
+            leafTriangles.Add(tCount + 3);
+
+            tCount += 4;
+        }
+        
 
     }
 
