@@ -100,10 +100,10 @@ public class treeGen3Editor : Editor
     public static List<float> setBranchSplitHeightVariation;
     static float splitHeightVariation;
     public static float setSplitHeightVariation;
-    static float testSplitAngle;
-    public static float setTestSplitAngle;
-    static float testSplitPointAngle;
-    public static float setTestSplitPointAngle;
+    static float stemSplitAngle;
+    public static float setStemSplitAngle;
+    static float stemSplitPointAngle;
+    public static float setStemSplitPointAngle;
 
     static int branchClusters;
     public static int setBranchClusters;
@@ -117,6 +117,10 @@ public class treeGen3Editor : Editor
     public static List<int> setNrBranches;
     static List<int> branchShape;
     public static List<shape> setBranchShape;
+    public List<float> branchSplitAngle;
+    public List<float> setBranchSplitAngle;
+    public List<float> branchSplitPointAngle;
+    public List<float> setBranchSplitPointAngle;
     public List<int> branchSplitMode;
     public static List<splitMode> setBranchSplitMode;
     public List<float> branchSplitRotateAngle;
@@ -225,7 +229,7 @@ public class treeGen3Editor : Editor
         // -> TODO: branch layers -> affect level ...
 
         // ------------------------------------------------------------------
-
+        
 
         loadFileName = EditorGUILayout.TextField("loadFile", loadFileName);
 
@@ -348,13 +352,13 @@ public class treeGen3Editor : Editor
             setSplitHeightVariation = data.splitHeightVariation;
             treeGenScript.splitHeightVariation = data.splitHeightVariation;
 
-            testSplitAngle = data.testSplitAngle;
-            setTestSplitAngle = data.testSplitAngle;
-            treeGenScript.testSplitAngle = data.testSplitAngle;
+            stemSplitAngle = data.stemSplitAngle;
+            setStemSplitAngle = data.stemSplitAngle;
+            treeGenScript.stemSplitAngle = data.stemSplitAngle;
 
-            testSplitPointAngle = data.testSplitPointAngle;
-            setTestSplitPointAngle = data.testSplitPointAngle;
-            treeGenScript.testSplitPointAngle = data.testSplitPointAngle;
+            stemSplitPointAngle = data.stemSplitPointAngle;
+            setStemSplitPointAngle = data.stemSplitPointAngle;
+            treeGenScript.stemSplitPointAngle = data.stemSplitPointAngle;
 
             // parentClusterIndex = data.parentClusterIndex;
             // setParentClusterIndex = data.parentClusterIndex;
@@ -420,8 +424,45 @@ public class treeGen3Editor : Editor
             Debug.Log("in editor: calling treeGenScript.setBranchShape()");
             treeGenScript.setBranchShape(data.branchShape);
 
+            branchSplitAngle.Clear();
+            branchSplitAngle = data.branchSplitAngle;
+            if (branchSplitAngle == null)
+            {
+                branchSplitAngle = new List<float>();
+            }
+            while (branchSplitAngle.Count > branchClusters)
+            {
+                branchSplitAngle.RemoveAt(branchSplitAngle.Count - 1);
+            }
+            while (branchSplitAngle.Count < branchClusters)
+            {
+                branchSplitAngle.Add(30f);
+            }
+            setBranchSplitAngle = branchSplitAngle;
+
+            branchSplitPointAngle.Clear();
+            branchSplitPointAngle = data.branchSplitPointAngle;
+            if (branchSplitPointAngle == null)
+            {
+                branchSplitPointAngle = new List<float>();
+            }
+            while (branchSplitPointAngle.Count > branchClusters)
+            {
+                branchSplitPointAngle.RemoveAt(branchSplitPointAngle.Count - 1);
+            }
+            while (branchSplitPointAngle.Count < branchClusters)
+            {
+                branchSplitPointAngle.Add(30f);
+            }
+            setBranchSplitPointAngle = branchSplitPointAngle;
+
+
             branchSplitMode.Clear();
             branchSplitMode = data.branchSplitMode;
+            if (setBranchSplitMode == null)
+            {
+                setBranchSplitMode = new List<splitMode>();
+            }
             while (branchSplitMode.Count > branchClusters)
             {
                 branchSplitMode.RemoveAt(branchSplitMode.Count - 1);
@@ -429,10 +470,6 @@ public class treeGen3Editor : Editor
             while (branchSplitMode.Count < branchClusters)
             {
                 branchSplitMode.Add(1); // default to horizontal split mode
-            }
-            if (setBranchSplitMode == null)
-            {
-                setBranchSplitMode = new List<splitMode>();
             }
             setBranchSplitMode.Clear();
             foreach (int mode in data.branchSplitMode)
@@ -513,15 +550,23 @@ public class treeGen3Editor : Editor
             treeGenScript.verticalAngleBranchEnd = data.verticalAngleBranchEnd;
 
             branchAngleMode = data.branchAngleMode;
+            while (branchAngleMode.Count > data.branchClusters)
+            {
+                branchAngleMode.RemoveAt(branchAngleMode.Count - 1);
+            }
+            while (branchAngleMode.Count < data.branchClusters)
+            {
+                branchAngleMode.Add(0);
+            }
             if (setBranchAngleMode == null)
             {
                 setBranchAngleMode = new List<angleMode>();
             }
-            foreach (int mode in data.branchAngleMode)
+            foreach (int mode in branchAngleMode)
             {
                 setBranchAngleMode.Add((angleMode)mode);
             }
-            treeGenScript.setBranchAngleMode(data.branchAngleMode);
+            treeGenScript.setBranchAngleMode(branchAngleMode);
 
             rotateAngle = data.rotateAngle;
             setRotateAngle = data.rotateAngle;
@@ -684,8 +729,8 @@ public class treeGen3Editor : Editor
         }
 
         setSplitHeightVariation = EditorGUILayout.FloatField("splitHeightVariation", setSplitHeightVariation);
-        setTestSplitAngle = EditorGUILayout.FloatField("testSplitAngle", setTestSplitAngle);
-        setTestSplitPointAngle = EditorGUILayout.FloatField("testSplitPointAngle", setTestSplitPointAngle);
+        setStemSplitAngle = EditorGUILayout.FloatField("stemSplitAngle", setStemSplitAngle);
+        setStemSplitPointAngle = EditorGUILayout.FloatField("stemSplitPointAngle", setStemSplitPointAngle);
 
         EditorGUILayout.LabelField("------------------------------------------------------------------------------------------------------------------------------");
         EditorGUILayout.LabelField("branch settings");
@@ -727,6 +772,18 @@ public class treeGen3Editor : Editor
                 setBranchSplitMode = new List<splitMode>();
             }
             setBranchSplitMode.Add(splitMode.horizontal);
+
+            if (setBranchSplitAngle == null)
+            {
+                setBranchSplitAngle = new List<float>();
+            }
+            setBranchSplitAngle.Add(30f);
+
+            if (setBranchSplitPointAngle == null)
+            {
+                setBranchSplitPointAngle = new List<float>();
+            }
+            setBranchSplitPointAngle.Add(30f);
 
             if (setBranchSplitRotateAngle == null)
             {
@@ -875,6 +932,8 @@ public class treeGen3Editor : Editor
                     setNrBranches.RemoveAt(setNrBranches.Count - 1);
                     setBranchShape.RemoveAt(setBranchShape.Count - 1);
                     setBranchSplitMode.RemoveAt(setBranchSplitMode.Count - 1);
+                    setBranchSplitAngle.RemoveAt(setBranchSplitAngle.Count - 1);
+                    setBranchSplitPointAngle.RemoveAt(setBranchSplitPointAngle.Count - 1);
                     setRelBranchLength.RemoveAt(setRelBranchLength.Count - 1);
                     setTaperFactor.RemoveAt(setTaperFactor.Count - 1);
                     setVerticalRange.RemoveAt(setVerticalRange.Count - 1);
@@ -1033,7 +1092,23 @@ public class treeGen3Editor : Editor
                     {
                         Debug.Log("ERROR: branchSplitMode = null");
                     }
-                    
+
+                    if (setBranchSplitAngle != null)
+                    {
+                        if (setBranchSplitAngle.Count > i)
+                        {
+                            setBranchSplitAngle[i] = EditorGUILayout.FloatField("branchSplitAngle", setBranchSplitAngle[i]);
+                        }
+                    }
+
+                    if (setBranchSplitPointAngle != null)
+                    {
+                        if (setBranchSplitPointAngle.Count > i)
+                        {
+                            setBranchSplitPointAngle[i] = EditorGUILayout.FloatField("branchSplitPointAngle", setBranchSplitPointAngle[i]);
+                        }
+                    }
+
 
                     if (setBranchShape == null)
                     {
@@ -1124,9 +1199,17 @@ public class treeGen3Editor : Editor
                     {
                         setRotateAngleRange = new List<float>();
                     }
+                    while (setRotateAngleRange.Count < i + 1)
+                    {
+                        setRotateAngleRange.Add(0f);
+                    }
                     if (setBranchAngleMode[i] == angleMode.winding)
                     {
                         setRotateAngleRange[i] = EditorGUILayout.FloatField("rotateAngleRange", setRotateAngleRange[i]);
+                    }
+                    while (setBranchesStartHeightGlobal.Count < i + 1)
+                    {
+                        setBranchesStartHeightGlobal.Add(0f);
                     }
                     setBranchesStartHeightGlobal[i] = EditorGUILayout.Slider("branchesStartHeightGlobal", setBranchesStartHeightGlobal[i], 0f, 1f);
                     while (setBranchesEndHeightGlobal.Count < i + 1)
@@ -1350,13 +1433,13 @@ public class treeGen3Editor : Editor
             treeGenScript.splitHeightVariation = setSplitHeightVariation;
             data.splitHeightVariation = setSplitHeightVariation;
 
-            testSplitAngle = setTestSplitAngle;
-            treeGenScript.testSplitAngle = setTestSplitAngle;
-            data.testSplitAngle = setTestSplitAngle;
+            stemSplitAngle = setStemSplitAngle;
+            treeGenScript.stemSplitAngle = setStemSplitAngle;
+            data.stemSplitAngle = setStemSplitAngle;
 
-            testSplitPointAngle = setTestSplitPointAngle;
-            treeGenScript.testSplitPointAngle = setTestSplitPointAngle;
-            data.testSplitPointAngle = setTestSplitPointAngle;
+            stemSplitPointAngle = setStemSplitPointAngle;
+            treeGenScript.stemSplitPointAngle = setStemSplitPointAngle;
+            data.stemSplitPointAngle = setStemSplitPointAngle;
 
             branchClusters = setBranchClusters;
             treeGenScript.nrBranchClusters = setBranchClusters;
@@ -1620,8 +1703,8 @@ public class treeData
     public List<List<float>> branchSplitHeightInLevel;
     public List<float> branchSplitHeightVariation;
     public float splitHeightVariation;
-    public float testSplitAngle;
-    public float testSplitPointAngle;
+    public float stemSplitAngle;
+    public float stemSplitPointAngle;
 
 
     public int branchClusters;
@@ -1631,6 +1714,8 @@ public class treeData
     public List<int> nrBranches;
     public List<int> branchShape;
     public List<int> branchSplitMode;
+    public List<float> branchSplitAngle;
+    public List<float> branchSplitPointAngle;
     public List<float> branchSplitRotateAngle;
     public List<float> relBranchLength;
     public List<float> taperFactor;

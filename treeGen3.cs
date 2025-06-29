@@ -1174,10 +1174,10 @@ public class treeGen3 : MonoBehaviour
     [Range(0f, 1f)]
     public float splitHeightVariation;
     [Range(0f, 90f)]
-    public float testSplitAngle;
+    public float stemSplitAngle;
     public float stemSplitRotateAngle;
     [Range(0f, 90f)]
-    public float testSplitPointAngle;
+    public float stemSplitPointAngle;
 
     public float[] splitProbabilityInLevel;
     public int[] expectedSplitsInLevel;
@@ -1834,7 +1834,7 @@ public class treeGen3 : MonoBehaviour
                     if (nrSplitsPerBranch[clusterIndex] > 0f) // nrSplitsPerBranch[branchLevel] * (float)nrBranches[branchLevel]
                     {
                         //Debug.Log("in addBranches: splitBranches: branchLevel:" + clusterIndex); // 0
-                        splitBranches(clusterIndex, (int)(nrSplitsPerBranch[clusterIndex] * (float)nrBranches[clusterIndex]), testSplitAngle, testSplitPointAngle);
+                        splitBranches(clusterIndex, (int)(nrSplitsPerBranch[clusterIndex] * (float)nrBranches[clusterIndex]), stemSplitAngle, stemSplitPointAngle);
                         // TODO: split before adding next branch level!
                         // splitBranches() treats stem as branch level 0
                         // addBranches() counts branchLevels from 0 (not including stem)
@@ -2471,8 +2471,6 @@ public class treeGen3 : MonoBehaviour
             leafGameObject.AddComponent<MeshRenderer>();
         }
 
-        float leafStartHeight = 0.5f; // TODO: make this a parameter
-        float leafEndHeight = 1f; // TODO: make this a parameter
         List<startNodeInfo> leafStartNodesNextIndexStartTvalEndTval = new List<startNodeInfo>();
         
         float totalLength = 0f;
@@ -2486,19 +2484,18 @@ public class treeGen3 : MonoBehaviour
                 List<node> branchNodes = new List<node>();
                 rootNode.getAllBranchNodes(branchNodes, clusterIndex);
                 Debug.Log("in addLeaves: branchNodes.Count: " + branchNodes.Count);
+                
                 List<startNodeInfo> clusterStartNodesNextIndexStartTvalEndTval = new List<startNodeInfo>();
                 List<List<startNodeInfo>> clusterBranchNodesNextIndexStartTvalEndTval = new List<List<startNodeInfo>>();
 
-                for (int c = 0; c < nrBranches[clusterIndex]; c++) // - 1 >= 0 ? clusterIndex - 1 : clusterIndex]; c++)
+                for (int c = 0; c < nrBranches[clusterIndex]; c++)
                 {
-                    clusterBranchNodesNextIndexStartTvalEndTval.Add(new List<startNodeInfo>()); // index error here!
+                    clusterBranchNodesNextIndexStartTvalEndTval.Add(new List<startNodeInfo>());
                 }
 
                 List<int> nrSplitsPassedAtStartNode = new List<int>();
 
                 int activeBranchIndex = 0;
-
-                                
                 foreach (node n in branchNodes) 
                 {
                     debugListBlue.Add(n.point);
@@ -2506,12 +2503,9 @@ public class treeGen3 : MonoBehaviour
                     n.getAllStartNodes(clusterStartNodesNextIndexStartTvalEndTval, clusterBranchNodesNextIndexStartTvalEndTval,
                                        activeBranchIndex, nrSplitsPassedAtStartNode, 0, 0f, 0f, 1f, 1f, 0,
                                        leafParentClusterBools, 0, true);
-                    // index error here!
-
                     activeBranchIndex += 1;
                 }
 
-                // calculateSegmentLengthsAndTotalLength(List<(node, int)> startNodesNextIndex, List<float> segmentLengths, int clusterIndex)
                 List<float> clusterSegmentLengths = new List<float>();
 
                 Debug.Log("parameters for calculateSegmentLengthsAndTotalLength() in addLeaves(): clusterStartNodesNextIndexStartTvalEndTval.Count: " + clusterStartNodesNextIndexStartTvalEndTval.Count +
@@ -3357,7 +3351,7 @@ public class treeGen3 : MonoBehaviour
         rootNode.resampleSpline(resampleNr, noiseAmplitudeLower, noiseAmplitudeUpper, noiseScale);
         if (nrSplits > 0)
         {
-            splitRecursive(rootNode, nrSplits, testSplitAngle, testSplitPointAngle);
+            splitRecursive(rootNode, nrSplits, stemSplitAngle, stemSplitPointAngle);
         }
 
         Vector3 axis = rootNode.cotangent;
