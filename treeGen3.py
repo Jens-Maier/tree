@@ -17,12 +17,69 @@ import mathutils
 class intProp(bpy.types.PropertyGroup):
     value: bpy.props.IntProperty(name = "intValue", default = 0)
     
+class treeShapeEnumProp(bpy.types.PropertyGroup):
+    value: bpy.props.EnumProperty(
+        name = "branchShape", 
+        items = [
+            ('CONICAL', "Conical", "A cone-shaped tree."),
+            ('SPHERICAL', "Spherical", "A sphere-shaped tree."),
+            ('HEMISPHERICAL', "Hemispherical", "A half-sphere shaped tree."),
+            ('CYLINDRICAL', "Cylindrical", "A cylinder-shaped tree."),
+            ('TAPERED_CYLINDRICAL', "Tapered Cylindrical", "A cylinder that tapers towards the top."),
+            ('FLAME', "Flame", "A flame-shaped tree."),
+            ('INVERSE_CONICAL', "Inverse Conical", "An upside-down cone-shaped tree."),
+            ('TEND_FLAME', "TendFlame", "A more slender flame-shaped tree.")
+        ],
+        default='CONICAL'        
+    )
+    
+class splitModeEnumProp(bpy.types.PropertyGroup):
+    value: bpy.props.EnumProperty(
+        name = "stemSplitMode",
+        items=[
+            ('ROTATE_ANGLE', "Rotate Angle", "Split by rotating the angle"),
+            ('HORIZONTAL', "Horizontal", "Split horizontally")
+        ],
+        default='ROTATE_ANGLE',
+    )
+    
+    
+#bpy.types.Scene.treeShape = bpy.props.EnumProperty(
+#        name="Shape",
+#        description="The shape of the tree.",
+#        items=[
+#            ('CONICAL', "Conical", "A cone-shaped tree."),
+#            ('SPHERICAL', "Spherical", "A sphere-shaped tree."),
+#            ('HEMISPHERICAL', "Hemispherical", "A half-sphere shaped tree."),
+#            ('CYLINDRICAL', "Cylindrical", "A cylinder-shaped tree."),
+#            ('TAPERED_CYLINDRICAL', "Tapered Cylindrical", "A cylinder that tapers towards the top."),
+#            ('FLAME', "Flame", "A flame-shaped tree."),
+#            ('INVERSE_CONICAL', "Inverse Conical", "An upside-down cone-shaped tree."),
+#            ('TEND_FLAME', "TendFlame", "A more slender flame-shaped tree.")
+#        ],
+#        default='CONICAL'
+#    )
+    
+    
 class addItem(bpy.types.Operator):
     bl_idname = "scene.add_list_item"
     bl_label = "Add Item"
     def execute(self, context):
-        item = context.scene.myList.add()
-        item.value = 1
+        nrBranches = context.scene.branchClusterList.add()
+        nrBranches.value = 2       # default for nrBranches!
+        branchSplitModeList = context.scene.branchSplitModeList.add()  # TODO (???)
+        # branchSplitMode.value = 0
+        # bpy.types.Scene.stemSplitMode = bpy.props.EnumProperty(
+        # name = "Stem Split Mode",
+        # description = "Mode for stem splits",
+        # items=[
+        #    ('rotateAngle', "Rotate Angle", "Split by rotating the angle"),
+        #    ('horizontal', "Horizontal", "Split horizontally"),
+        # ],
+        # default='rotateAngle',
+        #)
+        
+        print("adding item")
         return {'FINISHED'}
     
 class removeItem(bpy.types.Operator):
@@ -30,14 +87,30 @@ class removeItem(bpy.types.Operator):
     bl_label = "Remove Item"
     index: bpy.props.IntProperty()
     def execute(self, context):
-        mylist = context.scene.myList
-        if len(mylist) > self.index:
-            mylist.remove(self.index)
+        branchClusterList = context.scene.branchClusterList
+        if len(branchClusterList) > 0:
+            branchClusterList.remove(len(branchClusterList) - 1)
+            print("removing item")
         return {'FINISHED'}
     
-class myList(bpy.types.UIList):
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        layout.prop(item, "value", text=f"Item {index}")
+class addBranchCluster(bpy.types.Operator):
+    bl_idname = "addBranchCluster"
+    bl_label = "Add Branch Cluster"
+    def execute(self, context):
+        context.scene.branchClusters += 1
+        return {'FINISHED'}
+    
+class removeBranchCluster(bpy.types.Operator):
+    bl_idname = "removeBranchCluster"
+    bl_label = "Remove Branch Cluster"
+    def execute(self, context):
+        if (context.scene.branchClusters > 0):
+            context.scene.branchClusters -= 1
+        return {'FINISHED'}
+    
+#class branchClusterList(bpy.types.UIList):
+#    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+#        layout.prop(item, "value", text=f"Item {index}")
 
 
 class treeGenPanel(bpy.types.Panel):
@@ -52,11 +125,11 @@ class treeGenPanel(bpy.types.Panel):
         obj = context.object
         row = layout.row()
         
-        row.template_list("UL_MyList", "", context.scene, "myList", context.scene, "myListIndex")
+        #row.template_list("UL_MyList", "", context.scene, "myList", context.scene, "myListIndex")
         
-        row = layout.row(align = True)
-        row.operator("scene.add_list_item", text="Add")
-        row.operator("scene.remove_list_item", text="Remove").index = context.scene.myListIndex
+        #row = layout.row(align = True)
+        #row.operator("scene.add_list_item", text="Add")
+        #row.operator("scene.remove_list_item", text="Remove").index = context.scene.myListIndex
     
     
         row = layout.row()
@@ -77,6 +150,8 @@ class treeGenPanel(bpy.types.Panel):
         layout.prop(context.scene, "stemRingResolution")
         row = layout.row()
         layout.prop(context.scene, "resampleNr")
+        row = layout.row()
+        layout.prop(context.scene, "treeShapeEnumProp")
         row = layout.row()
         
         
@@ -137,6 +212,8 @@ class splitSettings(bpy.types.Panel):
         row = layout.row()
         layout.prop(context.scene, "stemSplitPointAngle")
         row = layout.row()
+        layout.prop(context.scene, "branchShape", text="banch shape", expand=True)
+        row = layout.row()
         
     
         
@@ -154,22 +231,55 @@ class branchSettings(bpy.types.Panel):
         bl_parent_id = 'PT_TreeGen'
         bl_optione = {'DEFAULT_CLOSED'}
         
-        layout.prop(context.scene, "branchClusters")
+        row = layout.row(align = True)
+        row.operator("scene.add_list_item", text="Add")
+        row.operator("scene.remove_list_item", text="Remove").index = context.scene.branchClusterListIndex
+    
+        row = layout.row()
+        #layout.prop(context.scene, "branchClusters")
+        row = layout.row(align=True)
+        row.operator("scene.addBranchCluster", text="Add Branch Cluster")
+        row.operator("scene.removeBranchCluster", text="Remove Branch Cluster")
         
+class dynamicBranchPanel(bpy.types.Panel):
+    bl_label = "Dynamic Branch Panel"
+    bl_idname = "dynamicBranchPanel"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'treeGen'
+    
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
         
+       
+        
+        for i in range(len(scene.branchClusterList)):
+            box = layout.box()
+            box.label(text=f"Branch Cluster {i}")
+            box.prop(scene.branchClusterList[i], "value", text="Number of branches")
+            layout.prop(scene.branchSplitModeList[i], "value", text="Branch split mode")
+            
             
 def register():
+    bpy.utils.register_class(treeShapeEnumProp)
+    bpy.utils.register_class(splitModeEnumProp)
     bpy.utils.register_class(intProp)
     bpy.utils.register_class(addItem)
     bpy.utils.register_class(removeItem)
-    bpy.utils.register_class(myList)
-    bpy.types.Scene.myList = bpy.props.CollectionProperty(type=intProp)
-    bpy.types.Scene.myListIndex = bpy.props.IntProperty(default=0)
+    #bpy.utils.register_class(branchClusterList)
+    bpy.types.Scene.branchClusterList = bpy.props.CollectionProperty(type=intProp)
+    bpy.types.Scene.branchClusterListIndex = bpy.props.IntProperty(default=0)
+    
+    bpy.types.Scene.treeShape = bpy.props.PointerProperty(type=treeShapeEnumProp)
+    
     bpy.utils.register_class(treeGenPanel)
     bpy.utils.register_class(noiseSettings)
     bpy.utils.register_class(splitSettings)
     bpy.utils.register_class(branchSettings)
-    
+    bpy.utils.register_class(dynamicBranchPanel)
+    bpy.types.Scene.nrBranhces = bpy.props.CollectionProperty(type=intProp)
+    bpy.types.Scene.branchSplitModeList = bpy.props.CollectionProperty(type=splitModeEnumProp)
    
     
     bpy.types.Scene.treeHeight = bpy.props.FloatProperty(
@@ -378,14 +488,7 @@ def register():
         default = [0],
         min = 0
     )
-    # branchSplitMode
-    bpy.types.Scene.branchSplitMode = bpy.props.IntVectorProperty(
-        name="Branch Split Mode",
-        description="Mode for branch splits",
-        size = 1, # Start with a single element
-        default = [0],
-        min = 0
-    )
+    
     # branchSplitAngle
     bpy.types.Scene.branchSplitAngle = bpy.props.FloatVectorProperty(
         name="Branch Split Angle",
@@ -569,19 +672,22 @@ def register():
     
 def unregister():
     bpy.utils.unregister_class(intProp)
+    bpy.utils.unregister_class(treeShapeEnumProp)
+    bpy.utils.unregister_class(enumProp)
     bpy.utils.unregister_class(addItem)
     bpy.utils.unregister_class(removeItem)
-    bpy.utils.unregister_class(myList)
+    bpy.utils.unregister_class(branchClusterList)
     bpy.utils.unregister_class(addItem)
     bpy.utils.unregister_class(treeGenPanel)
     bpy.utils.unregister_class(noiseSettings)
     bpy.utils.unregister_class(splitSettings)
+    bpy.utils.unregister_class(dynamicBranchPanel)
     
+        
+    del bpy.types.Scene.branchClusterList
+    del bpy.types.Scene.branchClusterListIndex
+    del bpy.types.Scene.treeShape
     
-    
-    
-    del bpy.types.Scene.myList
-    del bpy.types.Scene.myListIndex
     
     # Unregister the properties.  Important!
     del bpy.types.Scene.treeHeight
@@ -614,7 +720,7 @@ def unregister():
     del bpy.types.Scene.ringResolution
     del bpy.types.Scene.nrBranches
     del bpy.types.Scene.branchShape
-    del bpy.types.Scene.branchSplitMode
+    del bpy.types.Scene.branchSplitModeList
     del bpy.types.Scene.branchSplitAngle
     del bpy.types.Scene.branchSplitPointAngle
     del bpy.types.Scene.branchSplitRotateAngle
