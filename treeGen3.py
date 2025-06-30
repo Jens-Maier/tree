@@ -200,7 +200,16 @@ class splitSettings(bpy.types.Panel):
         row = layout.row()
         layout.prop(context.scene, "variance")
         row = layout.row()
-        layout.prop(context.scene, "stemSplitMode")
+        #layout.prop(context.scene, "stemSplitMode")
+        split = row.split(factor=0.5)
+        split.label(text="Stem split mode")
+        split.prop(context.scene, "stemSplitMode", text="")
+        
+            #row = layout.row()
+            #split = row.split(factor=0.5)
+            #split.label(text="Branch split mode:")
+            #split.prop(scene.branchSplitModeList[i], "value", text="")
+            
         row = layout.row()
         layout.prop(context.scene, "stemSplitRotateAngle")
         row = layout.row()
@@ -257,8 +266,17 @@ class dynamicBranchPanel(bpy.types.Panel):
         for i in range(len(scene.branchClusterList)):
             box = layout.box()
             box.label(text=f"Branch Cluster {i}")
-            box.prop(scene.branchClusterList[i], "value", text="Number of branches")
-            layout.prop(scene.branchSplitModeList[i], "value", text="Branch split mode")
+            #box.prop(scene.branchClusterList[i], "value", text="Number of branches")
+            row = layout.row()
+            split = row.split(factor=0.5)
+            split.label(text="Number of branches")
+            split.prop(scene.branchClusterList[i], "value", text="")
+            
+            #layout.prop(scene.branchSplitModeList[i], "value", text="Branch split mode")  # funkt!
+            row = layout.row()
+            split = row.split(factor=0.5)
+            split.label(text="Branch split mode:")
+            split.prop(scene.branchSplitModeList[i], "value", text="")
             
             
 def register():
