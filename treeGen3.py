@@ -104,10 +104,17 @@ class addItem(bpy.types.Operator): # add branch cluster
     bl_idname = "scene.add_list_item"
     bl_label = "Add Item"
     def execute(self, context):
+        context.scene.branchClusters += 1
+        
         parentClusterBoolListList = context.scene.parentClusterBoolListList.add()
+        #for i in range(len(context.scene.parentClusterBoolListList) - 1): # -1 because the new one is already added
         parentClusterBoolListList.value.add()
+        
         nrBranches = context.scene.nrBranchesList.add()
         nrBranches.value = 2       # default for nrBranches!
+        
+        for j in range(context.scene.branchClusters):
+            context.scene.parentClusterBoolListList[len(parentClusterBoolListList.value) - 1].value.add()
         
         branchSplitMode = context.scene.branchSplitModeList.add()  # TODO (???)
         branchSplitRotateAngle = context.scene.branchSplitRotateAngleList.add()
@@ -160,21 +167,27 @@ class removeItem(bpy.types.Operator):
     bl_idname = "scene.remove_list_item"
     bl_label = "Remove Item"
     index: bpy.props.IntProperty()
-    def execute(self, context):        
-        if len(context.scene.nrBranchesList) > 0:
+    def execute(self, context): 
+        
+        
+         
+        #TEMP
+        #while (len(context.scene.parentClusterBoolListList) > 0):
+        #    context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
+                  
+        if context.scene.branchClusters > 0:
+            context.scene.branchClusters -= 1
             context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolList) - 1)
             
-            #TEMP
-            #while (len(context.scene.parentClusterBoolListList) >= len(context.scene.nrBranchesList)):
-            #    context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
-            
-            
-            
-            context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
             
             #TEMP
             #context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
+            context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value.remove(len(context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value) - 1].value) - 1)
             
+            
+            
+            #for j in range(context.scene.branchClusters):
+            #    context.scene.parentClusterBoolListList[len(parentClusterBoolListList.value) - 1].value.add()
             
             context.scene.nrBranchesList.remove(len(context.scene.nrBranchesList) - 1)
             context.scene.branchSplitModeList.remove(len(context.scene.branchSplitModeList) - 1)
@@ -200,6 +213,9 @@ class removeItem(bpy.types.Operator):
             context.scene.splitsPerBranchVariationList.remove(len(context.scene.splitsPerBranchVariationList) - 1)
             context.scene.branchSplitHeightVariationList.remove(len(context.scene.branchSplitHeightVariationList) - 1)
             context.scene.branchSplitHeightInLevelListList.remove(len(context.scene.branchSplitHeightInLevelListList) - 1)
+            
+            #temp
+            context.scene.parentClusterBoolListList.clear()
             
         return {'FINISHED'}
     
@@ -383,24 +399,33 @@ class branchSettings(bpy.types.Panel):
         
         #for i in range(len(scene.nrBranchesList)):
         for i, outer in enumerate(scene.branchSplitHeightInLevelListList):
+            parentClusterBoolListList = context.scene.parentClusterBoolListList
             box = layout.box()
             box.label(text=f"Branch Cluster {i}")
             #box.row = layout.row()
-            box.label(text="Parent Clusters:")
-            for j in range(0, i):
+            x = i
+            box.label(text=f"Parent Clusters: i: {x}")
+            if (len(parentClusterBoolListList) > i):
+                ln = len(parentClusterBoolListList[i].value)
+                box.label(text=f"len(parentClusterBoolList[i]: {ln}")
+                l = len(scene.parentClusterBoolListList[i].value)
+            box.label(text=f"Parent Clusters: boolList[{x}] len: {l}")
+            for j in range(0, l):
                 #split = box.split(factor=0.6)
                 row = box.row()
                 if (j == 0):
                     split = box.split(factor=0.6)
                     split.label(text=f"stem: length: {len(scene.parentClusterBoolListList)}")
-                    split.prop(scene.parentClusterBoolList[i][j], "value", text="")
+                    tempBoolList = scene.parentClusterBoolListList[i].value
+                    split.prop(tempBoolList[j], "value", text="")
                     
                     #row.label(text="stem")
                 else:
                     split = box.split(factor=0.6)
                     split.label(text=f"{j - 1}: length: {len(scene.parentClusterBoolListList)}")
                     #split.prop(len(scene.parentClusterBoolListList))
-                    split.prop(scene.parentClusterBoolList[i][j], "value", text="")
+                    tempBoolList = scene.parentClusterBoolListList[i].value
+                    split.prop(tempBoolList[j], "value", text="")
                     
                     #row.label(text=f"{j - 1}")
                 
