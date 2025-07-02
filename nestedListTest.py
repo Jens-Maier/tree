@@ -43,13 +43,15 @@ class treeGenPanel(bpy.types.Panel):
         #    split.label(text=f"cluster {i}")
         #    split.prop(context.scene.testList[i], "value", text="")
             
-        for i in range(len(context.scene.testListList)):
+        for i, outer in enumerate(context.scene.testListList):
             layout.label(text=f"cluster {i}")
             row = layout.row(align = True)
             row.operator("scene.add_item", text="Add").index = i
             row = layout.row(align = True)
             row.operator("scene.remove_item", text="Remove").index = i
             
+            for j, inner in enumerate(outer.value):
+                layout.prop(inner, "value", text=f"Item {j}")
         
         
         
@@ -59,8 +61,10 @@ class addItem(bpy.types.Operator):
     index: bpy.props.IntProperty()
     
     def execute(self, context):
-        testListItem = context.scene.testList[index]
-        testListItem.add(2)
+        testListList = context.scene.testListList
+        if self.index < len(testListList):
+            newValue = testListList[self.index].value.add()
+            newValue = 42
         return {'FINISHED'}
     
 class removeItem(bpy.types.Operator):
@@ -69,8 +73,11 @@ class removeItem(bpy.types.Operator):
     index: bpy.props.IntProperty()
     
     def execute(self, context):
-        if (len(context.scene.testList) > 0):
-            context.scene.testList.remove(len(context.scene.testList) - 1)
+        testListList = context.scene.testListList
+        if (self.index < len(testListList)):
+            testListList[self.index].value.remove(len(testListList[self.index].value) - 1)
+        #if (len(context.scene.testList) > 0):
+        #    context.scene.testList.remove(len(context.scene.testList) - 1)
         return {'FINISHED'}
     
 class addListItem(bpy.types.Operator):
