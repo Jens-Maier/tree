@@ -29,21 +29,21 @@ class floatProp01(bpy.types.PropertyGroup):
 class floatListProp(bpy.types.PropertyGroup):
     value: bpy.props.CollectionProperty(name = "floatListProperty", type=floatProp)
     
-def ensureOneTrue(scene):
-    #print(self)
-    #print(context)
-    #scene = context.scene
-    #print("callback!")
-    # Find the parent list that contains this boolProp
-    for boolList in scene.parentClusterBoolListList.value:
-        #TEST
-        scene.parentClusterBoolListList[0].value[0].value = True
-        
-        boolList.value[0].value = True
-        #if self in boolList.value:
-        allFalse = all(not b.value for b in boolList.value)
-        if allFalse:
-            boolList.value[0].value = True
+#def ensureOneTrue(scene):
+#    #print(self)
+#    #print(context)
+#    #scene = context.scene
+#    #print("callback!")
+#    # Find the parent list that contains this boolProp
+#    for boolList in scene.parentClusterBoolListList.value:
+#        #TEST
+#        scene.parentClusterBoolListList[0].value[0].value = True
+#        
+#        boolList.value[0].value = True
+#        #if self in boolList.value:
+#        allFalse = all(not b.value for b in boolList.value)
+#        if allFalse:
+#            boolList.value[0].value = True
     
 class boolProp(bpy.types.PropertyGroup):
     value: bpy.props.BoolProperty(name = "boolValue", default=False)
@@ -87,7 +87,22 @@ class angleModeEnumProp(bpy.types.PropertyGroup):
         default='WINDING'
     )
     
+class toggleBool(bpy.types.Operator):
+    bl_idname = "scene.toggle_bool"
+    bl_label = "Toggle Bool"
     
+    list_index = bpy.props.IntProperty()
+    bool_index = bpy.props.IntProperty()
+    
+    def execute(self, context):
+        boolList = context.scene.parentClusterBoolListList[self.listIndex].value
+        boolItem = boolList[self.boolIndex]
+        boolItem.value = not boolItem.value
+        
+        if not any(b.value for b in boolList):
+            boolList[0].value = True
+            
+        return {'FINISHED'}
     
     
 class addSplitLevel(bpy.types.Operator):
@@ -473,16 +488,24 @@ class branchSettings(bpy.types.Panel):
                 boolListItem = scene.parentClusterBoolListList[i].value
                 #boolListItem.Clear()
                 boolCount = 0
-                for boolItem in boolListItem:
-                    split = box.split(factor=0.6)
+                for j, boolItem in enumerate(boolListItem):
+                    #split = box.split(factor=0.6)
                     if boolCount == 0:
-                        split.label(text=f"Stem")
+                        box.label(text=f"Stem")
                         boolCount += 1
                     else:
-                        split.label(text=f"Branch cluster {boolCount - 1}")
+                        box.label(text=f"Branch cluster {boolCount - 1}")
                         boolCount += 1
-                    split.prop(boolItem, "value", text="")
-                    split.row()
+                        
+                    #split.prop(boolItem, "value", text="")
+                    row = layout.row()
+                    op = row.operator("scene.toggle_bool", text="", depress=boolItem.value) # github copilot...
+                    op.list_index = i
+                    op.bool_index = j
+                    
+                    
+                    
+                    #split.row()
                 
               
             ##########################################################################################
@@ -635,6 +658,7 @@ def register():
     #operators
     bpy.utils.register_class(addItem)
     bpy.utils.register_class(removeItem)
+    bpy.utils.register_class(toggleBool)
     bpy.utils.register_class(addSplitLevel)
     bpy.utils.register_class(removeSplitLevel)
     
@@ -675,7 +699,7 @@ def register():
     bpy.types.Scene.branchSplitHeightVariationList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchSplitHeightInLevelListList = bpy.props.CollectionProperty(type=floatListProp)
     
-    bpy.app.handlers.frame_change_post.append(ensureOneTrue)
+    
     
     bpy.types.Scene.treeHeight = bpy.props.FloatProperty(
         name = "tree height",
@@ -1072,7 +1096,6 @@ def unregister():
     #bpy.utils.unregister_class(boolProp)
     #bpy.utils.unregister_class(boolListProp)
     
-    bpy.app.handlers.frame_change_post.remove(ensureOneTrue)
     
     #operators
     #bpy.utils.unregister_class(addItem)
