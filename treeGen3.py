@@ -106,17 +106,22 @@ class addItem(bpy.types.Operator): # add branch cluster
     def execute(self, context):
         context.scene.branchClusters += 1
         
-        while len(context.scene.parentClusterBoolListList) < context.scene.branchClusters:
-            parentClusterBoolListList = context.scene.parentClusterBoolListList.add()
-        #for i in range(len(context.scene.parentClusterBoolListList) - 1): # -1 because the new one is already added
-        
-        #parentClusterBoolListList.value.add()
         
         nrBranches = context.scene.nrBranchesList.add()
         nrBranches.value = 2       # default for nrBranches!
         
-        for j in range(context.scene.branchClusters):
-            context.scene.parentClusterBoolListList[len(parentClusterBoolListList.value) - 1].value.add()
+        parentClusterBoolListList = context.scene.parentClusterBoolListList.add()
+        for b in range(0, context.scene.branchClusters):
+            parentClusterBoolListList.value.add()
+        
+        #parentClusterBoolList = context.scene.parentClusterBoolListList[0]
+        #parentClusterBoolList.value.add() #TODO: real add logic...
+        
+        #in class branchSettings(bpy.types.Panel):
+        #firstBoolList = scene.parentClusterBoolListList[0]
+        #    #firstBool = firstBoolList.value[0]
+        #     split.label(text=f"len first bool list: {len(firstBoolList.value)}") # = 0 !!!
+        
         
         branchSplitMode = context.scene.branchSplitModeList.add()  # TODO (???)
         branchSplitRotateAngle = context.scene.branchSplitRotateAngleList.add()
@@ -163,6 +168,11 @@ class addItem(bpy.types.Operator): # add branch cluster
         branchSplitHeightVariation.value = 0.0
         branchSplitHeightInLevelListListItem = context.scene.branchSplitHeightInLevelListList.add()
         
+        #temp
+        #for boolList in context.scene.parentClusterBoolListList:
+        #    boolList.value.clear()
+        #context.scene.parentClusterBoolListList.clear()
+        
         return {'FINISHED'}
     
 class removeItem(bpy.types.Operator):
@@ -170,34 +180,46 @@ class removeItem(bpy.types.Operator):
     bl_label = "Remove Item"
     index: bpy.props.IntProperty()
     def execute(self, context): 
-      
-        #TEMP
-             
-        #if context.scene.branchClusters > 0:
-        #    context.scene.branchClusters -= 1
-        #    while len(context.scene.parentClusterBoolListList) > 0:
-        #        temp = context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1]
-        #        while len(temp.value) > 0:
-        #           temp.value.remove(len(temp.value) - 1)
-        #    context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
+        #temp
+        #context.scene.parentClusterBoolListList[0].value.clear()
         
-        for item in context.scene.parentClusterBoolListList:
-            item.value.clear()
-        context.scene.parentClusterBoolListList.clear()
-            
-            
-        #TEMP
+        
+        #for b in range(0, context.scene.branchClusters):
+        #    context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
         #context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
-        #if len(context.scene.parentClusterBoolListList) > 0:
-        #    if len(context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1]) > 0:
-        #        context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value.remove(len(context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value) - 1].value) - 1)
-        #context.scene.parentClusterBoolListList == None
+        #
+        #
+        #for boolList in context.scene.parentClusterBoolListList:
+        #    boolList.value.clear()
+        #context.scene.parentClusterBoolListList.clear()
+        
+        context.scene.branchClusters -= 1
+        
+        if len(context.scene.parentClusterBoolListList) > 0:
+            listToClear = context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value
+            lenToClear = len(listToClear)
+            for i in range(0, lenToClear):
+                context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value.remove(len(context.scene.parentClusterBoolListList[i].value) - 1)
+            context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
             
-            
-        #for j in range(context.scene.branchClusters):
-        #    context.scene.parentClusterBoolListList[len(parentClusterBoolListList.value) - 1].value.add()
-            
-        context.scene.nrBranchesList.remove(len(context.scene.nrBranchesList) - 1)
+        
+        #context.scene.nrBranchesList.remove(len(context.scene.nrBranchesList) - 1)
+        
+        #lenBoolListList = len(context.scene.parentClusterBoolListList)
+        #if lenBoolListList > 0:
+        #    lenBoolList = len(context.scene.parentClusterBoolListList[lenBoolListList - 1].value)
+        #    if lenBoolList > 0:
+        #        for b in range(0, lenBoolList - 1):
+        #            context.scene.parentClusterBoolListList[lenBoolListList - 1].value.remove(b)
+        #            context.scene.parentClusterBoolListList[lenBoolListList - 1].value.clear()
+        #    
+        #    context.scene.parentClusterBoolListList.remove(lenBoolListList - 1)
+        
+        #parentClusterBoolListList = context.scene.parentClusterBoolListList.add()
+        #for b in range(0, context.scene.branchClusters):
+        #    parentClusterBoolListList.value.add()
+        
+        
         context.scene.branchSplitModeList.remove(len(context.scene.branchSplitModeList) - 1)
         context.scene.branchSplitRotateAngleList.remove(len(context.scene.branchSplitRotateAngleList) - 1)
         context.scene.branchSplitAngleList.remove(len(context.scene.branchSplitAngleList) - 1)
@@ -222,8 +244,16 @@ class removeItem(bpy.types.Operator):
         context.scene.branchSplitHeightVariationList.remove(len(context.scene.branchSplitHeightVariationList) - 1)
         context.scene.branchSplitHeightInLevelListList.remove(len(context.scene.branchSplitHeightInLevelListList) - 1)
             
+        if len(context.scene.nrBranchesList) > 0:
+            context.scene.nrBranchesList.remove(len(context.scene.nrBranchesList) - 1)
+            
         #temp
-        context.scene.parentClusterBoolListList.clear()
+        #for boolList in context.scene.parentClusterBoolListList:
+        #    boolList.value.clear()
+        #context.scene.parentClusterBoolListList.clear()
+        
+        #temp
+        #context.scene.parentClusterBoolListList.clear()
             
         return {'FINISHED'}
     
@@ -407,52 +437,76 @@ class branchSettings(bpy.types.Panel):
         
         #for i in range(len(scene.nrBranchesList)):
         for i, outer in enumerate(scene.nrBranchesList):
-            parentClusterBoolListList = context.scene.parentClusterBoolListList
-            box = layout.box()
-            box.label(text=f"Branch Cluster {i}")
-            #box.row = layout.row()
-            x = i
-            box.label(text=f"Parent Clusters: i: {x}")
-            if (len(context.scene.parentClusterBoolListList) > i):
-                ln = len(parentClusterBoolListList[i].value)
-                box.label(text=f"len(parentClusterBoolList[i].value: {ln}")
-                l = len(scene.parentClusterBoolListList[i].value)
-                box.label(text=f"Parent Clusters: len(scene.parentClusterBoolListList[i].value): {l}")
-            #for j in range(0, i - 1):  #l???
-            j = i
-            
-            #split = box.split(factor=0.6)
-            row = box.row()
-            if (j == 0):
-                split = box.split(factor=0.6)
-                split.label(text=f"stem: len(scene.parentClusterBoolListList): {len(scene.parentClusterBoolListList)}")
-                if (i < len(scene.parentClusterBoolListList)):
-                    tempBoolList = scene.parentClusterBoolListList[i].value
-                    split.prop(tempBoolList[j], "value", text="")
-                    
+            if i < len(context.scene.nrBranchesList):
+                parentClusterBoolListList = context.scene.parentClusterBoolListList
+                box = layout.box()
+                box.label(text=f"Branch Cluster {i}")
+                #box.row = layout.row()
+                #x = i
+                #box.label(text=f"Parent Clusters: i: {x}")
+                #if (len(context.scene.parentClusterBoolListList) > i):
+                #    ln = len(parentClusterBoolListList[i].value)
+                #    box.label(text=f"len(parentClusterBoolList[i].value: {ln}")
+                #    l = len(scene.parentClusterBoolListList[i].value)
+                #    box.label(text=f"Parent Clusters: len(scene.parentClusterBoolListList[i].value): {l}")
+                #for j in range(0, i - 1):  #l???
+                #j = i
+                
+                #split = box.split(factor=0.6)
+                #row = box.row()
+                #if (j == 0):
+                #    split = box.split(factor=0.6)
+                #    split.label(text=f"stem: len(scene.parentClusterBoolListList): {len(scene.parentClusterBoolListList)}")
+                #    if (i < len(scene.parentClusterBoolListList)):
+                #        tempBoolList = scene.parentClusterBoolListList[i].value
+                #        if (j < len(tempBoolList)):
+                #            split.prop(tempBoolList[j], "value", text="")
+                        
                 #row.label(text="stem")
-            else:
-                split = box.split(factor=0.6)
-                split.label(text=f"{j - 1}: len(scene.parentClusterBoolListList): {len(scene.parentClusterBoolListList)}")
-                #split.prop(len(scene.parentClusterBoolListList))
-                if (i < len(scene.parentClusterBoolListList)):
-                    tempBoolList = scene.parentClusterBoolListList[i].value
-                    if (j < len(tempBoolList)):
-                        split.prop(tempBoolList[j], "value", text="")
+                #else:
+                #    split = box.split(factor=0.6)
+                #    split.label(text=f"{j - 1}: len(scene.parentClusterBoolListList): {len(scene.parentClusterBoolListList)}")
+                    #split.prop(len(scene.parentClusterBoolListList))
+                #    if (i < len(scene.parentClusterBoolListList)):
+                #        tempBoolList = scene.parentClusterBoolListList[i].value
+                #        if (j < len(tempBoolList)):
+                #            split.prop(tempBoolList[j], "value", text="")
                 
                 #row.label(text=f"{j - 1}")
             
-            #box.prop(j, "value", text=f"{j}")
+                #box.prop(j, "value", text=f"{j}")
                 
-            split = box.split(factor=0.6)
-            split.label(text=f"stem: len(scene.nrBranchesList): {len(scene.nrBranchesList)}")
+                split = box.split(factor=0.6)
+                split.label(text=f"stem: len(scene.nrBranchesList): {len(scene.nrBranchesList)}")
+                
+                split = box.split(factor=0.6)
+                outerList = scene.parentClusterBoolListList
+                split.label(text=f"stem: len(scene.parentClusterBoolListList): {len(outerList)}")
+                
+                split = box.split(factor=0.6)
+                split.label(text=f"bool list items:")
+                split = box.split(factor=0.6)
             
-            split = box.split(factor=0.6)
-            split.label(text=f"stem: len(scene.parentClusterBoolListList): {len(scene.parentClusterBoolListList)}")
+            if i < len(scene.parentClusterBoolListList):
+                boolListItem = scene.parentClusterBoolListList[i].value
+                #boolListItem.Clear()
+                for boolItem in boolListItem:
+                    split = box.split(factor=0.6)
+                    split.label(text=f"bool Item")
+                    split.prop(boolItem, "value", text="")
+                    split.row()
+                    
+            #split.label(text=f"Item 0:")
+            #firstBoolList = scene.parentClusterBoolListList[0]
+            ##firstBool = firstBoolList.value[0]
+            #split.label(text=f"len first bool list: {len(firstBoolList.value)}") # = 0 !!!
             
-            split = box.split(factor=0.6)
-            split.label(text="Number of branches")
-            split.prop(scene.nrBranchesList[i], "value", text="")#, slider=True)
+            ##########################################################################################
+            
+            if i < len(scene.nrBranchesList):
+                split = box.split(factor=0.6)
+                split.label(text="Number of branches")
+                split.prop(scene.nrBranchesList[i], "value", text="")#, slider=True)
                 
             #row = layout.row()
             #split = row.split(factor=0.6)
@@ -461,23 +515,26 @@ class branchSettings(bpy.types.Panel):
             if i < len(scene.branchSplitModeList):
                 split.prop(scene.branchSplitModeList[i], "value", text="")
             
-            if scene.branchSplitModeList[i].value == 'ROTATE_ANGLE':
+                if scene.branchSplitModeList[i].value == 'ROTATE_ANGLE':
+                    split = box.split(factor=0.6)
+                    split.label(text="Branch split rotate angle")
+                    if i < len(scene.branchSplitRotateAngleList):
+                        split.prop(scene.branchSplitRotateAngleList[i], "value", text="")
+            
+            if i < len(scene.branchSplitAngleList):
                 split = box.split(factor=0.6)
-                split.label(text="Branch split rotate angle")
-                if i < len(scene.branchSplitRotateAngleList):
-                    split.prop(scene.branchSplitRotateAngleList[i], "value", text="")
-                
-            split = box.split(factor=0.6)
-            split.label(text="Branch split angle")
-            split.prop(scene.branchSplitAngleList[i], "value", text="")
+                split.label(text="Branch split angle")
+                split.prop(scene.branchSplitAngleList[i], "value", text="")
             
-            split = box.split(factor=0.6)
-            split.label(text="Branch split point angle")
-            split.prop(scene.branchSplitPointAngleList[i], "value", text="")
+            if i < len(scene.branchSplitPointAngleList):
+                split = box.split(factor=0.6)
+                split.label(text="Branch split point angle")
+                split.prop(scene.branchSplitPointAngleList[i], "value", text="")
             
-            split = box.split(factor=0.6)
-            split.label(text="Branch shape")
-            split.prop(scene.branchShapeList[i], "value", text="")
+            if i < len(scene.branchShapeList):
+                split = box.split(factor=0.6)
+                split.label(text="Branch shape")
+                split.prop(scene.branchShapeList[i], "value", text="")
             
             split = box.split(factor=0.6)
             split.label(text="Relative branch length")
@@ -1016,95 +1073,95 @@ def register():
     
     
 def unregister():
-        
+    
     #properties
     bpy.utils.unregister_class(treeShapeEnumProp)
-    bpy.utils.unregister_class(splitModeEnumProp)
-    bpy.utils.unregister_class(angleModeEnumProp)
-    bpy.utils.unregister_class(intProp)
-    bpy.utils.unregister_class(floatProp)
-    bpy.utils.unregister_class(posFloatProp)
-    bpy.utils.unregister_class(floatProp01)
-    bpy.utils.unregister_class(floatListProp)
-    bpy.utils.unregister_class(boolProp)
-    bpy.utils.unregister_class(boolListProp)
+    #bpy.utils.unregister_class(splitModeEnumProp)
+    #bpy.utils.unregister_class(angleModeEnumProp)
+    #bpy.utils.unregister_class(intProp)
+    #bpy.utils.unregister_class(floatProp)
+    #bpy.utils.unregister_class(posFloatProp)
+    #bpy.utils.unregister_class(floatProp01)
+    #bpy.utils.unregister_class(floatListProp)
+    #bpy.utils.unregister_class(boolProp)
+    #bpy.utils.unregister_class(boolListProp)
     
     #operators
-    bpy.utils.unregister_class(addItem)
-    bpy.utils.unregister_class(removeItem)
-    bpy.utils.unregister_class(addSplitLevel)
-    bpy.utils.unregister_class(removeSplitLevel)
-    bpy.utils.unregister_class(addParentCluster)
-    bpy.utils.unregister_class(removeParentCluster)
+    #bpy.utils.unregister_class(addItem)
+    #bpy.utils.unregister_class(removeItem)
+    #bpy.utils.unregister_class(addSplitLevel)
+    #bpy.utils.unregister_class(removeSplitLevel)
+    #bpy.utils.unregister_class(addParentCluster)
+    #bpy.utils.unregister_class(removeParentCluster)
     
     #panels
-    bpy.utils.unregister_class(treeGenPanel)
-    bpy.utils.unregister_class(noiseSettings)
-    bpy.utils.unregister_class(splitSettings)
-    bpy.utils.unregister_class(branchSettings)
+    #bpy.utils.unregister_class(treeGenPanel)
+    #bpy.utils.unregister_class(noiseSettings)
+    #bpy.utils.unregister_class(splitSettings)
+    #bpy.utils.unregister_class(branchSettings)
     
         
-    del bpy.types.Scene.nrBranchesList
-    del bpy.types.Scene.nrBranchesListIndex
-    del bpy.types.Scene.treeShape
+    #del bpy.types.Scene.nrBranchesList
+    #del bpy.types.Scene.nrBranchesListIndex
+    #del bpy.types.Scene.treeShape
     
     
     # Unregister the properties.  Important!
-    del bpy.types.Scene.treeHeight
-    del bpy.types.Scene.treeGrowDir
-    del bpy.types.Scene.treeShape
-    del bpy.types.Scene.taper
-    del bpy.types.Scene.branchTipRadius
-    del bpy.types.Scene.ringSpacing
-    del bpy.types.Scene.stemRingResolution
-    del bpy.types.Scene.resampleNr
-    del bpy.types.Scene.noiseAmplitudeLower
-    del bpy.types.Scene.noiseAmplitudeUpper
-    del bpy.types.Scene.noiseAmplitudeLowerUpperExponent
-    del bpy.types.Scene.noiseScale
-    del bpy.types.Scene.splitCurvature
-    del bpy.types.Scene.testRecursionStop
-    del bpy.types.Scene.shyBranchesIterations
-    del bpy.types.Scene.shyBranchesMaxDistance
-    del bpy.types.Scene.nrSplits
-    del bpy.types.Scene.stemSplitMode
-    del bpy.types.Scene.stemSplitRotateAngle
-    del bpy.types.Scene.variance
-    del bpy.types.Scene.curvOffsetStrength
-    del bpy.types.Scene.splitHeightVariation
-    del bpy.types.Scene.stemSplitAngle
-    del bpy.types.Scene.stemSplitPointAngle
-    del bpy.types.Scene.branchClusters
+    #del bpy.types.Scene.treeHeight
+    #del bpy.types.Scene.treeGrowDir
+    #del bpy.types.Scene.treeShape
+    #del bpy.types.Scene.taper
+    #del bpy.types.Scene.branchTipRadius
+    #del bpy.types.Scene.ringSpacing
+    #del bpy.types.Scene.stemRingResolution
+    #del bpy.types.Scene.resampleNr
+    #del bpy.types.Scene.noiseAmplitudeLower
+    #del bpy.types.Scene.noiseAmplitudeUpper
+    #del bpy.types.Scene.noiseAmplitudeLowerUpperExponent
+    #del bpy.types.Scene.noiseScale
+    #del bpy.types.Scene.splitCurvature
+    #del bpy.types.Scene.testRecursionStop
+    #del bpy.types.Scene.shyBranchesIterations
+    #del bpy.types.Scene.shyBranchesMaxDistance
+    #del bpy.types.Scene.nrSplits
+    #del bpy.types.Scene.stemSplitMode
+    #del bpy.types.Scene.stemSplitRotateAngle
+    #del bpy.types.Scene.variance
+    #del bpy.types.Scene.curvOffsetStrength
+    #del bpy.types.Scene.splitHeightVariation
+    #del bpy.types.Scene.stemSplitAngle
+    #del bpy.types.Scene.stemSplitPointAngle
+    #del bpy.types.Scene.branchClusters
 
     # List properties - Unregister these too.
-    del bpy.types.Scene.nrBranchesList
-    del bpy.types.Scene.nrBranchesListIndex
-    
-    del bpy.types.Scene.ringResolution #todo
-    del bpy.types.Scene.branchShapeList
-    del bpy.types.Scene.branchSplitModeList
-    del bpy.types.Scene.branchSplitAngleList
-    del bpy.types.Scene.branchSplitPointAngleList
-    del bpy.types.Scene.branchSplitRotateAngle
-    del bpy.types.Scene.relBranchLengthList
-    del bpy.types.Scene.taperFactorList
-    #del bpy.types.Scene.verticalRangeList
-    del bpy.types.Scene.verticalAngleCrownStartList
-    del bpy.types.Scene.verticalAngleCrownEndList
-    del bpy.types.Scene.verticalAngleBranchStartList
-    del bpy.types.Scene.verticalAngleBranchEndList
-    del bpy.types.Scene.branchAngleModeList
-    del bpy.types.Scene.rotateAngleList
-    del bpy.types.Scene.rotateAngleRangeList
-    del bpy.types.Scene.branchesStartHeightGlobalList
-    del bpy.types.Scene.branchesStartHeightCluster
-    del bpy.types.Scene.branchesEndHeightGlobalList
-    del bpy.types.Scene.branchesEndHeightCluster
-    del bpy.types.Scene.branchCurvatureList
-    del bpy.types.Scene.nrSplitsPerBranchList
-    del bpy.types.Scene.splitsPerBranchVariationList
-    del bpy.types.Scene.branchSplitHeightVariationList
-    del bpy.types.Scene.branchSplitHeightInLevelListList
+    #del bpy.types.Scene.nrBranchesList
+    #del bpy.types.Scene.nrBranchesListIndex
+    #
+    #del bpy.types.Scene.ringResolution #todo
+    #del bpy.types.Scene.branchShapeList
+    #del bpy.types.Scene.branchSplitModeList
+    #del bpy.types.Scene.branchSplitAngleList
+    #del bpy.types.Scene.branchSplitPointAngleList
+    #del bpy.types.Scene.branchSplitRotateAngle
+    #del bpy.types.Scene.relBranchLengthList
+    #del bpy.types.Scene.taperFactorList
+    ##del bpy.types.Scene.verticalRangeList
+    #del bpy.types.Scene.verticalAngleCrownStartList
+    #del bpy.types.Scene.verticalAngleCrownEndList
+    #del bpy.types.Scene.verticalAngleBranchStartList
+    #del bpy.types.Scene.verticalAngleBranchEndList
+    #del bpy.types.Scene.branchAngleModeList
+    #del bpy.types.Scene.rotateAngleList
+    #del bpy.types.Scene.rotateAngleRangeList
+    #del bpy.types.Scene.branchesStartHeightGlobalList
+    #del bpy.types.Scene.branchesStartHeightCluster
+    #del bpy.types.Scene.branchesEndHeightGlobalList
+    #del bpy.types.Scene.branchesEndHeightCluster
+    #del bpy.types.Scene.branchCurvatureList
+    #del bpy.types.Scene.nrSplitsPerBranchList
+    #del bpy.types.Scene.splitsPerBranchVariationList
+    #del bpy.types.Scene.branchSplitHeightVariationList
+    #del bpy.types.Scene.branchSplitHeightInLevelListList
     
 if __name__ == "__main__":
     register();
