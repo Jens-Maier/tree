@@ -106,9 +106,11 @@ class addItem(bpy.types.Operator): # add branch cluster
     def execute(self, context):
         context.scene.branchClusters += 1
         
-        parentClusterBoolListList = context.scene.parentClusterBoolListList.add()
+        while len(context.scene.parentClusterBoolListList) < context.scene.branchClusters:
+            parentClusterBoolListList = context.scene.parentClusterBoolListList.add()
         #for i in range(len(context.scene.parentClusterBoolListList) - 1): # -1 because the new one is already added
-        parentClusterBoolListList.value.add()
+        
+        #parentClusterBoolListList.value.add()
         
         nrBranches = context.scene.nrBranchesList.add()
         nrBranches.value = 2       # default for nrBranches!
@@ -168,54 +170,60 @@ class removeItem(bpy.types.Operator):
     bl_label = "Remove Item"
     index: bpy.props.IntProperty()
     def execute(self, context): 
-        
-        
-         
+      
         #TEMP
-        #while (len(context.scene.parentClusterBoolListList) > 0):
+             
+        #if context.scene.branchClusters > 0:
+        #    context.scene.branchClusters -= 1
+        #    while len(context.scene.parentClusterBoolListList) > 0:
+        #        temp = context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1]
+        #        while len(temp.value) > 0:
+        #           temp.value.remove(len(temp.value) - 1)
         #    context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
-                  
-        if context.scene.branchClusters > 0:
-            context.scene.branchClusters -= 1
-            context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolList) - 1)
+        
+        for item in context.scene.parentClusterBoolListList:
+            item.value.clear()
+        context.scene.parentClusterBoolListList.clear()
             
             
-            #TEMP
-            #context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
-            context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value.remove(len(context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value) - 1].value) - 1)
+        #TEMP
+        #context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
+        #if len(context.scene.parentClusterBoolListList) > 0:
+        #    if len(context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1]) > 0:
+        #        context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value.remove(len(context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value) - 1].value) - 1)
+        #context.scene.parentClusterBoolListList == None
             
             
+        #for j in range(context.scene.branchClusters):
+        #    context.scene.parentClusterBoolListList[len(parentClusterBoolListList.value) - 1].value.add()
             
-            #for j in range(context.scene.branchClusters):
-            #    context.scene.parentClusterBoolListList[len(parentClusterBoolListList.value) - 1].value.add()
+        context.scene.nrBranchesList.remove(len(context.scene.nrBranchesList) - 1)
+        context.scene.branchSplitModeList.remove(len(context.scene.branchSplitModeList) - 1)
+        context.scene.branchSplitRotateAngleList.remove(len(context.scene.branchSplitRotateAngleList) - 1)
+        context.scene.branchSplitAngleList.remove(len(context.scene.branchSplitAngleList) - 1)
+        context.scene.branchSplitPointAngleList.remove(len(context.scene.branchSplitPointAngleList) - 1)
+        context.scene.branchShapeList.remove(len(context.scene.branchShapeList) - 1)
+        context.scene.relBranchLengthList.remove(len(context.scene.relBranchLengthList) - 1)
+        context.scene.taperFactorList.remove(len(context.scene.taperFactorList) - 1)
+        #context.scene.verticalRangeList.remove(len(context.scene.verticalRangeList) - 1)
+        context.scene.verticalAngleCrownStartList.remove(len(context.scene.verticalAngleCrownStartList) - 1)
+        context.scene.verticalAngleCrownEndList.remove(len(context.scene.verticalAngleCrownEndList) - 1)
+        context.scene.verticalAngleBranchStartList.remove(len(context.scene.verticalAngleBranchStartList) - 1)
+        context.scene.verticalAngleBranchEndList.remove(len(context.scene.verticalAngleBranchEndList) - 1)
+        context.scene.branchAngleModeList.remove(len(context.scene.branchAngleModeList) - 1)
+        context.scene.rotateAngleList.remove(len(context.scene.rotateAngleList) - 1)
+        context.scene.branchesStartHeightGlobalList.remove(len(context.scene.branchesStartHeightGlobalList) - 1)
+        context.scene.branchesEndHeightGlobalList.remove(len(context.scene.branchesEndHeightGlobalList) - 1)
+        context.scene.branchesStartHeightClusterList.remove(len(context.scene.branchesStartHeightClusterList) - 1)
+        context.scene.branchesEndHeightClusterList.remove(len(context.scene.branchesEndHeightClusterList) - 1)
+        context.scene.branchCurvatureList.remove(len(context.scene.branchCurvatureList) - 1)
+        context.scene.nrSplitsPerBranchList.remove(len(context.scene.nrSplitsPerBranchList) - 1)
+        context.scene.splitsPerBranchVariationList.remove(len(context.scene.splitsPerBranchVariationList) - 1)
+        context.scene.branchSplitHeightVariationList.remove(len(context.scene.branchSplitHeightVariationList) - 1)
+        context.scene.branchSplitHeightInLevelListList.remove(len(context.scene.branchSplitHeightInLevelListList) - 1)
             
-            context.scene.nrBranchesList.remove(len(context.scene.nrBranchesList) - 1)
-            context.scene.branchSplitModeList.remove(len(context.scene.branchSplitModeList) - 1)
-            context.scene.branchSplitRotateAngleList.remove(len(context.scene.branchSplitRotateAngleList) - 1)
-            context.scene.branchSplitAngleList.remove(len(context.scene.branchSplitAngleList) - 1)
-            context.scene.branchSplitPointAngleList.remove(len(context.scene.branchSplitPointAngleList) - 1)
-            context.scene.branchShapeList.remove(len(context.scene.branchShapeList) - 1)
-            context.scene.relBranchLengthList.remove(len(context.scene.relBranchLengthList) - 1)
-            context.scene.taperFactorList.remove(len(context.scene.taperFactorList) - 1)
-            #context.scene.verticalRangeList.remove(len(context.scene.verticalRangeList) - 1)
-            context.scene.verticalAngleCrownStartList.remove(len(context.scene.verticalAngleCrownStartList) - 1)
-            context.scene.verticalAngleCrownEndList.remove(len(context.scene.verticalAngleCrownEndList) - 1)
-            context.scene.verticalAngleBranchStartList.remove(len(context.scene.verticalAngleBranchStartList) - 1)
-            context.scene.verticalAngleBranchEndList.remove(len(context.scene.verticalAngleBranchEndList) - 1)
-            context.scene.branchAngleModeList.remove(len(context.scene.branchAngleModeList) - 1)
-            context.scene.rotateAngleList.remove(len(context.scene.rotateAngleList) - 1)
-            context.scene.branchesStartHeightGlobalList.remove(len(context.scene.branchesStartHeightGlobalList) - 1)
-            context.scene.branchesEndHeightGlobalList.remove(len(context.scene.branchesEndHeightGlobalList) - 1)
-            context.scene.branchesStartHeightClusterList.remove(len(context.scene.branchesStartHeightClusterList) - 1)
-            context.scene.branchesEndHeightClusterList.remove(len(context.scene.branchesEndHeightClusterList) - 1)
-            context.scene.branchCurvatureList.remove(len(context.scene.branchCurvatureList) - 1)
-            context.scene.nrSplitsPerBranchList.remove(len(context.scene.nrSplitsPerBranchList) - 1)
-            context.scene.splitsPerBranchVariationList.remove(len(context.scene.splitsPerBranchVariationList) - 1)
-            context.scene.branchSplitHeightVariationList.remove(len(context.scene.branchSplitHeightVariationList) - 1)
-            context.scene.branchSplitHeightInLevelListList.remove(len(context.scene.branchSplitHeightInLevelListList) - 1)
-            
-            #temp
-            context.scene.parentClusterBoolListList.clear()
+        #temp
+        context.scene.parentClusterBoolListList.clear()
             
         return {'FINISHED'}
     
@@ -398,60 +406,67 @@ class branchSettings(bpy.types.Panel):
             
         
         #for i in range(len(scene.nrBranchesList)):
-        for i, outer in enumerate(scene.branchSplitHeightInLevelListList):
+        for i, outer in enumerate(scene.nrBranchesList):
             parentClusterBoolListList = context.scene.parentClusterBoolListList
             box = layout.box()
             box.label(text=f"Branch Cluster {i}")
             #box.row = layout.row()
             x = i
             box.label(text=f"Parent Clusters: i: {x}")
-            if (len(parentClusterBoolListList) > i):
+            if (len(context.scene.parentClusterBoolListList) > i):
                 ln = len(parentClusterBoolListList[i].value)
-                box.label(text=f"len(parentClusterBoolList[i]: {ln}")
+                box.label(text=f"len(parentClusterBoolList[i].value: {ln}")
                 l = len(scene.parentClusterBoolListList[i].value)
-            box.label(text=f"Parent Clusters: boolList[{x}] len: {l}")
-            for j in range(0, l):
-                #split = box.split(factor=0.6)
-                row = box.row()
-                if (j == 0):
-                    split = box.split(factor=0.6)
-                    split.label(text=f"stem: length: {len(scene.parentClusterBoolListList)}")
+                box.label(text=f"Parent Clusters: len(scene.parentClusterBoolListList[i].value): {l}")
+            #for j in range(0, i - 1):  #l???
+            j = i
+            
+            #split = box.split(factor=0.6)
+            row = box.row()
+            if (j == 0):
+                split = box.split(factor=0.6)
+                split.label(text=f"stem: len(scene.parentClusterBoolListList): {len(scene.parentClusterBoolListList)}")
+                if (i < len(scene.parentClusterBoolListList)):
                     tempBoolList = scene.parentClusterBoolListList[i].value
                     split.prop(tempBoolList[j], "value", text="")
                     
-                    #row.label(text="stem")
-                else:
-                    split = box.split(factor=0.6)
-                    split.label(text=f"{j - 1}: length: {len(scene.parentClusterBoolListList)}")
-                    #split.prop(len(scene.parentClusterBoolListList))
+                #row.label(text="stem")
+            else:
+                split = box.split(factor=0.6)
+                split.label(text=f"{j - 1}: len(scene.parentClusterBoolListList): {len(scene.parentClusterBoolListList)}")
+                #split.prop(len(scene.parentClusterBoolListList))
+                if (i < len(scene.parentClusterBoolListList)):
                     tempBoolList = scene.parentClusterBoolListList[i].value
-                    split.prop(tempBoolList[j], "value", text="")
-                    
-                    #row.label(text=f"{j - 1}")
+                    if (j < len(tempBoolList)):
+                        split.prop(tempBoolList[j], "value", text="")
                 
-                #box.prop(j, "value", text=f"{j}")
+                #row.label(text=f"{j - 1}")
+            
+            #box.prop(j, "value", text=f"{j}")
                 
             split = box.split(factor=0.6)
-            split.label(text=f"stem: nrBranches length: {len(scene.nrBranchesList)}")
+            split.label(text=f"stem: len(scene.nrBranchesList): {len(scene.nrBranchesList)}")
             
             split = box.split(factor=0.6)
-            split.label(text=f"stem: parentClusters length: {len(scene.parentClusterBoolListList)}")
+            split.label(text=f"stem: len(scene.parentClusterBoolListList): {len(scene.parentClusterBoolListList)}")
             
             split = box.split(factor=0.6)
             split.label(text="Number of branches")
             split.prop(scene.nrBranchesList[i], "value", text="")#, slider=True)
-            
+                
             #row = layout.row()
             #split = row.split(factor=0.6)
             split = box.split(factor=0.6)
             split.label(text="Branch split mode")
-            split.prop(scene.branchSplitModeList[i], "value", text="")
+            if i < len(scene.branchSplitModeList):
+                split.prop(scene.branchSplitModeList[i], "value", text="")
             
             if scene.branchSplitModeList[i].value == 'ROTATE_ANGLE':
                 split = box.split(factor=0.6)
                 split.label(text="Branch split rotate angle")
-                split.prop(scene.branchSplitRotateAngleList[i], "value", text="")
-            
+                if i < len(scene.branchSplitRotateAngleList):
+                    split.prop(scene.branchSplitRotateAngleList[i], "value", text="")
+                
             split = box.split(factor=0.6)
             split.label(text="Branch split angle")
             split.prop(scene.branchSplitAngleList[i], "value", text="")
@@ -466,81 +481,101 @@ class branchSettings(bpy.types.Panel):
             
             split = box.split(factor=0.6)
             split.label(text="Relative branch length")
-            split.prop(scene.relBranchLengthList[i], "value", text="")
+            if i < len(scene.relBranchLengthList):
+                split.prop(scene.relBranchLengthList[i], "value", text="")
             
             split = box.split(factor=0.6)
             split.label(text="Taper factor")
-            split.prop(scene.taperFactorList[i], "value", text="", slider=True)
-            
+            if i < len(scene.taperFactorList):
+                split.prop(scene.taperFactorList[i], "value", text="", slider=True)
+                
             #split = box.split(factor=0.6)
             #split.label(text="Vertical range")
             #split.prop(scene.verticalRangeList[i], "value", text="")
             
             split = box.split(factor=0.6)
             split.label(text="Vertical angle crown start")
-            split.prop(scene.verticalAngleCrownStartList[i], "value", text="")
+            if i < len(scene.verticalAngleCrownStartList):
+                split.prop(scene.verticalAngleCrownStartList[i], "value", text="")
             
             split = box.split(factor=0.6)
             split.label(text="Vertical angle crown end")
-            split.prop(scene.verticalAngleCrownEndList[i], "value", text="")
+            if i < len(scene.verticalAngleCrownEndList):
+                split.prop(scene.verticalAngleCrownEndList[i], "value", text="")
             
             split = box.split(factor=0.6)
             split.label(text="Vertical angle branch start")
-            split.prop(scene.verticalAngleBranchStartList[i], "value", text="")
+            if i < len(scene.verticalAngleBranchStartList):
+                split.prop(scene.verticalAngleBranchStartList[i], "value", text="")
             
             split = box.split(factor=0.6)
             split.label(text="Vertical angle branch end")
-            split.prop(scene.verticalAngleBranchEndList[i], "value", text="")
+            if i < len(scene.verticalAngleBranchEndList):
+                split.prop(scene.verticalAngleBranchEndList[i], "value", text="")
             
             split = box.split(factor=0.6)
             split.label(text="Branch angle mode")
-            split.prop(scene.branchAngleModeList[i], "value", text="")
+            if i < len(scene.branchAngleModeList):
+                split.prop(scene.branchAngleModeList[i], "value", text="")
             
             split = box.split(factor=0.6)
             split.label(text="Rotate angle")
-            split.prop(scene.rotateAngleList[i], "value", text="")
+            if i < len(scene.rotateAngleList):
+                split.prop(scene.rotateAngleList[i], "value", text="")
             
-            if scene.branchAngleModeList[i].value == 'WINDING':
-                split = box.split(factor=0.6)
-                split.label(text="Rotate angle range")
-                split.prop(scene.rotateAngleRangeList[i], "value", text="")
+            if i < len(scene.branchAngleModeList):
+                if scene.branchAngleModeList[i].value == 'WINDING':
+                    split = box.split(factor=0.6)
+                    split.label(text="Rotate angle range")
+                    split.prop(scene.rotateAngleRangeList[i], "value", text="")
             
             split = box.split(factor=0.6)
             split.label(text="Branches start height global")
-            split.prop(scene.branchesStartHeightGlobalList[i], "value", text="")
-            
+            if i < len(scene.branchesStartHeightGlobalList):
+                split.prop(scene.branchesStartHeightGlobalList[i], "value", text="")
+        
             split = box.split(factor=0.6)
             split.label(text="Branches end height global")
-            split.prop(scene.branchesEndHeightGlobalList[i], "value", text="")
+            if i < len(scene.branchesEndHeightGlobalList):
+                split.prop(scene.branchesEndHeightGlobalList[i], "value", text="")
             
             split = box.split(factor=0.6)
             split.label(text="Branches start height cluster")
-            split.prop(scene.branchesStartHeightClusterList[i], "value", text="")
-            
+            if i < len(scene.branchesStartHeightClusterList):
+                split.prop(scene.branchesStartHeightClusterList[i], "value", text="")
+        
             split = box.split(factor=0.6)
             split.label(text="Branches end height cluster")
-            split.prop(scene.branchesEndHeightClusterList[i], "value", text="")
+            if i < len(scene.branchesEndHeightClusterList):
+                split.prop(scene.branchesEndHeightClusterList[i], "value", text="")
             
             split = box.split(factor=0.6)
             split.label(text="Branch curvature")
-            split.prop(scene.branchCurvatureList[i], "value", text="")
+            if i < len(scene.branchCurvatureList):
+                split.prop(scene.branchCurvatureList[i], "value", text="")
             
             split = box.split(factor=0.6)
             split.label(text="Nr splits per branch")
-            split.prop(scene.nrSplitsPerBranchList[i], "value", text="")
+            if i < len(scene.nrSplitsPerBranchList):
+                split.prop(scene.nrSplitsPerBranchList[i], "value", text="")
             
             split = box.split(factor=0.6)
             split.label(text="Splits per branch variation")
-            split.prop(scene.splitsPerBranchVariationList[i], "value", text="")
+            if i < len(scene.splitsPerBranchVariationList):
+                split.prop(scene.splitsPerBranchVariationList[i], "value", text="")
             
             split = box.split(factor=0.6)
             split.label(text="Branch split height variation")
-            split.prop(scene.branchSplitHeightVariationList[i], "value", text="")
+            if i < len(scene.branchSplitHeightVariationList):
+                split.prop(scene.branchSplitHeightVariationList[i], "value", text="")
             
             box.operator("scene.add_split_level", text="Add split level").level = i
             box.operator("scene.remove_split_level", text="Remove split level").level = i
-            for j, inner in enumerate(outer.value):
-                box.prop(inner, "value", text=f"Split height level {j}")
+            if i < len(scene.branchSplitHeightInLevelListList):
+                j = 0
+                for splitLevel in scene.branchSplitHeightInLevelListList[i].value:
+                    box.prop(splitLevel, "value", text=f"Split height level {j}")
+                    j += 1
             
             
 def register():
