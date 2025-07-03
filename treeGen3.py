@@ -91,18 +91,18 @@ class toggleBool(bpy.types.Operator):
     bl_idname = "scene.toggle_bool"
     bl_label = "Toggle Bool"
     
-    list_index = bpy.props.IntProperty()
-    bool_index = bpy.props.IntProperty()
+    list_index: bpy.props.IntProperty()
+    bool_index: bpy.props.IntProperty()
     
     def execute(self, context):
-        boolList = context.scene.parentClusterBoolListList[self.listIndex].value
-        boolItem = boolList[self.boolIndex]
+        boolList = context.scene.parentClusterBoolListList[self.list_index].value
+        boolItem = boolList[self.bool_index]
         boolItem.value = not boolItem.value
         
         if not any(b.value for b in boolList):
             boolList[0].value = True
             
-        return {'FINISHED'}
+        return {'FINISHED'} #bpy.ops.scene.toggle_bool(list_index=0, bool_index=0)
     
     
 class addSplitLevel(bpy.types.Operator):
@@ -503,11 +503,8 @@ class branchSettings(bpy.types.Panel):
                     op.list_index = i
                     op.bool_index = j
                     
-                    
-                    
-                    #split.row()
-                
-              
+            
+            
             ##########################################################################################
             
             if i < len(scene.nrBranchesList):
