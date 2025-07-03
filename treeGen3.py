@@ -29,6 +29,22 @@ class floatProp01(bpy.types.PropertyGroup):
 class floatListProp(bpy.types.PropertyGroup):
     value: bpy.props.CollectionProperty(name = "floatListProperty", type=floatProp)
     
+def ensureOneTrue(scene):
+    #print(self)
+    #print(context)
+    #scene = context.scene
+    #print("callback!")
+    # Find the parent list that contains this boolProp
+    for boolList in scene.parentClusterBoolListList.value:
+        #TEST
+        scene.parentClusterBoolListList[0].value[0].value = True
+        
+        boolList.value[0].value = True
+        #if self in boolList.value:
+        allFalse = all(not b.value for b in boolList.value)
+        if allFalse:
+            boolList.value[0].value = True
+    
 class boolProp(bpy.types.PropertyGroup):
     value: bpy.props.BoolProperty(name = "boolValue", default=False)
     
@@ -113,7 +129,7 @@ class addItem(bpy.types.Operator): # add branch cluster
         parentClusterBoolListList = context.scene.parentClusterBoolListList.add()
         for b in range(0, context.scene.branchClusters):
             parentClusterBoolListList.value.add()
-        
+        parentClusterBoolListList.value[0].value = True
         #parentClusterBoolList = context.scene.parentClusterBoolListList[0]
         #parentClusterBoolList.value.add() #TODO: real add logic...
         
@@ -382,7 +398,7 @@ class splitSettings(bpy.types.Panel):
         row = layout.row()
         
     
-        
+
         
 class branchSettings(bpy.types.Panel):
     bl_label = "Branch Settings"
@@ -441,41 +457,7 @@ class branchSettings(bpy.types.Panel):
                 parentClusterBoolListList = context.scene.parentClusterBoolListList
                 box = layout.box()
                 box.label(text=f"Branch Cluster {i}")
-                #box.row = layout.row()
-                #x = i
-                #box.label(text=f"Parent Clusters: i: {x}")
-                #if (len(context.scene.parentClusterBoolListList) > i):
-                #    ln = len(parentClusterBoolListList[i].value)
-                #    box.label(text=f"len(parentClusterBoolList[i].value: {ln}")
-                #    l = len(scene.parentClusterBoolListList[i].value)
-                #    box.label(text=f"Parent Clusters: len(scene.parentClusterBoolListList[i].value): {l}")
-                #for j in range(0, i - 1):  #l???
-                #j = i
-                
-                #split = box.split(factor=0.6)
-                #row = box.row()
-                #if (j == 0):
-                #    split = box.split(factor=0.6)
-                #    split.label(text=f"stem: len(scene.parentClusterBoolListList): {len(scene.parentClusterBoolListList)}")
-                #    if (i < len(scene.parentClusterBoolListList)):
-                #        tempBoolList = scene.parentClusterBoolListList[i].value
-                #        if (j < len(tempBoolList)):
-                #            split.prop(tempBoolList[j], "value", text="")
-                        
-                #row.label(text="stem")
-                #else:
-                #    split = box.split(factor=0.6)
-                #    split.label(text=f"{j - 1}: len(scene.parentClusterBoolListList): {len(scene.parentClusterBoolListList)}")
-                    #split.prop(len(scene.parentClusterBoolListList))
-                #    if (i < len(scene.parentClusterBoolListList)):
-                #        tempBoolList = scene.parentClusterBoolListList[i].value
-                #        if (j < len(tempBoolList)):
-                #            split.prop(tempBoolList[j], "value", text="")
-                
-                #row.label(text=f"{j - 1}")
-            
-                #box.prop(j, "value", text=f"{j}")
-                
+                               
                 split = box.split(factor=0.6)
                 split.label(text=f"stem: len(scene.nrBranchesList): {len(scene.nrBranchesList)}")
                 
@@ -484,23 +466,25 @@ class branchSettings(bpy.types.Panel):
                 split.label(text=f"stem: len(scene.parentClusterBoolListList): {len(outerList)}")
                 
                 split = box.split(factor=0.6)
-                split.label(text=f"bool list items:")
+                split.label(text=f"Parent clusters:")
                 split = box.split(factor=0.6)
             
             if i < len(scene.parentClusterBoolListList):
                 boolListItem = scene.parentClusterBoolListList[i].value
                 #boolListItem.Clear()
+                boolCount = 0
                 for boolItem in boolListItem:
                     split = box.split(factor=0.6)
-                    split.label(text=f"bool Item")
+                    if boolCount == 0:
+                        split.label(text=f"Stem")
+                        boolCount += 1
+                    else:
+                        split.label(text=f"Branch cluster {boolCount - 1}")
+                        boolCount += 1
                     split.prop(boolItem, "value", text="")
                     split.row()
-                    
-            #split.label(text=f"Item 0:")
-            #firstBoolList = scene.parentClusterBoolListList[0]
-            ##firstBool = firstBoolList.value[0]
-            #split.label(text=f"len first bool list: {len(firstBoolList.value)}") # = 0 !!!
-            
+                
+              
             ##########################################################################################
             
             if i < len(scene.nrBranchesList):
@@ -690,6 +674,8 @@ def register():
     bpy.types.Scene.splitsPerBranchVariationList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchSplitHeightVariationList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchSplitHeightInLevelListList = bpy.props.CollectionProperty(type=floatListProp)
+    
+    bpy.app.handlers.frame_change_post.append(ensureOneTrue)
     
     bpy.types.Scene.treeHeight = bpy.props.FloatProperty(
         name = "tree height",
@@ -1085,6 +1071,8 @@ def unregister():
     #bpy.utils.unregister_class(floatListProp)
     #bpy.utils.unregister_class(boolProp)
     #bpy.utils.unregister_class(boolListProp)
+    
+    bpy.app.handlers.frame_change_post.remove(ensureOneTrue)
     
     #operators
     #bpy.utils.unregister_class(addItem)
