@@ -15,16 +15,17 @@ import mathutils
 from mathutils import Vector
 
 class node():
-    def __init__(self, Point, Radius, Tangent, Cotangent, RingResolution):
+    def __init__(self, Point, Radius, Tangent, Cotangent, RingResolution, Taper):
         self.point = Point
         self.radius = Radius
         self.tangent = Tangent
         self.cotangent = Cotangent
         self.ringResolution = RingResolution
+        self.taper = Taper
         self.next = None
         
 class segment():
-    def __init__(self, Start, End, StartTangent, EndTangent, StartCotangent, EndCotangent, StartRadius, EndRadius, RingResolution):
+    def __init__(self, Start, End, StartTangent, EndTangent, StartCotangent, EndCotangent, StartRadius, EndRadius, RingResolution, ConnectedToPrevious):
         self.start = Start
         self.end = End
         self.startTangent = StartTangent
@@ -34,6 +35,7 @@ class segment():
         self.startRadius = StartRadius
         self.endRadius = EndRadius
         self.ringResolution = RingResolution
+        self.connectedToPrevious = ConnectedToPrevious
 
         
 class generateTree(bpy.types.Operator):
@@ -45,7 +47,7 @@ class generateTree(bpy.types.Operator):
         height = context.scene.treeHeight
         taper = context.scene.taper
         radius = context.scene.branchTipRadius
-        n = context.scene.stemRingResolution
+        stemRingRes = context.scene.stemRingResolution
         
         #normals: mesh overlays (only in edit mode) -> Normals
         
@@ -58,17 +60,21 @@ class generateTree(bpy.types.Operator):
             bpy.ops.object.delete()
             
             nodes = []
-            nodes.append(node(Vector((0.0, 0.0, 0.0)), 0.3, Vector((0.0, 0.0, 1.0)), Vector((1.0, 0.0, 0.0)),   6 ))
-            nodes.append(node(dir * height, 0.1, Vector((0.0, 0.0, 1.0)), Vector((1.0, 0.0, 0.0)), 6 ))
+            nodes.append(node(Vector((0.0, 0.0, 0.0)), 0.1, Vector((0.0, 0.0, 1.0)), Vector((1.0, 0.0, 0.0)), 24, context.scene.taper))
+            nodes.append(node(dir * height * 0.7, 0.1, Vector((0.0, 0.5, 1.0)), Vector((1.0, 0.0, 0.0)), 24, context.scene.taper))
+            nodes.append(node(dir * height, 0.1, Vector((0.0, 0.0, 1.0)), Vector((1.0, 0.0, 0.0)), 24, context.scene.taper))
             nodes[0].next = nodes[1]
+            nodes[1].next = nodes[2]
         
-            #drawDebugPoint(nodes[0].point)
-            #drawDebugPoint(nodes[1].point)
+            drawDebugPoint(nodes[0].point)
+            drawDebugPoint(nodes[1].point)
+            drawDebugPoint(nodes[2].point)
             
+            calculateRadius(nodes[0], 100.0, context.scene.branchTipRadius)
             segments = []
-            segments = getAllSegments(segments, nodes[0])
+            segments = getAllSegments(segments, nodes[0], False)
+            generateVerticesAndTriangles(segments, dir, context.scene.taper, radius, stemRingRes, context.scene.ringSpacing)
             
-            generateVerticesAndTriangles(segments, dir, taper, radius, n)
             bpy.ops.object.select_all(action='DESELECT')
         return {'FINISHED'}
     
@@ -77,12 +83,31 @@ def drawDebugPoint(pos, name="debugPoint"):
     bpy.context.active_object.empty_display_size = 0.1
     bpy.context.active_object.name=name
     
-def getAllSegments(segments, activeNode):
-    if (activeNode.next != None):
-        segments.append(segment(activeNode.point, activeNode.next.point, activeNode.tangent, activeNode.next.tangent, activeNode.cotangent, activeNode.next.cotangent, activeNode.radius, activeNode.next.radius, activeNode.ringResolution))
+def calculateRadius(activeNode, maxRadius, branchTipRadius):
+    if activeNode.next != None:
+        sum = 0.0
+        sum = calculateRadius(activeNode.next, maxRadius, branchTipRadius)
+        sum += (activeNode.next.point - activeNode.point).length * activeNode.taper * activeNode.taper
+        
+        #if len(branches) > 0: ....
+        if sum < maxRadius:
+            if sum == 0.0:
+                activeNode.radius = 0.01
+            else:
+                activeNode.radius = sum
+        else:
+            activeNode.radius = maxRadius
+        return sum
+    else:
+        activeNode.radius = branchTipRadius
+        return branchTipRadius
     
-    
-    return segments
+def getAllSegments(segments, activeNode, connectedToPrev):
+    if activeNode.next != None:
+        segments.append(segment(activeNode.point, activeNode.next.point, activeNode.tangent, activeNode.next.tangent, activeNode.cotangent, activeNode.next.cotangent, activeNode.radius, activeNode.next.radius, activeNode.ringResolution, connectedToPrev))
+        return getAllSegments(segments, activeNode.next, False)
+    else:
+        return segments
 
 def sampleSplineC(controlPt0, controlPt1, controlPt2, controlPt3, t):
     return (1.0 - t)**3.0 * controlPt0 + 3.0 * (1.0 - t)**2.0 * t * controlPt1 + 3.0 * (1.0 - t) * t**2.0 * controlPt2 + t**3.0 * controlPt3
@@ -103,45 +128,57 @@ def sampleSplineTangentT(start, end, startTangent, endTangent, t):
 def lerp(a, b, t):
     return a + (b - a) * t
     
-def generateVerticesAndTriangles(segments, dir, taper, radius, n):
+    
+    
+def generateVerticesAndTriangles(segments, dir, taper, radius, stemRingRes, ringSpacing):
     vertices = []
     faces = []
     
-    sections = 6 # TEMP !! TODO
-    branchRingSpacing = 0.1 # TEMP !! TODO
-    
-    for segment in segments:
-        controlPt1 = segment.start + segment.startTangent.normalized() * (segment.end - segment.start).length / 3.0
-        controlPt2 = segment.end - segment.endTangent.normalized() * (segment.end - segment.start).length / 3.0
-        length = (segment.end - segment.start).length
-            
-        for section in range(0, sections): #TODO: sampleSpline...
-            pos = sampleSplineC(segment.start, controlPt1, controlPt2, segment.end, section / sections)
-            tangent = sampleSplineTangentC(segment.start, controlPt1, controlPt2, segment.end, section / sections).normalized()
-            dirA = lerp(segment.startCotangent, segment.endCotangent, section / sections)
+    offset = 0
+    counter = 0
+        
+    for s in range(0, len(segments)):
+        startSection = 0
+        
+        segmentLength = (segments[s].end - segments[s].start).length
+        sections = round(segmentLength / ringSpacing)
+        if sections <= 0:
+            sections = 1
+        branchRingSpacing = segmentLength / sections
+        
+        if segments[s].connectedToPrevious == True:
+            startSection = 1
+            offset -= stemRingRes + 1
+        else:
+            offset = len(vertices)
+        
+        controlPt1 = segments[s].start + segments[s].startTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0
+        controlPt2 = segments[s].end - segments[s].endTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0
+        
+        
+        for section in range(startSection, sections + 1):
+            pos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / sections)
+            tangent = sampleSplineTangentC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / sections).normalized()
+            dirA = lerp(segments[s].startCotangent, segments[s].endCotangent, section / sections)
             dirB = (tangent.cross(dirA)).normalized()
             dirA = (dirB.cross(tangent)).normalized()
             
-            for i in range(n):
-                angle = (2 * math.pi * i) / n
+            for i in range(0, stemRingRes):
+                angle = (2 * math.pi * i) / stemRingRes
                 x = math.cos(angle)
                 y = math.sin(angle)
-                v = pos + dirA * lerp(segment.startRadius, segment.endRadius, section / (length / branchRingSpacing)) * math.cos(angle) + dirB * lerp(segment.startRadius, segment.endRadius, section / (length / branchRingSpacing)) * math.sin(angle)
+                v = pos + dirA * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.cos(angle) + dirB * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.sin(angle)
                 vertices.append(v)
-                drawDebugPoint(v)
-                
-            #for i in range(n):
-            #    angle = (2 * math.pi * i) / n
-            #    x = math.cos(angle)
-            #    y = math.sin(angle)
-            #    v = segment.end + segment.endCotangent * math.cos(angle) + segment.endTangent.cross(segment.endCotangent) * math.sin(angle)
-            #    vertices.append(v)
-            #    drawDebugPoint(v)
+                counter += 1
     
-    #TODO...sections!
-    for i in range(0, len(segments)):
-        for j in range(n):
-            faces.append((j, (j + 1) % n, n + (j + 1) % n , n + (j ) % n))
+        
+        for c in range(0, sections): 
+            for j in range(0, stemRingRes):
+                faces.append((offset + c * (stemRingRes) + j,
+                              offset + c * (stemRingRes) + (j + 1) % (stemRingRes), 
+                              offset + c * (stemRingRes) + stemRingRes  + (j + 1) % (stemRingRes), 
+                              offset + c * (stemRingRes) + stemRingRes  + j))
+        
     
     
     #for i in range(1, n):
@@ -766,7 +803,7 @@ def register():
         name = "Ring Spacing",
         description = "Spacing between rings",
         default = 0.1,
-        min = 0
+        min = 0.001
     )
     bpy.types.Scene.noiseAmplitudeLower = bpy.props.FloatProperty(
         name = "Noise Amplitude Lower",
