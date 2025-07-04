@@ -12,6 +12,172 @@ bl_info = {
 import bpy
 import math
 import mathutils
+from mathutils import Vector
+
+class node():
+    def __init__(self, Point, Radius, Tangent, Cotangent, RingResolution):
+        self.point = Point
+        self.radius = Radius
+        self.tangent = Tangent
+        self.cotangent = Cotangent
+        self.ringResolution = RingResolution
+        self.next = None
+        
+class segment():
+    def __init__(self, Start, End, StartTangent, EndTangent, StartCotangent, EndCotangent, StartRadius, EndRadius, RingResolution):
+        self.start = Start
+        self.end = End
+        self.startTangent = StartTangent
+        self.endTangent = EndTangent
+        self.startCotangent = StartCotangent
+        self.endCotangent = EndCotangent
+        self.startRadius = StartRadius
+        self.endRadius = EndRadius
+        self.ringResolution = RingResolution
+
+        
+class generateTree(bpy.types.Operator):
+    bl_label = "generateTree"
+    bl_idname = "object.generate_tree"
+    
+    def execute(self, context):
+        dir = context.scene.treeGrowDir
+        height = context.scene.treeHeight
+        taper = context.scene.taper
+        radius = context.scene.branchTipRadius
+        n = context.scene.stemRingResolution
+        
+        #normals: mesh overlays (only in edit mode) -> Normals
+        
+        #delete all existing empties
+        if context.active_object is not None and context.active_object.mode == 'OBJECT':
+            bpy.ops.object.select_all(action='DESELECT')
+            for obj in bpy.context.scene.objects:
+                if obj.type == 'EMPTY':
+                    obj.select_set(True)
+            bpy.ops.object.delete()
+            
+            nodes = []
+            nodes.append(node(Vector((0.0, 0.0, 0.0)), 0.3, Vector((0.0, 0.0, 1.0)), Vector((1.0, 0.0, 0.0)),   6 ))
+            nodes.append(node(dir * height, 0.1, Vector((0.0, 0.0, 1.0)), Vector((1.0, 0.0, 0.0)), 6 ))
+            nodes[0].next = nodes[1]
+        
+            #drawDebugPoint(nodes[0].point)
+            #drawDebugPoint(nodes[1].point)
+            
+            segments = []
+            segments = getAllSegments(segments, nodes[0])
+            
+            generateVerticesAndTriangles(segments, dir, taper, radius, n)
+            bpy.ops.object.select_all(action='DESELECT')
+        return {'FINISHED'}
+    
+def drawDebugPoint(pos, name="debugPoint"):
+    bpy.ops.object.empty_add(type='SPHERE', location=pos)
+    bpy.context.active_object.empty_display_size = 0.1
+    bpy.context.active_object.name=name
+    
+def getAllSegments(segments, activeNode):
+    if (activeNode.next != None):
+        segments.append(segment(activeNode.point, activeNode.next.point, activeNode.tangent, activeNode.next.tangent, activeNode.cotangent, activeNode.next.cotangent, activeNode.radius, activeNode.next.radius, activeNode.ringResolution))
+    
+    
+    return segments
+
+def sampleSplineC(controlPt0, controlPt1, controlPt2, controlPt3, t):
+    return (1.0 - t)**3.0 * controlPt0 + 3.0 * (1.0 - t)**2.0 * t * controlPt1 + 3.0 * (1.0 - t) * t**2.0 * controlPt2 + t**3.0 * controlPt3
+
+def sampleSplineT(start, end, startTangent, endTangent, t):
+    controlPt1 = start + startTangent.normalized() * (end - start).length / 3.0
+    controlPt2 = end - endTangent.normalized() * (end - start).length / 3.0
+    return (1.0 - t)**3.0 * start + 3.0 * (1.0 - t)**2.0 * t * controlPt1 + 3.0 * (1.0 - t) * t**2.0 * controlPt2 + t**3.0 * end
+
+def sampleSplineTangentC(controlPt0, controlPt1, controlPt2, controlPt3, t):
+    return (-3.0 * (1.0 - t)**2.0 * controlPt0 + 3.0 * (3.0 * t**2.0 - 4.0 * t + 1.0) * controlPt1 + 3.0 * (-3.0 * t**2.0 + 2.0 * t) * controlPt2 + 3.0 * t**2.0 * controlPt3).normalized()
+
+def sampleSplineTangentT(start, end, startTangent, endTangent, t):
+    controlPt1 = start + startTangent.normalized() * (end - start).length / 3.0
+    controlPt2 = end - endTangent.normalized() * (end - start).length / 3.0
+    return (-3.0 * (1.0 - t)**2.0 * controlPt0 + 3.0 * (3.0 * t**2.0 - 4.0 * t + 1.0) * controlPt1 + 3.0 * (-3.0 * t**2.0 + 2.0 * t) * controlPt2 + 3.0 * t**2.0 * controlPt3).normalized()
+
+def lerp(a, b, t):
+    return a + (b - a) * t
+    
+def generateVerticesAndTriangles(segments, dir, taper, radius, n):
+    vertices = []
+    faces = []
+    
+    sections = 6 # TEMP !! TODO
+    branchRingSpacing = 0.1 # TEMP !! TODO
+    
+    for segment in segments:
+        controlPt1 = segment.start + segment.startTangent.normalized() * (segment.end - segment.start).length / 3.0
+        controlPt2 = segment.end - segment.endTangent.normalized() * (segment.end - segment.start).length / 3.0
+        length = (segment.end - segment.start).length
+            
+        for section in range(0, sections): #TODO: sampleSpline...
+            pos = sampleSplineC(segment.start, controlPt1, controlPt2, segment.end, section / sections)
+            tangent = sampleSplineTangentC(segment.start, controlPt1, controlPt2, segment.end, section / sections).normalized()
+            dirA = lerp(segment.startCotangent, segment.endCotangent, section / sections)
+            dirB = (tangent.cross(dirA)).normalized()
+            dirA = (dirB.cross(tangent)).normalized()
+            
+            for i in range(n):
+                angle = (2 * math.pi * i) / n
+                x = math.cos(angle)
+                y = math.sin(angle)
+                v = pos + dirA * lerp(segment.startRadius, segment.endRadius, section / (length / branchRingSpacing)) * math.cos(angle) + dirB * lerp(segment.startRadius, segment.endRadius, section / (length / branchRingSpacing)) * math.sin(angle)
+                vertices.append(v)
+                drawDebugPoint(v)
+                
+            #for i in range(n):
+            #    angle = (2 * math.pi * i) / n
+            #    x = math.cos(angle)
+            #    y = math.sin(angle)
+            #    v = segment.end + segment.endCotangent * math.cos(angle) + segment.endTangent.cross(segment.endCotangent) * math.sin(angle)
+            #    vertices.append(v)
+            #    drawDebugPoint(v)
+    
+    #TODO...sections!
+    for i in range(0, len(segments)):
+        for j in range(n):
+            faces.append((j, (j + 1) % n, n + (j + 1) % n , n + (j ) % n))
+    
+    
+    #for i in range(1, n):
+    #    j = i + 1 if i < n else 1
+    #    faces.append((i, i + 1, i + n - 1, i + n))
+    
+    #vertices.append((0.0,0.0,0.0))
+    #for i in range(n):
+    #    angle = (2 * math.pi * i) / n
+    #    x = math.cos(angle)
+    #    y = math.sin(angle)
+    #    v = mathutils.Vector((x, y, 0.0))
+    #    vertices.append(v)
+    #
+    #faces = []
+    #for i in range(1, n + 1):
+    #    j = i + 1 if i < n else 1
+    #    faces.append((0, i, j))
+        
+    meshData = bpy.data.meshes.new("treeMesh")
+    meshData.from_pydata(vertices, [], faces)
+    meshData.update()
+    
+    name = "tree"
+    if name in bpy.data.objects:
+        bpy.data.objects[name].data = meshData
+        treeObject = bpy.data.objects[name]
+        treeObject.select_set(True)
+    else:
+        treeObject = bpy.data.objects.new("tree", meshData)
+        bpy.context.collection.objects.link(treeObject)
+        treeObject.select_set(True)
+        
+
+        
+
 
 
 class intProp(bpy.types.PropertyGroup):
@@ -28,23 +194,7 @@ class floatProp01(bpy.types.PropertyGroup):
     
 class floatListProp(bpy.types.PropertyGroup):
     value: bpy.props.CollectionProperty(name = "floatListProperty", type=floatProp)
-    
-#def ensureOneTrue(scene):
-#    #print(self)
-#    #print(context)
-#    #scene = context.scene
-#    #print("callback!")
-#    # Find the parent list that contains this boolProp
-#    for boolList in scene.parentClusterBoolListList.value:
-#        #TEST
-#        scene.parentClusterBoolListList[0].value[0].value = True
-#        
-#        boolList.value[0].value = True
-#        #if self in boolList.value:
-#        allFalse = all(not b.value for b in boolList.value)
-#        if allFalse:
-#            boolList.value[0].value = True
-    
+        
 class boolProp(bpy.types.PropertyGroup):
     value: bpy.props.BoolProperty(name = "boolValue", default=False)
     
@@ -55,8 +205,6 @@ class boolListProp(bpy.types.PropertyGroup):
         description="Show/hide branch cluster",
         default=True
     )
-    
-
     
 class treeShapeEnumProp(bpy.types.PropertyGroup):
     value: bpy.props.EnumProperty(
@@ -135,15 +283,11 @@ class removeSplitLevel(bpy.types.Operator):
         print("remove split level")
         return {'FINISHED'}
     
-
-    
-    
 class addItem(bpy.types.Operator): # add branch cluster
     bl_idname = "scene.add_list_item"
     bl_label = "Add Item"
     def execute(self, context):
         context.scene.branchClusters += 1
-        
         
         nrBranches = context.scene.nrBranchesList.add()
         nrBranches.value = 2       # default for nrBranches!
@@ -152,15 +296,7 @@ class addItem(bpy.types.Operator): # add branch cluster
         for b in range(0, context.scene.branchClusters):
             parentClusterBoolListList.value.add()
         parentClusterBoolListList.value[0].value = True
-        #parentClusterBoolList = context.scene.parentClusterBoolListList[0]
-        #parentClusterBoolList.value.add() #TODO: real add logic...
-        
-        #in class branchSettings(bpy.types.Panel):
-        #firstBoolList = scene.parentClusterBoolListList[0]
-        #    #firstBool = firstBoolList.value[0]
-        #     split.label(text=f"len first bool list: {len(firstBoolList.value)}") # = 0 !!!
-        
-        
+                
         branchSplitMode = context.scene.branchSplitModeList.add()  # TODO (???)
         branchSplitRotateAngle = context.scene.branchSplitRotateAngleList.add()
         branchSplitRotateAngle.value = 0.0
@@ -206,11 +342,6 @@ class addItem(bpy.types.Operator): # add branch cluster
         branchSplitHeightVariation.value = 0.0
         branchSplitHeightInLevelListListItem = context.scene.branchSplitHeightInLevelListList.add()
         
-        #temp
-        #for boolList in context.scene.parentClusterBoolListList:
-        #    boolList.value.clear()
-        #context.scene.parentClusterBoolListList.clear()
-        
         return {'FINISHED'}
     
 class removeItem(bpy.types.Operator):
@@ -218,19 +349,6 @@ class removeItem(bpy.types.Operator):
     bl_label = "Remove Item"
     index: bpy.props.IntProperty()
     def execute(self, context): 
-        #temp
-        #context.scene.parentClusterBoolListList[0].value.clear()
-        
-        
-        #for b in range(0, context.scene.branchClusters):
-        #    context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
-        #context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
-        #
-        #
-        #for boolList in context.scene.parentClusterBoolListList:
-        #    boolList.value.clear()
-        #context.scene.parentClusterBoolListList.clear()
-        
         context.scene.branchClusters -= 1
         
         if len(context.scene.parentClusterBoolListList) > 0:
@@ -239,23 +357,6 @@ class removeItem(bpy.types.Operator):
             for i in range(0, lenToClear):
                 context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value.remove(len(context.scene.parentClusterBoolListList[i].value) - 1)
             context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
-            
-        
-        #context.scene.nrBranchesList.remove(len(context.scene.nrBranchesList) - 1)
-        
-        #lenBoolListList = len(context.scene.parentClusterBoolListList)
-        #if lenBoolListList > 0:
-        #    lenBoolList = len(context.scene.parentClusterBoolListList[lenBoolListList - 1].value)
-        #    if lenBoolList > 0:
-        #        for b in range(0, lenBoolList - 1):
-        #            context.scene.parentClusterBoolListList[lenBoolListList - 1].value.remove(b)
-        #            context.scene.parentClusterBoolListList[lenBoolListList - 1].value.clear()
-        #    
-        #    context.scene.parentClusterBoolListList.remove(lenBoolListList - 1)
-        
-        #parentClusterBoolListList = context.scene.parentClusterBoolListList.add()
-        #for b in range(0, context.scene.branchClusters):
-        #    parentClusterBoolListList.value.add()
         
         
         context.scene.branchSplitModeList.remove(len(context.scene.branchSplitModeList) - 1)
@@ -284,31 +385,8 @@ class removeItem(bpy.types.Operator):
             
         if len(context.scene.nrBranchesList) > 0:
             context.scene.nrBranchesList.remove(len(context.scene.nrBranchesList) - 1)
-            
-        #temp
-        #for boolList in context.scene.parentClusterBoolListList:
-        #    boolList.value.clear()
-        #context.scene.parentClusterBoolListList.clear()
         
-        #temp
-        #context.scene.parentClusterBoolListList.clear()
-            
         return {'FINISHED'}
-    
-#class addBranchCluster(bpy.types.Operator):
-#    bl_idname = "addBranchCluster"
-#    bl_label = "Add Branch Cluster"
-#    def execute(self, context):
-#        context.scene.branchClusters += 1
-#        return {'FINISHED'}
-    
-#class removeBranchCluster(bpy.types.Operator): ## TODO: remove -> rename addItem to addBranchCluster
-#    bl_idname = "removeBranchCluster"
-#    bl_label = "Remove Branch Cluster"
-#    def execute(self, context):
-#        if (context.scene.branchClusters > 0):
-#            context.scene.branchClusters -= 1
-#        return {'FINISHED'}
     
 class treeGenPanel(bpy.types.Panel):
     bl_label = "Tree Generator"
@@ -321,16 +399,11 @@ class treeGenPanel(bpy.types.Panel):
         layout = self.layout
         obj = context.object
         row = layout.row()
-        
-        #row.template_list("UL_MyList", "", context.scene, "myList", context.scene, "myListIndex")
-        
-        #row = layout.row(align = True)
-        #row.operator("scene.add_list_item", text="Add")
-        #row.operator("scene.remove_list_item", text="Remove").index = context.scene.myListIndex
-    
-    
+            
         row = layout.row()
         row.label(text = "Tree Generator", icon = 'COLORSET_12_VEC')
+        row = layout.row()
+        layout.operator("object.generate_tree", text="Generate Tree")
         row = layout.row()
         layout.prop(context.scene, "treeHeight")
         row = layout.row()
@@ -350,6 +423,8 @@ class treeGenPanel(bpy.types.Panel):
         row = layout.row()
         layout.prop(context.scene, "treeShapeEnumProp")
         row = layout.row()
+        
+
         
         
 class noiseSettings(bpy.types.Panel):
@@ -402,11 +477,6 @@ class splitSettings(bpy.types.Panel):
         split.label(text="Stem split mode")
         split.prop(context.scene, "stemSplitMode", text="")
         
-            #row = layout.row()
-            #split = row.split(factor=0.5)
-            #split.label(text="Branch split mode:")
-            #split.prop(scene.branchSplitModeList[i], "value", text="")
-            
         row = layout.row()
         layout.prop(context.scene, "stemSplitRotateAngle")
         row = layout.row()
@@ -421,7 +491,7 @@ class splitSettings(bpy.types.Panel):
         
 def draw_parent_cluster_bools(layout, scene, cluster_index):
     boolListItem = scene.parentClusterBoolListList[cluster_index].value
-    #boolListItem.Clear()
+    
     boolCount = 0
     for j, boolItem in enumerate(boolListItem):
         split = layout.split(factor=0.6)
@@ -433,29 +503,10 @@ def draw_parent_cluster_bools(layout, scene, cluster_index):
             split.label(text=f"Branch cluster {boolCount - 1}")
             boolCount += 1
             
-        #split.prop(boolItem, "value", text="")
-        #row = layout.row()
         op = split.operator("scene.toggle_bool", text="", depress=boolItem.value) # github copilot...
         op.list_index = cluster_index
         op.bool_index = j
         
-class parentClusterPanel(bpy.types.Panel):
-    bl_label = "Branch Cluster"
-    bl_idname = "PT_BranchCluster"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'treeGen'
-    bl_parent_id = 'PT_BranchSettings'
-    bl_options = {'DEFAULT_CLOSED'}
-    
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        
-        for i, cluster in enumerate(scene.parentClusterBoolListList):
-            box = layout.box()
-            box.label(text=f"Branch cluster text {i}")
-            draw_parent_cluster_bools(box, scene, i)
 
         
 class branchSettings(bpy.types.Panel):
@@ -476,77 +527,23 @@ class branchSettings(bpy.types.Panel):
         row.operator("scene.add_list_item", text="Add")
         row.operator("scene.remove_list_item", text="Remove").index = context.scene.nrBranchesListIndex
     
-        
-        outerBox = layout.box()
-        row = outerBox.row()
-        
-        
-        
         for i, outer in enumerate(scene.parentClusterBoolListList):
             box = layout.box()
             box.label(text=f"Branch cluster {i}")
             
             row = box.row()
             
-            
             row.prop(outer, "show_cluster", icon="TRIA_DOWN" if outer.show_cluster else "TRIA_RIGHT",
-                emboss=False, text=f"Branch cluster {i}", toggle=True)
+                emboss=False, text=f"Parent clusters", toggle=True)
             
             if outer.show_cluster:
                 if i < len(context.scene.nrBranchesList):
-                    box1 = layout.box()
                     
-                    draw_parent_cluster_bools(box1, scene, i)
+                    box1 = box.box()
+                    draw_parent_cluster_bools(box1, scene, i) #FUNKT!
                     
                     parentClusterBoolListList = context.scene.parentClusterBoolListList
                     
-                    #box.label(text=f"Branch Cluster {i}")
-                    
-                    split = box.split(factor=0.6)
-                    split.label(text=f"stem: len(scene.nrBranchesList): {len(scene.nrBranchesList)}")
-                    
-                    split = box.split(factor=0.6)
-                    outerList = scene.parentClusterBoolListList
-                    split.label(text=f"stem: len(scene.parentClusterBoolListList): {len(outerList)}")
-                    
-                    split = box.split(factor=0.6)
-                    split.label(text=f"Parent clusters:")
-                    split = box.split(factor=0.6)
-                    
-                    
-                    
-                    
-                    #box1 = layout.box()
-                    #box.label(text=f"Branch cluster {i}")
-                
-                
-                    #draw_parent_cluster_bools(box1, scene, i) -> move to subpanel!
-                    
-                    
-                    
-                
-            
-            #if i < len(scene.parentClusterBoolListList):
-            #    boolListItem = scene.parentClusterBoolListList[i].value
-            #    #boolListItem.Clear()
-            #    boolCount = 0
-            #    for j, boolItem in enumerate(boolListItem):
-            #        split = box.split(factor=0.6)
-            #        #row = box.row()
-            #        if boolCount == 0:
-            #            split.label(text=f"Stem")
-            #            boolCount += 1
-            #        else:
-            #            split.label(text=f"Branch cluster {boolCount - 1}")
-            #            boolCount += 1
-            #            
-            #        #split.prop(boolItem, "value", text="")
-            #        #row = layout.row()
-            #        op = split.operator("scene.toggle_bool", text="", depress=boolItem.value) # github copilot...
-            #        op.list_index = i
-            #        op.bool_index = j
-            
-            
             
             ##########################################################################################
             
@@ -701,6 +698,7 @@ def register():
     bpy.utils.register_class(toggleBool)
     bpy.utils.register_class(addSplitLevel)
     bpy.utils.register_class(removeSplitLevel)
+    bpy.utils.register_class(generateTree)
     
     
     #panels
@@ -708,7 +706,7 @@ def register():
     bpy.utils.register_class(noiseSettings)
     bpy.utils.register_class(splitSettings)
     bpy.utils.register_class(branchSettings)
-    bpy.utils.register_class(parentClusterPanel)
+    #bpy.utils.register_class(parentClusterPanel)
           
     #collections
     bpy.types.Scene.parentClusterBoolList = bpy.props.CollectionProperty(type=boolProp)
