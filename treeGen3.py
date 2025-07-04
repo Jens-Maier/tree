@@ -411,12 +411,24 @@ class treeGenPanel(bpy.types.Panel):
         layout = self.layout
         obj = context.object
         row = layout.row()
-            
+        
         row = layout.row()
-        row.label(text = "Tree Generator", icon = 'COLORSET_12_VEC')
+        row.label(icon = 'COLORSET_12_VEC')
+        row.operator("object.generate_tree", text="Generate Tree")
+        
+    
+class treeSettings(bpy.types.Panel):
+    bl_label = "Tree Settings"
+    bl_idname = "PT_TreeSettings"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'treeGen'
+    
+    def draw(self, context):
+        layout = self.layout
+        obj = context.object
         row = layout.row()
-        layout.operator("object.generate_tree", text="Generate Tree")
-        row = layout.row()
+        
         layout.prop(context.scene, "treeHeight")
         row = layout.row()
         layout.prop(context.scene, "treeGrowDir")
@@ -437,8 +449,6 @@ class treeGenPanel(bpy.types.Panel):
         row = layout.row()
         
 
-        
-        
 class noiseSettings(bpy.types.Panel):
     bl_label = "Noise Settings"
     bl_idname = "PT_NoiseSettings"
@@ -715,6 +725,7 @@ def register():
     
     #panels
     bpy.utils.register_class(treeGenPanel)
+    bpy.utils.register_class(treeSettings)
     bpy.utils.register_class(noiseSettings)
     bpy.utils.register_class(splitSettings)
     bpy.utils.register_class(branchSettings)
