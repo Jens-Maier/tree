@@ -412,7 +412,43 @@ class splitSettings(bpy.types.Panel):
         layout.prop(context.scene, "stemSplitPointAngle")
         row = layout.row()
         
+def draw_parent_cluster_bools(layout, scene, cluster_index):
+    boolListItem = scene.parentClusterBoolListList[cluster_index].value
+    #boolListItem.Clear()
+    boolCount = 0
+    for j, boolItem in enumerate(boolListItem):
+        split = layout.split(factor=0.6)
+        #row = box.row()
+        if boolCount == 0:
+            split.label(text=f"Stem")
+            boolCount += 1
+        else:
+            split.label(text=f"Branch cluster {boolCount - 1}")
+            boolCount += 1
+            
+        #split.prop(boolItem, "value", text="")
+        #row = layout.row()
+        op = split.operator("scene.toggle_bool", text="", depress=boolItem.value) # github copilot...
+        op.list_index = cluster_index
+        op.bool_index = j
+        
+class parentClusterPanel(bpy.types.Panel):
+    bl_label = "Branch Cluster"
+    bl_idname = "PT_BranchCluster"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'treeGen'
+    bl_parent_id = 'PT_BranchSettings'
+    bl_options = {'DEFAULT_CLOSED'}
     
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        
+        for i, cluster in enumerate(scene.parentClusterBoolListList):
+            box = layout.box()
+            box.label(text=f"Branch cluster text {i}")
+            draw_parent_cluster_bools(box, scene, i)
 
         
 class branchSettings(bpy.types.Panel):
@@ -434,44 +470,19 @@ class branchSettings(bpy.types.Panel):
         row.operator("scene.remove_list_item", text="Remove").index = context.scene.nrBranchesListIndex
     
         row = layout.row()
-        #layout.prop(context.scene, "branchClusters")
-        #row = layout.row(align=True)
-        #row.operator("scene.addBranchCluster", text="Add Branch Cluster")
-        #row.operator("scene.removeBranchCluster", text="Remove Branch Cluster")
-        
-        
-        
-        # box = layout.box()
-        # 
-        # row = box.row()
-        # row.prop(obj, "expanded",
-        #     icon="TRIA_DOWN" if obj.expanded else "TRIA_RIGHT",
-        #     icon_only=True, emboss=False
-        # )
-        # row.label(text="Active object is: " + obj.name)
-        #
-        # if obj.expanded:
-        #   row = box.row()
-        #   row.prop(obj, "name")
-        #
-        #   row = box.row()
-        #   row.label(text="Hello world!", icon='WORLD_DATA')
-        #
-        #   row = box.row()
-        #   row.operator("mesh.primitive_cube_add")
         
         
         
         
-        # for i, outer in enumerate(context.scene.  TODO ...
-            
-        
-        #for i in range(len(scene.nrBranchesList)):
         for i, outer in enumerate(scene.nrBranchesList):
+            box = layout.box()
+            box.label(text=f"Branch cluster {i}")
+            
+            
             if i < len(context.scene.nrBranchesList):
                 parentClusterBoolListList = context.scene.parentClusterBoolListList
                 box = layout.box()
-                box.label(text=f"Branch Cluster {i}")
+                #box.label(text=f"Branch Cluster {i}")
                                
                 split = box.split(factor=0.6)
                 split.label(text=f"stem: len(scene.nrBranchesList): {len(scene.nrBranchesList)}")
@@ -483,26 +494,35 @@ class branchSettings(bpy.types.Panel):
                 split = box.split(factor=0.6)
                 split.label(text=f"Parent clusters:")
                 split = box.split(factor=0.6)
+                
+                #box1 = layout.box()
+                #box.label(text=f"Branch cluster {i}")
             
-            if i < len(scene.parentClusterBoolListList):
-                boolListItem = scene.parentClusterBoolListList[i].value
-                #boolListItem.Clear()
-                boolCount = 0
-                for j, boolItem in enumerate(boolListItem):
-                    #split = box.split(factor=0.6)
-                    if boolCount == 0:
-                        box.label(text=f"Stem")
-                        boolCount += 1
-                    else:
-                        box.label(text=f"Branch cluster {boolCount - 1}")
-                        boolCount += 1
-                        
-                    #split.prop(boolItem, "value", text="")
-                    row = layout.row()
-                    op = row.operator("scene.toggle_bool", text="", depress=boolItem.value) # github copilot...
-                    op.list_index = i
-                    op.bool_index = j
-                    
+            
+                #draw_parent_cluster_bools(box1, scene, i) -> move to subpanel!
+            
+                
+            
+            #if i < len(scene.parentClusterBoolListList):
+            #    boolListItem = scene.parentClusterBoolListList[i].value
+            #    #boolListItem.Clear()
+            #    boolCount = 0
+            #    for j, boolItem in enumerate(boolListItem):
+            #        split = box.split(factor=0.6)
+            #        #row = box.row()
+            #        if boolCount == 0:
+            #            split.label(text=f"Stem")
+            #            boolCount += 1
+            #        else:
+            #            split.label(text=f"Branch cluster {boolCount - 1}")
+            #            boolCount += 1
+            #            
+            #        #split.prop(boolItem, "value", text="")
+            #        #row = layout.row()
+            #        op = split.operator("scene.toggle_bool", text="", depress=boolItem.value) # github copilot...
+            #        op.list_index = i
+            #        op.bool_index = j
+            
             
             
             ##########################################################################################
@@ -665,6 +685,7 @@ def register():
     bpy.utils.register_class(noiseSettings)
     bpy.utils.register_class(splitSettings)
     bpy.utils.register_class(branchSettings)
+    bpy.utils.register_class(parentClusterPanel)
           
     #collections
     bpy.types.Scene.parentClusterBoolList = bpy.props.CollectionProperty(type=boolProp)
