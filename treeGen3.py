@@ -59,10 +59,10 @@ class generateTree(bpy.types.Operator):
                     obj.select_set(True)
             bpy.ops.object.delete()
             
-            nodes = []
-            nodes.append(node(Vector((0.0, 0.0, 0.0)), 0.1, Vector((0.0, 0.0, 1.0)), Vector((1.0, 0.0, 0.0)), 24, context.scene.taper))
-            nodes.append(node(dir * height * 0.7, 0.1, Vector((0.0, 0.5, 1.0)), Vector((1.0, 0.0, 0.0)), 24, context.scene.taper))
-            nodes.append(node(dir * height, 0.1, Vector((0.0, 0.0, 1.0)), Vector((1.0, 0.0, 0.0)), 24, context.scene.taper))
+            nodes = [] 
+            nodes.append(node(Vector((0.0, 0.0, 0.0)), 0.1, Vector((0.0, 0.0, 1.0)), Vector((1.0, 0.0, 0.0)), context.scene.stemRingResolution, context.scene.taper))
+            nodes.append(node(dir * height * 0.7, 0.1, Vector((0.0, 0.5, 1.0)), Vector((1.0, 0.0, 0.0)), context.scene.stemRingResolution, context.scene.taper))
+            nodes.append(node(dir * height, 0.1, Vector((0.0, 0.0, 1.0)), Vector((1.0, 0.0, 0.0)), context.scene.stemRingResolution, context.scene.taper))
             nodes[0].next = nodes[1]
             nodes[1].next = nodes[2]
         
@@ -73,7 +73,7 @@ class generateTree(bpy.types.Operator):
             calculateRadius(nodes[0], 100.0, context.scene.branchTipRadius)
             segments = []
             segments = getAllSegments(segments, nodes[0], False)
-            generateVerticesAndTriangles(segments, dir, context.scene.taper, radius, stemRingRes, context.scene.ringSpacing)
+            generateVerticesAndTriangles(segments, dir, context.scene.taper, radius, context.scene.ringSpacing)
             
             bpy.ops.object.select_all(action='DESELECT')
         return {'FINISHED'}
@@ -130,7 +130,7 @@ def lerp(a, b, t):
     
     
     
-def generateVerticesAndTriangles(segments, dir, taper, radius, stemRingRes, ringSpacing):
+def generateVerticesAndTriangles(segments, dir, taper, radius, ringSpacing):
     vertices = []
     faces = []
     
@@ -155,7 +155,6 @@ def generateVerticesAndTriangles(segments, dir, taper, radius, stemRingRes, ring
         controlPt1 = segments[s].start + segments[s].startTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0
         controlPt2 = segments[s].end - segments[s].endTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0
         
-        
         for section in range(startSection, sections + 1):
             pos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / sections)
             tangent = sampleSplineTangentC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / sections).normalized()
@@ -163,41 +162,21 @@ def generateVerticesAndTriangles(segments, dir, taper, radius, stemRingRes, ring
             dirB = (tangent.cross(dirA)).normalized()
             dirA = (dirB.cross(tangent)).normalized()
             
-            for i in range(0, stemRingRes):
-                angle = (2 * math.pi * i) / stemRingRes
+            for i in range(0, segments[s].ringResolution):
+                angle = (2 * math.pi * i) / segments[s].ringResolution
                 x = math.cos(angle)
                 y = math.sin(angle)
                 v = pos + dirA * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.cos(angle) + dirB * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.sin(angle)
                 vertices.append(v)
                 counter += 1
     
-        
         for c in range(0, sections): 
-            for j in range(0, stemRingRes):
-                faces.append((offset + c * (stemRingRes) + j,
-                              offset + c * (stemRingRes) + (j + 1) % (stemRingRes), 
-                              offset + c * (stemRingRes) + stemRingRes  + (j + 1) % (stemRingRes), 
-                              offset + c * (stemRingRes) + stemRingRes  + j))
-        
+            for j in range(0, segments[s].ringResolution):
+                faces.append((offset + c * (segments[s].ringResolution) + j,
+                              offset + c * (segments[s].ringResolution) + (j + 1) % (segments[s].ringResolution), 
+                              offset + c * (segments[s].ringResolution) + segments[s].ringResolution  + (j + 1) % (segments[s].ringResolution), 
+                              offset + c * (segments[s].ringResolution) + segments[s].ringResolution  + j))
     
-    
-    #for i in range(1, n):
-    #    j = i + 1 if i < n else 1
-    #    faces.append((i, i + 1, i + n - 1, i + n))
-    
-    #vertices.append((0.0,0.0,0.0))
-    #for i in range(n):
-    #    angle = (2 * math.pi * i) / n
-    #    x = math.cos(angle)
-    #    y = math.sin(angle)
-    #    v = mathutils.Vector((x, y, 0.0))
-    #    vertices.append(v)
-    #
-    #faces = []
-    #for i in range(1, n + 1):
-    #    j = i + 1 if i < n else 1
-    #    faces.append((0, i, j))
-        
     meshData = bpy.data.meshes.new("treeMesh")
     meshData.from_pydata(vertices, [], faces)
     meshData.update()
@@ -212,9 +191,6 @@ def generateVerticesAndTriangles(segments, dir, taper, radius, stemRingRes, ring
         bpy.context.collection.objects.link(treeObject)
         treeObject.select_set(True)
         
-
-        
-
 
 
 class intProp(bpy.types.PropertyGroup):
@@ -295,8 +271,7 @@ class toggleBool(bpy.types.Operator):
             boolList[0].value = True
             
         return {'FINISHED'} #bpy.ops.scene.toggle_bool(list_index=0, bool_index=0)
-    
-    
+
 class addSplitLevel(bpy.types.Operator):
     bl_idname = "scene.add_split_level"
     bl_label = "Add split level"
