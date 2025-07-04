@@ -50,6 +50,13 @@ class boolProp(bpy.types.PropertyGroup):
     
 class boolListProp(bpy.types.PropertyGroup):
     value: bpy.props.CollectionProperty(name = "boolListProperty", type=boolProp)
+    show_cluster: bpy.props.BoolProperty(
+        name="Show Cluster",
+        description="Show/hide branch cluster",
+        default=True
+    )
+    
+
     
 class treeShapeEnumProp(bpy.types.PropertyGroup):
     value: bpy.props.EnumProperty(
@@ -469,38 +476,54 @@ class branchSettings(bpy.types.Panel):
         row.operator("scene.add_list_item", text="Add")
         row.operator("scene.remove_list_item", text="Remove").index = context.scene.nrBranchesListIndex
     
-        row = layout.row()
+        
+        outerBox = layout.box()
+        row = outerBox.row()
         
         
         
-        
-        for i, outer in enumerate(scene.nrBranchesList):
+        for i, outer in enumerate(scene.parentClusterBoolListList):
             box = layout.box()
             box.label(text=f"Branch cluster {i}")
             
+            row = box.row()
             
-            if i < len(context.scene.nrBranchesList):
-                parentClusterBoolListList = context.scene.parentClusterBoolListList
-                box = layout.box()
-                #box.label(text=f"Branch Cluster {i}")
-                               
-                split = box.split(factor=0.6)
-                split.label(text=f"stem: len(scene.nrBranchesList): {len(scene.nrBranchesList)}")
+            
+            row.prop(outer, "show_cluster", icon="TRIA_DOWN" if outer.show_cluster else "TRIA_RIGHT",
+                emboss=False, text=f"Branch cluster {i}", toggle=True)
+            
+            if outer.show_cluster:
+                if i < len(context.scene.nrBranchesList):
+                    box1 = layout.box()
+                    
+                    draw_parent_cluster_bools(box1, scene, i)
+                    
+                    parentClusterBoolListList = context.scene.parentClusterBoolListList
+                    
+                    #box.label(text=f"Branch Cluster {i}")
+                    
+                    split = box.split(factor=0.6)
+                    split.label(text=f"stem: len(scene.nrBranchesList): {len(scene.nrBranchesList)}")
+                    
+                    split = box.split(factor=0.6)
+                    outerList = scene.parentClusterBoolListList
+                    split.label(text=f"stem: len(scene.parentClusterBoolListList): {len(outerList)}")
+                    
+                    split = box.split(factor=0.6)
+                    split.label(text=f"Parent clusters:")
+                    split = box.split(factor=0.6)
+                    
+                    
+                    
+                    
+                    #box1 = layout.box()
+                    #box.label(text=f"Branch cluster {i}")
                 
-                split = box.split(factor=0.6)
-                outerList = scene.parentClusterBoolListList
-                split.label(text=f"stem: len(scene.parentClusterBoolListList): {len(outerList)}")
                 
-                split = box.split(factor=0.6)
-                split.label(text=f"Parent clusters:")
-                split = box.split(factor=0.6)
-                
-                #box1 = layout.box()
-                #box.label(text=f"Branch cluster {i}")
-            
-            
-                #draw_parent_cluster_bools(box1, scene, i) -> move to subpanel!
-            
+                    #draw_parent_cluster_bools(box1, scene, i) -> move to subpanel!
+                    
+                    
+                    
                 
             
             #if i < len(scene.parentClusterBoolListList):
@@ -716,9 +739,7 @@ def register():
     bpy.types.Scene.splitsPerBranchVariationList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchSplitHeightVariationList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchSplitHeightInLevelListList = bpy.props.CollectionProperty(type=floatListProp)
-    
-    
-    
+        
     bpy.types.Scene.treeHeight = bpy.props.FloatProperty(
         name = "tree height",
         description = "the heihgt of the tree",
