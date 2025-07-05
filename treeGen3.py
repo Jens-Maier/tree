@@ -103,7 +103,7 @@ class generateTree(bpy.types.Operator):
             #drawDebugPoint(nodes[2].point)
             #drawDebugPoint(nodes[3].point)
             
-            calculateRadius(nodes[0], 100.0, context.scene.branchTipRadius)
+            calculateRadius(self, nodes[0], 100.0, context.scene.branchTipRadius)
             segments = []
             segments = getAllSegments(self, segments, nodes[0], False)
             generateVerticesAndTriangles(segments, dir, context.scene.taper, radius, context.scene.ringSpacing)
@@ -116,15 +116,16 @@ def drawDebugPoint(pos, name="debugPoint"):
     bpy.context.active_object.empty_display_size = 0.1
     bpy.context.active_object.name=name
     
-def calculateRadius(activeNode, maxRadius, branchTipRadius):
+def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
     if len(activeNode.next) > 0:
         sum = 0.0
+        max = 0.0
         for n in activeNode.next:
-            max = 0.0
-            s = calculateRadius(n, maxRadius, branchTipRadius)
-            s += (n.point - activeNode.point).length * activeNode.taper
-            if s > maxRadius:
+            s = calculateRadius(self, n, maxRadius, branchTipRadius)
+            s += (n.point - activeNode.point).length * activeNode.taper * activeNode.taper
+            if s > max:
                 max = s
+            self.report({'INFO'}, f"s: {s}, max: {max}")
         sum = max
         
         
@@ -133,9 +134,9 @@ def calculateRadius(activeNode, maxRadius, branchTipRadius):
         
         #if len(branches) > 0: ....
         if sum < maxRadius:
-            if sum == 0.0:
-                activeNode.radius = 0.01
-            else:
+            #if sum == 0.0:
+                #activeNode.radius = 0.01
+            #else:
                 activeNode.radius = sum
         else:
             activeNode.radius = maxRadius
@@ -401,8 +402,8 @@ def lerp(a, b, t):
 def getAllSegments(self, segments, activeNode, connectedToPrev):
     for n, nextNode in enumerate(activeNode.next):
         if len(activeNode.tangent) > 1:
-            self.report({'INFO'}, f"len(activeNode.tangent): {len(activeNode.tangent)}, n: {n}")
-            self.report({'INFO'}, f"len(nextNode.tangent): {len(nextNode.tangent)}") #ERROR HERE !!!
+            #self.report({'INFO'}, f"len(activeNode.tangent): {len(activeNode.tangent)}, n: {n}")
+            #self.report({'INFO'}, f"len(nextNode.tangent): {len(nextNode.tangent)}") #ERROR HERE !!!
             segments.append(segment(activeNode.point, nextNode.point, activeNode.tangent[n + 1], nextNode.tangent[0], activeNode.cotangent, nextNode.cotangent, activeNode.radius, nextNode.radius, activeNode.ringResolution, False))
         else:
             segments.append(segment(activeNode.point, nextNode.point, activeNode.tangent[0], nextNode.tangent[0], activeNode.cotangent, nextNode.cotangent, activeNode.radius, nextNode.radius, activeNode.ringResolution, connectedToPrev))
@@ -597,13 +598,20 @@ class toggleBool(bpy.types.Operator):
             
         return {'FINISHED'} #bpy.ops.scene.toggle_bool(list_index=0, bool_index=0)
     
+class UL_stemSplitLevelList(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+    
 class addStemSplitLevel(bpy.types.Operator):
     bl_idname = "scene.add_stem_split_level"
     bl_label = "Add split level"
     
     def execute(self, context):
         newSplitHeight = context.scene.stemSplitHeightInLevelList.add()
-        newSplitHeight = 0.5
+        newSplitHeight.value = 0.5
+        context.scene.stemSplitHeightInLevelListIndex = len(context.scene.stemSplitHeightInLevelList) - 1
         return {'FINISHED'}
 
 class addBranchSplitLevel(bpy.types.Operator):
@@ -619,9 +627,11 @@ class addBranchSplitLevel(bpy.types.Operator):
 class removeStemSplitLevel(bpy.types.Operator):
     bl_idname = "scene.remove_stem_split_level"
     bl_label = "Remove split level"
+    index: bpy.props.IntProperty()
     
     def execute(self, context):
-        context.scene.stemSplitHeightInLevelList.remove(len(context.scene.stemSplitHeightInLevelList) - 1)
+        if len(context.scene.stemSplitHeightInLevelList) > self.index:
+            context.scene.stemSplitHeightInLevelList.remove(self.index)
         return {'FINISHED'}
 
 class removeBranchSplitLevel(bpy.types.Operator):
@@ -826,6 +836,7 @@ class splitSettings(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         obj = context.object
+        scene = context.scene
         bl_parent_id = 'PT_TreeGen'
         bl_optione = {'DEFAULT_CLOSED'}
         
@@ -850,12 +861,19 @@ class splitSettings(bpy.types.Panel):
         
         box = layout.box()
         box.operator("scene.add_stem_split_level", text="Add split level")
-        box.operator("scene.remove_stem_split_level", text="Remove split level")
-        j = 0
-        for splitLevel in context.scene.stemSplitHeightInLevelList:
-            box.prop(splitLevel, "value", text=f"Split height level {j}")
-            j += 1
+        box.operator("scene.remove_stem_split_level", text="Remove split level").index = scene.stemSplitHeightInLevelListIndex
+        row = layout.row()
+        row.template_list("UL_stemSplitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex")
                         
+        #j = 0
+        #for splitLevel in context.scene.stemSplitHeightInLevelList:
+        #    box.prop(splitLevel, "value", text=f"Split height level {j}", slider=True)
+        #    j += 1
+        #box.template_list("UI_UL_list", "stemSplitHeightInLevelList", context.scene, "stemSplitHeightInLevelList", context.scene.stemSplitHeightInLevelList,  0)
+        #box.template_list("myList", "stemSplitHeightInLevelList", context.scene, "stemSplitHeightInLevelListIndex", active_propname, *, item_dyntip_propname='', rows=5, maxrows=5, type='DEFAULT', columns=9, sort_reverse=False, sort_lock=False)
+        #row = box.row()
+        
+        
         row = layout.row()
         layout.prop(context.scene, "splitHeightVariation") 
         row = layout.row()
@@ -1099,9 +1117,15 @@ def register():
     bpy.utils.register_class(splitSettings)
     bpy.utils.register_class(branchSettings)
     #bpy.utils.register_class(parentClusterPanel)
+    
+    #UILists
+    bpy.utils.register_class(UL_stemSplitLevelList)
+    bpy.types.Scene.UL_stemSplitLevelListIndex = bpy.props.IntProperty(default = 0)
           
     #collections
     bpy.types.Scene.stemSplitHeightInLevelList = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.stemSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0)
+    
     bpy.types.Scene.parentClusterBoolList = bpy.props.CollectionProperty(type=boolProp)
     bpy.types.Scene.parentClusterBoolListList = bpy.props.CollectionProperty(type=parentClusterBoolListProp)
     bpy.types.Scene.branchClusterBoolListList = bpy.props.CollectionProperty(type=branchClusterBoolListProp)
@@ -1527,6 +1551,8 @@ def unregister():
     #bpy.utils.unregister_class(boolProp)
     #bpy.utils.unregister_class(parentClusterBoolListProp)
     
+    #UILists
+    bpy.utils.unregister_class(UL_stemSplitLevelList)
     
     #operators
     #bpy.utils.unregister_class(addItem)
