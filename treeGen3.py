@@ -89,13 +89,17 @@ class generateTree(bpy.types.Operator):
                 
              #split(startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution):
              
-            split(nodes[0], 0, 0.5, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, 0, 0, context.scene.stemSplitRotateAngle, context.scene.stemRingResolution, self)
+            #split(nodes[0], 0, 0.4, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, 0, 0, context.scene.stemSplitRotateAngle, context.scene.stemRingResolution, context.scene.curvOffsetStrength, self) # funkt!
+            
+            #def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, splitHeightInLevel, stemSplitMode, stemSplitRotateAngle, root_node, stemRingResolution, curvOffsetStrength, self):
+            
+            splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, context.scene.stemSplitHeightInLevelList, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution, context.scene.curvOffsetStrength, self)            
             
             drawDebugPoint(nodes[0].point)
             #drawDebugPoint(nodes[1].point)
             drawDebugPoint(nodes[0].next[0].point)
-            drawDebugPoint(nodes[0].next[0].next[0].point)
-            drawDebugPoint(nodes[0].next[0].next[1].point)
+            #drawDebugPoint(nodes[0].next[0].next[0].point)
+            #drawDebugPoint(nodes[0].next[0].next[1].point)
             #drawDebugPoint(nodes[2].point)
             #drawDebugPoint(nodes[3].point)
             
@@ -143,7 +147,13 @@ def calculateRadius(activeNode, maxRadius, branchTipRadius):
 
 #nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, 0.5, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0]
 
-def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, splitHeightInLevel, stemSplitMode, stemSplitRotateAngle, root_node, stemRingResolution, self):
+def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, splitHeightInLevel, stemSplitMode, stemSplitRotateAngle, root_node, stemRingResolution, curvOffsetStrength, self):
+    self.report({'INFO'}, f"splitRecursive! nrSplits: {nrSplits}")
+    while len(splitHeightInLevel) < nrSplits:
+        newHeight = splitHeightInLevel.add()
+        newHeight.value = 0.5
+    
+    
     minSegments = math.ceil(math.log(nrSplits + 1, 2))
     #resampleSpline(root_node, min_segments, 0, 0, 1)
 
@@ -213,7 +223,7 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
             if r <= splitProbabilityInLevel[level]:
                 indexToSplit = random.randint(0, len(nodeIndices) - 1)
                 if len(nodeIndices) > indexToSplit:
-                    splitHeight = splitHeightInLevel[level]
+                    splitHeight = splitHeightInLevel[level].value
                     if h * splitHeight < 0:
                         splitHeight = max(splitHeight + h * splitHeight, 0.05)
                     else:
@@ -221,7 +231,7 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
                     splitNode = split(
                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0],
                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][1],
-                        splitHeight, splitAngle, splitPointAngle, level, stemSplitMode, stemSplitRotateAngle, stemRingResolution, self)
+                        splitHeight, splitAngle, splitPointAngle, level, stemSplitMode, stemSplitRotateAngle, stemRingResolution, curvOffsetStrength, self)
                     if splitNode == nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0]:
                         nodeIndices.pop(indexToSplit)
                     else:
@@ -235,7 +245,8 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
                 self.report({'INFO'}, f"break!")
                 break
             
-def split(startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, self):
+def split(startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self):
+    self.report({'INFO'}, f"split! splitHeight: {splitHeight}")
     # Only split if there is a next node at the given index
     if len(startNode.next) > 0 and nextIndex < len(startNode.next):
         nrNodesToTip = nodesToTip(startNode.next[nextIndex], 0)
@@ -253,7 +264,7 @@ def split(startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level,
                     else:
                         splitNode = splitNode.next[0]
                 if splitNode != startNode:
-                    calculateSplitData(splitNode, splitAngle, splitPointAngle, level, node, rotationAngle, stemRingResolution)
+                    calculateSplitData(splitNode, splitAngle, splitPointAngle, level, node, rotationAngle, stemRingResolution, curvOffsetStrength, self)
                 return splitNode
             else:
                 # Split at new node between two nodes
@@ -296,11 +307,11 @@ def split(startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level,
                 newNode.next.append(splitAfterNode.next[nextIndex])
                 splitAfterNode.next[nextIndex] = newNode
 
-                calculateSplitData(newNode, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, self)
+                calculateSplitData(newNode, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
                 return newNode
     return startNode
 
-def calculateSplitData(splitNode, splitAngle, splitPointAngle, level, sMode, rotationAngle, stemRingResolution, self):
+def calculateSplitData(splitNode, splitAngle, splitPointAngle, level, sMode, rotationAngle, stemRingResolution, curvOffsetStrength, self):
     
     n = splitNode
     nodesAfterSplitNode = 0
@@ -313,13 +324,13 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, level, sMode, rot
     splitAxis = Vector((0, 0, 0))
 
     if sMode == splitMode.HORIZONTAL:
-        splitAxis = splitNode.cotangent  # Assuming cotangent is a Vector
+        splitAxis = splitNode.cotangent
         right = splitNode.tangent[0].cross(Vector((0.0, 1.0, 0.0)))
         splitAxis = right.cross(splitNode.tangent[0]).normalized()
 
     elif sMode == splitMode.ROTATE_ANGLE:
         splitAxis = splitNode.cotangent.normalized()
-        splitAxis = (Quaternion((splitNode.tangent, math.radians(rotationAngle) * level)) @ splitAxis).normalized()
+        splitAxis = (Quaternion((splitNode.tangent[0], math.radians(rotationAngle) * level)) @ splitAxis).normalized()
 
     else:
         self.report({'INFO'}, f"ERROR: invalid splitMode!")
@@ -337,7 +348,7 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, level, sMode, rot
     previousNodeA = splitNode
     previousNodeB = splitNode
 
-    curv_offset = splitNode.tangent[0].normalized() * (s.next[0].point - s.point).length * (splitAngle / 360.0) # Assuming curvOffsetStrength is defined
+    curv_offset = splitNode.tangent[0].normalized() * (s.next[0].point - s.point).length * (splitAngle / 360.0) * curvOffsetStrength
 
     for i in range(nodesAfterSplitNode):
         s = s.next[0]
@@ -571,6 +582,7 @@ class angleModeEnumProp(bpy.types.PropertyGroup):
 class toggleBool(bpy.types.Operator):
     bl_idname = "scene.toggle_bool"
     bl_label = "Toggle Bool"
+    bl_description = "At least one item has to he true"
     
     list_index: bpy.props.IntProperty()
     bool_index: bpy.props.IntProperty()
@@ -867,7 +879,11 @@ def draw_parent_cluster_bools(layout, scene, cluster_index):
             split.label(text=f"Branch cluster {boolCount - 1}")
             boolCount += 1
             
-        op = split.operator("scene.toggle_bool", text="", depress=boolItem.value) # github copilot...
+        rightColumn = split.column(align=True)
+        row = rightColumn.row(align=True)
+        row.alignment = 'CENTER'              # align to center
+        
+        op = row.operator("scene.toggle_bool", text="", depress=boolItem.value)
         op.list_index = cluster_index
         op.bool_index = j
         
