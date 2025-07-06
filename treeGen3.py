@@ -34,6 +34,12 @@ class node():
         self.tValBranch = TvalBranch
         self.next = []
         
+    def drawDebugPoint(pos, name="debugPoint"):
+        bpy.ops.object.empty_add(type='SPHERE', location=pos)
+        bpy.context.active_object.empty_display_size = 0.1
+        bpy.context.active_object.name=name
+    
+        
     def getAllSegments(self, treeGen, segments, connectedToPrev):
         #if len(activeNode.next) > 2:
         #treeGen.report({'INFO'}, f"len(activeNode.next) = {len(activeNode.next)}")
@@ -60,6 +66,7 @@ class node():
             if len(self.next) > 0:
                 for n in range(len(self.next)):
                     startNodesNextIndexStartTvalEndTval.append(startNodeInfo(self, n, 0.0, 1.0))
+                    drawDebugPoint(self.point)
         for n in self.next:
             n.getAllStartNodes(treeGen, startNodesNextIndexStartTvalEndTval, startHeightGlobal, endHeightGlobal, startHeightCluster, endHeightCluster, parentClusterBoolListList)
         treeGen.report({'INFO'}, f"in getAllStartNodes(): len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}")
@@ -134,9 +141,9 @@ class generateTree(bpy.types.Operator):
             
             addBranches(self, nodes[0], context.scene.nrBranchesList, context.scene.parentClusterBoolListList, context.scene.branchesStartHeightGlobalList, context.scene.branchesEndHeightGlobal, context.scene.branchesStartHeightCluster, context.scene.branchesEndHeightCluster)
             
-            drawDebugPoint(nodes[0].point)
+            #drawDebugPoint(nodes[0].point)
             #drawDebugPoint(nodes[1].point)
-            drawDebugPoint(nodes[0].next[0].point)
+            #drawDebugPoint(nodes[0].next[0].point)
             #drawDebugPoint(nodes[0].next[0].next[0].point)
             #drawDebugPoint(nodes[0].next[0].next[1].point)
             #drawDebugPoint(nodes[2].point)
