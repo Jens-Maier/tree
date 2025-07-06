@@ -15,6 +15,13 @@ import mathutils
 from mathutils import Vector, Quaternion
 import random
 
+class startNodeInfo():
+    def __init__(self, StartNode, NextIndex, StartTval, EndTval):
+        self.startNode = StartNode
+        self.nextIndex = NextIndex
+        self.startTval = StartTval
+        self.endTval = EndTval
+
 class node():
     def __init__(self, Point, Radius, Cotangent, RingResolution, Taper, TvalGlobal, TvalBranch):
         self.point = Point
@@ -26,6 +33,36 @@ class node():
         self.tValGlobal = TvalGlobal
         self.tValBranch = TvalBranch
         self.next = []
+        
+    def getAllSegments(self, treeGen, segments, connectedToPrev):
+        #if len(activeNode.next) > 2:
+        #treeGen.report({'INFO'}, f"len(activeNode.next) = {len(activeNode.next)}")
+        
+        for n, nextNode in enumerate(self.next):
+            if len(self.next) > 1:
+                treeGen.report({'INFO'}, f"in getAllSegments(): len(tangent): {len(self.tangent)}, n: {n}")
+                
+                segments.append(segment(self.point, nextNode.point, self.tangent[n + 1], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.ringResolution, False))
+            else:
+                treeGen.report({'INFO'}, f"in getAllSegments(): len(tangent): {len(self.tangent)}, n: {n}")
+                segments.append(segment(self.point, nextNode.point, self.tangent[0], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.ringResolution, connectedToPrev))
+        
+            nextNode.getAllSegments(treeGen, segments, True)
+            # TODO: children...
+            
+    
+        
+    
+    def getAllStartNodes(self, treeGen, startNodesNextIndexStartTvalEndTval, startHeightGlobal, endHeightGlobal, startHeightCluster, endHeightCluster, parentClusterBoolListList):
+        
+        #stem
+        if self.tValGlobal >= startHeightGlobal[0].value and self.tValGlobal <= endHeightGlobal[0]:
+            if len(self.next) > 0:
+                for n in range(len(self.next)):
+                    startNodesNextIndexStartTvalEndTval.append(startNodeInfo(self, n, 0.0, 1.0))
+        for n in self.next:
+            n.getAllStartNodes(treeGen, startNodesNextIndexStartTvalEndTval, startHeightGlobal, endHeightGlobal, startHeightCluster, endHeightCluster, parentClusterBoolListList)
+        treeGen.report({'INFO'}, f"in getAllStartNodes(): len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}")
         
 class segment():
     def __init__(self, Start, End, StartTangent, EndTangent, StartCotangent, EndCotangent, StartRadius, EndRadius, RingResolution, ConnectedToPrevious):
@@ -93,7 +130,9 @@ class generateTree(bpy.types.Operator):
             
             #def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, splitHeightInLevel, stemSplitMode, stemSplitRotateAngle, root_node, stemRingResolution, curvOffsetStrength, self):
             if context.scene.nrSplits > 0:
-                splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, context.scene.stemSplitHeightInLevelList, context.scene.splitHeightVariation, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution, context.scene.curvOffsetStrength, self, nodes[0])            
+                splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, context.scene.stemSplitHeightInLevelList, context.scene.splitHeightVariation, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution, context.scene.curvOffsetStrength, self, nodes[0])
+            
+            addBranches(self, nodes[0], context.scene.nrBranchesList, context.scene.parentClusterBoolListList, context.scene.branchesStartHeightGlobalList, context.scene.branchesEndHeightGlobal, context.scene.branchesStartHeightCluster, context.scene.branchesEndHeightCluster)
             
             drawDebugPoint(nodes[0].point)
             #drawDebugPoint(nodes[1].point)
@@ -105,7 +144,7 @@ class generateTree(bpy.types.Operator):
             
             calculateRadius(self, nodes[0], 100.0, context.scene.branchTipRadius)
             segments = []
-            segments = getAllSegments(self, segments, nodes[0], False)
+            nodes[0].getAllSegments(self, segments, False)
             generateVerticesAndTriangles(self, segments, dir, context.scene.taper, radius, context.scene.ringSpacing, context.scene.stemRingResolution)
             
             bpy.ops.object.select_all(action='DESELECT')
@@ -149,7 +188,7 @@ def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
 #nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, 0.5, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0]
 
 def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, splitHeightInLevel, splitHeightVariation, stemSplitMode, stemSplitRotateAngle, root_node, stemRingResolution, curvOffsetStrength, self, rootNode):
-    self.report({'INFO'}, f"splitRecursive! nrSplits: {nrSplits}")
+    #self.report({'INFO'}, f"splitRecursive! nrSplits: {nrSplits}")
     while len(splitHeightInLevel) < nrSplits:
         newHeight = splitHeightInLevel.add()
         newHeight.value = 0.5
@@ -161,7 +200,7 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
     splitProbabilityInLevel = [0.0] * nrSplits
     expectedSplitsInLevel = [0] * nrSplits
     
-    self.report({'INFO'}, f"nrSplits: {nrSplits}, splitHeightInLevel[0]: {splitHeightInLevel[0].value}")
+    #self.report({'INFO'}, f"nrSplits: {nrSplits}, splitHeightInLevel[0]: {splitHeightInLevel[0].value}")
     meanLevel = int(math.log(nrSplits, 2))
     if meanLevel == 0:
         meanLevel = 1
@@ -230,16 +269,16 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
                         splitHeight = max(splitHeight + h * splitHeightVariation, 0.05)
                     else:
                         splitHeight = min(splitHeight + h * splitHeightVariation, 0.95)
-                    if splitHeight < 0.0 or splitHeight > 1.0:
-                        self.report({'ERROR'}, f"splitHeight out of bounds! splitHeight: {splitHeight}")
-                    self.report({'INFO'}, f"splitRecursive: splitHeight: {splitHeight}")
+                    #if splitHeight < 0.0 or splitHeight > 1.0:
+                        #self.report({'ERROR'}, f"splitHeight out of bounds! splitHeight: {splitHeight}")
+                    #self.report({'INFO'}, f"splitRecursive: splitHeight: {splitHeight}")
                     splitNode = split(
                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0],
                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][1],
                         splitHeight, splitAngle, splitPointAngle, level, stemSplitMode, stemSplitRotateAngle, stemRingResolution, curvOffsetStrength, self, rootNode)
-                    if splitNode == nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0]:
+                    #if splitNode == nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0]:
                     #    nodeIndices.pop(indexToSplit) # error here !!! -> split at startNode possible!
-                         self.report({'INFO'}, f"in splitRecursive: splitNode == startNode")
+                         #self.report({'INFO'}, f"in splitRecursive: splitNode == startNode")
                     #else: TEST!
                     nodeIndices.pop(indexToSplit)
                     nodesInLevelNextIndex[level + 1].append((splitNode, 0))
@@ -252,7 +291,7 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
                 break
             
 def split(startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, rootNode):
-    self.report({'INFO'}, f"split! splitHeight: {splitHeight}")
+    #self.report({'INFO'}, f"split! splitHeight: {splitHeight}")
     # Only split if there is a next node at the given index
     if len(startNode.next) > 0 and nextIndex < len(startNode.next):
         nrNodesToTip = nodesToTip(startNode.next[nextIndex], 0)
@@ -330,7 +369,7 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
                 newTvalBranch = lerp(splitAfterNode.tValBranch, splitAfterNode.next[nextIndex].tValBranch, splitHeight);
 
                 newNode = node(newPoint, newRadius, newCotangent, ring_res, taper, newTvalGlobal, newTvalBranch)
-                self.report({'INFO'}, f"split: newNode.taper: {newNode.taper}")
+                #self.report({'INFO'}, f"split: newNode.taper: {newNode.taper}")
                 newNode.tangent.append(newTangent)
                 # Insert new node in the chain
                 newNode.next.append(splitAfterNode.next[nextIndex])
@@ -343,7 +382,7 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
                 
 
                 calculateSplitData(newNode, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
-                self.report({'INFO'}, f"did split!")
+                #self.report({'INFO'}, f"did split!")
                 return newNode
 
 def calculateSplitData(splitNode, splitAngle, splitPointAngle, level, sMode, rotationAngle, stemRingResolution, curvOffsetStrength, self):
@@ -433,22 +472,16 @@ def lerp(a, b, t):
     return a + (b - a) * t
 
 # sampleSplineT and sampleSplineTangentT should be defined as in your script
+
+
+def addBranches(self, rootNode, nrBranchesList, parentClusterBoolListList, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster):
     
+    nrBranches = nrBranchesList[0].value
+    self.report({'INFO'}, f"in addBranches(): nr: {nrBranches}")
     
-def getAllSegments(self, segments, activeNode, connectedToPrev):
-    if len(activeNode.next) > 2:
-        self.report({'INFO'}, f"len(activeNode.next) = {len(activeNode.next)}")
-    for n, nextNode in enumerate(activeNode.next):
-        if len(activeNode.next) > 1:
-            #self.report({'INFO'}, f"len(activeNode.tangent): {len(activeNode.tangent)}, n: {n}")
-            #self.report({'INFO'}, f"len(nextNode.tangent): {len(nextNode.tangent)}") #ERROR HERE !!!
-            segments.append(segment(activeNode.point, nextNode.point, activeNode.tangent[n + 1], nextNode.tangent[0], activeNode.cotangent, nextNode.cotangent, activeNode.radius, nextNode.radius, activeNode.ringResolution, False))
-        else:
-            segments.append(segment(activeNode.point, nextNode.point, activeNode.tangent[0], nextNode.tangent[0], activeNode.cotangent, nextNode.cotangent, activeNode.radius, nextNode.radius, activeNode.ringResolution, connectedToPrev))
-        
-        segments = getAllSegments(self, segments, nextNode, True)
-        # TODO: children...
-    return segments
+    startNodesNextIndexStartTvalEndTval = []
+    rootNode.getAllStartNodes(self, startNodesNextIndexStartTvalEndTval, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster, parentClusterBoolListList)
+
 
     #if len(activeNode.next) > 0:
     #    segments.append(segment(activeNode.point, activeNode.next[0].point, activeNode.tangent, activeNode.next[0].tangent, activeNode.cotangent, activeNode.next[0].cotangent, activeNode.radius, activeNode.next[0].radius, activeNode.ringResolution, connectedToPrev))
@@ -698,7 +731,7 @@ class removeBranchSplitLevel(bpy.types.Operator):
         if self.level < len(branchSplitHeightInLevelList):
             branchSplitHeightInLevelList[self.level].value.remove(len(branchSplitHeightInLevelList[self.level].value) - 1)
                         
-        self.report({'INFO'}, f"remove split level")
+        #self.report({'INFO'}, f"remove split level")
         return {'FINISHED'}
     
 class addItem(bpy.types.Operator): # add branch cluster
