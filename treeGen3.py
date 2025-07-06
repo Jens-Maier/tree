@@ -299,12 +299,18 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
                     else:
                         splitAfterNode = splitAfterNode.next[0]
                         splitAtStartNode = False
+                        
+                tangentIndex = 0
+                if splitAtStartNode == True and len(startNode.next) > 1:
+                    tangentIndex = nextIndex + 1
+                else:
+                    tangentIndex = nextIndex
 
                 # Interpolate position and attributes for the new node
                 t = nrNodesToTip * splitHeight - splitAfterNodeNr
                 p0 = splitAfterNode.point
                 p1 = splitAfterNode.next[nextIndex].point
-                t0 = splitAfterNode.tangent[0]
+                t0 = splitAfterNode.tangent[tangentIndex] # nextIndex + 1 if next.count > 1!!
                 t1 = splitAfterNode.next[nextIndex].tangent[0]
                 c0 = splitAfterNode.cotangent
                 c1 = splitAfterNode.next[nextIndex].cotangent
@@ -312,6 +318,8 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
                 r1 = splitAfterNode.next[nextIndex].radius
                 ring_res = splitAfterNode.ringResolution
                 taper = splitAfterNode.taper
+                
+                
 
                 # Spline interpolation (replace with your own if needed)
                 newPoint = sampleSplineT(p0, p1, t0, t1, t)
