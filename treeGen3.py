@@ -21,6 +21,16 @@ class startNodeInfo():
         self.nextIndex = NextIndex
         self.startTval = StartTval
         self.endTval = EndTval
+        
+class startPointData():
+    def __init__(self, StartPoint, OutwardDir, StartNode, StartNodeIndex, StartNodeNextIndex, T, Tangent):
+        self.startPoint = StartPoint
+        self.outwardDir = OutwardDir
+        self.startNode = StartNode
+        self.startNodeIndex = StartNodeIndex
+        self.startNodeNextIndex = StartNodeNextIndex
+        self.t = T
+        self.tangent = Tangent
 
 class node():
     def __init__(self, Point, Radius, Cotangent, RingResolution, Taper, TvalGlobal, TvalBranch):
@@ -46,11 +56,11 @@ class node():
         
         for n, nextNode in enumerate(self.next):
             if len(self.next) > 1:
-                treeGen.report({'INFO'}, f"in getAllSegments(): len(tangent): {len(self.tangent)}, n: {n}")
+                #treeGen.report({'INFO'}, f"in getAllSegments(): len(tangent): {len(self.tangent)}, n: {n}")
                 
                 segments.append(segment(self.point, nextNode.point, self.tangent[n + 1], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.ringResolution, False))
             else:
-                treeGen.report({'INFO'}, f"in getAllSegments(): len(tangent): {len(self.tangent)}, n: {n}")
+                #treeGen.report({'INFO'}, f"in getAllSegments(): len(tangent): {len(self.tangent)}, n: {n}")
                 segments.append(segment(self.point, nextNode.point, self.tangent[0], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.ringResolution, connectedToPrev))
         
             nextNode.getAllSegments(treeGen, segments, True)
@@ -62,14 +72,31 @@ class node():
     def getAllStartNodes(self, treeGen, startNodesNextIndexStartTvalEndTval, startHeightGlobal, endHeightGlobal, startHeightCluster, endHeightCluster, parentClusterBoolListList):
         
         #stem
-        if self.tValGlobal >= startHeightGlobal[0].value and self.tValGlobal <= endHeightGlobal[0]:
-            if len(self.next) > 0:
-                for n in range(len(self.next)):
-                    startNodesNextIndexStartTvalEndTval.append(startNodeInfo(self, n, 0.0, 1.0))
-                    drawDebugPoint(self.point)
+        for n in range(len(self.next)):
+            # test if overlap    |----*--v--*----*---v--*
+            if self.next[n].tValGlobal > startHeightGlobal and self.tValGlobal < endHeightGlobal:
+                segmentStartGlobal = max(self.tValGlobal, startHeightGlobal)
+                segmentEndGlobal = min(self.next[n].tValGlobal, endHeightGlobal)
+                
+                startTvalSegment = (segmentStartGlobal - self.tValGlobal) / (self.next[n].tValGlobal - self.tValGlobal)
+                endTvalSegment = (segmentEndGlobal - self.tValGlobal) / (self.next[n].tValGlobal - self.tValGlobal)
+                
+                startNodesNextIndexStartTvalEndTval.append(startNodeInfo(self, n, startTvalSegment, endTvalSegment))
+        
+        #if self.tValGlobal >= startHeightGlobal and self.tValGlobal <= endHeightGlobal:
+        #    if len(self.next) > 0:
+        #        for n in range(len(self.next)):
+        #            startNodesNextIndexStartTvalEndTval.append(startNodeInfo(self, n, 0.0, 1.0))
+        #            #drawDebugPoint(self.point)
+                    
+                    
         for n in self.next:
             n.getAllStartNodes(treeGen, startNodesNextIndexStartTvalEndTval, startHeightGlobal, endHeightGlobal, startHeightCluster, endHeightCluster, parentClusterBoolListList)
-        treeGen.report({'INFO'}, f"in getAllStartNodes(): len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}")
+            
+            
+        #treeGen.report({'INFO'}, f"in getAllStartNodes(): len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}")
+        
+        
         
 class segment():
     def __init__(self, Start, End, StartTangent, EndTangent, StartCotangent, EndCotangent, StartRadius, EndRadius, RingResolution, ConnectedToPrevious):
@@ -139,7 +166,7 @@ class generateTree(bpy.types.Operator):
             if context.scene.nrSplits > 0:
                 splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, context.scene.stemSplitHeightInLevelList, context.scene.splitHeightVariation, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution, context.scene.curvOffsetStrength, self, nodes[0])
             
-            addBranches(self, nodes[0], context.scene.nrBranchesList, context.scene.parentClusterBoolListList, context.scene.branchesStartHeightGlobalList, context.scene.branchesEndHeightGlobal, context.scene.branchesStartHeightCluster, context.scene.branchesEndHeightCluster)
+            addBranches(self, nodes[0], context.scene.nrBranchesList, context.scene.parentClusterBoolListList, context.scene.branchesStartHeightGlobalList, context.scene.branchesEndHeightGlobalList, context.scene.branchesStartHeightClusterList, context.scene.branchesEndHeightClusterList, context.scene.treeGrowDir, context.scene.treeHeight)
             
             #drawDebugPoint(nodes[0].point)
             #drawDebugPoint(nodes[1].point)
@@ -481,20 +508,137 @@ def lerp(a, b, t):
 # sampleSplineT and sampleSplineTangentT should be defined as in your script
 
 
-def addBranches(self, rootNode, nrBranchesList, parentClusterBoolListList, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster):
+def addBranches(self, rootNode, nrBranchesList, parentClusterBoolListList, branchesStartHeightGlobalList, branchesEndHeightGlobalList, branchesStartHeightClusterList, branchesEndHeightClusterList, treeGrowDir, treeHeight):
     
     nrBranches = nrBranchesList[0].value
+    branchesStartHeightGlobal = branchesStartHeightGlobalList[0].value
+    branchesEndHeightGlobal = branchesEndHeightGlobalList[0].value
+    branchesStartHeightCluster = branchesStartHeightClusterList[0].value
+    branchesEndHeightCluster = branchesEndHeightClusterList[0].value
+    
     self.report({'INFO'}, f"in addBranches(): nr: {nrBranches}")
     
     startNodesNextIndexStartTvalEndTval = []
     rootNode.getAllStartNodes(self, startNodesNextIndexStartTvalEndTval, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster, parentClusterBoolListList)
+    
+    #for s in startNodesNextIndexStartTvalEndTval:
+    #    drawDebugPoint(s.startNode.point)
+    
+    if len(startNodesNextIndexStartTvalEndTval) > 0:
+        segmentLengths = []
+        
+        totalLength = calculateSegmentLengthsAndTotalLength(startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal)
+        self.report({'INFO'}, f"total length: {totalLength}")
+        
+        for branchIndex in range(0, nrBranches):
+            branchPos = branchIndex * totalLength / nrBranches
+            
+            data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, False)
+            
+            
+    
 
+def calculateSegmentLengthsAndTotalLength(startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal):
+    #useTvalBranch == False
+    totalLength = 0.0
+    for i in range(0, len(startNodesNextIndexStartTvalEndTval)):
+        segmentLength = 0.0
+        if startNodesNextIndexStartTvalEndTval[i].startNode.next[startNodesNextIndexStartTvalEndTval[i].nextIndex] != None:
+            segmentLength = (startNodesNextIndexStartTvalEndTval[i].startNode.next[startNodesNextIndexStartTvalEndTval[i].nextIndex].point - startNodesNextIndexStartTvalEndTval[i].startNode.point).length
+            
+        tA_global = startNodesNextIndexStartTvalEndTval[i].startNode.tValGlobal
+        tB_global = startNodesNextIndexStartTvalEndTval[i].startNode.next[startNodesNextIndexStartTvalEndTval[i].nextIndex].tValGlobal
+        
+        segmentLengthAbove = 0.0
+        if tA_global > tB_global:
+            temp = tA_global
+            tA_global = tB_global
+            tB_global = temp
+            
+        if tB_global <= branchesStartHeightGlobal:
+            continue
+        
+        tStart = max(tA_global, branchesStartHeightGlobal)
+        tEnd = tB_global
+        frac = 0.0
+        if tB_global - tA_global != 0.0:
+            frac = (tEnd - tStart) / (tB_global - tA_global)
+        segmentLengthAbove = segmentLength * frac
+        
+        segmentLengths.append(segmentLengthAbove)
+        totalLength += segmentLengthAbove
+            
+    return totalLength
 
-    #if len(activeNode.next) > 0:
-    #    segments.append(segment(activeNode.point, activeNode.next[0].point, activeNode.tangent, activeNode.next[0].tangent, activeNode.cotangent, activeNode.next[0].cotangent, activeNode.radius, activeNode.next[0].radius, activeNode.ringResolution, connectedToPrev))
-    #    return getAllSegments(segments, activeNode.next[0], False)
-    #else:
-    #    return segments
+def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, calledFromAddLeaves):
+    accumLength = 0.0
+    startNodeIndex = 0
+    
+    for i in range(len(segmentLengths)):
+        if accumLength + segmentLengths[i] >= branchPos:
+            startNodeIndex = i
+            segStart = accumLength
+            segLen = segmentLengths[i]
+            t = 0.0
+            if segLen > 0.0:
+                t = (branchPos - segStart) / segLen
+            
+            startTval = startNodesNextIndexStartTvalEndTval[startNodeIndex].startTval
+            self.report({'INFO'}, f"startTval: {startTval}")
+            endTval = startNodesNextIndexStartTvalEndTval[startNodeIndex].endTval
+            self.report({'INFO'}, f"endTval:{endTval}")
+            if startTval > 0.0 and t < startTval:
+                t = startTval
+            if startTval > 0.0 and t > endTval:
+                t = endTval
+            break
+        accumLength += segmentLengths[i]
+        
+    startNodeNextIndex = startNodesNextIndexStartTvalEndTval[startNodeIndex].nextIndex
+    nStart = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode
+    tangent = (0.0, 0.0, 0.0)
+    
+    if len(startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next) > 1:
+        tangent = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tangent[startNodeNextIndex + 1]
+    else:
+        tangent = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tangent[0]
+    
+    startPoint = sampleSplineT(
+        startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point,
+        startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point,
+        tangent,
+        startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].tangent[0], 
+        t)
+    
+    nextTangent = (treeGrowDir.normalized() * treeHeight - (rootNode.point + rootNode.tangent[0] * (treeGrowDir.normalized() * treeHeight - rootNode.point).length * (1.5 / 3.0))).normalized()
+    
+    centerPoint = sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, Vector((0.0, 1.0, 0.0)), nextTangent, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal);
+    
+    outwardDir = outward_dir = lerp(
+    startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point,
+    startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point, t) - centerPoint
+    
+    if outwardDir == Vector((0.0, 0.0, 0.0)):
+        outwardDir = lerp(
+        startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.cotangent,
+        startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent, t)
+        
+    outwardDir.y = 0.0
+
+    if outwardDir == Vector((0.0, 0.0, 0.0)):
+        outwardDir = lerp(
+            startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.cotangent,
+            startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent,
+            t)
+        # print("outward_dir is zero, using cotangent: ", outward_dir)
+    outwardDir = outwardDir.normalized()
+    
+    #self.report({'INFO'}, f"startPoint: {startPoint}")
+    drawDebugPoint(startPoint)
+    
+    return startPointData(startPoint, outwardDir, nStart, startNodeIndex, startNodeNextIndex, t, tangent)
+    
+
 
 def sampleSplineC(controlPt0, controlPt1, controlPt2, controlPt3, t):
     return (1.0 - t)**3.0 * controlPt0 + 3.0 * (1.0 - t)**2.0 * t * controlPt1 + 3.0 * (1.0 - t) * t**2.0 * controlPt2 + t**3.0 * controlPt3
@@ -1134,22 +1278,22 @@ class branchSettings(bpy.types.Panel):
                 split = box.split(factor=0.6)
                 split.label(text="Branches start height global")
                 if i < len(scene.branchesStartHeightGlobalList):
-                    split.prop(scene.branchesStartHeightGlobalList[i], "value", text="")
+                    split.prop(scene.branchesStartHeightGlobalList[i], "value", text="", slider=True)
             
                 split = box.split(factor=0.6)
                 split.label(text="Branches end height global")
                 if i < len(scene.branchesEndHeightGlobalList):
-                    split.prop(scene.branchesEndHeightGlobalList[i], "value", text="")
+                    split.prop(scene.branchesEndHeightGlobalList[i], "value", text="", slider=True)
                 
                 split = box.split(factor=0.6)
                 split.label(text="Branches start height cluster")
                 if i < len(scene.branchesStartHeightClusterList):
-                    split.prop(scene.branchesStartHeightClusterList[i], "value", text="")
+                    split.prop(scene.branchesStartHeightClusterList[i], "value", text="", slider=True)
             
                 split = box.split(factor=0.6)
                 split.label(text="Branches end height cluster")
                 if i < len(scene.branchesEndHeightClusterList):
-                    split.prop(scene.branchesEndHeightClusterList[i], "value", text="")
+                    split.prop(scene.branchesEndHeightClusterList[i], "value", text="", slider=True)
                 
                 split = box.split(factor=0.6)
                 split.label(text="Branch curvature")
@@ -1242,10 +1386,10 @@ def register():
     bpy.types.Scene.branchAngleModeList = bpy.props.CollectionProperty(type=angleModeEnumProp)
     bpy.types.Scene.rotateAngleList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.rotateAngleRangeList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.branchesStartHeightGlobalList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.branchesEndHeightGlobalList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.branchesStartHeightClusterList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.branchesEndHeightClusterList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.branchesStartHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchesEndHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchesStartHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchesEndHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchCurvatureList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.nrSplitsPerBranchList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.splitsPerBranchVariationList = bpy.props.CollectionProperty(type=floatProp)
