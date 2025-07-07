@@ -166,7 +166,9 @@ class generateTree(bpy.types.Operator):
             if context.scene.nrSplits > 0:
                 splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, context.scene.stemSplitHeightInLevelList, context.scene.splitHeightVariation, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution, context.scene.curvOffsetStrength, self, nodes[0])
             
-            addBranches(self, nodes[0], context.scene.nrBranchesList, context.scene.parentClusterBoolListList, context.scene.branchesStartHeightGlobalList, context.scene.branchesEndHeightGlobalList, context.scene.branchesStartHeightClusterList, context.scene.branchesEndHeightClusterList, context.scene.treeGrowDir, context.scene.treeHeight)
+            addBranches(self, context, nodes[0], context.scene.nrBranchesList, context.scene.parentClusterBoolListList, context.scene.branchesStartHeightGlobalList, context.scene.branchesEndHeightGlobalList, context.scene.branchesStartHeightClusterList, context.scene.branchesEndHeightClusterList, context.scene.treeGrowDir, context.scene.treeHeight, context.scene.verticalAngleCrownStart, context.scene.verticalAngleCrownEnd, context.scene.branchAngleModeList, context.scene.branchSplitRotateAngleList, context.scene.rotateAngleRangeList, context.scene.stemRingResolution, context.scene.taper, context.scene.taperFactor, context.scene.relBranchLengthList)
+            
+            #def addBranches(self, context, rootNode, nrBranchesList, parentClusterBoolListList, branchesStartHeightGlobalList, branchesEndHeightGlobalList, branchesStartHeightClusterList, branchesEndHeightClusterList, treeGrowDir, treeHeight, verticalAngleCrownStart, verticalAngleCrownEnd, branchAngleModeList, windingAngleList, rotateAngleRangeList, ringResolution, taper, taperFactor, relBranchLengthList):
             
             #drawDebugPoint(nodes[0].point)
             #drawDebugPoint(nodes[1].point)
@@ -508,7 +510,7 @@ def lerp(a, b, t):
 # sampleSplineT and sampleSplineTangentT should be defined as in your script
 
 
-def addBranches(self, rootNode, nrBranchesList, parentClusterBoolListList, branchesStartHeightGlobalList, branchesEndHeightGlobalList, branchesStartHeightClusterList, branchesEndHeightClusterList, treeGrowDir, treeHeight):
+def addBranches(self, context, rootNode, nrBranchesList, parentClusterBoolListList, branchesStartHeightGlobalList, branchesEndHeightGlobalList, branchesStartHeightClusterList, branchesEndHeightClusterList, treeGrowDir, treeHeight, verticalAngleCrownStart, verticalAngleCrownEnd, branchAngleModeList, windingAngleList, rotateAngleRangeList, ringResolution, taper, taperFactor, relBranchLengthList):
     
     nrBranches = nrBranchesList[0].value
     branchesStartHeightGlobal = branchesStartHeightGlobalList[0].value
@@ -535,8 +537,72 @@ def addBranches(self, rootNode, nrBranchesList, parentClusterBoolListList, branc
             
             data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, False)
             
+            startNodeNextIndex = data.startNodeNextIndex
+            startPointTangent = sampleSplineTangentT(data.startNode.point, 
+                                                     data.startNode.next[startNodeNextIndex].point, 
+                                                     data.tangent, 
+                                                     data.startNode.next[startNodeNextIndex].tangent[0], 
+                                                     data.t)
             
-    
+            globalVerticalAngle = lerp(verticalAngleCrownStart[0], verticalAngleCrownEnd[0], data.startNode.tValGlobal)
+            branchVerticalAngle = 0.0 #... TODO
+            verticalAngle = globalVerticalAngle + branchVerticalAngle
+            
+            centerDir = Quaternion(startPointTangent.cross(data.outwardDir), math.radians(-verticalAngle)) @ data.outwardDir
+            
+            self.report({'INFO'}, f"in addBranches: angleMode: {branchAngleModeList[0].value}")
+            
+            if branchAngleModeList[0].value == "WINDING":
+                angle = windingAngleList[0].value % (2.0 * rotateAngleRangeList[0].value)
+                self.report({'INFO'}, "in addBranches(): angleMode.winding")
+                branchDir = Quaternion(startPointTangent, math.radians(-rotateAngleRangeList[0].value + angle)) @ centerDir
+                
+            if branchAngleModeList[0].value == "SYMMETRIC":
+                if branchIndex % 2 == 0:
+                    branchDir = Quaternion(startPointTangent, math.radians(-rotateAngleRangeList[0].value)) @ centerDir
+                    branchDir = Quaternion(startPointTangent.cross(branchDir), math.radians(verticalAngle - 90.0)) @ branchDir
+                else:
+                    branchDir = Quaternion(startPointTangent, math.radians(rotateAngleRangeList[0].value)) @ centerDir
+                    branchDir = Quaternion(startPointTangent.cross(-branchDir), math.radians(-verticalAngle + 90.0)) @ branchDir 
+                
+            #rotv = Quaternion(axis, math.radians(angle)) @ v
+            
+            branchCotangent = Vector((0.0, 0.0, 0.0))            
+            #There is no single continuous function that can generate a vector in R3 that is orthogonal to a given one for all vector inputs. https://en.wikipedia.org/wiki/Hairy_ball_theorem
+            
+            if branchDir.x != 0.0:
+                branchCotangent = Vector((-branchDir.y, branchDir.x, 0.0))
+            else:
+                if branchDir.y != 0.0:
+                    branchCotangent = Vector((0.0, -branchDir.z, branchDir.y))
+                else:
+                    branchCotangent = Vector((branchDir.z, 0.0, -branchDir.y))
+            
+            #class node():
+            #   def __init__(self, Point, Radius, Cotangent, RingResolution, Taper, TvalGlobal, TvalBranch):
+            branch = node(data.startPoint, 1.0, branchCotangent, ringResolution, taper, data.startNode.tValGlobal, 0.0)
+            
+            branchLength = 0.0
+            # if clusterIndex == 0:
+            nextIndex = startNodesNextIndexStartTvalEndTval[data.startNodeIndex].nextIndex
+            startTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
+            branchLength = treeHeight * relBranchLengthList[0].value * shapeRatio(context, startTvalGlobal)
+            
+            # TODO
+            #lengthToTip = data.startNode.lengthToTip()
+            #lengthToTop -= data.t * (data.startNode.next[data.startNodeNextIndex].point - data.startNode.point).length
+            #if branchLength > lengthToTip:
+            #    branchLength = lengthToTip 
+            
+            #branch = node(data.startPoint, 1.0, branchCotangent, ringResolution, taper, data.startNode.tValGlobal, 0.0)
+            branch.next.append(node(data.startPoint + branchDir * branchLength, 1.0, branchCotangent, ringResolution, taper, data.startNode.tValGlobal, 0.0))
+            drawDebugPoint(data.startPoint + branchDir * branchLength)
+            
+            
+def shapeRatio(context, tValGlobal):
+    if context.scene.treeShape == "CONICAL":
+        return 0.2 + 0.8 * tValGlobal
+            
 
 def calculateSegmentLengthsAndTotalLength(startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal):
     #useTvalBranch == False
@@ -584,12 +650,13 @@ def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLen
                 t = (branchPos - segStart) / segLen
             
             startTval = startNodesNextIndexStartTvalEndTval[startNodeIndex].startTval
-            self.report({'INFO'}, f"startTval: {startTval}")
             endTval = startNodesNextIndexStartTvalEndTval[startNodeIndex].endTval
-            self.report({'INFO'}, f"endTval:{endTval}")
-            if startTval > 0.0 and t < startTval:
+            #self.report({'INFO'}, f"startTval: {startTval}, endTval:{endTval}, segmentLength: {segmentLengths[i]}") # startTval: 0.0, endTval:0.2, segmentLength: 6.18
+
+            
+            if startTval >= 0.0 and t < startTval:
                 t = startTval
-            if startTval > 0.0 and t > endTval:
+            if startTval >= 0.0 and t > endTval:
                 t = endTval
             break
         accumLength += segmentLengths[i]
@@ -635,6 +702,7 @@ def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLen
     
     #self.report({'INFO'}, f"startPoint: {startPoint}")
     drawDebugPoint(startPoint)
+    
     
     return startPointData(startPoint, outwardDir, nStart, startNodeIndex, startNodeNextIndex, t, tangent)
     
