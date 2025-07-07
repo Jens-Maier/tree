@@ -43,6 +43,7 @@ class node():
         self.tValGlobal = TvalGlobal
         self.tValBranch = TvalBranch
         self.next = []
+        self.branches = []
         
     def drawDebugPoint(pos, name="debugPoint"):
         bpy.ops.object.empty_add(type='SPHERE', location=pos)
@@ -56,15 +57,19 @@ class node():
         
         for n, nextNode in enumerate(self.next):
             if len(self.next) > 1:
-                #treeGen.report({'INFO'}, f"in getAllSegments(): len(tangent): {len(self.tangent)}, n: {n}")
+                treeGen.report({'INFO'}, f"in getAllSegments(): len(tangent): {len(self.tangent)}, len(next): {len(self.next)}, n: {n}")
                 
                 segments.append(segment(self.point, nextNode.point, self.tangent[n + 1], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.ringResolution, False))
             else:
-                #treeGen.report({'INFO'}, f"in getAllSegments(): len(tangent): {len(self.tangent)}, n: {n}")
+                treeGen.report({'INFO'}, f"in getAllSegments(): len(tangent): {len(self.tangent)}, len(next): {len(self.next)}, n: {n}")
                 segments.append(segment(self.point, nextNode.point, self.tangent[0], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.ringResolution, connectedToPrev))
         
             nextNode.getAllSegments(treeGen, segments, True)
-            # TODO: children...
+        
+        for branchList in self.branches:
+            for b in branchList:
+                treeGen.report({'INFO'}, f"adding branch to segments!")
+                b.getAllSegments(treeGen, segments, False)
             
     
         
@@ -192,27 +197,26 @@ def drawDebugPoint(pos, name="debugPoint"):
     bpy.context.active_object.name=name
     
 def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
-    if len(activeNode.next) > 0:
+    if len(activeNode.next) > 0 or len(activeNode.branches) > 0:
+        
         sum = 0.0
-        max = 0.0
-        for n in activeNode.next:
-            s = calculateRadius(self, n, maxRadius, branchTipRadius)
-            s += (n.point - activeNode.point).length * activeNode.taper * activeNode.taper
-            if s > max:
-                max = s
+        if len(activeNode.next) > 0:
+            max = 0.0
+            for n in activeNode.next:
+                s = calculateRadius(self, n, maxRadius, branchTipRadius)
+                s += (n.point - activeNode.point).length * activeNode.taper * activeNode.taper
+                if s > max:
+                    max = s
             #self.report({'INFO'}, f"s: {s}, max: {max}")
-        sum = max
+            sum = max
         
-        
-        #sum = calculateRadius(activeNode.next[0], maxRadius, branchTipRadius)
-        #sum += (activeNode.next[0].point - activeNode.point).length * activeNode.taper * activeNode.taper
-        
-        #if len(branches) > 0: ....
+        if len(activeNode.branches) > 0:
+            for c in activeNode.branches:
+                for n in c:
+                    calculateRadius(self, n, sum, branchTipRadius)
+                    
         if sum < maxRadius:
-            #if sum == 0.0:
-                #activeNode.radius = 0.01
-            #else:
-                activeNode.radius = sum
+            activeNode.radius = sum
         else:
             activeNode.radius = maxRadius
         return sum
@@ -581,6 +585,7 @@ def addBranches(self, context, rootNode, nrBranchesList, parentClusterBoolListLi
             #class node():
             #   def __init__(self, Point, Radius, Cotangent, RingResolution, Taper, TvalGlobal, TvalBranch):
             branch = node(data.startPoint, 1.0, branchCotangent, ringResolution, taper, data.startNode.tValGlobal, 0.0)
+            branch.tangent.append(branchDir)
             
             branchLength = 0.0
             # if clusterIndex == 0:
@@ -595,8 +600,17 @@ def addBranches(self, context, rootNode, nrBranchesList, parentClusterBoolListLi
             #    branchLength = lengthToTip 
             
             #branch = node(data.startPoint, 1.0, branchCotangent, ringResolution, taper, data.startNode.tValGlobal, 0.0)
-            branch.next.append(node(data.startPoint + branchDir * branchLength, 1.0, branchCotangent, ringResolution, taper, data.startNode.tValGlobal, 0.0))
+            branchNext = node(data.startPoint + branchDir * branchLength, 1.0, branchCotangent, ringResolution, taper, data.startNode.tValGlobal, 0.0)
+            branchNext.tangent.append(branchDir)
+            branch.next.append(branchNext)
+            
             drawDebugPoint(data.startPoint + branchDir * branchLength)
+            
+            if len(data.startNode.branches) < startNodeNextIndex + 1:
+                for m in range(len(data.startNode.next)):
+                    data.startNode.branches.append([])
+                
+            data.startNode.branches[startNodeNextIndex].append(branch)
             
             
 def shapeRatio(context, tValGlobal):
@@ -777,8 +791,8 @@ def generateVerticesAndTriangles(self, segments, dir, taper, radius, ringSpacing
                     y = math.sin(angle)
                     v = pos + dirA * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.cos(angle) + dirB * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.sin(angle)
                     #self.report({'INFO'}, f"in generateVerticesAndTriangles: vertex.append:  {v}")
-                    if v.x < -10.0:
-                        self.report({'ERROR'}, f"ERROR: vertex: {v}")
+                    #if v.x < -10.0:
+                    #    self.report({'ERROR'}, f"ERROR: vertex: {v}")
                     vertices.append(v)
                     counter += 1
     
