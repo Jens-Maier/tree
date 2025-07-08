@@ -87,8 +87,6 @@ class node():
                 endTvalSegment = (segmentEndGlobal - self.tValGlobal) / (self.next[n].tValGlobal - self.tValGlobal)
                 
                 startNodesNextIndexStartTvalEndTval.append(startNodeInfo(self, n, startTvalSegment, endTvalSegment))
-                
-                treeGen.report({'INFO'}, f"in getAllStartNodes(): startTvalSegment: {startTvalSegment}, endTvalSegment: {endTvalSegment}")
         
         #if self.tValGlobal >= startHeightGlobal and self.tValGlobal <= endHeightGlobal:
         #    if len(self.next) > 0:
@@ -101,7 +99,7 @@ class node():
             n.getAllStartNodes(treeGen, startNodesNextIndexStartTvalEndTval, startHeightGlobal, endHeightGlobal, startHeightCluster, endHeightCluster, parentClusterBoolListList)
             
             
-        
+        #treeGen.report({'INFO'}, f"in getAllStartNodes(): len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}")
         
         
         
@@ -628,10 +626,9 @@ branchShapeList):
         branchesStartHeightCluster = branchesStartHeightClusterList[0].value
         branchesEndHeightCluster = branchesEndHeightClusterList[0].value
         
-        treeGen.report({'INFO'}, "in addBranches()")
+        treeGen.report({'INFO'}, f"in addBranches()")
         
         startNodesNextIndexStartTvalEndTval = []
-        
         rootNode.getAllStartNodes(self, startNodesNextIndexStartTvalEndTval, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster, parentClusterBoolListList)
         
         #for s in startNodesNextIndexStartTvalEndTval:
@@ -646,12 +643,10 @@ branchShapeList):
             windingAngle = 0.0
             for branchIndex in range(0, nrBranches):
                 branchPos = branchIndex * totalLength / nrBranches
-                self.report({'INFO'}, f"in addBranches: branchPos: {branchPos}")
                 
                 data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, False)
                 
                 startPoint = data.startPoint
-                self.report({'INFO'}, f"in addBranches: data.startPoint: {startPoint}") #ERROR HERE???
             
                 startNodeNextIndex = data.startNodeNextIndex
                 startPointTangent = sampleSplineTangentT(data.startNode.point, 
@@ -808,13 +803,10 @@ def calculateSegmentLengthsAndTotalLength(self, startNodesNextIndexStartTvalEndT
         
         segmentLengths.append(segmentLengthAbove)
         totalLength += segmentLengthAbove
-        
-        self.report({'INFO'}, f"in calculateSegmentLengthsAndTotalLength(): segmentLength added: {segmentLengthAbove}, totalLength: {totalLength}")
             
     return totalLength
 
 def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, calledFromAddLeaves):
-    self.report({'INFO'}, "in generateStartPointData()")
     accumLength = 0.0
     startNodeIndex = 0
     tVal = 0.0
@@ -827,25 +819,17 @@ def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLen
             
             if segLen > 0.0:
                 tVal = (branchPos - segStart) / segLen
-                self.report({'INFO'}, f"in generateStartPointData: calculating tVal = {tVal}")
-            else:
-                self.report({'ERROR'}, "segment length is zero!")
+                
             
             startTval = startNodesNextIndexStartTvalEndTval[startNodeIndex].startTval
             endTval = startNodesNextIndexStartTvalEndTval[startNodeIndex].endTval
-            self.report({'INFO'}, f"in generateStartPointData: startTval: {startTval}, endTval:{endTval}, segmentLength: {segmentLengths[i]}, tVal: {tVal}") # startTval: 0.0, endTval:0.2, segmentLength: 6.18
+            #self.report({'INFO'}, f"startTval: {startTval}, endTval:{endTval}, segmentLength: {segmentLengths[i]}") 
+            # startTval: 0.0, endTval:0.2, segmentLength: 6.18
 
             
-            #if startTval >= 0.0 and tVal < startTval: # ERROR HERE !!!
-            #    self.report({'INFO'}, f"in generateStartPointData: setting tVal = {tVal} to startTval = {startTval}")
-            #    tVal = startTval
-            #if startTval >= 0.0 and tVal > endTval:
-            #    self.report({'INFO'}, f"in generateStartPointData: setting tVal = {tVal} to endTval = {endTval}")
-            #    tVal = endTval
-            
-            #remap startTval [0, 1] to [startTval, endTval]
             tVal = startTval + tVal * (endTval - startTval)
-            
+                
+                
             break
         accumLength += segmentLengths[i]
         
@@ -864,7 +848,6 @@ def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLen
         tangent,
         startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].tangent[0], 
         tVal)
-    self.report({'INFO'}, f"in generateStartPointData: startPoint: {startPoint}, tVal: {tVal}")
     
     nextTangent = (treeGrowDir.normalized() * treeHeight - (rootNode.point + rootNode.tangent[0] * (treeGrowDir.normalized() * treeHeight - rootNode.point).length * (1.5 / 3.0))).normalized()
     
@@ -1031,7 +1014,11 @@ class showSplitLevelsProp(bpy.types.PropertyGroup):
         description="Show/hide split levels",
         default=True
     )
+
+
     
+
+
 class splitHeightFloatListProp(bpy.types.PropertyGroup):
     value: bpy.props.CollectionProperty(name = "splitHeightFloatListProperty", type=floatProp01)
     show_split_levels: bpy.props.BoolProperty(
@@ -1116,21 +1103,9 @@ class UL_stemSplitLevelList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
-        layout.prop(item, "value", text=f"Item {index}")
+        layout.prop(item, "value", text="", slider=True)
         
-    #show_split_levels: bpy.props.BoolProperty(
-    #    name="Show Split Levels",
-    #    description="Show/hide split levels",
-    #    default = True
-    #)
         
-# class branchClusterBoolListProp(bpy.types.PropertyGroup):
-    # value: bpy.props.CollectionProperty(name = "branchClusterBoolListProperty", type=boolProp)
-    # show_branch_cluster: bpy.props.BoolProperty(
-    #     name="Show Branch Cluster",
-    #     description="Show/hide branch cluster",
-    #     default=True
-    # )
     
 class addStemSplitLevel(bpy.types.Operator):
     bl_idname = "scene.add_stem_split_level"
@@ -1138,7 +1113,7 @@ class addStemSplitLevel(bpy.types.Operator):
     
     def execute(self, context):
         newSplitHeight = context.scene.stemSplitHeightInLevelList.add()
-        newSplitHeight = 0.5
+        newSplitHeight.value = 0.5
         context.scene.stemSplitHeightInLevelListIndex = len(context.scene.stemSplitHeightInLevelList) - 1
         return {'FINISHED'}
 
@@ -1160,7 +1135,6 @@ class removeStemSplitLevel(bpy.types.Operator):
     def execute(self, context):
         if len(context.scene.stemSplitHeightInLevelList) > self.index:
             context.scene.stemSplitHeightInLevelList.remove(self.index)
-            context.scene.stemSplitHeightInLevelListIndex = len(context.scene.stemSplitHeightInLevelList) - 1
         return {'FINISHED'}
 
 class removeBranchSplitLevel(bpy.types.Operator):
@@ -1386,47 +1360,12 @@ class splitSettings(bpy.types.Panel):
         row = layout.row()
         layout.prop(context.scene, "curvOffsetStrength")
         
-        #box = layout.box()
-        #row.operator("scene.add_stem_split_level", text="Add split level")
-        #row.operator("scene.remove_stem_split_level", text="Remove").index = scene.stemSplitHeightInLevelListIndex
-        
-        row = layout.row()
-        row = layout.row()
-        #row.prop(stemSplitHeightInLevelList, "show_split_levels", icon="TRIA_DOWN" if showStemSplitHeightInLevelList == True else "TRIA_RIGHT", emboss=False, text=f"Split heights", toggle=True)
-        
-        if len(scene.stemSplitHeightInLevelList) > 0:
-            #row.prop(scene.stemSplitHeightInLevelList[0], "show_split_levels", icon="TRIA_DOWN") #funkt! (overwrites heights?)
-            row.prop(context.scene, "show_split_levels", icon="TRIA_DOWN")
-            
-        #else:
-            #row.operator("scene.add_stem_split_level", text="Add split level")
-        
-        #show_split_levels
-        #row = layout.row()
-        #row.template_list("UL_stemSplitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex")
-          
-        #row.prop(outer, "show_cluster", icon="TRIA_DOWN" if outer.show_cluster else "TRIA_RIGHT", emboss=False, text=f"Parent clusters", toggle=True)
-        #    if outer.show_cluster:
-        
-        #box = layout.box()
-        #row = layout.row()
-        #row = layout.row() #showStemSplitHeightInLevelList
-        
-        #row = layout.row()
-        
-        #showSplitLevelsProp
-        
-        #if scene.show_split_levels == True or len(scene.stemSplitHeightInLevelList) == 0: 
-        row = layout.row()
+        box = layout.box()
+        row = box.row()
         row.operator("scene.add_stem_split_level", text="Add split level")
         row.operator("scene.remove_stem_split_level", text="Remove").index = scene.stemSplitHeightInLevelListIndex
-                
-        if len(scene.stemSplitHeightInLevelList) > 0 and scene.show_split_levels == True:
-            if scene.stemSplitHeightInLevelList[0].show_split_levels == True or len(scene.stemSplitHeightInLevelList) == 0:
-                
-                row = layout.row() #UL_stemSplitLevelList
-                row.template_list("UL_stemSplitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex")
-                
+        row = layout.row()
+        row.template_list("UL_stemSplitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex")
                         
         #j = 0
         #for splitLevel in context.scene.stemSplitHeightInLevelList:
@@ -1662,8 +1601,6 @@ def register():
     bpy.utils.register_class(boolProp)
     bpy.utils.register_class(parentClusterBoolListProp)
     bpy.utils.register_class(branchClusterBoolListProp)
-    bpy.utils.register_class(splitHeightFloatListProp)
-    bpy.utils.register_class(showSplitLevelsProp)
     
     #operators
     bpy.utils.register_class(addItem)
@@ -1673,7 +1610,8 @@ def register():
     bpy.utils.register_class(removeStemSplitLevel)
     bpy.utils.register_class(addBranchSplitLevel)
     bpy.utils.register_class(removeBranchSplitLevel)
-    bpy.utils.register_class(generateTree)    
+    bpy.utils.register_class(generateTree)
+    
     
     #panels
     bpy.utils.register_class(treeGenPanel)
@@ -1684,26 +1622,12 @@ def register():
     #bpy.utils.register_class(parentClusterPanel)
     
     #UILists
-    bpy.types.Scene.show_split_levels = bpy.props.BoolProperty(
-        name = "show split levels",
-        description = "show/hide split levels",
-        default = True
-    )
     bpy.utils.register_class(UL_stemSplitLevelList)
     bpy.types.Scene.UL_stemSplitLevelListIndex = bpy.props.IntProperty(default = 0)
-    
-    # class branchClusterBoolListProp(bpy.types.PropertyGroup):
-    # value: bpy.props.CollectionProperty(name = "branchClusterBoolListProperty", type=boolProp)
-    # show_branch_cluster: bpy.props.BoolProperty(
-    #     name="Show Branch Cluster",
-    #     description="Show/hide branch cluster",
-    #     default=True
-    # )
           
     #collections
-    bpy.types.Scene.stemSplitHeightInLevelList = bpy.props.CollectionProperty(type=splitHeightFloatListProp)
+    bpy.types.Scene.stemSplitHeightInLevelList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.stemSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.showStemSplitHeightInLevelList = bpy.props.BoolProperty(default = True)
     
     bpy.types.Scene.parentClusterBoolList = bpy.props.CollectionProperty(type=boolProp)
     bpy.types.Scene.parentClusterBoolListList = bpy.props.CollectionProperty(type=parentClusterBoolListProp)
