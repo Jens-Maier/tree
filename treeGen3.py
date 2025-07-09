@@ -1757,9 +1757,10 @@ class splitSettings(bpy.types.Panel):
         split = row.split(factor=0.5)
         split.label(text="Stem split mode")
         split.prop(context.scene, "stemSplitMode", text="")
-        
-        row = layout.row()
-        layout.prop(context.scene, "stemSplitRotateAngle")
+        mode = scene.stemSplitMode
+        if mode == "ROTATE_ANGLE":
+            row = layout.row()
+            layout.prop(context.scene, "stemSplitRotateAngle")
         row = layout.row()
         layout.prop(context.scene, "curvOffsetStrength")
         
