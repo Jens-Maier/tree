@@ -1153,6 +1153,27 @@ class removeStemSplitLevel(bpy.types.Operator):
     def execute(self, context):
         if len(context.scene.stemSplitHeightInLevelList) > self.index:
             context.scene.stemSplitHeightInLevelList.remove(self.index)
+            
+        if self.index == 0:
+            if len(context.scene.branchSplitHeightInLevelList_0) > 0:
+                context.scene.branchSplitHeightInLevelList_0.remove(0)
+                #context.scene.branchSplitHeightInLevelListIndex_0 -= 1
+        if self.index == 1:
+            if len(context.scene.branchSplitHeightInLevelList_1) > 0:
+                context.scene.branchSplitHeightInLevelList_1.remove(len(context.scene.branchSplitHeightInLevelList_1) - 1)
+                context.scene.branchSplitHeightInLevelListIndex_1 -= 1
+        if self.index == 2:
+            if len(context.scene.branchSplitHeightInLevelList_2) > 0:
+                context.scene.branchSplitHeightInLevelList_2.remove(len(context.scene.branchSplitHeightInLevelList_2) - 1)
+                context.scene.branchSplitHeightInLevelListIndex_2 -= 1
+        if self.index == 3:
+            if len(context.scene.branchSplitHeightInLevelList_3) > 0:
+                context.scene.branchSplitHeightInLevelList_3.remove(len(context.scene.branchSplitHeightInLevelList_3) - 1)
+                context.scene.branchSplitHeightInLevelListIndex_3 -= 1
+        if self.index == 4:
+            if len(context.scene.branchSplitHeightInLevelList_4) > 0:
+                context.scene.branchSplitHeightInLevelList_4.remove(len(context.scene.branchSplitHeightInLevelList_4) - 1)
+                context.scene.branchSplitHeightInLevelListIndex_4 -= 1
         return {'FINISHED'}
 
 class removeBranchSplitLevel(bpy.types.Operator):
@@ -1164,7 +1185,8 @@ class removeBranchSplitLevel(bpy.types.Operator):
         branchSplitHeightInLevelList = context.scene.branchSplitHeightInLevelListList
         if self.level < len(branchSplitHeightInLevelList):
             branchSplitHeightInLevelList[self.level].value.remove(len(branchSplitHeightInLevelList[self.level].value) - 1)
-                        
+            
+               #context.scene.branchSplitModeList.remove(len(context.scene.branchSplitModeList) - 1)         
         #self.report({'INFO'}, f"remove split level")
         return {'FINISHED'}
     
@@ -1630,7 +1652,7 @@ class branchSettings(bpy.types.Panel):
                         j += 1
                         
                 row = box.row()
-                branchSplitHeightInLevelList = scene.branchSplitHeightInLevelListList[i]
+                #branchSplitHeightInLevelList = scene.branchSplitHeightInLevelListList[i]
                 #branchSplitHeightInLevelListIndex = scene.branchSplitHeightInLevelListIndex[i].value
                 
                 #row.template_list("UL_splitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex") #TEST
