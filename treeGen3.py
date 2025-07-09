@@ -1099,12 +1099,13 @@ class toggleBool(bpy.types.Operator):
             
         return {'FINISHED'} #bpy.ops.scene.toggle_bool(list_index=0, bool_index=0)
     
-class UL_stemSplitLevelList(bpy.types.UIList):
+class UL_splitLevelList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
         
+
         
     
 class addStemSplitLevel(bpy.types.Operator):
@@ -1125,6 +1126,23 @@ class addBranchSplitLevel(bpy.types.Operator):
     def execute(self, context):
         newSplitHeight = context.scene.branchSplitHeightInLevelListList[self.level].value.add()
         newSplitHeight = 0.5
+        if self.level == 0:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_0.add()
+            newSplitHeight = 0.5
+        if self.level == 1:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_1.add()
+            newSplitHeight = 0.5
+        if self.level == 2:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_2.add()
+            newSplitHeight = 0.5
+        if self.level == 3:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_3.add()
+            newSplitHeight = 0.5
+        if self.level == 4:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_4.add()
+            newSplitHeight = 0.5
+        
+        #context.scene.branchSplitHeightInLevelListIndex[len(context.scene.branchSplitHeightInLevelListIndex) - 1].value = 0
         return {'FINISHED'}
     
 class removeStemSplitLevel(bpy.types.Operator):
@@ -1211,6 +1229,26 @@ class addItem(bpy.types.Operator): # add branch cluster
         branchSplitHeightVariation.value = 0.0
         branchSplitHeightInLevelListListItem = context.scene.branchSplitHeightInLevelListList.add()
         
+        
+        
+        # ---> hardcode 20 lists -> tempplateList ( no nested List!, bakcfall: old UI...)
+        # ---> call getNestedList() at beginning of updateTree()
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        #branchSplitHeightInLevelListIndex = context.scene.branchSplitHeightInLevelListIndex.add()
+                
+        
+        #bpy.types.Scene.branchSplitHeightInLevelListList = bpy.props.CollectionProperty(type=floatListProp01)-----------ok
+        #bpy.types.Scene.branchSplitHeightInLevelListIndex = bpy.propy.CollectionProperty(type=intProp) -----------ok
+        
         return {'FINISHED'}
     
 class removeItem(bpy.types.Operator):
@@ -1251,6 +1289,11 @@ class removeItem(bpy.types.Operator):
         context.scene.splitsPerBranchVariationList.remove(len(context.scene.splitsPerBranchVariationList) - 1)
         context.scene.branchSplitHeightVariationList.remove(len(context.scene.branchSplitHeightVariationList) - 1)
         context.scene.branchSplitHeightInLevelListList.remove(len(context.scene.branchSplitHeightInLevelListList) - 1)
+        
+        context.scene.branchSplitHeightInLevelListList.remove(len(context.scene.branchSplitHeightInLevelListList) - 1)
+        #context.scene.branchSplitHeightInLevelListIndex.remove(len(context.scene.branchSplitHeightInLevelListIndex) - 1)
+                
+        
             
         if len(context.scene.nrBranchesList) > 0:
             context.scene.nrBranchesList.remove(len(context.scene.nrBranchesList) - 1)
@@ -1365,7 +1408,7 @@ class splitSettings(bpy.types.Panel):
         row.operator("scene.add_stem_split_level", text="Add split level")
         row.operator("scene.remove_stem_split_level", text="Remove").index = scene.stemSplitHeightInLevelListIndex
         row = layout.row()
-        row.template_list("UL_stemSplitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex")
+        row.template_list("UL_splitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex")
                         
         #j = 0
         #for splitLevel in context.scene.stemSplitHeightInLevelList:
@@ -1585,6 +1628,37 @@ class branchSettings(bpy.types.Panel):
                     for splitLevel in scene.branchSplitHeightInLevelListList[i].value:
                         box.prop(splitLevel, "value", text=f"Split height level {j}")
                         j += 1
+                        
+                row = box.row()
+                branchSplitHeightInLevelList = scene.branchSplitHeightInLevelListList[i]
+                #branchSplitHeightInLevelListIndex = scene.branchSplitHeightInLevelListIndex[i].value
+                
+                #row.template_list("UL_splitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex") #TEST
+                
+                #row.template_list("UL_splitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex")
+                
+                
+                # ---> hardcode 20 lists -> tempplateList ( no nested List!, bakcfall: old UI...)
+                # ---> call getNestedList() at beginning of updateTree()
+                if i == 0:
+                    row.template_list("UL_splitLevelList", "", scene, "branchSplitHeightInLevelList_0", scene, "branchSplitHeightInLevelListIndex_0")
+                if i == 1:
+                    row.template_list("UL_splitLevelList", "", scene, "branchSplitHeightInLevelList_1", scene, "branchSplitHeightInLevelListIndex_1")
+                if i == 2:
+                    row.template_list("UL_splitLevelList", "", scene, "branchSplitHeightInLevelList_2", scene, "branchSplitHeightInLevelListIndex_2")
+                if i == 3:
+                    row.template_list("UL_splitLevelList", "", scene, "branchSplitHeightInLevelList_3", scene, "branchSplitHeightInLevelListIndex_3")
+                if i == 4:
+                    row.template_list("UL_splitLevelList", "", scene, "branchSplitHeightInLevelList_4", scene, "branchSplitHeightInLevelListIndex_4")
+                if i == 5:
+                    row.template_list("UL_splitLevelList", "", scene, "branchSplitHeightInLevelList_5", scene, "branchSplitHeightInLevelListIndex_5")
+                
+                #...
+                
+                #scene.branchSplitHeightInLevelList_5
+                #branchSplitHeightInLevelListIndex_5
+        
+        
             
             
 def register():
@@ -1622,12 +1696,12 @@ def register():
     #bpy.utils.register_class(parentClusterPanel)
     
     #UILists
-    bpy.utils.register_class(UL_stemSplitLevelList)
-    bpy.types.Scene.UL_stemSplitLevelListIndex = bpy.props.IntProperty(default = 0)
+    bpy.utils.register_class(UL_splitLevelList)
           
     #collections
     bpy.types.Scene.stemSplitHeightInLevelList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.stemSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0)
+    
     
     bpy.types.Scene.parentClusterBoolList = bpy.props.CollectionProperty(type=boolProp)
     bpy.types.Scene.parentClusterBoolListList = bpy.props.CollectionProperty(type=parentClusterBoolListProp)
@@ -1657,7 +1731,34 @@ def register():
     bpy.types.Scene.nrSplitsPerBranchList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.splitsPerBranchVariationList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchSplitHeightVariationList = bpy.props.CollectionProperty(type=floatProp)
+    
+    
     bpy.types.Scene.branchSplitHeightInLevelListList = bpy.props.CollectionProperty(type=floatListProp01)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0) 
+    
+    bpy.types.Scene.branchSplitHeightInLevelList_0 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_0 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_1 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_1 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_2 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_2 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_3 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_3 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_4 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_4 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_5 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_5 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_6 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_6 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_7 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_7 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_8 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_8 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_9 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_9 = bpy.props.IntProperty(default = 0)
+    
+    
+    # bpy.props.CollectionProperty(type=intProp)
         
     bpy.types.Scene.treeHeight = bpy.props.FloatProperty(
         name = "tree height",
@@ -2055,7 +2156,7 @@ def unregister():
     #bpy.utils.unregister_class(parentClusterBoolListProp)
     
     #UILists
-    bpy.utils.unregister_class(UL_stemSplitLevelList)
+    bpy.utils.unregister_class(UL_splitLevelList)
     
     #operators
     #bpy.utils.unregister_class(addItem)
