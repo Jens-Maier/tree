@@ -22,6 +22,12 @@ class startNodeInfo():
         self.startTval = StartTval
         self.endTval = EndTval
         
+class nodeInfo():
+    def __init__(self, NodeInLevel, NextIndex, SplitsPerBranch):
+        self.nodeInLevel = NodeInLevel
+        self.nextIndex = NextIndex
+        self.splitsPerBranch = SplitsPerBranch
+        
 class startPointData():
     def __init__(self, StartPoint, OutwardDir, StartNode, StartNodeIndex, StartNodeNextIndex, T, Tangent):
         self.startPoint = StartPoint
@@ -33,11 +39,12 @@ class startPointData():
         self.tangent = Tangent
 
 class node():
-    def __init__(self, Point, Radius, Cotangent, RingResolution, Taper, TvalGlobal, TvalBranch):
+    def __init__(self, Point, Radius, Cotangent, ClusterIndex, RingResolution, Taper, TvalGlobal, TvalBranch):
         self.point = Point
         self.radius = Radius
         self.tangent = []
         self.cotangent = Cotangent
+        self.clusterIndex = ClusterIndex
         self.ringResolution = RingResolution
         self.taper = Taper
         self.tValGlobal = TvalGlobal
@@ -72,7 +79,20 @@ class node():
                 b.getAllSegments(treeGen, segments, False)
             
     
+    def getAllBranchNodes(self, treeGen, allBranchNodes, branchCluster):
+        treeGen.report({'INFO'}, f"in getAllBranchNodes(): self.clusterIndex: {self.clusterIndex}, branchCluster: {branchCluster}")
+        if self.clusterIndex == branchCluster:
+            treeGen.report({'INFO'}, "getAllBranchNodes(): adding node!")
+            allBranchNodes.append(self)
+            #return #???
+        for c in self.branches:
+            for n in c:
+                treeGen.report({'INFO'}, "getAllBranchNodes(): branches.getAllBranchNodes()")
+                n.getAllBranchNodes(treeGen, allBranchNodes, branchCluster)
         
+        for n in self.next:
+            treeGen.report({'INFO'}, "getAllBranchNodes(): next.getAllBranchNodes()")
+            n.getAllBranchNodes(treeGen, allBranchNodes, branchCluster)
     
     def getAllStartNodes(self, treeGen, startNodesNextIndexStartTvalEndTval, startHeightGlobal, endHeightGlobal, startHeightCluster, endHeightCluster, parentClusterBoolListList):
         
@@ -98,8 +118,16 @@ class node():
         for n in self.next:
             n.getAllStartNodes(treeGen, startNodesNextIndexStartTvalEndTval, startHeightGlobal, endHeightGlobal, startHeightCluster, endHeightCluster, parentClusterBoolListList)
             
-            
         #treeGen.report({'INFO'}, f"in getAllStartNodes(): len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}")
+            
+    def lengthToTip(self):
+        if len(self.next) > 0:
+            return self.next[0].lengthToTip() + (self.next[0].point - self.point).length
+        else:
+            return 0.0
+            
+            
+        
         
         
         
@@ -146,12 +174,12 @@ class generateTree(bpy.types.Operator):
             nodeTangents = []
             nodeTangents.append(Vector((0.0, 0.0, 1.0)))
             
-            nodes.append(node(Vector((0.0, 0.0, 0.0)), 0.1, Vector((1.0, 0.0, 0.0)), context.scene.stemRingResolution, context.scene.taper, 0.0, 0.0))
+            nodes.append(node(Vector((0.0, 0.0, 0.0)), 0.1, Vector((1.0, 0.0, 0.0)), -1, context.scene.stemRingResolution, context.scene.taper, 0.0, 0.0))
             
             nodes[0].tangent.append(Vector((0.0, 0.0, 1.0)))
             
             #nodes.append(node(dir * height * 0.7, 0.1, Vector((0.0, 0.5, 1.0)), Vector((1.0, 0.0, 0.0)), context.scene.stemRingResolution, context.scene.taper, 0.7, 0.0))
-            nodes.append(node(dir * height, 0.1, Vector((1.0, 0.0, 0.0)), context.scene.stemRingResolution, context.scene.taper, 1.0, 0.0))
+            nodes.append(node(dir * height, 0.1, Vector((1.0, 0.0, 0.0)), -1, context.scene.stemRingResolution, context.scene.taper, 1.0, 0.0))
             nodes[1].tangent.append(Vector((0.0, 0.0, 1.0)))
             nodes[0].next.append(nodes[1])
             #nodes[1].next.append(nodes[2])
@@ -198,12 +226,24 @@ class generateTree(bpy.types.Operator):
             context.scene.stemRingResolution, 
             
             context.scene.taper, 
-            context.scene.taperFactor, 
+            context.scene.taperFactorList, 
             context.scene.relBranchLengthList, 
             
-            context.scene.branchShapeList)
+            context.scene.branchShapeList, 
+            context.scene.nrSplitsPerBranchList, 
+            context.scene.splitsPerBranchVariationList,
             
-            #def addBranches(self, context, 
+            context.scene.branchSplitAngleList, 
+            context.scene.branchSplitPointAngleList, 
+            context.scene.branchSplitHeightInLevelList_0, 
+            
+            context.scene.branchSplitHeightVariationList,
+            context.scene.branchSplitModeList,
+            context.scene.branchSplitRotateAngle,
+            context.scene.branchCurvatureOffsetStrength[0],
+            context.scene.branchVarianceList)
+            
+            #def add Branches(self, context, 
             #    rootNode, 
             #    nrBranchesList, 
             #    parentClusterBoolListList, 
@@ -232,7 +272,7 @@ class generateTree(bpy.types.Operator):
             
             
             
-            #def addBranches(self, context, 
+            #def add Branches(self, context, 
             #rootNode, 
             #nrBranchesList, 
             #parentClusterBoolListList, 
@@ -413,7 +453,18 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
                 self.report({'INFO'}, f"break!")
                 break
             
-def split(startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, rootNode):
+def split(startNode, 
+          nextIndex, 
+          splitHeight, 
+          splitAngle, 
+          splitPointAngle, 
+          level, 
+          mode, 
+          rotationAngle, 
+          stemRingResolution, 
+          curvOffsetStrength, 
+          self, 
+          rootNode):
     #self.report({'INFO'}, f"split! splitHeight: {splitHeight}")
     # Only split if there is a next node at the given index
     if len(startNode.next) > 0 and nextIndex < len(startNode.next):
@@ -444,7 +495,7 @@ def split(startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level,
                # self.report({'INFO'}, f"split at existing node")
                 #return splitNode
             else:
-                return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, rootNode)
+                return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, rootNode) # clusterIndex???
                 
     #self.report({'INFO'}, f"split failed! nrNodesToTip: {nrNodesToTip}, len(startNode.next): {len(startNode.next)}, nextIndex: {nextIndex}")
     return startNode
@@ -481,8 +532,6 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
                 ring_res = splitAfterNode.ringResolution
                 taper = splitAfterNode.taper
                 
-                
-
                 # Spline interpolation (replace with your own if needed)
                 newPoint = sampleSplineT(p0, p1, t0, t1, t)
                 newTangent = sampleSplineTangentT(p0, p1, t0, t1, t)
@@ -491,7 +540,7 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
                 newTvalGlobal = lerp(splitAfterNode.tValGlobal, splitAfterNode.next[nextIndex].tValGlobal, nrNodesToTip * splitHeight - splitAfterNodeNr)
                 newTvalBranch = lerp(splitAfterNode.tValBranch, splitAfterNode.next[nextIndex].tValBranch, splitHeight);
 
-                newNode = node(newPoint, newRadius, newCotangent, ring_res, taper, newTvalGlobal, newTvalBranch)
+                newNode = node(newPoint, newRadius, newCotangent, splitAfterNode.clusterIndex, ring_res, taper, newTvalGlobal, newTvalBranch)
                 #self.report({'INFO'}, f"split: newNode.taper: {newNode.taper}")
                 newNode.tangent.append(newTangent)
                 # Insert new node in the chain
@@ -564,9 +613,9 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, level, sMode, rot
         ring_res_index = -1 # TODO: = splitNode.cluster_index
         ring_resolution = stemRingResolution # TODO: if ring_res_index == -1 else cluster_ring_resolution[ring_res_index]
 
-        nodeA = node(splitNode.point + offset_a + curv_offset, 1.0, cotangent_a, ring_resolution, s.taper, s.tValGlobal, tValBranch)
+        nodeA = node(splitNode.point + offset_a + curv_offset, 1.0, cotangent_a, s.clusterIndex, ring_resolution, s.taper, s.tValGlobal, tValBranch)
         nodeA.tangent.append(tangent_a)
-        nodeB = node(splitNode.point + offset_b + curv_offset, 1.0, cotangent_b, ring_resolution, s.taper, s.tValGlobal, tValBranch)
+        nodeB = node(splitNode.point + offset_b + curv_offset, 1.0, cotangent_b, s.clusterIndex, ring_resolution, s.taper, s.tValGlobal, tValBranch)
         nodeB.tangent.append(tangent_b)
 
         if i == 0:
@@ -616,17 +665,27 @@ rotateAngleList,
 rotateAngleRangeList, 
 ringResolution, 
 taper, 
-taperFactor, 
+taperFactorList, 
 relBranchLengthList,
-branchShapeList):
-    if len(nrBranchesList) > 0:
-        nrBranches = nrBranchesList[0].value
+branchShapeList, 
+nrSplitsPerBranch, 
+splitsPerBranchVariation,
+branchSplitAngle, 
+branchSplitPointAngle, 
+branchSplitHeightInLevel, 
+branchSplitHeightVariation,
+branchSplitMode,
+branchSplitRotateAngle,
+branchCurvOffsetStrength,
+branchVariance):
+    if len(nrBranchesList) > 0 and len(branchesStartHeightGlobalList) > 0:
+        nrBranches = nrBranchesList[0].value        
         branchesStartHeightGlobal = branchesStartHeightGlobalList[0].value
         branchesEndHeightGlobal = branchesEndHeightGlobalList[0].value
         branchesStartHeightCluster = branchesStartHeightClusterList[0].value
         branchesEndHeightCluster = branchesEndHeightClusterList[0].value
         
-        treeGen.report({'INFO'}, f"in addBranches()")
+        treeGen.report({'INFO'}, f"in add Branches()")
         
         startNodesNextIndexStartTvalEndTval = []
         rootNode.getAllStartNodes(self, startNodesNextIndexStartTvalEndTval, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster, parentClusterBoolListList)
@@ -638,7 +697,7 @@ branchShapeList):
             segmentLengths = []
             
             totalLength = calculateSegmentLengthsAndTotalLength(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal)
-            #self.report({'INFO'}, f"total length: {totalLength}")
+            #treeGen.report({'INFO'}, f"total length: {totalLength}")
             
             windingAngle = 0.0
             for branchIndex in range(0, nrBranches):
@@ -656,24 +715,27 @@ branchShapeList):
                                                          data.t)
                 branchStartTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
                 globalVerticalAngle = lerp(verticalAngleCrownStart[0].value, verticalAngleCrownEnd[0].value, branchStartTvalGlobal)
-                #self.report({'INFO'}, f"in addBranches: branchStartTvalGlobal: {branchStartTvalGlobal}")
+                #treeGen.report({'INFO'}, f"in add Branches: branchStartTvalGlobal: {branchStartTvalGlobal}")
                 branchVerticalAngle = 0.0 #... TODO
                 verticalAngle = globalVerticalAngle + branchVerticalAngle
-                #self.report({'INFO'}, f"in addBranches: verticalAngleCrownStart[0].value: {verticalAngleCrownStart[0].value}") #OK
-                #self.report({'INFO'}, f"in addBranches: verticalAngle: {verticalAngle}") #OK
-                #self.report({'INFO'}, f"in addBranches: startPointTangent: {startPointTangent}")
+                #treeGen.report({'INFO'}, f"in add Branches: verticalAngleCrownStart[0].value: {verticalAngleCrownStart[0].value}") #OK
+                #treeGen.report({'INFO'}, f"in add Branches: verticalAngle: {verticalAngle}") #OK
+                #treeGen.report({'INFO'}, f"in add Branches: startPointTangent: {startPointTangent}")
                 
                 centerDir = Quaternion(startPointTangent.cross(data.outwardDir), math.radians(-verticalAngle)) @ data.outwardDir
-                #self.report({'INFO'}, f"in addBranches: outwardDir: {data.outwardDir}")
-                #self.report({'INFO'}, f"in addBranches: centerDir: {centerDir}")
+                #treeGen.report({'INFO'}, f"in add Branches: outwardDir: {data.outwardDir}")
+                #treeGen.report({'INFO'}, f"in add Branches: centerDir: {centerDir}")
             
-                #self.report({'INFO'}, f"in addBranches: angleMode: {branchAngleModeList[0].value}")
+                #treeGen.report({'INFO'}, f"in add Branches: angleMode: {branchAngleModeList[0].value}")
                 
                 if branchAngleModeList[0].value == "WINDING":
-                    angle = windingAngle % (2.0 * rotateAngleRangeList[0].value)
-                    #self.report({'INFO'}, f"in addBranches(): angleMode.winding: angle: {angle}, windingAngle: {windingAngle}, ")
+                    if rotateAngleRangeList[0].value > 0:
+                        angle = windingAngle % (2.0 * rotateAngleRangeList[0].value)
+                    else:
+                        angle = 0.0
+                    #treeGen.report({'INFO'}, f"in add Branches(): angleMode.winding: angle: {angle}, windingAngle: {windingAngle}, ")
                     branchDir = Quaternion(startPointTangent, math.radians(-rotateAngleRangeList[0].value + angle)) @ centerDir
-                    #self.report({'INFO'}, f"in addBranches: angleMode: winding, branchDir: {branchDir}")
+                    #treeGen.report({'INFO'}, f"in add Branches: angleMode: winding, branchDir: {branchDir}")
                     
                 if branchAngleModeList[0].value == "SYMMETRIC":
                     if branchIndex % 2 == 0:
@@ -698,7 +760,7 @@ branchShapeList):
             
                 #class node():
                 #   def __init__(self, Point, Radius, Cotangent, RingResolution, Taper, TvalGlobal, TvalBranch):
-                branch = node(data.startPoint, 1.0, branchCotangent, ringResolution, taper, data.startNode.tValGlobal, 0.0)
+                branch = node(data.startPoint, 1.0, branchCotangent, 0, ringResolution, taper * taperFactorList[0].value, data.startNode.tValGlobal, 0.0)
                 branch.tangent.append(branchDir)
             
                 branchLength = 0.0
@@ -707,24 +769,24 @@ branchShapeList):
                 startTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
                 
                 #if branchShapeList[0].value == "CONICAL":
-                #    self.report({'INFO'}, "in addBranches: treeShape: conical")
+                #    self.report({'INFO'}, "in add Branches: treeShape: conical")
                 #if branchShapeList[0].value == "SPHERICAL":
-                #    self.report({'INFO'}, "in addBranches: treeShape: spherical")
+                #    self.report({'INFO'}, "in add Branches: treeShape: spherical")
                 #if branchShapeList[0].value == "HEMISPHERICAL":
-                #    self.report({'INFO'}, "in addBranches: treeShape: hemispherical")
+                #    self.report({'INFO'}, "in add Branches: treeShape: hemispherical")
                 #if branchShapeList[0].value == "CYLINDRICAL":
-                #    self.report({'INFO'}, "in addBranches: treeShape: cylindrical")
+                #    self.report({'INFO'}, "in add Branches: treeShape: cylindrical")
                 #if branchShapeList[0].value == "TAPERED_CYLINDRICAL":
-                #    self.report({'INFO'}, "in addBranches: treeShape: taperedCylindrical")
+                #    self.report({'INFO'}, "in add Branches: treeShape: taperedCylindrical")
                 #if branchShapeList[0].value == "FLAME":
-                #    self.report({'INFO'}, "in addBranches: treeShape: flame")
+                #    self.report({'INFO'}, "in add Branches: treeShape: flame")
                 #if branchShapeList[0].value == "INVERSE_CONICAL":
-                #    self.report({'INFO'}, "in addBranches: treeShape: inverseConical")
+                #    self.report({'INFO'}, "in add Branches: treeShape: inverseConical")
                 #if branchShapeList[0].value == "TEND_FLAME":
-                #    self.report({'INFO'}, "in addBranches: treeShape: tendFlame")
+                #    self.report({'INFO'}, "in add Branches: treeShape: tendFlame")
                     
                 shapeRatioValue = shapeRatio(self, context, startTvalGlobal, branchShapeList[0].value)
-                #self.report({'INFO'}, f"in addBranches: branchLength: {branchLength}, shapeRatio: {shapeRatioValue}")
+                #treeGen.report({'INFO'}, f"in add Branches: branchLength: {branchLength}, shapeRatio: {shapeRatioValue}")
                 branchLength = treeHeight * relBranchLengthList[0].value * shapeRatioValue
                 
                 
@@ -735,7 +797,7 @@ branchShapeList):
                 #    branchLength = lengthToTip 
             
                 #branch = node(data.startPoint, 1.0, branchCotangent, ringResolution, taper, data.startNode.tValGlobal, 0.0)
-                branchNext = node(data.startPoint + branchDir * branchLength, 1.0, branchCotangent, ringResolution, taper, data.startNode.tValGlobal, 0.0)
+                branchNext = node(data.startPoint + branchDir * branchLength, 1.0, branchCotangent, 0, ringResolution, taper * taperFactorList[0].value, data.startNode.tValGlobal, 0.0)
                 branchNext.tangent.append(branchDir)
                 branch.next.append(branchNext)
                 
@@ -747,7 +809,220 @@ branchShapeList):
                     
                 data.startNode.branches[startNodeNextIndex].append(branch)
                 windingAngle += rotateAngleList[0].value
-                #self.report({'INFO'}, f"in addBranches(): new windingAngle: {windingAngle}, added: ")  #added rotateAngle: 25 -> 2.33999, rotateAngle: 50 -> 2.33999, rotateAngleRange: 20 -> 2.33999
+                #treeGen.report({'INFO'}, f"in add Branches(): new windingAngle: {windingAngle}, added: ")  #added rotateAngle: 25 -> 2.33999, rotateAngle: 50 -> 2.33999, rotateAngleRange: 20 -> 2.33999
+        
+        if nrSplitsPerBranch != None:
+            if len(nrSplitsPerBranch) > 0: # > clusterIndex:
+                if nrSplitsPerBranch[0].value > 0.0: # [clusterIndex]
+                    #treeGen.report({'INFO'}, f"in add Branches()")
+                    treeGen.report({'INFO'}, f"branchCurvOffsetStrength: {branchCurvOffsetStrength}")
+                    #length = len(branchCurvOffsetStrength)
+                    #treeGen.report(f"in addBranches: len(branchCurvOffsetStrength): {length}")
+                    splitBranches(self, 
+                                  rootNode, 
+                                  0, 
+                                  int(nrSplitsPerBranch[0].value * nrBranches), 
+                                  
+                                  branchSplitAngle[0].value, 
+                                  branchSplitPointAngle[0].value, 
+                                  nrSplitsPerBranch[0].value, 
+                                  
+                                  splitsPerBranchVariation[0].value, 
+                                  branchSplitHeightInLevel[0].value, 
+                                  branchSplitHeightVariation[0].value, 
+                                  
+                                  branchSplitMode[0].value, 
+                                  branchSplitRotateAngle[0],
+                                  0, #level ???
+                                  
+                                  ringResolution, 
+                                  0.0,#branchCurvOffsetStrength[0], #TODO: variable for each branch cluster... 
+                                  branchVariance[0].value)
+                                  
+                 #def splitBranches(self, 
+                 #  rootNode, 
+                 #  branchCluster, 
+                 #  nrBranchSplits, 
+                 
+                 #  splitAngle, 
+                 #  splitPointAngle, 
+                 #  nrSplitsPerBranch, 
+                 
+                 #  splitsPerBranchVariation, 
+                 #  branchSplitHeightInLevel, 
+                 #  branchSplitHeightVariation, 
+                 
+                 #  branchSplitMode, 
+                 #  branchSplitRotateAngle, 
+                 #  level,
+                 
+                 #  stemRingResolution, 
+                 #  curvOffsetStrength, 
+                 #  variance):
+                    
+                    
+                    
+def splitBranches(self, 
+                  rootNode, 
+                  branchCluster, 
+                  nrBranchSplits, 
+                  splitAngle, 
+                  splitPointAngle, 
+                  nrSplitsPerBranch, 
+                  splitsPerBranchVariation, 
+                  branchSplitHeightInLevel, 
+                  branchSplitHeightVariation, 
+                  branchSplitMode, 
+                  branchSplitRotateAngle, 
+                  level,
+                  stemRingResolution, 
+                  curvOffsetStrength, 
+                  variance):
+                      
+    allBranchNodes = []
+    
+    rootNode.getAllBranchNodes(self, allBranchNodes, 0)
+    self.report({'INFO'}, f"in splitBranches(): len(allBranchNodes)[0]: {len(allBranchNodes)}")  
+    
+    splitProbabilityInLevel = [0.0 for i in range(nrBranchSplits)]
+    expectedSplitsInLevel = [0 for i in range(nrBranchSplits)]
+    
+    meanLevelBranch = math.floor(math.log2(nrBranchSplits / len(allBranchNodes)))
+    
+    if meanLevelBranch >= 0:
+        if nrBranchSplits < len(allBranchNodes):
+            expectedSplitsInLevel[0] = nrBranchSplits
+            splitProbabilityInLevel[0] = 1.0
+            for i in range(1, nrBranchSplits):
+                expectedSplitsInLevel[i] = 0
+        else:
+            if nrBranchSplits > 0:
+                splitProbabilityInLevel[0] = 1.0
+                expectedSplitsInLevel[0] = len(allBranchNodes)
+            else:
+                splitProbabilityInLevel[0] = 0.0
+                expectedSplitsInLevel[0] = 0
+            
+            for i in range(1, math.floor(meanLevelBranch - variance * meanLevelBranch)):
+                splitProbabilityInLevel[i] = 1.0
+                expectedSplitsInLevel[i] = len(allBranchNodes) * math.floor(splitProbabilityInLevel[i] * 2.0 * expectedSplitsInLevel[i - 1])
+                if expectedSplitsInLevel[i] > 1024:
+                    expectedSplitsInLevel[i] = 1024
+            
+            for i in range(math.floor(meanLevelBranch - variance * meanLevelBranch), math.floor(meanLevelBranch + variance * meanLevelBranch)):
+                splitProbabilityInLevel[i] = 1.0 - (7.0/8.0) * (i - math.floor(meanLevelBranch - variance * meanLevelBranch)) / math.floor(meanLevelBranch + variance * meanLevelBranch - math.floor(meanLevelBranch - variance * meanLevelBranch))
+                
+                expectedSplitsInLevel[i] = len(allBranchNodes) * math.floor(splitProbabilityInLevel[i] * 2.0 * expectedSplitsInLevel[i - 1])
+                if expectedSplitsInLevel[i] > 1024:
+                    expectedSplitsInLevel[i] = 1024
+            
+            for i in range(math.floor(meanLevelBranch + variance * meanLevelBranch), nrBranchSplits):
+                if i > 0:
+                    splitProbabilityInLevel[i] = 1.0 / 8.0
+                    expectedSplitsInLevel[i] = len(allBranchNodes) * math.floor(splitProbabilityInLevel[i] * 2.0 * expectedSplitsInLevel[i - 1])
+                    if expectedSplitsInLevel[i] > 1024:
+                        expectedSplitsInLevel[i] = 1024
+                        
+        nodesInLevelNextIndexSplitsPerBranch = []
+        for i in range(0, nrBranchSplits + 1):
+            nodesInLevelNextIndexSplitsPerBranch.append([])
+            
+        for branch in allBranchNodes:
+            for n in range(0, len(branch.next)):
+                nodesInLevelNextIndexSplitsPerBranch[0].append(nodeInfo(branch, n, 0))
+        
+        totalSplitCounter = 0
+        for level in range(0, nrBranchSplits):
+            maxSplitsPerBranch = math.floor(nrSplitsPerBranch + splitsPerBranchVariation)
+            
+            branchLengths = []
+            branchWeights = []
+            totalWeight = 0.0
+            
+            #class nodeInfo():
+            #    def __init__(self, NodeInLevel, NextIndex, SplitsPerBranch):
+            #        self.nodeInLevel = NodeInLevel
+            #        self.nextIndex = NextIndex
+            #        self.splitsPerBranch = SplitsPerBranch
+            
+            for n in range(0, len(nodesInLevelNextIndexSplitsPerBranch[level])):
+                N = nodesInLevelNextIndexSplitsPerBranch[level][n]
+                self.report({'INFO'}, f"type: {type(N).__name__}")
+                nde = N.nodeInLevel
+                self.report({'INFO'}, f"type: {type(nde).__name__}")
+                branchLength = nde.lengthToTip()
+            
+            for n in nodesInLevelNextIndexSplitsPerBranch[level]:
+                N = n.nodeInLevel
+                branchLength = N.lengthToTip()
+                branchLengths.append(branchLength)
+                
+                weight = pow(branchLength, 8.0)
+                branchWeights.append(weight)
+                totalWeight += weight
+            
+            splitsInLevel = 0
+            safetyCounter = 0
+            
+            nodeIndices = []
+            for i in range(len(nodesInLevelNextIndexSplitsPerBranch)):
+                nodeIndices.append(i)
+            
+            if len(nodeIndices) == 0:
+                continue
+            
+            while splitsInLevel < expectedSplitsInLevel[level]:
+                if len(nodeIndices) == 0:
+                    break
+                if totalSplitCounter == nrBranchSplits:
+                    break
+                r = random.uniform(0.0, 1.0 - 1e-10)
+                h = random.uniform(0.0, 1.0 - 1e-10) - 0.5
+                if r < splitProbabilityInLevel[level]:
+                    #split
+                    self.report({'INFO'}, "in splitBranches(): split!")
+                    randomValue = random.uniform(0.0, 1.0 - 1e-10) * totalWeight
+                    cumulativeWeight = 0.0
+                    indexToSplit = -1
+                    
+                    for i in range(len(branchWeights)):
+                        cumulativeWeight += branchWeights[i]
+                        if randomValue <= cumulativeWeight:
+                            indexToSplit = i
+                            break
+                    
+                    if indexToSplit != -1 and len(nodeIndices) > 0  and indexToSplit >= 0 and indexToSplit < len(nodeIndices):
+                        
+                        branchSplitHeight = max(0.05, min(branchSplitHeightInLevel + h * branchSplitHeightVariation * min(branchSplitHeightInLevel, 1.0 - branchSplitHeightInLevel), 0.95))
+                        
+                        self.report({'INFO'}, "in splitBranches(): splitNode!")
+                        splitNode = split(
+                            nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel,
+                            nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nextIndex, 
+                            branchSplitHeight, 
+                            splitAngle,
+                            splitPointAngle, 
+                            level, 
+                            branchSplitMode, 
+                            branchSplitRotateAngle, 
+                            stemRingResolution,
+                            0.0, #curvOffsetStrength,
+                            self, 
+                            rootNode);
+                        
+                        #def split(
+                        #        startNode, 
+                        #        nextIndex, 
+                        #        splitHeight, 
+                        #        splitAngle, 
+                        #        splitPointAngle, 
+                        #        level, 
+                        #        mode, 
+                        #        rotationAngle, 
+                        #        stemRingResolution, 
+                        #        curvOffsetStrength, 
+                        #        self, 
+                        #        rootNode):
             
             
 def shapeRatio(self, context, tValGlobal, treeShape):
@@ -851,18 +1126,24 @@ def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLen
     
     nextTangent = (treeGrowDir.normalized() * treeHeight - (rootNode.point + rootNode.tangent[0] * (treeGrowDir.normalized() * treeHeight - rootNode.point).length * (1.5 / 3.0))).normalized()
     
-    centerPoint = sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, Vector((0.0, 1.0, 0.0)), nextTangent, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal);
+    centerPoint = sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, Vector((0.0, 0.0, 1.0)), nextTangent, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal);
     
     outwardDir = lerp(
     startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point,
-    startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point, tVal) - centerPoint
-    #self.report({'INFO'}, f"in generateStartPointData: startNode.point: {startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point}")
-    #self.report({'INFO'}, f"in generateStartPointData: startNode.next[startNodeNextIndex].point: {startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point}")
+    startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point, tVal) - centerPoint 
+    
+    
+    #treeGen.report({'INFO'}, f"in generateStartPointData: startNode.point: {startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point}")
+    #treeGen.report({'INFO'}, f"in generateStartPointData: startNode.next[startNodeNextIndex].point: {startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point}")
     
     if outwardDir == Vector((0.0, 0.0, 0.0)):
         outwardDir = lerp(
-        startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.cotangent,
-        startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent, tVal)
+            startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.cotangent,
+            startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent, 
+            tVal)
+            
+        self.report({'INFO'}, "in add Branches(): outwardDir is zero [0]")
+        #tan index split! ERROR HERE !!!
         
     outwardDir.z = 0.0
 
@@ -871,14 +1152,18 @@ def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLen
             startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.cotangent,
             startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent,
             tVal)
+        self.report({'INFO'}, "in add Branches(): outwardDir is zero [1]")
         # print("outward_dir is zero, using cotangent: ", outward_dir)
     outwardDir = outwardDir.normalized()
     
     #self.report({'INFO'}, f"in generateStartPointData: startPoint: {startPoint}")
     #self.report({'INFO'}, f"in generateStartPointData: outwardDir: {outwardDir}")
     
-    drawDebugPoint(startPoint)
+    #drawDebugPoint(startPoint)
+    drawDebugPoint(startPoint + outwardDir)
     
+    #self.report({'INFO'}, f"in add Branches(): startPoint: {startPoint}, outwardDir: {outwardDir}")
+    #self.report({'INFO'}, f"in add Branches(): centerPoint: {centerPoint}")
     
     return startPointData(startPoint, outwardDir, nStart, startNodeIndex, startNodeNextIndex, tVal, tangent)
     
@@ -1099,13 +1384,48 @@ class toggleBool(bpy.types.Operator):
             
         return {'FINISHED'} #bpy.ops.scene.toggle_bool(list_index=0, bool_index=0)
     
-class UL_splitLevelList(bpy.types.UIList):
+class UL_stemSplitLevelList(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
         
-
+class UL_branchSplitLevelListLevel_0(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+        
+class UL_branchSplitLevelListLevel_1(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+        
+class UL_branchSplitLevelListLevel_2(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+        
+class UL_branchSplitLevelListLevel_3(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+        
+class UL_branchSplitLevelListLevel_4(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+        
+class UL_branchSplitLevelListLevel_5(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+        
         
     
 class addStemSplitLevel(bpy.types.Operator):
@@ -1141,6 +1461,15 @@ class addBranchSplitLevel(bpy.types.Operator):
         if self.level == 4:
             newSplitHeight = context.scene.branchSplitHeightInLevelList_4.add()
             newSplitHeight = 0.5
+        if self.level == 5:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_5.add()
+            newSplitHeight = 0.5
+        
+        
+        if self.level > 5:
+            newSplitHeight = context.scene.branchSplitHeightInLevelListList[self.level].value
+            newSplitHeight = 0.5
+            return {'FINISHED'}
         
         #context.scene.branchSplitHeightInLevelListIndex[len(context.scene.branchSplitHeightInLevelListIndex) - 1].value = 0
         return {'FINISHED'}
@@ -1154,26 +1483,7 @@ class removeStemSplitLevel(bpy.types.Operator):
         if len(context.scene.stemSplitHeightInLevelList) > self.index:
             context.scene.stemSplitHeightInLevelList.remove(self.index)
             
-        if self.index == 0:
-            if len(context.scene.branchSplitHeightInLevelList_0) > 0:
-                context.scene.branchSplitHeightInLevelList_0.remove(0)
-                #context.scene.branchSplitHeightInLevelListIndex_0 -= 1
-        if self.index == 1:
-            if len(context.scene.branchSplitHeightInLevelList_1) > 0:
-                context.scene.branchSplitHeightInLevelList_1.remove(len(context.scene.branchSplitHeightInLevelList_1) - 1)
-                context.scene.branchSplitHeightInLevelListIndex_1 -= 1
-        if self.index == 2:
-            if len(context.scene.branchSplitHeightInLevelList_2) > 0:
-                context.scene.branchSplitHeightInLevelList_2.remove(len(context.scene.branchSplitHeightInLevelList_2) - 1)
-                context.scene.branchSplitHeightInLevelListIndex_2 -= 1
-        if self.index == 3:
-            if len(context.scene.branchSplitHeightInLevelList_3) > 0:
-                context.scene.branchSplitHeightInLevelList_3.remove(len(context.scene.branchSplitHeightInLevelList_3) - 1)
-                context.scene.branchSplitHeightInLevelListIndex_3 -= 1
-        if self.index == 4:
-            if len(context.scene.branchSplitHeightInLevelList_4) > 0:
-                context.scene.branchSplitHeightInLevelList_4.remove(len(context.scene.branchSplitHeightInLevelList_4) - 1)
-                context.scene.branchSplitHeightInLevelListIndex_4 -= 1
+        
         return {'FINISHED'}
 
 class removeBranchSplitLevel(bpy.types.Operator):
@@ -1182,9 +1492,32 @@ class removeBranchSplitLevel(bpy.types.Operator):
     level: bpy.props.IntProperty()
         
     def execute(self, context):
-        branchSplitHeightInLevelList = context.scene.branchSplitHeightInLevelListList
-        if self.level < len(branchSplitHeightInLevelList):
-            branchSplitHeightInLevelList[self.level].value.remove(len(branchSplitHeightInLevelList[self.level].value) - 1)
+        if self.level == 0:
+            if len(context.scene.branchSplitHeightInLevelList_0) > 0:
+                context.scene.branchSplitHeightInLevelList_0.remove(context.scene.branchSplitHeightInLevelListIndex_0)
+                #context.scene.branchSplitHeightInLevelListIndex_0 -= 1
+        if self.level == 1:
+            if len(context.scene.branchSplitHeightInLevelList_1) > 0:
+                context.scene.branchSplitHeightInLevelList_1.remove(len(context.scene.branchSplitHeightInLevelList_1) - 1)
+                context.scene.branchSplitHeightInLevelListIndex_1 -= 1
+        if self.level == 2:
+            if len(context.scene.branchSplitHeightInLevelList_2) > 0:
+                context.scene.branchSplitHeightInLevelList_2.remove(len(context.scene.branchSplitHeightInLevelList_2) - 1)
+                context.scene.branchSplitHeightInLevelListIndex_2 -= 1
+        if self.level == 3:
+            if len(context.scene.branchSplitHeightInLevelList_3) > 0:
+                context.scene.branchSplitHeightInLevelList_3.remove(len(context.scene.branchSplitHeightInLevelList_3) - 1)
+                context.scene.branchSplitHeightInLevelListIndex_3 -= 1
+        if self.level == 4:
+            if len(context.scene.branchSplitHeightInLevelList_4) > 0:
+                context.scene.branchSplitHeightInLevelList_4.remove(len(context.scene.branchSplitHeightInLevelList_4) - 1)
+                context.scene.branchSplitHeightInLevelListIndex_4 -= 1
+        if self.level == 5:
+            if len(context.scene.branchSplitHeightInLevelList_5) > 0:
+                context.scene.branchSplitHeightInLevelList_5.remove(len(context.scene.branchSplitHeightInLevelList_4) - 1)
+                context.scene.branchSplitHeightInLevelListIndex_5 -= 1
+        if self.level > 5:
+            context.scene.branchSplitHeightInLevelListList[self.level].value.remove(len(context.scene.branchSplitHeightInLevelListList[self.level].value) - 1)
             
                #context.scene.branchSplitModeList.remove(len(context.scene.branchSplitModeList) - 1)         
         #self.report({'INFO'}, f"remove split level")
@@ -1207,6 +1540,7 @@ class addItem(bpy.types.Operator): # add branch cluster
         branchClusterBoolListList = context.scene.branchClusterBoolListList.add()
                 
         branchSplitMode = context.scene.branchSplitModeList.add()  # TODO (???)
+        branchVariance = context.scene.branchVarianceList.add()
         branchSplitRotateAngle = context.scene.branchSplitRotateAngleList.add()
         branchSplitRotateAngle.value = 0.0
         branchSplitAngle = context.scene.branchSplitAngleList.add()
@@ -1243,6 +1577,8 @@ class addItem(bpy.types.Operator): # add branch cluster
         branchesEndHeightCluster.value = 1.0
         branchCurvature = context.scene.branchCurvatureList.add()
         branchCurvature.value = 0.0
+        branchCurvatureOffsetStrength = context.scene.branchCurvatureOffsetStrengthList.add()
+        branchCurvatureOffsetStrength.value = 0.0
         nrSplitsPerBranch = context.scene.nrSplitsPerBranchList.add()
         nrSplitsPerBranch.value = 0.0
         splitsPerBranchVariation = context.scene.splitsPerBranchVariationList.add()
@@ -1289,6 +1625,7 @@ class removeItem(bpy.types.Operator):
         
         
         context.scene.branchSplitModeList.remove(len(context.scene.branchSplitModeList) - 1)
+        context.scene.branchVarianceList.remove(len(context.scene.branchVarianceList) - 1)
         context.scene.branchSplitRotateAngleList.remove(len(context.scene.branchSplitRotateAngleList) - 1)
         context.scene.branchSplitAngleList.remove(len(context.scene.branchSplitAngleList) - 1)
         context.scene.branchSplitPointAngleList.remove(len(context.scene.branchSplitPointAngleList) - 1)
@@ -1307,6 +1644,7 @@ class removeItem(bpy.types.Operator):
         context.scene.branchesStartHeightClusterList.remove(len(context.scene.branchesStartHeightClusterList) - 1)
         context.scene.branchesEndHeightClusterList.remove(len(context.scene.branchesEndHeightClusterList) - 1)
         context.scene.branchCurvatureList.remove(len(context.scene.branchCurvatureList) - 1)
+        context.scene.branchCurvatureOffsetStrengthList.remove(len(context.scene.branchCurvatureOffsetStrengthList) - 1)
         context.scene.nrSplitsPerBranchList.remove(len(context.scene.nrSplitsPerBranchList) - 1)
         context.scene.splitsPerBranchVariationList.remove(len(context.scene.splitsPerBranchVariationList) - 1)
         context.scene.branchSplitHeightVariationList.remove(len(context.scene.branchSplitHeightVariationList) - 1)
@@ -1430,12 +1768,14 @@ class splitSettings(bpy.types.Panel):
         row.operator("scene.add_stem_split_level", text="Add split level")
         row.operator("scene.remove_stem_split_level", text="Remove").index = scene.stemSplitHeightInLevelListIndex
         row = layout.row()
-        row.template_list("UL_splitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex")
+        row.template_list("UL_stemSplitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex")
                         
         #j = 0
         #for splitLevel in context.scene.stemSplitHeightInLevelList:
         #    box.prop(splitLevel, "value", text=f"Split height level {j}", slider=True)
         #    j += 1
+        
+        
         #box.template_list("UI_UL_list", "stemSplitHeightInLevelList", context.scene, "stemSplitHeightInLevelList", context.scene.stemSplitHeightInLevelList,  0)
         #box.template_list("myList", "stemSplitHeightInLevelList", context.scene, "stemSplitHeightInLevelListIndex", active_propname, *, item_dyntip_propname='', rows=5, maxrows=5, type='DEFAULT', columns=9, sort_reverse=False, sort_lock=False)
         #row = box.row()
@@ -1523,6 +1863,11 @@ class branchSettings(bpy.types.Panel):
                     split = box.split(factor=0.6)
                     split.label(text="Number of branches")
                     split.prop(scene.nrBranchesList[i], "value", text="")#, slider=True)
+                    
+                if i < len(scene.branchVarianceList):
+                    split = box.split(factor=0.6)
+                    split.label(text="Branch variance")
+                    split.prop(scene.branchVarianceList[i], "value", text="")
                 
                 #row = layout.row()
                 #split = row.split(factor=0.6)
@@ -1627,6 +1972,11 @@ class branchSettings(bpy.types.Panel):
                 split.label(text="Branch curvature")
                 if i < len(scene.branchCurvatureList):
                     split.prop(scene.branchCurvatureList[i], "value", text="")
+                    
+                split = box.split(factor=0.6)
+                split.label(text="Branch curvature offset")
+                if i < len(scene.branchCurvatureOffsetStrengthList):
+                    split.prop(scene.branchCurvatureOffsetStrengthList[i], "value", text="")
                 
                 split = box.split(factor=0.6)
                 split.label(text="Nr splits per branch")
@@ -1643,38 +1993,45 @@ class branchSettings(bpy.types.Panel):
                 if i < len(scene.branchSplitHeightVariationList):
                     split.prop(scene.branchSplitHeightVariationList[i], "value", text="")
                 
-                box.operator("scene.add_branch_split_level", text="Add split level").level = i
-                box.operator("scene.remove_branch_split_level", text="Remove split level").level = i
-                if i < len(scene.branchSplitHeightInLevelListList):
-                    j = 0
-                    for splitLevel in scene.branchSplitHeightInLevelListList[i].value:
-                        box.prop(splitLevel, "value", text=f"Split height level {j}")
-                        j += 1
-                        
+                row = box.row()
+                row.operator("scene.add_branch_split_level", text="Add split level").level = i
+                row.operator("scene.remove_branch_split_level", text="Remove").level = i
+                #if i < len(scene.branchSplitHeightInLevelListList):
+                #    j = 0
+                #    for splitLevel in scene.branchSplitHeightInLevelListList[i].value:
+                #        box.prop(splitLevel, "value", text=f"Split height level {j}")
+                #        j += 1
+                #        
                 row = box.row()
                 #branchSplitHeightInLevelList = scene.branchSplitHeightInLevelListList[i]
                 #branchSplitHeightInLevelListIndex = scene.branchSplitHeightInLevelListIndex[i].value
                 
-                #row.template_list("UL_splitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex") #TEST
+                #row.template_list("UL_stemSplitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex") #TEST
                 
-                #row.template_list("UL_splitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex")
+                #row.template_list("UL_stemSplitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex")
                 
                 
                 # ---> hardcode 20 lists -> tempplateList ( no nested List!, bakcfall: old UI...)
                 # ---> call getNestedList() at beginning of updateTree()
                 if i == 0:
-                    row.template_list("UL_splitLevelList", "", scene, "branchSplitHeightInLevelList_0", scene, "branchSplitHeightInLevelListIndex_0")
+                    row.template_list("UL_branchSplitLevelListLevel_0", "", scene, "branchSplitHeightInLevelList_0", scene, "branchSplitHeightInLevelListIndex_0")
                 if i == 1:
-                    row.template_list("UL_splitLevelList", "", scene, "branchSplitHeightInLevelList_1", scene, "branchSplitHeightInLevelListIndex_1")
+                    row.template_list("UL_branchSplitLevelListLevel_1", "", scene, "branchSplitHeightInLevelList_1", scene, "branchSplitHeightInLevelListIndex_1")
                 if i == 2:
-                    row.template_list("UL_splitLevelList", "", scene, "branchSplitHeightInLevelList_2", scene, "branchSplitHeightInLevelListIndex_2")
+                    row.template_list("UL_branchSplitLevelListLevel_2", "", scene, "branchSplitHeightInLevelList_2", scene, "branchSplitHeightInLevelListIndex_2")
                 if i == 3:
-                    row.template_list("UL_splitLevelList", "", scene, "branchSplitHeightInLevelList_3", scene, "branchSplitHeightInLevelListIndex_3")
+                    row.template_list("UL_branchSplitLevelListLevel_3", "", scene, "branchSplitHeightInLevelList_3", scene, "branchSplitHeightInLevelListIndex_3")
                 if i == 4:
-                    row.template_list("UL_splitLevelList", "", scene, "branchSplitHeightInLevelList_4", scene, "branchSplitHeightInLevelListIndex_4")
+                    row.template_list("UL_branchSplitLevelListLevel_4", "", scene, "branchSplitHeightInLevelList_4", scene, "branchSplitHeightInLevelListIndex_4")
                 if i == 5:
-                    row.template_list("UL_splitLevelList", "", scene, "branchSplitHeightInLevelList_5", scene, "branchSplitHeightInLevelListIndex_5")
-                
+                    row.template_list("UL_branchSplitLevelListLevel_5", "", scene, "branchSplitHeightInLevelList_5", scene, "branchSplitHeightInLevelListIndex_5")
+                if i > 5:
+                    # TODO...
+                    j = 0
+                    for splitLevel in context.scene.branchSplitHeightInLevelListList[i].value:
+                        box.prop(splitLevel, "value", text=f"Split height level {j}", slider=True)
+                        j += 1
+        
                 #...
                 
                 #scene.branchSplitHeightInLevelList_5
@@ -1718,7 +2075,14 @@ def register():
     #bpy.utils.register_class(parentClusterPanel)
     
     #UILists
-    bpy.utils.register_class(UL_splitLevelList)
+    bpy.utils.register_class(UL_stemSplitLevelList)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_0)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_1)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_2)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_3)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_4)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_5)
+    
           
     #collections
     bpy.types.Scene.stemSplitHeightInLevelList = bpy.props.CollectionProperty(type=floatProp01)
@@ -1731,6 +2095,7 @@ def register():
     bpy.types.Scene.nrBranchesList = bpy.props.CollectionProperty(type=intProp)
     bpy.types.Scene.nrBranchesListIndex = bpy.props.IntProperty(default=0)
     bpy.types.Scene.branchSplitModeList = bpy.props.CollectionProperty(type=splitModeEnumProp)
+    bpy.types.Scene.branchVarianceList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.branchSplitRotateAngleList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchSplitAngleList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchSplitPointAngleList = bpy.props.CollectionProperty(type=floatProp)
@@ -1750,6 +2115,7 @@ def register():
     bpy.types.Scene.branchesStartHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchesEndHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchCurvatureList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.branchCurvatureOffsetStrengthList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.nrSplitsPerBranchList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.splitsPerBranchVariationList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchSplitHeightVariationList = bpy.props.CollectionProperty(type=floatProp)
@@ -1770,14 +2136,6 @@ def register():
     bpy.types.Scene.branchSplitHeightInLevelListIndex_4 = bpy.props.IntProperty(default = 0)
     bpy.types.Scene.branchSplitHeightInLevelList_5 = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_5 = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_6 = bpy.props.CollectionProperty(type=floatProp01)
-    bpy.types.Scene.branchSplitHeightInLevelListIndex_6 = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_7 = bpy.props.CollectionProperty(type=floatProp01)
-    bpy.types.Scene.branchSplitHeightInLevelListIndex_7 = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_8 = bpy.props.CollectionProperty(type=floatProp01)
-    bpy.types.Scene.branchSplitHeightInLevelListIndex_8 = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_9 = bpy.props.CollectionProperty(type=floatProp01)
-    bpy.types.Scene.branchSplitHeightInLevelListIndex_9 = bpy.props.IntProperty(default = 0)
     
     
     # bpy.props.CollectionProperty(type=intProp)
@@ -2142,6 +2500,14 @@ def register():
         default = [0.0],
         min = 0.0
     )
+    # branchCurvatureOffsetStrength
+    bpy.types.Scene.branchCurvatureOffsetStrength = bpy.props.FloatVectorProperty(
+        name="Branch Curvature Offset",
+        description="Branch curvature offset strength",
+        size = 1,
+        default = [0.0],
+        min = 0.0
+    )
     # nrSplitsPerBranch
     bpy.types.Scene.nrSplitsPerBranch = bpy.props.FloatVectorProperty(
         name="Splits Per Branch",
@@ -2178,7 +2544,7 @@ def unregister():
     #bpy.utils.unregister_class(parentClusterBoolListProp)
     
     #UILists
-    bpy.utils.unregister_class(UL_splitLevelList)
+    bpy.utils.unregister_class(UL_stemSplitLevelList)
     
     #operators
     #bpy.utils.unregister_class(addItem)
