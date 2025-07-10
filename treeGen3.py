@@ -14,6 +14,7 @@ import math
 import mathutils
 from mathutils import Vector, Quaternion
 import random
+import json
 
 class startNodeInfo():
     def __init__(self, StartNode, NextIndex, StartTval, EndTval):
@@ -148,6 +149,31 @@ class splitMode:
     HORIZONTAL = 0
     ROTATE_ANGLE = 1
     ALTERNATING = 2
+    
+# Operator for saving properties  
+class importProperties(bpy.types.Operator):
+    bl_idname = "export.import_properties"
+    bl_label = "Save Properties"
+    
+    def execute(self, context):
+        props = context.scene  
+        filename = props.file_name + ".json"  # Automatically append .json  
+        filepath = bpy.path.abspath(f"//{filename}")  # Save to the specified filename  
+        save_properties(filepath)
+        self.report({'INFO'}, f'Saved properties to {filepath}')
+        return {'FINISHED'}
+
+class exportProperties(bpy.types.Operator):
+    bl_idname = "export.import_properties_load"
+    bl_label = "Load Properties"
+    
+    def execute(self, context):
+        props = context.scene  
+        filename = props.file_name + ".json"  # Automatically append .json  
+        filepath = bpy.path.abspath(f"//{filename}")  # Load from the specified filename  
+        load_properties(filepath)
+        self.report({'INFO'}, f'Loaded properties from {filepath}')
+        return {'FINISHED'}
         
 class generateTree(bpy.types.Operator):
     bl_label = "generateTree"
@@ -401,14 +427,18 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
             break
         maxPossibleSplits *= 2
     addAmount = nrSplits - totalExpectedSplits
-    if addAmount > 0 and expectedSplitsInLevel[addToLevel] + addAmount <= maxPossibleSplits:
-        expectedSplitsInLevel[addToLevel] += addAmount
+    self.report({'INFO'}, f"addAmount: {addAmount}, addToLevel: {addToLevel}, maxPossibleSplits: {maxPossibleSplits}")
+    if addAmount > 0: # and expectedSplitsInLevel[addToLevel]: + addAmount <= maxPossibleSplits:
+        expectedSplitsInLevel[addToLevel] += min(addAmount, maxPossibleSplits - expectedSplitsInLevel[addToLevel])
 
     splitProbabilityInLevel[addToLevel] = float(expectedSplitsInLevel[addToLevel]) / float(maxPossibleSplits)
 
     nodesInLevelNextIndex = [[] for _ in range(nrSplits + 1)]
     for n in range(len(startNode.next)):
         nodesInLevelNextIndex[0].append((startNode, n))
+        
+    for i in range(nrSplits):
+        self.report({'INFO'}, f"expectedSplitsInLevel[{i}]: {expectedSplitsInLevel[i]}") # ERROR HERE !!!
 
     totalSplitCounter = 0
     for level in range(nrSplits):
@@ -434,7 +464,7 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
                         splitHeight = min(splitHeight + h * splitHeightVariation, 0.95)
                     #if splitHeight < 0.0 or splitHeight > 1.0:
                         #self.report({'ERROR'}, f"splitHeight out of bounds! splitHeight: {splitHeight}")
-                    #self.report({'INFO'}, f"splitRecursive: splitHeight: {splitHeight}")
+                    self.report({'INFO'}, f"splitRecursive: splitHeight: {splitHeight}")
                     splitNode = split(
                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0],
                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][1],
@@ -1280,6 +1310,9 @@ class floatProp(bpy.types.PropertyGroup):
     
 class posFloatProp(bpy.types.PropertyGroup):
     value: bpy.props.FloatProperty(name = "floatValue", default=0, min=0)
+    
+class posFloatPropSoftMax1(bpy.types.PropertyGroup):
+    value: bpy.props.FloatProperty(name = "floatValue", default=1, min=0, soft_max=1.0)
 
 class floatProp01(bpy.types.PropertyGroup):
     value: bpy.props.FloatProperty(name = "floatValue01", default=0, min=0, max=1)
@@ -1670,7 +1703,17 @@ class treeGenPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         obj = context.object
-        row = layout.row()
+        
+        props = context.scene
+
+        layout.prop(props, "treeHeight")
+        layout.prop(props, "taper")
+        layout.prop(props, "branchTipRadius")
+
+        layout.prop(props, "")  # String input for file name
+        
+        layout.operator("export.import_properties", text="Save Properties")
+        layout.operator("export.import_properties_load", text="Load Properties")
         
         row = layout.row()
         row.label(icon = 'COLORSET_12_VEC')
@@ -1747,11 +1790,11 @@ class splitSettings(bpy.types.Panel):
         row = layout.row()
         layout.prop(context.scene, "nrSplits")
         row = layout.row()
-        layout.prop(context.scene, "splitCurvature")
+        layout.prop(context.scene, "curvature")
         row = layout.row()
         layout.prop(context.scene, "testRecursionStop")
         row = layout.row()
-        layout.prop(context.scene, "variance")
+        layout.prop(context.scene, "variance", slider=True)
         row = layout.row()
         #layout.prop(context.scene, "stemSplitMode")
         split = row.split(factor=0.5)
@@ -1868,7 +1911,7 @@ class branchSettings(bpy.types.Panel):
                 if i < len(scene.branchVarianceList):
                     split = box.split(factor=0.6)
                     split.label(text="Branch variance")
-                    split.prop(scene.branchVarianceList[i], "value", text="")
+                    split.prop(scene.branchVarianceList[i], "value", text="", slider=True)
                 
                 #row = layout.row()
                 #split = row.split(factor=0.6)
@@ -1902,7 +1945,7 @@ class branchSettings(bpy.types.Panel):
                 split = box.split(factor=0.6)
                 split.label(text="Relative branch length")
                 if i < len(scene.relBranchLengthList):
-                    split.prop(scene.relBranchLengthList[i], "value", text="")
+                    split.prop(scene.relBranchLengthList[i], "value", text="", slider=True)
                 
                 split = box.split(factor=0.6)
                 split.label(text="Taper factor")
@@ -1992,7 +2035,7 @@ class branchSettings(bpy.types.Panel):
                 split = box.split(factor=0.6)
                 split.label(text="Branch split height variation")
                 if i < len(scene.branchSplitHeightVariationList):
-                    split.prop(scene.branchSplitHeightVariationList[i], "value", text="")
+                    split.prop(scene.branchSplitHeightVariationList[i], "value", text="", slider=True)
                 
                 row = box.row()
                 row.operator("scene.add_branch_split_level", text="Add split level").level = i
@@ -2042,6 +2085,11 @@ class branchSettings(bpy.types.Panel):
             
             
 def register():
+    #save and load
+    bpy.utils.register_class(importProperties)
+    bpy.utils.register_class(exportProperties)
+    
+    
     #properties
     bpy.utils.register_class(treeShapeEnumProp)
     bpy.utils.register_class(splitModeEnumProp)
@@ -2050,6 +2098,7 @@ def register():
     bpy.utils.register_class(floatProp)
     bpy.utils.register_class(posFloatProp)
     bpy.utils.register_class(floatProp01)
+    bpy.utils.register_class(posFloatPropSoftMax1)
     bpy.utils.register_class(floatListProp)
     bpy.utils.register_class(floatListProp01)
     bpy.utils.register_class(boolProp)
@@ -2083,12 +2132,12 @@ def register():
     bpy.utils.register_class(UL_branchSplitLevelListLevel_3)
     bpy.utils.register_class(UL_branchSplitLevelListLevel_4)
     bpy.utils.register_class(UL_branchSplitLevelListLevel_5)
-    
           
     #collections
     bpy.types.Scene.stemSplitHeightInLevelList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.stemSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0)
     
+    bpy.types.Scene.file_name = bpy.props.StringProperty(name="File Name", default="my_tree_properties")
     
     bpy.types.Scene.parentClusterBoolList = bpy.props.CollectionProperty(type=boolProp)
     bpy.types.Scene.parentClusterBoolListList = bpy.props.CollectionProperty(type=parentClusterBoolListProp)
@@ -2096,14 +2145,13 @@ def register():
     bpy.types.Scene.nrBranchesList = bpy.props.CollectionProperty(type=intProp)
     bpy.types.Scene.nrBranchesListIndex = bpy.props.IntProperty(default=0)
     bpy.types.Scene.branchSplitModeList = bpy.props.CollectionProperty(type=splitModeEnumProp)
-    bpy.types.Scene.branchVarianceList = bpy.props.CollectionProperty(type=posFloatProp)
+    bpy.types.Scene.branchVarianceList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchSplitRotateAngleList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.branchSplitAngleList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.branchSplitPointAngleList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.branchSplitAngleList = bpy.props.CollectionProperty(type=posFloatProp)
+    bpy.types.Scene.branchSplitPointAngleList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.branchShapeList = bpy.props.CollectionProperty(type=treeShapeEnumProp)
-    bpy.types.Scene.relBranchLengthList = bpy.props.CollectionProperty(type=posFloatProp)
+    bpy.types.Scene.relBranchLengthList = bpy.props.CollectionProperty(type=posFloatPropSoftMax1)
     bpy.types.Scene.taperFactorList = bpy.props.CollectionProperty(type=floatProp01)
-    #bpy.types.Scene.verticalRangeList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.verticalAngleCrownStartList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.verticalAngleCrownEndList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.verticalAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
@@ -2117,14 +2165,11 @@ def register():
     bpy.types.Scene.branchesEndHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchCurvatureList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchCurvatureOffsetStrengthList = bpy.props.CollectionProperty(type=posFloatProp)
-    bpy.types.Scene.nrSplitsPerBranchList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.nrSplitsPerBranchList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.splitsPerBranchVariationList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.branchSplitHeightVariationList = bpy.props.CollectionProperty(type=floatProp)
-    
-    
+    bpy.types.Scene.branchSplitHeightVariationList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchSplitHeightInLevelListList = bpy.props.CollectionProperty(type=floatListProp01)
-    bpy.types.Scene.branchSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0) 
-    
+    bpy.types.Scene.branchSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0)
     bpy.types.Scene.branchSplitHeightInLevelList_0 = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_0 = bpy.props.IntProperty(default = 0)
     bpy.types.Scene.branchSplitHeightInLevelList_1 = bpy.props.CollectionProperty(type=floatProp01)
@@ -2195,11 +2240,10 @@ def register():
         default = 1.0,
         min = 0.0
     )
-    bpy.types.Scene.splitCurvature = bpy.props.FloatProperty(
-        name = "Split Curvature",
-        description = "Curvature of splits",
-        default = 0.0,
-        min = 0.0
+    bpy.types.Scene.curvature = bpy.props.FloatProperty(
+        name = "Curvature",
+        description = "Curvature of branches",
+        default = 0.0
     )
     bpy.types.Scene.shyBranchesMaxDistance = bpy.props.FloatProperty(
         name = "Shy Branches Max Distance",
@@ -2218,7 +2262,8 @@ def register():
         name = "Variance",
         description = "Variance",
         default = 0.0,
-        min = 0.0
+        min = 0.0,
+        max = 1.0
     )
     bpy.types.Scene.curvOffsetStrength = bpy.props.FloatProperty(
         name = "Curvature Offset Strength",
@@ -2526,7 +2571,140 @@ def register():
         min = 0.0
     )
 
+def save_properties(filePath):
+    props = bpy.context.scene
+    data = {
+        "treeHeight": props.treeHeight,
+        "treeGrowDir": list(props.treeGrowDir),  
+        "taper": props.taper,
+        "branchTipRadius": props.branchTipRadius,
+        "ringSpacing": props.ringSpacing,
+        "stemRingResolution": props.stemRingResolution,
+        "resampleNr": props.resampleNr,
+        
+        "noiseAmplitudeLower": props.noiseAmplitudeLower,
+        "noiseAmplitudeUpper": props.noiseAmplitudeUpper,
+        "noiseAmplitudeLowerUpperExponent": props.noiseAmplitudeLowerUpperExponent,
+        "noiseScale": props.noiseScale,
+        
+        "nrSplits": props.nrSplits,        
+        "curvature": props.curvature,
+        "testRecursionStop": props.testRecursionStop,
+        "variance": props.variance,
+        "stemSplitMode": props.stemSplitMode,
+        "stemSplitRotateAngle": props.stemSplitRotateAngle,
+        "curvOffsetStrength": props.curvOffsetStrength,
+        "splitHeightVariation": props.splitHeightVariation,
+        "stemSplitAngle": props.stemSplitAngle,
+        "stemSplitPointAngle": props.stemSplitPointAngle,
+        
+        "branchClusters": props.branchClusters,
+        
+        "nrBranchesList": [item.value for item in props.nrBranchesList],
+        
+        #"parentClusterBoolList": [item.value for item in props.parentClusterBoolList],                 #TODO
+        #"parentClusterBoolListList": [item.value for item in props.parentClusterBoolListList],
+        #"branchClusterBoolListList": [item.value for item in props.branchClusterBoolListList],
+        #"nrBranchesListIndex": props.nrBranchesListIndex,
+        "branchSplitModeList": [item.value for item in props.branchSplitModeList],
+        "branchVarianceList": [item.value for item in props.branchVarianceList],
+        "branchSplitRotateAngleList": [item.value for item in props.branchSplitRotateAngleList],
+        "branchSplitAngleList": [item.value for item in props.branchSplitAngleList],
+        "branchSplitPointAngleList": [item.value for item in props.branchSplitPointAngleList],
+        "branchShapeList": [item.value for item in props.branchShapeList],
+        "relBranchLengthList": [item.value for item in props.relBranchLengthList],
+        "taperFactorList": [item.value for item in props.taperFactorList],
+        "verticalAngleCrownStartList": [item.value for item in props.verticalAngleCrownStartList],
+        "verticalAngleCrownEndList": [item.value for item in props.verticalAngleCrownEndList],
+        "verticalAngleBranchStartList": [item.value for item in props.verticalAngleBranchStartList],
+        "verticalAngleBranchEndList": [item.value for item in props.verticalAngleBranchEndList],
+        "branchAngleModeList": [item.value for item in props.branchAngleModeList],
+        "rotateAngleList": [item.value for item in props.rotateAngleList],
+        "rotateAngleRangeList": [item.value for item in props.rotateAngleRangeList],
+        "branchesStartHeightGlobalList": [item.value for item in props.branchesStartHeightGlobalList],
+        "branchesEndHeightGlobalList": [item.value for item in props.branchesEndHeightGlobalList],
+        "branchesStartHeightClusterList": [item.value for item in props.branchesStartHeightClusterList],
+        "branchesEndHeightClusterList": [item.value for item in props.branchesEndHeightClusterList],
+        "branchCurvatureList": [item.value for item in props.branchCurvatureList],
+        "branchCurvatureOffsetStrengthList": [item.value for item in props.branchCurvatureOffsetStrengthList],
+        "nrSplitsPerBranchList": [item.value for item in props.nrSplitsPerBranchList],
+        "splitsPerBranchVariationList": [item.value for item in props.splitsPerBranchVariationList],
+        "branchSplitHeightVariationList": [item.value for item in props.branchSplitHeightVariationList],
+        
+        #"branchSplitHeightInLevelListList": [item.value for item in props.branchSplitHeightInLevelListList],
+        
+        # "branchSplitHeightInLevelListList": [
+        #    [item.value for item in getattr(props, f"branchSplitHeightInLevelList_{i}_0")]
+        #    for i in range(6)
+        #],
+        
+        "branchSplitHeightInLevelListIndex": props.branchSplitHeightInLevelListIndex,
+        # Add additional split height collections  
+        **{f"branchSplitHeightInLevelList_{i}": [item.value for item in getattr(props, f"branchSplitHeightInLevelList_{i}")]
+           for i in range(6)},
+        **{f"branchSplitHeightInLevelListIndex_{i}": getattr(props, f"branchSplitHeightInLevelListIndex_{i}")
+           for i in range(6)}
     
+        
+        #"branchSplitHeightInLevelListIndex": props.branchSplitHeightInLevelListIndex,
+        
+        #"branchSplitHeightInLevelList_0": [item.value for item in props.branchSplitHeightInLevelList_0],
+        #"branchSplitHeightInLevelListIndex_0": props.branchSplitHeightInLevelListIndex_0,
+        #"branchSplitHeightInLevelList_1": [item.value for item in props.branchSplitHeightInLevelList_1],
+        #"branchSplitHeightInLevelListIndex_1": props.branchSplitHeightInLevelListIndex_1,
+        #"branchSplitHeightInLevelList_2": [item.value for item in props.branchSplitHeightInLevelList_2],
+        #"branchSplitHeightInLevelListIndex_2": props.branchSplitHeightInLevelListIndex_2,
+        #"branchSplitHeightInLevelList_3": [item.value for item in props.branchSplitHeightInLevelList_3],
+        #"branchSplitHeightInLevelListIndex_3": props.branchSplitHeightInLevelListIndex_3,
+        #"branchSplitHeightInLevelList_4": [item.value for item in props.branchSplitHeightInLevelList_4],
+        #"branchSplitHeightInLevelListIndex_4": props.branchSplitHeightInLevelListIndex_4,
+        #"branchSplitHeightInLevelList_5": [item.value for item in props.branchSplitHeightInLevelList_5],
+        #"branchSplitHeightInLevelListIndex_5": props.branchSplitHeightInLevelListIndex_5
+        
+    }
+    with open(filePath, 'w') as f:
+        json.dump(data, f)
+        
+        
+def load_properties(filepath):
+    with open(filepath, 'r') as f:
+        data = json.load(f)
+        props = bpy.context.scene
+        
+        props.treeHeight = data.get("treeHeight", props.treeHeight)
+        treeGrowDir = data.get("treeGrowDir", props.treeGrowDir)
+        if isinstance(treeGrowDir, list) and len(treeGrowDir) == 3:
+            props.treeGrowDir = treeGrowDir
+        props.taper = data.get("taper", props.taper)
+        props.branchTipRadius = data.get("branchTipRadius", props.branchTipRadius)
+        props.ringSpacing = data.get("ringSpacing", props.ringSpacing)
+        props.stemRingResolution = data.get("stemRingResolution", props.stemRingResolution)
+        props.resampleNr = data.get("resampleNr", props.resampleNr)
+        
+        props.noiseAmplitudeLower = data.get("noiseAmplitudeLower", props.noiseAmplitudeLower)
+        props.noiseAmplitudeUpper = data.get("noiseAmplitudeUpper", props.noiseAmplitudeUpper)
+        props.noiseAmplitudeLowerUpperExponent = data.get("noiseAmplitudeLowerUpperExponent", props.noiseAmplitudeLowerUpperExponent)
+        props.noiseScale = data.get("noiseScale", props.noiseScale)
+        
+        props.nrSplits = data.get("nrSplits", props.nrSplits)
+        props.curvature = data.get("curvature", props.curvature)
+        props.testRecursionStop = data.get("testRecursionStop", props.testRecursionStop)
+        props.variance = data.get("variance", props.variance)
+        props.stemSplitMode = data.get("stemSplitMode", props.stemSplitMode)
+        props.stemSplitRotateAngle = data.get("stemSplitRotateAngle", props.stemSplitRotateAngle)
+        props.curvOffsetStrength = data.get("curvOffsetStrength", props.curvOffsetStrength)
+        props.splitHeightVariation = data.get("splitHeightVariation", props.splitHeightVariation)
+        props.stemSplitAngle = data.get("stemSplitAngle", props.stemSplitAngle)
+        props.stemSplitPointAngle = data.get("stemSplitPointAngle", props.stemSplitPointAngle)
+        
+        props.branchClusters = data.get("branchClusters", props.branchClusters)
+        
+        for value in data.get("nrBranchesList", []):
+            item = props.nrBranchesList.add()
+            item.value = value
+
+        
+        
     
     
     
