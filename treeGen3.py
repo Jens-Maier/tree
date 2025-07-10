@@ -80,20 +80,22 @@ class node():
                 b.getAllSegments(treeGen, segments, False)
             
     
-    def getAllBranchNodes(self, treeGen, allBranchNodes, branchCluster):
-        treeGen.report({'INFO'}, f"in getAllBranchNodes(): self.clusterIndex: {self.clusterIndex}, branchCluster: {branchCluster}")
-        if self.clusterIndex == branchCluster:
-            treeGen.report({'INFO'}, "getAllBranchNodes(): adding node!")
-            allBranchNodes.append(self)
-            #return #???
+    def getAllBranchStartNodes(self, treeGen, allBranchNodes, branchCluster):
+        #treeGen.report({'INFO'}, f"in getAllBranchStartNodes(): self.clusterIndex: {self.clusterIndex}, branchCluster: {branchCluster}")
+        #if self.clusterIndex == branchCluster:
+            #treeGen.report({'INFO'}, "getAllBranchStartNodes(): adding node!")
+            #allBranchNodes.append(self)
         for c in self.branches:
             for n in c:
-                treeGen.report({'INFO'}, "getAllBranchNodes(): branches.getAllBranchNodes()")
-                n.getAllBranchNodes(treeGen, allBranchNodes, branchCluster)
+                if n.clusterIndex == branchCluster:
+                    #treeGen.report({'INFO'}, "getAllBranchStartNodes(): adding node!")
+                    allBranchNodes.append(n)
+                #treeGen.report({'INFO'}, "getAllBranchStartNodes(): branches.getAllBranchStartNodes()")
+                n.getAllBranchStartNodes(treeGen, allBranchNodes, branchCluster)
         
         for n in self.next:
-            treeGen.report({'INFO'}, "getAllBranchNodes(): next.getAllBranchNodes()")
-            n.getAllBranchNodes(treeGen, allBranchNodes, branchCluster)
+            #treeGen.report({'INFO'}, "getAllBranchStartNodes(): next.getAllBranchStartNodes()")
+            n.getAllBranchStartNodes(treeGen, allBranchNodes, branchCluster)
     
     def getAllStartNodes(self, treeGen, startNodesNextIndexStartTvalEndTval, startHeightGlobal, endHeightGlobal, startHeightCluster, endHeightCluster, parentClusterBoolListList):
         
@@ -151,8 +153,8 @@ class splitMode:
     ALTERNATING = 2
     
 # Operator for saving properties  
-class importProperties(bpy.types.Operator):
-    bl_idname = "export.import_properties"
+class exportProperties(bpy.types.Operator):
+    bl_idname = "export.save_properties_file"
     bl_label = "Save Properties"
     
     def execute(self, context):
@@ -163,8 +165,8 @@ class importProperties(bpy.types.Operator):
         self.report({'INFO'}, f'Saved properties to {filepath}')
         return {'FINISHED'}
 
-class exportProperties(bpy.types.Operator):
-    bl_idname = "export.import_properties_load"
+class importProperties(bpy.types.Operator):
+    bl_idname = "export.load_properties_file"
     bl_label = "Load Properties"
     
     def execute(self, context):
@@ -173,6 +175,7 @@ class exportProperties(bpy.types.Operator):
         filepath = bpy.path.abspath(f"//{filename}")  # Load from the specified filename  
         load_properties(filepath)
         self.report({'INFO'}, f'Loaded properties from {filepath}')
+        bpy.ops.object.generate_tree()
         return {'FINISHED'}
         
 class generateTree(bpy.types.Operator):
@@ -495,7 +498,7 @@ def split(startNode,
           curvOffsetStrength, 
           self, 
           rootNode):
-    #self.report({'INFO'}, f"split! splitHeight: {splitHeight}")
+    self.report({'INFO'}, f"split! splitHeight: {splitHeight}")
     # Only split if there is a next node at the given index
     if len(startNode.next) > 0 and nextIndex < len(startNode.next):
         nrNodesToTip = nodesToTip(startNode.next[nextIndex], 0)
@@ -519,73 +522,73 @@ def split(startNode,
                     # TODO -> split at new node!!!
                     return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, rootNode)
                     #return startNode
-                #    self.report({'INFO'}, f"splitNode == startNode")
+                    self.report({'INFO'}, f"splitNode == startNode")
                 #    if splitNode == rootNode:
                 #        calculateSplitData(splitNode, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
-               # self.report({'INFO'}, f"split at existing node")
+                self.report({'INFO'}, f"split at existing node")
                 #return splitNode
             else:
                 return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, rootNode) # clusterIndex???
                 
-    #self.report({'INFO'}, f"split failed! nrNodesToTip: {nrNodesToTip}, len(startNode.next): {len(startNode.next)}, nextIndex: {nextIndex}")
+    self.report({'INFO'}, f"split failed! nrNodesToTip: {nrNodesToTip}, len(startNode.next): {len(startNode.next)}, nextIndex: {nextIndex}")
     return startNode
 
 def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, rootNode):
     # Split at new node between two nodes
-                splitAfterNode = startNode
-                splitAtStartNode = True
-                for i in range(splitAfterNodeNr):
-                    if i == 0:
-                        splitAfterNode = splitAfterNode.next[nextIndex]
-                        splitAtStartNode = False
-                        nextIndex = 0
-                    else:
-                        splitAfterNode = splitAfterNode.next[0]
-                        splitAtStartNode = False
+    
+    splitAfterNode = startNode
+    splitAtStartNode = True
+    for i in range(splitAfterNodeNr):
+        if i == 0:
+            splitAfterNode = splitAfterNode.next[nextIndex]
+            splitAtStartNode = False
+            nextIndex = 0
+        else:
+            splitAfterNode = splitAfterNode.next[0]
+            splitAtStartNode = False
                         
-                tangentIndex = 0
-                if splitAtStartNode == True and len(startNode.next) > 1:
-                    tangentIndex = nextIndex + 1
-                else:
-                    tangentIndex = nextIndex
+    tangentIndex = 0
+    if splitAtStartNode == True and len(startNode.next) > 1:
+        tangentIndex = nextIndex + 1
+    else:
+        tangentIndex = nextIndex
 
-                # Interpolate position and attributes for the new node
-                t = nrNodesToTip * splitHeight - splitAfterNodeNr
-                p0 = splitAfterNode.point
-                p1 = splitAfterNode.next[nextIndex].point
-                t0 = splitAfterNode.tangent[tangentIndex] # nextIndex + 1 if next.count > 1!!
-                t1 = splitAfterNode.next[nextIndex].tangent[0]
-                c0 = splitAfterNode.cotangent
-                c1 = splitAfterNode.next[nextIndex].cotangent
-                r0 = splitAfterNode.radius
-                r1 = splitAfterNode.next[nextIndex].radius
-                ring_res = splitAfterNode.ringResolution
-                taper = splitAfterNode.taper
-                
-                # Spline interpolation (replace with your own if needed)
-                newPoint = sampleSplineT(p0, p1, t0, t1, t)
-                newTangent = sampleSplineTangentT(p0, p1, t0, t1, t)
-                newCotangent = lerp(c0, c1, t)
-                newRadius = lerp(r0, r1, t)
-                newTvalGlobal = lerp(splitAfterNode.tValGlobal, splitAfterNode.next[nextIndex].tValGlobal, nrNodesToTip * splitHeight - splitAfterNodeNr)
-                newTvalBranch = lerp(splitAfterNode.tValBranch, splitAfterNode.next[nextIndex].tValBranch, splitHeight);
-
-                newNode = node(newPoint, newRadius, newCotangent, splitAfterNode.clusterIndex, ring_res, taper, newTvalGlobal, newTvalBranch)
-                #self.report({'INFO'}, f"split: newNode.taper: {newNode.taper}")
-                newNode.tangent.append(newTangent)
-                # Insert new node in the chain
-                newNode.next.append(splitAfterNode.next[nextIndex])
-                splitAfterNode.next[nextIndex] = newNode
-                
-                # TODO: splitNode = newNode ???
-                
-                # ERROR: when splitHeightVariation is large !!!
-                
-                
-
-                calculateSplitData(newNode, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
-                #self.report({'INFO'}, f"did split!")
-                return newNode
+    # Interpolate position and attributes for the new node
+    t = nrNodesToTip * splitHeight - splitAfterNodeNr
+    p0 = splitAfterNode.point
+    p1 = splitAfterNode.next[nextIndex].point
+    t0 = splitAfterNode.tangent[tangentIndex] # nextIndex + 1 if next.count > 1!!
+    t1 = splitAfterNode.next[nextIndex].tangent[0]
+    c0 = splitAfterNode.cotangent
+    c1 = splitAfterNode.next[nextIndex].cotangent
+    r0 = splitAfterNode.radius
+    r1 = splitAfterNode.next[nextIndex].radius
+    ring_res = splitAfterNode.ringResolution
+    taper = splitAfterNode.taper
+            
+    # Spline interpolation (replace with your own if needed)
+    newPoint = sampleSplineT(p0, p1, t0, t1, t)
+    newTangent = sampleSplineTangentT(p0, p1, t0, t1, t)
+    newCotangent = lerp(c0, c1, t)
+    newRadius = lerp(r0, r1, t)
+    newTvalGlobal = lerp(splitAfterNode.tValGlobal, splitAfterNode.next[nextIndex].tValGlobal, nrNodesToTip * splitHeight - splitAfterNodeNr)
+    newTvalBranch = lerp(splitAfterNode.tValBranch, splitAfterNode.next[nextIndex].tValBranch, splitHeight);
+    
+    newNode = node(newPoint, newRadius, newCotangent, splitAfterNode.clusterIndex, ring_res, taper, newTvalGlobal, newTvalBranch)
+    drawDebugPoint(newPoint)
+    #self.report({'INFO'}, f"split: newNode.taper: {newNode.taper}")
+    newNode.tangent.append(newTangent)
+    # Insert new node in the chain
+    newNode.next.append(splitAfterNode.next[nextIndex])
+    splitAfterNode.next[nextIndex] = newNode
+    
+    # TODO: splitNode = newNode ???
+    
+    # ERROR: when splitHeightVariation is large !!!
+    
+    calculateSplitData(newNode, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
+    self.report({'INFO'}, f"did split at new node!")
+    return newNode
 
 def calculateSplitData(splitNode, splitAngle, splitPointAngle, level, sMode, rotationAngle, stemRingResolution, curvOffsetStrength, self):
     
@@ -600,9 +603,11 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, level, sMode, rot
     splitAxis = Vector((0, 0, 0))
 
     if sMode == "HORIZONTAL":
-        splitAxis = splitNode.cotangent
-        right = splitNode.tangent[0].cross(Vector((0.0, 1.0, 0.0)))
+        #splitAxis = splitNode.cotangent
+        right = splitNode.tangent[0].cross(Vector((0.0, 0.0, 1.0)))
+        #drawDebugPoint(splitNode.point + right / 2.0)
         splitAxis = right.cross(splitNode.tangent[0]).normalized()
+        drawDebugPoint(splitNode.point + splitAxis / 2.0)
 
     elif sMode == "ROTATE_ANGLE":
         splitAxis = splitNode.cotangent.normalized()
@@ -831,7 +836,7 @@ branchVariance):
                 branchNext.tangent.append(branchDir)
                 branch.next.append(branchNext)
                 
-                drawDebugPoint(data.startPoint + branchDir * branchLength)
+                #drawDebugPoint(data.startPoint + branchDir * branchLength)
                 
                 if len(data.startNode.branches) < startNodeNextIndex + 1:
                     for m in range(len(data.startNode.next)):
@@ -911,13 +916,14 @@ def splitBranches(self,
                       
     allBranchNodes = []
     
-    rootNode.getAllBranchNodes(self, allBranchNodes, 0)
+    rootNode.getAllBranchStartNodes(self, allBranchNodes, 0)
     self.report({'INFO'}, f"in splitBranches(): len(allBranchNodes)[0]: {len(allBranchNodes)}")  
     
     splitProbabilityInLevel = [0.0 for i in range(nrBranchSplits)]
     expectedSplitsInLevel = [0 for i in range(nrBranchSplits)]
     
-    meanLevelBranch = math.floor(math.log2(nrBranchSplits / len(allBranchNodes)))
+    meanLevelBranch = max(0, math.floor(math.log2(nrBranchSplits / len(allBranchNodes))))
+    self.report({'INFO'}, f"in splitBranches(): meanLevelBranch: {meanLevelBranch}, nrBranchSplits: {nrBranchSplits}, len(allBranchNodes): {len(allBranchNodes)}")
     
     if meanLevelBranch >= 0:
         if nrBranchSplits < len(allBranchNodes):
@@ -962,6 +968,7 @@ def splitBranches(self,
                 nodesInLevelNextIndexSplitsPerBranch[0].append(nodeInfo(branch, n, 0))
         
         totalSplitCounter = 0
+        self.report({'INFO'}, f"in splitBranches(): nrBranchSplits: {nrBranchSplits}")
         for level in range(0, nrBranchSplits):
             maxSplitsPerBranch = math.floor(nrSplitsPerBranch + splitsPerBranchVariation)
             
@@ -974,22 +981,36 @@ def splitBranches(self,
             #        self.nodeInLevel = NodeInLevel
             #        self.nextIndex = NextIndex
             #        self.splitsPerBranch = SplitsPerBranch
+            length = len(nodesInLevelNextIndexSplitsPerBranch[level])
+            
+            if length > 0:
+                self.report({'INFO'}, f"in splitBranches(): level: {level}: len(nodesInLevelNextIndexSplitsPerBranch): {length}")
+            
             
             for n in range(0, len(nodesInLevelNextIndexSplitsPerBranch[level])):
                 N = nodesInLevelNextIndexSplitsPerBranch[level][n]
-                self.report({'INFO'}, f"type: {type(N).__name__}")
+                #self.report({'INFO'}, f"type: {type(N).__name__}") #FUNKT!
                 nde = N.nodeInLevel
-                self.report({'INFO'}, f"type: {type(nde).__name__}")
+                #self.report({'INFO'}, f"type: {type(nde).__name__}") #FUNKT!
                 branchLength = nde.lengthToTip()
+                if n == 0:
+                    self.report({'INFO'}, f"level: {level}: branchLength: {branchLength}")
             
             for n in nodesInLevelNextIndexSplitsPerBranch[level]:
                 N = n.nodeInLevel
                 branchLength = N.lengthToTip()
                 branchLengths.append(branchLength)
+                #self.report({'INFO'}, f"adding branchLength: {branchLength}")
                 
                 weight = pow(branchLength, 8.0)
                 branchWeights.append(weight)
                 totalWeight += weight
+                #self.report({'INFO'}, f"adding branchWeight: {weight}")
+                
+            if len(nodesInLevelNextIndexSplitsPerBranch[level]) > 0:
+                self.report({'INFO'}, f"totalWeight: {totalWeight}")
+                #for i in range(len(branchWeights)):
+                    #self.report({'INFO'}, f"branchWeights[{i}]: {branchWeights[i]}")
             
             splitsInLevel = 0
             safetyCounter = 0
@@ -997,11 +1018,17 @@ def splitBranches(self,
             nodeIndices = []
             for i in range(len(nodesInLevelNextIndexSplitsPerBranch)):
                 nodeIndices.append(i)
+            #self.report({'INFO'}, f"len(nodeIndices): {len(nodeIndices)}")
             
             if len(nodeIndices) == 0:
                 continue
             
+            safetyCounter = 0
             while splitsInLevel < expectedSplitsInLevel[level]:
+                if safetyCounter > 100:
+                    self.report({'INFO'}, f"ERROR: safetyCounter: {safetyCounter}")
+                    break
+                safetyCounter += 1
                 if len(nodeIndices) == 0:
                     break
                 if totalSplitCounter == nrBranchSplits:
@@ -1039,21 +1066,36 @@ def splitBranches(self,
                             0.0, #curvOffsetStrength,
                             self, 
                             rootNode);
-                        
-                        #def split(
-                        #        startNode, 
-                        #        nextIndex, 
-                        #        splitHeight, 
-                        #        splitAngle, 
-                        #        splitPointAngle, 
-                        #        level, 
-                        #        mode, 
-                        #        rotationAngle, 
-                        #        stemRingResolution, 
-                        #        curvOffsetStrength, 
-                        #        self, 
-                        #        rootNode):
-            
+                        if splitNode == nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel:
+                            #did not split
+                            totalWeight -= branchWeights[indexToSplit]
+                            branchWeights.remove(indexToSplit)
+                            nodeIndices.remove(indexToSplit)
+                            self.report({'INFO'}, "did not split!")
+                        else:
+                            self.report({'INFO'}, f"index to remove: {indexToSplit}, len(nodeIndices): {len(nodeIndices)}")
+                            #for index in nodeIndices:
+                            #    self.report({'INFO'}, f"in nodeIndices: {index}")
+                            totalWeight -= branchWeights[indexToSplit]
+                            lengthA = splitNode.next[0].lengthToTip()
+                            lengthB = splitNode.next[1].lengthToTip()
+                            
+                            del branchWeights[indexToSplit]
+                            totalWeight += lengthA + lengthB
+                            
+                            nodesInLevelNextIndexSplitsPerBranch[level + 1].append(nodeInfo(splitNode, 0, nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch + 1))
+                            nodesInLevelNextIndexSplitsPerBranch[level + 1].append(nodeInfo(splitNode, 1, nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch + 1))
+                            
+                            del nodeIndices[indexToSplit]
+                            
+                            splitsInLevel += 1
+                            totalSplitCounter += 1
+                
+                safetyCounter += 1
+                if safetyCounter > 100:
+                    self.report({'INFO'}, f"ERROR: safetyCounter: {safetyCounter}")
+                    break
+                                        
             
 def shapeRatio(self, context, tValGlobal, treeShape):
     if treeShape == "CONICAL":
@@ -1190,7 +1232,7 @@ def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLen
     #self.report({'INFO'}, f"in generateStartPointData: outwardDir: {outwardDir}")
     
     #drawDebugPoint(startPoint)
-    drawDebugPoint(startPoint + outwardDir)
+    #drawDebugPoint(startPoint + outwardDir)
     
     #self.report({'INFO'}, f"in add Branches(): startPoint: {startPoint}, outwardDir: {outwardDir}")
     #self.report({'INFO'}, f"in add Branches(): centerPoint: {centerPoint}")
@@ -1704,16 +1746,10 @@ class treeGenPanel(bpy.types.Panel):
         layout = self.layout
         obj = context.object
         
-        props = context.scene
-
-        layout.prop(props, "treeHeight")
-        layout.prop(props, "taper")
-        layout.prop(props, "branchTipRadius")
-
-        layout.prop(props, "")  # String input for file name
+        layout.prop(context.scene, "file_name")  # String input for file name
         
-        layout.operator("export.import_properties", text="Save Properties")
-        layout.operator("export.import_properties_load", text="Load Properties")
+        layout.operator("export.save_properties_file", text="Save Properties")
+        layout.operator("export.load_properties_file", text="Load Properties")
         
         row = layout.row()
         row.label(icon = 'COLORSET_12_VEC')
@@ -2600,7 +2636,8 @@ def save_properties(filePath):
         
         "branchClusters": props.branchClusters,
         
-        "nrBranchesList": [item.value for item in props.nrBranchesList],
+        "nrBranchesList": [props.nrBranchesList[i].value for i in range(0, props.branchClusters)],
+        #"nrBranchesList": [item.value for item in props.nrBranchesList],
         
         #"parentClusterBoolList": [item.value for item in props.parentClusterBoolList],                 #TODO
         #"parentClusterBoolListList": [item.value for item in props.parentClusterBoolListList],
@@ -2702,7 +2739,8 @@ def load_properties(filepath):
         for value in data.get("nrBranchesList", []):
             item = props.nrBranchesList.add()
             item.value = value
-
+            
+        #generateTree()
         
         
     
