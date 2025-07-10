@@ -234,6 +234,7 @@ class generateTree(bpy.types.Operator):
             
             addBranches(self, self, context,
             nodes[0], 
+            context.scene.branchClusters,
             context.scene.nrBranchesList, 
             context.scene.parentClusterBoolListList, 
             context.scene.branchesStartHeightGlobalList, 
@@ -268,8 +269,8 @@ class generateTree(bpy.types.Operator):
             
             context.scene.branchSplitHeightVariationList,
             context.scene.branchSplitModeList,
-            context.scene.branchSplitRotateAngle,
-            context.scene.branchCurvatureOffsetStrength[0],
+            context.scene.branchSplitRotateAngleList,
+            context.scene.branchCurvatureOffsetStrengthList[0],
             context.scene.branchVarianceList)
             
             #def add Branches(self, context, 
@@ -468,6 +469,7 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
                     #if splitHeight < 0.0 or splitHeight > 1.0:
                         #self.report({'ERROR'}, f"splitHeight out of bounds! splitHeight: {splitHeight}")
                     self.report({'INFO'}, f"splitRecursive: splitHeight: {splitHeight}")
+                    self.report({'INFO'}, f"splitRecursive(): stemSplitRotateAngle {stemSplitRotateAngle}")
                     splitNode = split(
                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0],
                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][1],
@@ -611,6 +613,11 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, level, sMode, rot
 
     elif sMode == "ROTATE_ANGLE":
         splitAxis = splitNode.cotangent.normalized()
+        self.report({'INFO'}, f"splitNode.tangent[0] {splitNode.tangent[0]}")
+        self.report({'INFO'}, f"rotationAngle {rotationAngle}")
+        self.report({'INFO'}, f"level {level}")
+        self.report({'INFO'}, f"splitAxis {splitAxis}")
+        
         splitAxis = (Quaternion(splitNode.tangent[0], math.radians(rotationAngle) * level) @ splitAxis).normalized()
 
     else:
@@ -684,6 +691,7 @@ def lerp(a, b, t):
 
 def addBranches(self, treeGen, context, #ERROR: when treeGrowDir == (0,0,1) !!
 rootNode, 
+branchClusters,
 nrBranchesList, 
 parentClusterBoolListList, 
 branchesStartHeightGlobalList, 
@@ -707,20 +715,23 @@ nrSplitsPerBranch,
 splitsPerBranchVariation,
 branchSplitAngle, 
 branchSplitPointAngle, 
-branchSplitHeightInLevel, 
+branchSplitHeightInLevel, #==branchSplitHeightInLevelList_0
 branchSplitHeightVariation,
 branchSplitMode,
 branchSplitRotateAngle,
 branchCurvOffsetStrength,
 branchVariance):
-    if len(nrBranchesList) > 0 and len(branchesStartHeightGlobalList) > 0:
-        nrBranches = nrBranchesList[0].value        
-        branchesStartHeightGlobal = branchesStartHeightGlobalList[0].value
-        branchesEndHeightGlobal = branchesEndHeightGlobalList[0].value
-        branchesStartHeightCluster = branchesStartHeightClusterList[0].value
-        branchesEndHeightCluster = branchesEndHeightClusterList[0].value
+    
+    treeGen.report({'INFO'}, f"in add Branches(): len(nrBranchesList): {len(nrBranchesList)}, ")
+    #if len(nrBranchesList) > 0 and len(branchesStartHeightGlobalList) > 0:
+    for clusterIndex in range(0, branchClusters):
+        nrBranches = nrBranchesList[clusterIndex].value        
+        branchesStartHeightGlobal = branchesStartHeightGlobalList[clusterIndex].value
+        branchesEndHeightGlobal = branchesEndHeightGlobalList[clusterIndex].value
+        branchesStartHeightCluster = branchesStartHeightClusterList[clusterIndex].value
+        branchesEndHeightCluster = branchesEndHeightClusterList[clusterIndex].value
         
-        treeGen.report({'INFO'}, f"in add Branches()")
+        #treeGen.report({'INFO'}, "in add Branches()")
         
         startNodesNextIndexStartTvalEndTval = []
         rootNode.getAllStartNodes(self, startNodesNextIndexStartTvalEndTval, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster, parentClusterBoolListList)
@@ -749,7 +760,7 @@ branchVariance):
                                                          data.startNode.next[startNodeNextIndex].tangent[0], 
                                                          data.t)
                 branchStartTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
-                globalVerticalAngle = lerp(verticalAngleCrownStart[0].value, verticalAngleCrownEnd[0].value, branchStartTvalGlobal)
+                globalVerticalAngle = lerp(verticalAngleCrownStart[clusterIndex].value, verticalAngleCrownEnd[clusterIndex].value, branchStartTvalGlobal)
                 #treeGen.report({'INFO'}, f"in add Branches: branchStartTvalGlobal: {branchStartTvalGlobal}")
                 branchVerticalAngle = 0.0 #... TODO
                 verticalAngle = globalVerticalAngle + branchVerticalAngle
@@ -763,21 +774,22 @@ branchVariance):
             
                 #treeGen.report({'INFO'}, f"in add Branches: angleMode: {branchAngleModeList[0].value}")
                 
-                if branchAngleModeList[0].value == "WINDING":
-                    if rotateAngleRangeList[0].value > 0:
-                        angle = windingAngle % (2.0 * rotateAngleRangeList[0].value)
+                treeGen.report({'INFO'}, f"in add Branches: clusterIndex: {clusterIndex}, branchClusters: {branchClusters}")
+                if branchAngleModeList[clusterIndex].value == "WINDING":
+                    if rotateAngleRangeList[clusterIndex].value > 0:
+                        angle = windingAngle % (2.0 * rotateAngleRangeList[clusterIndex].value)
                     else:
                         angle = 0.0
                     #treeGen.report({'INFO'}, f"in add Branches(): angleMode.winding: angle: {angle}, windingAngle: {windingAngle}, ")
-                    branchDir = Quaternion(startPointTangent, math.radians(-rotateAngleRangeList[0].value + angle)) @ centerDir
+                    branchDir = Quaternion(startPointTangent, math.radians(-rotateAngleRangeList[clusterIndex].value + angle)) @ centerDir
                     #treeGen.report({'INFO'}, f"in add Branches: angleMode: winding, branchDir: {branchDir}")
                     
                 if branchAngleModeList[0].value == "SYMMETRIC":
                     if branchIndex % 2 == 0:
-                        branchDir = Quaternion(startPointTangent, math.radians(-rotateAngleList[0].value)) @ centerDir
+                        branchDir = Quaternion(startPointTangent, math.radians(-rotateAngleList[clusterIndex].value)) @ centerDir
                         branchDir = Quaternion(startPointTangent.cross(branchDir), math.radians(verticalAngle - 90.0)) @ branchDir
                     else:
-                        branchDir = Quaternion(startPointTangent, math.radians(rotateAngleList[0].value)) @ centerDir
+                        branchDir = Quaternion(startPointTangent, math.radians(rotateAngleList[clusterIndex].value)) @ centerDir
                         branchDir = Quaternion(startPointTangent.cross(-branchDir), math.radians(-verticalAngle + 90.0)) @ branchDir 
                     
                 #rotv = Quaternion(axis, math.radians(angle)) @ v
@@ -795,7 +807,7 @@ branchVariance):
             
                 #class node():
                 #   def __init__(self, Point, Radius, Cotangent, RingResolution, Taper, TvalGlobal, TvalBranch):
-                branch = node(data.startPoint, 1.0, branchCotangent, 0, ringResolution, taper * taperFactorList[0].value, data.startNode.tValGlobal, 0.0)
+                branch = node(data.startPoint, 1.0, branchCotangent, 0, ringResolution, taper * taperFactorList[clusterIndex].value, data.startNode.tValGlobal, 0.0)
                 branch.tangent.append(branchDir)
             
                 branchLength = 0.0
@@ -803,26 +815,9 @@ branchVariance):
                 nextIndex = startNodesNextIndexStartTvalEndTval[data.startNodeIndex].nextIndex
                 startTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
                 
-                #if branchShapeList[0].value == "CONICAL":
-                #    self.report({'INFO'}, "in add Branches: treeShape: conical")
-                #if branchShapeList[0].value == "SPHERICAL":
-                #    self.report({'INFO'}, "in add Branches: treeShape: spherical")
-                #if branchShapeList[0].value == "HEMISPHERICAL":
-                #    self.report({'INFO'}, "in add Branches: treeShape: hemispherical")
-                #if branchShapeList[0].value == "CYLINDRICAL":
-                #    self.report({'INFO'}, "in add Branches: treeShape: cylindrical")
-                #if branchShapeList[0].value == "TAPERED_CYLINDRICAL":
-                #    self.report({'INFO'}, "in add Branches: treeShape: taperedCylindrical")
-                #if branchShapeList[0].value == "FLAME":
-                #    self.report({'INFO'}, "in add Branches: treeShape: flame")
-                #if branchShapeList[0].value == "INVERSE_CONICAL":
-                #    self.report({'INFO'}, "in add Branches: treeShape: inverseConical")
-                #if branchShapeList[0].value == "TEND_FLAME":
-                #    self.report({'INFO'}, "in add Branches: treeShape: tendFlame")
-                    
-                shapeRatioValue = shapeRatio(self, context, startTvalGlobal, branchShapeList[0].value)
+                shapeRatioValue = shapeRatio(self, context, startTvalGlobal, branchShapeList[clusterIndex].value)
                 #treeGen.report({'INFO'}, f"in add Branches: branchLength: {branchLength}, shapeRatio: {shapeRatioValue}")
-                branchLength = treeHeight * relBranchLengthList[0].value * shapeRatioValue
+                branchLength = treeHeight * relBranchLengthList[clusterIndex].value * shapeRatioValue
                 
                 
                 # TODO
@@ -832,7 +827,7 @@ branchVariance):
                 #    branchLength = lengthToTip 
             
                 #branch = node(data.startPoint, 1.0, branchCotangent, ringResolution, taper, data.startNode.tValGlobal, 0.0)
-                branchNext = node(data.startPoint + branchDir * branchLength, 1.0, branchCotangent, 0, ringResolution, taper * taperFactorList[0].value, data.startNode.tValGlobal, 0.0)
+                branchNext = node(data.startPoint + branchDir * branchLength, 1.0, branchCotangent, 0, ringResolution, taper * taperFactorList[clusterIndex].value, data.startNode.tValGlobal, 0.0)
                 branchNext.tangent.append(branchDir)
                 branch.next.append(branchNext)
                 
@@ -843,58 +838,43 @@ branchVariance):
                         data.startNode.branches.append([])
                     
                 data.startNode.branches[startNodeNextIndex].append(branch)
-                windingAngle += rotateAngleList[0].value
+                windingAngle += rotateAngleList[clusterIndex].value
                 #treeGen.report({'INFO'}, f"in add Branches(): new windingAngle: {windingAngle}, added: ")  #added rotateAngle: 25 -> 2.33999, rotateAngle: 50 -> 2.33999, rotateAngleRange: 20 -> 2.33999
+                
         
         if nrSplitsPerBranch != None:
             if len(nrSplitsPerBranch) > 0: # > clusterIndex:
-                if nrSplitsPerBranch[0].value > 0.0: # [clusterIndex]
+                if nrSplitsPerBranch[clusterIndex].value > 0.0: # [clusterIndex]
                     #treeGen.report({'INFO'}, f"in add Branches()")
                     treeGen.report({'INFO'}, f"branchCurvOffsetStrength: {branchCurvOffsetStrength}")
                     #length = len(branchCurvOffsetStrength)
-                    #treeGen.report(f"in addBranches: len(branchCurvOffsetStrength): {length}")
+                    
+                    
+                    treeGen.report({'INFO'}, f"in addBranches: branchSplitRotateAnlge: {len(branchSplitRotateAngle)}, clusterIndex: {clusterIndex}") #ERROR HERE !!!
+                    
+                    
                     splitBranches(self, 
                                   rootNode, 
                                   0, 
-                                  int(nrSplitsPerBranch[0].value * nrBranches), 
+                                  int(nrSplitsPerBranch[clusterIndex].value * nrBranches), 
                                   
-                                  branchSplitAngle[0].value, 
-                                  branchSplitPointAngle[0].value, 
-                                  nrSplitsPerBranch[0].value, 
+                                  branchSplitAngle[clusterIndex].value, 
+                                  branchSplitPointAngle[clusterIndex].value, 
+                                  nrSplitsPerBranch[clusterIndex].value, 
                                   
-                                  splitsPerBranchVariation[0].value, 
-                                  branchSplitHeightInLevel[0].value, 
-                                  branchSplitHeightVariation[0].value, 
+                                  splitsPerBranchVariation[clusterIndex].value, 
+                                  branchSplitHeightInLevel, # == branchSplitHeightInLevelList_0
+                                  branchSplitHeightVariation[clusterIndex].value, 
                                   
-                                  branchSplitMode[0].value, 
-                                  branchSplitRotateAngle[0],
+                                  branchSplitMode[clusterIndex].value, 
+                                  branchSplitRotateAngle[clusterIndex].value,
                                   0, #level ???
                                   
                                   ringResolution, 
                                   0.0,#branchCurvOffsetStrength[0], #TODO: variable for each branch cluster... 
-                                  branchVariance[0].value)
+                                  branchVariance[clusterIndex].value)
                                   
-                 #def splitBranches(self, 
-                 #  rootNode, 
-                 #  branchCluster, 
-                 #  nrBranchSplits, 
-                 
-                 #  splitAngle, 
-                 #  splitPointAngle, 
-                 #  nrSplitsPerBranch, 
-                 
-                 #  splitsPerBranchVariation, 
-                 #  branchSplitHeightInLevel, 
-                 #  branchSplitHeightVariation, 
-                 
-                 #  branchSplitMode, 
-                 #  branchSplitRotateAngle, 
-                 #  level,
-                 
-                 #  stemRingResolution, 
-                 #  curvOffsetStrength, 
-                 #  variance):
-                    
+                
                     
                     
 def splitBranches(self, 
@@ -905,7 +885,7 @@ def splitBranches(self,
                   splitPointAngle, 
                   nrSplitsPerBranch, 
                   splitsPerBranchVariation, 
-                  branchSplitHeightInLevel, 
+                  branchSplitHeightInLevel, # == branchSplitHeightInLevelList_0
                   branchSplitHeightVariation, 
                   branchSplitMode, 
                   branchSplitRotateAngle, 
@@ -1049,10 +1029,13 @@ def splitBranches(self,
                             break
                     
                     if indexToSplit != -1 and len(nodeIndices) > 0  and indexToSplit >= 0 and indexToSplit < len(nodeIndices) and nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch < maxSplitsPerBranch:
+                        # == branchSplitHeightInLevelList_0
+                        branchSplitHeight = max(0.05, min(branchSplitHeightInLevel[level].value + h * branchSplitHeightVariation * min(branchSplitHeightInLevel[level].value, 1.0 - branchSplitHeightInLevel[level].value), 0.95))
                         
-                        branchSplitHeight = max(0.05, min(branchSplitHeightInLevel + h * branchSplitHeightVariation * min(branchSplitHeightInLevel, 1.0 - branchSplitHeightInLevel), 0.95))
+                        self.report({'INFO'}, "in splitBranches(): branchSplitHeightInLevel[{level}]: {branchSplitHeightInLevel[level].value}")
                         
-                        self.report({'INFO'}, "in splitBranches(): splitNode!")
+                        self.report({'INFO'}, f"splitBranches(): branchSplitRotateAngle {branchSplitRotateAngle}")
+                        
                         splitNode = split(
                             nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel,
                             nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nextIndex, 
@@ -1065,7 +1048,7 @@ def splitBranches(self,
                             stemRingResolution,
                             0.0, #curvOffsetStrength,
                             self, 
-                            rootNode);
+                            rootNode)
                         if splitNode == nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel:
                             #did not split
                             totalWeight -= branchWeights[indexToSplit]
@@ -2673,6 +2656,14 @@ def save_properties(filePath):
         "stemSplitMode": props.stemSplitMode,
         "stemSplitRotateAngle": props.stemSplitRotateAngle,
         "curvOffsetStrength": props.curvOffsetStrength,
+        
+        "branchSplitHeightInLevelListIndex": props.branchSplitHeightInLevelListIndex,
+        # Add additional split height collections  
+        **{f"branchSplitHeightInLevelList_{i}": [item.value for item in getattr(props, f"branchSplitHeightInLevelList_{i}")]
+           for i in range(6)},
+        **{f"branchSplitHeightInLevelListIndex_{i}": getattr(props, f"branchSplitHeightInLevelListIndex_{i}")
+           for i in range(6)},
+           
         "splitHeightVariation": props.splitHeightVariation,
         "stemSplitAngle": props.stemSplitAngle,
         "stemSplitPointAngle": props.stemSplitPointAngle,
@@ -2682,7 +2673,7 @@ def save_properties(filePath):
         "nrBranchesList": [props.nrBranchesList[i].value for i in range(0, props.branchClusters)],
         #"nrBranchesList": [item.value for item in props.nrBranchesList],
         
-        #"parentClusterBoolList": [item.value for item in props.parentClusterBoolList],                 #TODO
+        #"parentClusterBoolList": [item.value for item in props.parentClusterBoolList],#TODO
         #"parentClusterBoolListList": [item.value for item in props.parentClusterBoolListList],
         #"branchClusterBoolListList": [item.value for item in props.branchClusterBoolListList],
         #"nrBranchesListIndex": props.nrBranchesListIndex,
@@ -2718,12 +2709,7 @@ def save_properties(filePath):
         #    for i in range(6)
         #],
         
-        "branchSplitHeightInLevelListIndex": props.branchSplitHeightInLevelListIndex,
-        # Add additional split height collections  
-        **{f"branchSplitHeightInLevelList_{i}": [item.value for item in getattr(props, f"branchSplitHeightInLevelList_{i}")]
-           for i in range(6)},
-        **{f"branchSplitHeightInLevelListIndex_{i}": getattr(props, f"branchSplitHeightInLevelListIndex_{i}")
-           for i in range(6)}
+        
     
         
         #"branchSplitHeightInLevelListIndex": props.branchSplitHeightInLevelListIndex,
@@ -2783,7 +2769,116 @@ def load_properties(filepath):
             item = props.nrBranchesList.add()
             item.value = value
             
+        for value in data.get("branchVarianceList", []):
+            item = props.branchVarianceList.add()
+            item.value = value
+            
+        for value in data.get("branchSplitRotateAngleList", []):
+            item = props.branchSplitRotateAngleList.add()
+            item.value = value
+            
+        for value in data.get("branchSplitPointAngleList", []):
+            item = props.branchSplitPointAngleList.add()
+            item.value = value
+            
+        for value in data.get("branchShapeList", []):
+            item = props.branchShapeList.add()
+            item.value = value
+            
+        for value in data.get("taperFactorList", []):
+            item = props.taperFactorList.add()
+            item.value = value
+            
+        for value in data.get("verticalAngleCrownStartList", []):
+            item = props.verticalAngleCrownStartList.add()
+            item.value = value
+            
+        for value in data.get("verticalAngleCrownEndList", []):
+            item = props.verticalAngleCrownEndList.add()
+            item.value = value
+            
+        for value in data.get("verticalAngleBranchStartList", []):
+            item = props.verticalAngleBranchStartList.add()
+            item.value = value
+            
+        for value in data.get("verticalAngleBranchEndList", []):
+            item = props.verticalAngleBranchEndList.add()
+            item.value = value
+            
+        for value in data.get("rotateAngleList", []):
+            item = props.rotateAngleList.add()
+            item.value = value
+            
+        for value in data.get("rotateAngleRangeList", []):
+            item = props.rotateAngleRangeList.add()
+            item.value = value
+            
+        for value in data.get("branchesStartHeightGlobalList", []):
+            item = props.branchesStartHeightGlobalList.add()
+            item.value = value
+            
+        for value in data.get("branchesEndHeightGlobalList", []):
+            item = props.branchesEndHeightGlobalList.add()
+            item.value = value
+            
+        for value in data.get("branchesStartHeightClusterList", []):
+            item = props.branchesStartHeightClusterList.add()
+            item.value = value
+            
+        for value in data.get("branchesEndHeightClusterList", []):
+            item = props.branchesEndHeightClusterList.add()
+            item.value = value
+            
+        for value in data.get("branchCurvatureList", []):
+            item = props.branchCurvatureList.add()
+            item.value = value
+            
+        for value in data.get("branchCurvatureOffsetStrengthList", []):
+            item = props.branchCurvatureOffsetStrengthList.add()
+            item.value = value
+            
+        for value in data.get("nrSplitsPerBranchList", []):
+            item = props.nrSplitsPerBranchList.add()
+            item.value = value
+            
+        for value in data.get("splitsPerBranchVariationList", []):
+            item = props.splitsPerBranchVariationList.add()
+            item.value = value
+            
+        for value in data.get("branchSplitHeightVariationList", []):
+            item = props.branchSplitHeightVariationList.add()
+            item.value = value
+        
+        
+            
         #generateTree()
+        #-----------------------
+        #"nrBranchesList": [props.nrBranchesList[i].value for i in range(0, props.branchClusters)],
+        
+        #"branchSplitModeList": [item.value for item in props.branchSplitModeList],
+        #"branchVarianceList": [item.value for item in props.branchVarianceList],
+        #"branchSplitRotateAngleList": [item.value for item in props.branchSplitRotateAngleList],
+        #"branchSplitAngleList": [item.value for item in props.branchSplitAngleList],
+        #"branchSplitPointAngleList": [item.value for item in props.branchSplitPointAngleList],
+        #"branchShapeList": [item.value for item in props.branchShapeList],
+        #"relBranchLengthList": [item.value for item in props.relBranchLengthList],
+        #"taperFactorList": [item.value for item in props.taperFactorList],
+        #"verticalAngleCrownStartList": [item.value for item in props.verticalAngleCrownStartList],
+        #"verticalAngleCrownEndList": [item.value for item in props.verticalAngleCrownEndList],
+        #"verticalAngleBranchStartList": [item.value for item in props.verticalAngleBranchStartList],
+        #"verticalAngleBranchEndList": [item.value for item in props.verticalAngleBranchEndList],
+        #"branchAngleModeList": [item.value for item in props.branchAngleModeList],
+        #"rotateAngleList": [item.value for item in props.rotateAngleList],
+        #"rotateAngleRangeList": [item.value for item in props.rotateAngleRangeList],
+        #"branchesStartHeightGlobalList": [item.value for item in props.branchesStartHeightGlobalList],
+        #"branchesEndHeightGlobalList": [item.value for item in props.branchesEndHeightGlobalList],
+        #"branchesStartHeightClusterList": [item.value for item in props.branchesStartHeightClusterList],
+        #"branchesEndHeightClusterList": [item.value for item in props.branchesEndHeightClusterList],
+        #"branchCurvatureList": [item.value for item in props.branchCurvatureList],
+        #"branchCurvatureOffsetStrengthList": [item.value for item in props.branchCurvatureOffsetStrengthList],
+        #"nrSplitsPerBranchList": [item.value for item in props.nrSplitsPerBranchList],
+        #"splitsPerBranchVariationList": [item.value for item in props.splitsPerBranchVariationList],
+        #"branchSplitHeightVariationList": [item.value for item in props.branchSplitHeightVariationList],
         
         
     
