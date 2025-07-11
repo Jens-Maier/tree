@@ -15,6 +15,74 @@ def myCurveData(curve_name):
         curve_node_mapping[curve_name] = cn.name
     return myNodeTree()[curve_node_mapping[curve_name]]
 
+
+
+def evaluateCurveMapping(self, curve, x):
+    """Custom evaluation function for CurveMap."""
+    # Get the data points of the curve
+    points = curve.points
+
+    # Early return if the number of points is less than 2
+    if len(points) < 2:
+        return points[0].location[1] if points else 0.0
+
+    # Find the segment of the curve where 'x' lies
+    for i in range(len(points) - 1):
+        self.report({'INFO'}, "in evaluateCurveMapping: ")
+        self.report({'INFO'}, f"point[{i}]: {points[i].location[0]}")
+        if points[i].location[0] <= x <= points[i + 1].location[0]:
+            # Linear interpolation
+            p0_x = points[i].location[0]
+            p0_y = points[i].location[1]
+            p1_x = points[i + 1].location[0]
+            p1_y = points[i + 1].location[1]
+            self.report({'INFO'}, f"p0_x: {p0_x}")
+            self.report({'INFO'}, f"p0_y: {p0_y}")
+            self.report({'INFO'}, f"p1_x: {p1_x}")
+            self.report({'INFO'}, f"p1_y: {p1_y}")
+            if p1_x == p0_x:
+                return p0_y
+            ratio = (x - p0_x) / (p1_x - p0_x)
+            result = p0_y + (p1_y - p0_y) * ratio
+            self.report({'INFO'}, f"result: {result}")
+            return result
+    
+    # Return the last point's value if x is out of bounds
+    return points[0].location[1]
+
+
+class evaluateButton(bpy.types.Operator):
+    bl_idname="scene.evaluate_button"
+    bl_label="evaluate"
+        
+    def execute(self, context):
+        nodeGroups = bpy.data.node_groups.get('TestCurveData')
+        curve = nodeGroups.nodes[curve_node_mapping['TestOne']].mapping.curves[0]
+        #curve.points[0].location = (0.0, 0.25)
+        
+        
+        self.report({'INFO'}, "initialising curve mapping")
+        curve_mapping = context.scene.my_curve_mapping
+        curve = curve_mapping.curves[0]
+        
+        self.report({'INFO'}, f"test: point 0 location: {curve.points[0].location}")
+        x = context.scene.evaluate
+        
+        curve_mapping.initialize()
+        self.report({'INFO'}, f"Curve at x = {x}, y = {y}")
+        
+        
+        #y = curve_node_mapping.evaluate(curve, x)
+        #self.report({'INFO'}, f"y = {y}")
+        
+        #y_eval = bpy.types.CurveMapping.evaluate(curve, x)
+        #y_eval = curve.evaluate(x)
+        #self.report({'INFO'}, f"eval: {y_eval}")
+        
+        return {'FINISHED'}
+    
+    
+
 class CurvyPanel(bpy.types.Panel):
     bl_label = "Test curve mapping"
     bl_idname = "PT_curveMapping"
@@ -24,11 +92,46 @@ class CurvyPanel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        self.layout.template_curve_mapping(myCurveData('TestOne'), "mapping")
+        scene = context.scene
+        layout.template_curve_mapping(myCurveData('TestOne'), "mapping")
+        
+class EvalPanel(bpy.types.Panel):
+    bl_label = "Evaluate"
+    bl_idname = "PT_evaluate"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'curveMapping'
+    
+    def draw(self, context):
+        layout = self.layout
+        layout.operator("scene.evaluate_button", text="Evaluate")
 
 def register():
+    #bpy.utils.register_class(floatProp)
     bpy.utils.register_class(CurvyPanel)
+    bpy.utils.register_class(EvalPanel)
+    bpy.utils.register_class(evaluateButton)
     
+    bpy.types.Scene.evaluate = bpy.props.FloatProperty(
+        name = "evaluate at",
+        default = 0.0,
+        min = 0.0, 
+        max = 1.0
+    )
+    
+    bpy.types.Scene.my_curve_mapping : bpy.props.CurveMappingProperty(
+        name="My Curve Mapping", 
+        min=0.0, 
+        max=1.0,
+        subtype='VALUE' # or 'XYZ', 'HSV', 'CRGB'
+    )
+
+def unregister():
+    bpy.utils.unregister_class(CurvyPanel)
+    bpy.utils.unregister_class(EvalPanel)
+    bpy.utils.unregister_class(evaluateButton)
+    del bpy.types.Scene.evaluate
+    del bpy.types.Scene.my_curve_mapping
     
 if __name__ == "__main__":
     register();
