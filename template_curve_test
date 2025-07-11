@@ -1,0 +1,34 @@
+import bpy
+
+#https://blender.stackexchange.com/questions/61618/add-a-custom-curve-mapping-property-for-an-add-on/61829#61829
+
+def myNodeTree():
+    if 'TestCurveData' not in bpy.data.node_groups:
+        ng = bpy.data.node_groups.new('TestCurveData', 'ShaderNodeTree')
+    return bpy.data.node_groups['TestCurveData'].nodes
+
+curve_node_mapping = {}
+
+def myCurveData(curve_name):
+    if curve_name not in curve_node_mapping:
+        cn = myNodeTree().new('ShaderNodeRGBCurve')
+        curve_node_mapping[curve_name] = cn.name
+    return myNodeTree()[curve_node_mapping[curve_name]]
+
+class CurvyPanel(bpy.types.Panel):
+    bl_label = "Test curve mapping"
+    bl_idname = "PT_curveMapping"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'curveMapping'
+
+    def draw(self, context):
+        layout = self.layout
+        self.layout.template_curve_mapping(myCurveData('TestOne'), "mapping")
+
+def register():
+    bpy.utils.register_class(CurvyPanel)
+    
+    
+if __name__ == "__main__":
+    register();
