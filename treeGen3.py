@@ -97,20 +97,89 @@ class node():
             #treeGen.report({'INFO'}, "getAllBranchStartNodes(): next.getAllBranchStartNodes()")
             n.getAllBranchStartNodes(treeGen, allBranchNodes, branchCluster)
     
-    def getAllStartNodes(self, treeGen, startNodesNextIndexStartTvalEndTval, startHeightGlobal, endHeightGlobal, startHeightCluster, endHeightCluster, parentClusterBoolListList):
+    
+    
+    def getAllStartNodes(
+        self, 
+        treeGen, 
+        startNodesNextIndexStartTvalEndTval, 
+        branchNodesNextIndexStartTvalEndTval, 
+        activeBranchIndex, 
+        startHeightGlobal, 
+        endHeightGlobal, 
+        startHeightCluster, 
+        endHeightCluster, 
+        parentClusterBoolListList):
         
-        #stem
-        for n in range(len(self.next)):
-            # test if overlap    |----*--v--*----*---v--*
-            if self.next[n].tValGlobal > startHeightGlobal and self.tValGlobal < endHeightGlobal:
-                segmentStartGlobal = max(self.tValGlobal, startHeightGlobal)
-                segmentEndGlobal = min(self.next[n].tValGlobal, endHeightGlobal)
-                
-                startTvalSegment = (segmentStartGlobal - self.tValGlobal) / (self.next[n].tValGlobal - self.tValGlobal)
-                endTvalSegment = (segmentEndGlobal - self.tValGlobal) / (self.next[n].tValGlobal - self.tValGlobal)
-                
-                startNodesNextIndexStartTvalEndTval.append(startNodeInfo(self, n, startTvalSegment, endTvalSegment))
+        if self.clusterIndex == -1:
+            #stem
+            for n in range(len(self.next)):
+                # test if overlap    |----*--v--*----*---v--*
+                if self.next[n].tValGlobal > startHeightGlobal and self.tValGlobal < endHeightGlobal:
+                    segmentStartGlobal = max(self.tValGlobal, startHeightGlobal)
+                    segmentEndGlobal = min(self.next[n].tValGlobal, endHeightGlobal)
+                    
+                    startTvalSegment = (segmentStartGlobal - self.tValGlobal) / (self.next[n].tValGlobal - self.tValGlobal)
+                    endTvalSegment = (segmentEndGlobal - self.tValGlobal) / (self.next[n].tValGlobal - self.tValGlobal)
+                    
+                    startNodesNextIndexStartTvalEndTval.append(startNodeInfo(self, n, startTvalSegment, endTvalSegment))
         
+        else: # not in stem
+            if len(parentClusterBools) > clusterIndex: #TODO: logic for addLeaves...
+                if parentClusterBools[parentClusterIndex] == True:
+                    for n in range(len(next)):
+                        if tValGlobal >= startHeightGlobal and tValGlobal <= endHeightGlobal:
+                            tA = tValBranch
+                            tB = next[n].tValBranch
+                            if tA > tB:
+                                tmp = tA
+                                tA = tB
+                                tB = tmp
+                            #only process if ther is overlap
+                            if tB > startHeightCluster and tA < endHeightCluster:
+                                segStart = max(tA, startHeightCluster)
+                                segEnd = min(tB, endHeightCluster)
+                                
+                                startTval = (segStart - tA) / (tB - tA)
+                                endTval = (segEnd - tA) / (tB - tA)
+                                
+                                startNodesNextIndexStartTvalEndTval.append(startNodeInfo(self, n, startTval, endTval))
+                                
+                                if activeBranchIndex != -1:
+                                    branchNodesNextIndexStartTvalEndTval[activeBranchIndex].append(startNodeInfo(self, n, startTval, endTval))
+                for n in next:
+                    n.getAllStartNodes(treeGen, startNodesNextIndexStartTvalEndTval, branchNodesNextIndexStartTvalEndTval, activeBranchIndex, startHeightGlobal, endHeightGlobal, startHeightCluster, endHeightCluster, parentClusterBoolListList)
+                
+                for b in branches:
+                    branchNodesNextIndexStartTvalEndTval.append([])
+                    for n in b:
+                        for i in range(0, len(n.next)):
+                            branchNodesNextIndexStartTvalEndTval[len(branchNodesNextIndexStartTvalEndTval) - 1].append(startNodeInfo(n, i, 0.0, 1.0))
+                        n.getAllStartNodes(
+                            treeGen,
+                            startNodesNextIndexStartTvalEndTval, 
+                            branchNodesNextIndexStartTvalEndTval, 
+                            activeBranchIndex, 
+                            startHeightGlobal, 
+                            startHeightCluster, 
+                            endHeightGlobal, 
+                            endHeightCluster, 
+                            parentClusterBoolListList)
+                        
+                        #getAllStartNodes(
+                        #   self, 
+                        #   treeGen, 
+                        #   startNodesNextIndexStartTvalEndTval, 
+                        #   branchNodesNextIndexStartTvalEndTval, 
+                        #   activeBranchIndex, 
+                        #   startHeightGlobal, 
+                        #   endHeightGlobal, 
+                        #   startHeightCluster, 
+                        #   endHeightCluster, 
+                        #   parentClusterBoolListList):
+                                
+                                
+            
         #if self.tValGlobal >= startHeightGlobal and self.tValGlobal <= endHeightGlobal:
         #    if len(self.next) > 0:
         #        for n in range(len(self.next)):
@@ -119,7 +188,16 @@ class node():
                     
                     
         for n in self.next:
-            n.getAllStartNodes(treeGen, startNodesNextIndexStartTvalEndTval, startHeightGlobal, endHeightGlobal, startHeightCluster, endHeightCluster, parentClusterBoolListList)
+            n.getAllStartNodes(
+                treeGen, 
+                startNodesNextIndexStartTvalEndTval, 
+                branchNodesNextIndexStartTvalEndTval, 
+                activeBranchIndex, 
+                startHeightGlobal, 
+                endHeightGlobal, 
+                startHeightCluster, 
+                endHeightCluster, 
+                parentClusterBoolListList)
             
         #treeGen.report({'INFO'}, f"in getAllStartNodes(): len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}")
             
@@ -232,9 +310,14 @@ class generateTree(bpy.types.Operator):
                 #self.report({'ERROR'}, "ERROR: when treeGrowDir == (0,0,1)")
                 self.report({'INFO'}, "treeGrowDir == (0,0,1)")
             
-            addBranches(self, self, context,
+            addBranches(
+            self, 
+            self, 
+            
+            context,
             nodes[0], 
             context.scene.branchClusters,
+            
             context.scene.nrBranchesList, 
             context.scene.parentClusterBoolListList, 
             context.scene.branchesStartHeightGlobalList, 
@@ -270,11 +353,18 @@ class generateTree(bpy.types.Operator):
             context.scene.branchSplitHeightVariationList,
             context.scene.branchSplitModeList,
             context.scene.branchSplitRotateAngleList,
+            
             context.scene.branchCurvatureOffsetStrengthList[0],
             context.scene.branchVarianceList)
             
-            #def add Branches(self, context, 
+            #def addBranches(
+            #    self, 
+            #    treeGen, 
+            
+            #    context, 
             #    rootNode, 
+            #    branchClusters,
+            
             #    nrBranchesList, 
             #    parentClusterBoolListList, 
             #    branchesStartHeightGlobalList, 
@@ -296,37 +386,25 @@ class generateTree(bpy.types.Operator):
             #    ringResolution, 
             
             #    taper, 
-            #    taperFactor, 
-            #    relBranchLengthList):
+            #    taperFactorList, 
+            #    relBranchLengthList,
+            
+            #    branchShapeList, 
+            #    nrSplitsPerBranch, 
+            #    splitsPerBranchVariation,
+            
+            #    branchSplitAngle, 
+            #    branchSplitPointAngle, 
+            #    branchSplitHeightInLevel, #==branchSplitHeightInLevelList_0
+            
+            #    branchSplitHeightVariation,
+            #    branchSplitMode,
+            #    branchSplitRotateAngle,
+            
+            #    branchCurvOffsetStrength,
+            #    branchVariance):
             
             
-            
-            
-            #def add Branches(self, context, 
-            #rootNode, 
-            #nrBranchesList, 
-            #parentClusterBoolListList, 
-            #branchesStartHeightGlobalList, 
-            
-            #branchesEndHeightGlobalList, 
-            #branchesStartHeightClusterList, 
-            #branchesEndHeightClusterList,
-             
-            #treeGrowDir, 
-            #treeHeight, 
-            #verticalAngleCrownStart, 
-            
-            #verticalAngleCrownEnd, 
-            #branchAngleModeList, 
-            #branchSplitRotateAngleList, 
-            
-            #rotateAngleList,
-            #rotateAngleRangeList, 
-            #ringResolution, 
-            
-            #taper, 
-            #taperFactor, 
-            #relBranchLengthList):
             
             #drawDebugPoint(nodes[0].point)
             #drawDebugPoint(nodes[1].point)
@@ -689,36 +767,50 @@ def lerp(a, b, t):
 
 
 
-def addBranches(self, treeGen, context, #ERROR: when treeGrowDir == (0,0,1) !!
+def addBranches(
+self, 
+treeGen, 
+
+context, #ERROR: when treeGrowDir == (0,0,1) !!
 rootNode, 
 branchClusters,
+
 nrBranchesList, 
 parentClusterBoolListList, 
 branchesStartHeightGlobalList, 
+
 branchesEndHeightGlobalList, 
 branchesStartHeightClusterList, 
 branchesEndHeightClusterList, 
+
 treeGrowDir, 
 treeHeight, 
 verticalAngleCrownStart, 
+
 verticalAngleCrownEnd, 
 branchAngleModeList, 
-branchSplitRotateAngleList, 
+branchSplitRotateAngleList,
+ 
 rotateAngleList,
 rotateAngleRangeList, 
 ringResolution, 
+
 taper, 
 taperFactorList, 
 relBranchLengthList,
+
 branchShapeList, 
 nrSplitsPerBranch, 
 splitsPerBranchVariation,
+
 branchSplitAngle, 
 branchSplitPointAngle, 
 branchSplitHeightInLevel, #==branchSplitHeightInLevelList_0
+
 branchSplitHeightVariation,
 branchSplitMode,
 branchSplitRotateAngle,
+
 branchCurvOffsetStrength,
 branchVariance):
     
@@ -734,7 +826,26 @@ branchVariance):
         #treeGen.report({'INFO'}, "in add Branches()")
         
         startNodesNextIndexStartTvalEndTval = []
-        rootNode.getAllStartNodes(self, startNodesNextIndexStartTvalEndTval, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster, parentClusterBoolListList)
+        branchNodesNextIndexStartTvalEndTval = []
+        c = 0
+        if clusterIndex - 1 >= 0:
+            c = clusterIndex - 1
+        else:
+            c = clusterIndex
+            
+        for i in range(0, nrBranchesList[c].value):
+            branchNodesNextIndexStartTvalEndTval.append([])
+        
+        rootNode.getAllStartNodes(
+            self, 
+            startNodesNextIndexStartTvalEndTval, 
+            branchNodesNextIndexStartTvalEndTval,
+            -1, 
+            branchesStartHeightGlobal, 
+            branchesEndHeightGlobal, 
+            branchesStartHeightCluster, 
+            branchesEndHeightCluster, 
+            parentClusterBoolListList)
         
         #for s in startNodesNextIndexStartTvalEndTval:
         #    drawDebugPoint(s.startNode.point)
@@ -746,8 +857,8 @@ branchVariance):
             #treeGen.report({'INFO'}, f"total length: {totalLength}")
             
             windingAngle = 0.0
-            for branchIndex in range(0, nrBranches):
-                branchPos = branchIndex * totalLength / nrBranches
+            for branchIndex in range(0, nrBranchesList[clusterIndex].value):
+                branchPos = branchIndex * totalLength / nrBranchesList[clusterIndex].value
                 
                 data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, False)
                 
@@ -856,7 +967,7 @@ branchVariance):
                     splitBranches(self, 
                                   rootNode, 
                                   0, 
-                                  int(nrSplitsPerBranch[clusterIndex].value * nrBranches), 
+                                  int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value), 
                                   
                                   branchSplitAngle[clusterIndex].value, 
                                   branchSplitPointAngle[clusterIndex].value, 
