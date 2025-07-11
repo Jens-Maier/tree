@@ -60,16 +60,24 @@ class evaluateButton(bpy.types.Operator):
         curve = nodeGroups.nodes[curve_node_mapping['TestOne']].mapping.curves[0]
         #curve.points[0].location = (0.0, 0.25)
         
+        curve_map = nodeGroups.nodes[curve_node_mapping['TestOne']].mapping
+        for element in curve_map.curves:
+            self.report({'INFO'}, f"element: {element}")
+        #for point in curve_map.points:
+        #    self.report({'INFO'}, f"point: ({point.location[0]}, {point.location[1]}")
+            for point in element.points:
+                self.report({'INFO'}, f"point: {point}")
+                self.report({'INFO'}, f"location: {point.location}")
         
-        self.report({'INFO'}, "initialising curve mapping")
-        curve_mapping = context.scene.my_curve_mapping
-        curve = curve_mapping.curves[0]
-        
-        self.report({'INFO'}, f"test: point 0 location: {curve.points[0].location}")
-        x = context.scene.evaluate
-        
-        curve_mapping.initialize()
-        self.report({'INFO'}, f"Curve at x = {x}, y = {y}")
+        #self.report({'INFO'}, "initialising curve mapping")
+        #curve_mapping = context.scene.my_curve_mapping
+        #curve = curve_mapping.curves[0]
+        #
+        #self.report({'INFO'}, f"test: point 0 location: {curve.points[0].location}")
+        #x = context.scene.evaluate
+        #
+        #curve_mapping.initialize()
+        #self.report({'INFO'}, f"Curve at x = {x}, y = {y}")
         
         
         #y = curve_node_mapping.evaluate(curve, x)
