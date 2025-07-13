@@ -71,7 +71,7 @@ class evaluateButton(bpy.types.Operator):
         return (t - 1.0) * (t - 1.0) * (t - 2.0) / 2.0
     
     def sampleSpline(self, p0, p1, p2, p3, t):
-        return self.f0(t + 1.0) * p0 + self.f1(t + 1.0) * p1 + self.f2(t + 1.0) * p2 + self.f3(t + 1) * p3
+        return self.f0(t + 1.0) * p0 + self.f1(t + 1.0) * p1 + self.f2(t + 1.0) * p2 + self.f3(t + 1.0) * p3
         
         #a0 = self.lerp(p0, p1, t - 1.0)
         #a1 = self.lerp(p1, p2, t - 1.0)
@@ -87,95 +87,253 @@ class evaluateButton(bpy.types.Operator):
         nodeGroups = bpy.data.node_groups.get('TestCurveData')
         curveElement = nodeGroups.nodes[curve_node_mapping['TestOne']].mapping.curves[3] 
         y = 0.0
-        nrSamplePoints = 10
-        for n in range(0, len(curveElement.points) - 1):
-            for i in range(0, nrSamplePoints):  
-                x = i / nrSamplePoints
-                x0 = 0.0
-                y0 = 0.0
-                x1 = 0.0
-                y1 = 0.0
-                x2 = 0.0
-                y2 = 0.0
-                x3 = 0.0
-                y3 = 0.0
+        nrSamplePoints = 32
+        self.report({'INFO'}, f"length: {len(curveElement.points)}")
+        
+        #bpy.ops.object.empty_add(type='SPHERE', location=(px,0.0,py))
+        #bpy.context.active_object.empty_display_size = 0.05
+        
+        for i in range(0, nrSamplePoints):  
+            self.report({'INFO'}, f"begin of sample point {i}")
+            x = i / nrSamplePoints
+            
+            for n in range(0, len(curveElement.points) - 1):
+                px = curveElement.points[n].location.x
+                py = curveElement.points[n].location.y
+                self.report({'INFO'}, f"begin of loop: n = {n}")
+                #bpy.ops.object.empty_add(type='SPHERE', location=(px,0.0,py))
+                #bpy.context.active_object.empty_display_size = 0.05
+                
+                # -> do all with bezier: p0, p1, p2, p3!
+                
+                #first segment
                 if n == 0:
                     if curveElement.points[1].handle_type == "VECTOR":
-                        #linear
-                        x0 = curveElement.points[n].location.x
-                        x1 = curveElement.points[n + 1].location.x
-                            
-                        y0 = curveElement.points[n].location.y
-                        y1 = curveElement.points[n + 1].location.y
-                        px = x0 + (x1 - x0) * (x) #/ (x1 - x0)
-                        py = y0 + (y1 - y0) * (x) #/ (x1 - x0)                            
-                        bpy.ops.object.empty_add(type='SPHERE', location=(px,0.0,py))
-                        bpy.context.active_object.empty_display_size = 0.01
-                        self.report({'INFO'}, "adding point, n = 0")
-                            
-                    else: # [1] auto / auto clamped
-                        if curveElement.points[0].handle_type == "AUTO" or curveElement.points[0].handle_type == "AUTO_CLAMPED":
-                            self.report({'INFO'}, "AUTO handle n = 0")
-                            
-                            # n0 reflectd (n == 0)
-                            point_n0 = curveElement.points[n].location - (curveElement.points[n + 1].location -  curveElement.points[n].location)
-                            x0 = point_n0.x
-                            y0 = point_n0.y
-                            x1 = curveElement.points[n].location.x # points[0]
-                            y1 = curveElement.points[n].location.y
-                            x2 = curveElement.points[n + 1].location.x
-                            y2 = curveElement.points[n + 1].location.y
-                                
-                            #self.report({'INFO'}, f"x0: {x0}, x1: {x1}, x2: {x2}") #OK
-                            #self.report({'INFO'}, f"y0: {y0}, y1: {y1}, y2: {y2}") #OK
-                            
-                        if curveElement.points[1].handle_type == "AUTO" or curveElement.points[1].handle_type == "AUTO_CLAMPED":
-                            if len(curveElement.points) == 2:
-                                # n3 reflected
-                                point_n3 = curveElement.points[1].location + (curveElement.points[1].location - curveElement.points[0].location)
-                                x3 = point_n3.x
-                                y3 = point_n3.y
-                                
-                        t = (x - x1) / (x2 - x1)
-                        y = self.sampleSpline(y0, y1, y2, y3, t)
-                       
-                                
-                else: #n > 0
-                    if curveElement.points[n].handle_type == "VECTOR" and curveElement.points[n + 1].handle_type == "VECTOR":
-                        #linear
-                        x0 = curveElement.points[n].location.x
-                        x1 = curveElement.points[n + 1].location.x
-                        
-                        y0 = curveElement.points[n].location.y
-                        y1 = curveElement.points[n + 1].location.y
-                        
-                        px = x0 + x * (x1 - x0)
-                        py = y0 + x * (y1 - y0)
-                        
-                        bpy.ops.object.empty_add(type='SPHERE', location=(px,0.0,py))
-                        bpy.context.active_object.empty_display_size = 0.01
-                        self.report({'INFO'}, f"adding point, n = {n}")
-                    
+                        self.report({'INFO'}, "n = 0, linear") 
+                        p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
+                        p1 = curveElement.points[0].location
+                        p2 = curveElement.points[1].location
+                        p3 = curveElement.points[1].location + (curveElement.points[1].location - curveElement.points[0].location)
+                        self.report({'INFO'}, f"n = 0, linear: p0: {p0}, p1: {p1}, p2: {p2}, p3: {p3}")
                     else:
-                        if curveElement.points[n].handle_type == "AUTO" or curveElement.points[n].handle_type == "AUTO_CLAMPED" and n < len(curveElement.points) - 2:
-                            self.report({'INFO'}, f"AUTO handle n = {n}")
-                            # n-1 ok
-                            # n ok
-                            x1 = curveElement.points[n].location.x
-                            y1 = curveElement.points[n].location.y
-                            x2 = curveElement.points[n + 1].location.x
-                            y2 = curveElement.points[n + 1].location.y
-                            x3 = curveElement.points[n + 2].location.x
-                            y3 = curveElement.points[n + 2].location.y
+                        if curveElement.points[0].handle_type == "AUTO":
+                            self.report({'INFO'}, "n = 0, n -> reflected")
+                            p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
+                            p1 = curveElement.points[0].location
+                        else:
+                            self.report({'INFO'}, "n = 0, slope") #s. Block...
+            
+                #last segment
+                if n == len(curveElement.points) - 2:
+                    if curveElement.points[len(curveElement.points) - 2].handle_type == "VECTOR":
+                        self.report({'INFO'}, "n = last, linear")
+                        p0 = curveElement.points[len(curveElement.points) - 2].location - (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                        p1 = curveElement.points[len(curveElement.points) - 2].location
+                        p2 = curveElement.points[len(curveElement.points) - 1].location
+                        p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 1].location)
+                        
+                        #p0 = curveElement.points[len(curveElement.points) - 2].location
+                        #p1 = curveElement.points[len(curveElement.points) - 2].location + (1.0 / 3.0) * (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                        #p2 = curveElement.points[len(curveElement.points) - 2].location + (2.0 / 3.0) * (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                        #p3 = curveElement.points[len(curveElement.points) - 1].location
+                    else:
+                        if curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO":
+                            self.report({'INFO'}, "n = last, n + 1-> reflected")
+                            p2 = curveElement.points[len(curveElement.points) - 1].location
+                            p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                        else:
+                            self.report({'INFO'}, "n = last, slope")
+            
+                #middle segments
+                if n > 0 and n < len(curveElement.points) - 2:
+                    if curveElement.points[n].handle_type == "AUTO" or curveElement.points[n].handle_type == "AUTO_CLAMPED":
+                        if curveElement.points[n + 1].handle_type == "VECTOR":
+                            self.report({'INFO'}, "n = middle, n + 1 -> reflected")
+                            p0 = curveElement.points[n - 1].location
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
+                        else:
+                            self.report({'INFO'}, "n = middle, (cubic (clamped)) -> spline!")
+                            p0 = curveElement.points[n - 1].location
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 2].location
+                        
+                    if curveElement.points[n].handle_type == "VECTOR":
+                        if curveElement.points[n + 1].handle_type == "VECTOR":
+                            self.report({'INFO'}, "linear")
+                            p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
                             
-                            px = self.sampleSpline(x0, x1, x2, x3, x)
-                            py = self.sampleSpline(y0, y1, y2, y3, x)
+                            #p0 = curveElement.points[n].location
+                            #p1 = curveElement.points[n].location + (1.0 / 3.0) * (curveElement.points[n + 1].location - curveElement.points[0].location)
+                            #p2 = curveElement.points[n].location + (2.0 / 3.0) * (curveElement.points[n + 1].location - curveElement.points[0].location)
+                            #p3 = curveElement.points[n + 1].location
                             
-                            bpy.ops.object.empty_add(type='SPHERE', location=(px,0.0,py))
-                            bpy.context.active_object.empty_display_size = 0.01
-                            self.report({'INFO'}, f"adding point, n = {n}")
+                        else:
+                            self.report({'INFO'}, "n = middle, n -> reflected")
+                            p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 2].location
+            
+                # test which segment the sample point falls into
+                if n >= 0:
+                    #if p1.x <= x and p2.x >= x: # x in [0, 1] for EACH sample point !!!
+                    self.report({'INFO'}, f"found segment n={n}: p0.x: {p0.x}, p1.x: {p1.x}, p2.x: {p2.x}, p3.x: {p3.x}, x: {x}")
+                    px = self.sampleSpline(p0.x, p1.x, p2.x, p3.x, x)
+                    py = self.sampleSpline(p0.y, p1.y, p2.y, p3.y, x)
+                        
+                    bpy.ops.object.empty_add(type='SPHERE', location=(px,0.0,py))
+                    bpy.context.active_object.empty_display_size = 0.01
+                    #else:
+                    #    self.report({'INFO'}, f"x = {x}: not in segment {n}")
+                        
+                    # x in [0, 1] for EACH sample point !!!
+                        
+                    break
+                
+            
         
-        return {'FINISHED'}  
+            #bpy.ops.object.empty_add(type='SPHERE', location=(px,0.0,py))
+            #bpy.context.active_object.empty_display_size = 0.05
+        
+        return {'FINISHED'} 
+    
+    
+        #for n in range(0, len(curveElement.points) - 1):
+        #    for i in range(0, nrSamplePoints):  
+        #        x = i / nrSamplePoints
+        #        x0 = 0.0
+        #        y0 = 0.0
+        #        x1 = 0.0
+        #        y1 = 0.0
+        #        x2 = 0.0
+        #        y2 = 0.0
+        #        x3 = 0.0
+        #        y3 = 0.0
+        #        if n == 0:
+        #            if x >= curveElement.points[n].location.x and x < curveElement.points[n + 1].location.x:
+        #                if curveElement.points[1].handle_type == "VECTOR":
+        #                    #linear
+        #                    x0 = curveElement.points[n].location.x
+        #                    x1 = curveElement.points[n + 1].location.x
+        #                        
+        #                    y0 = curveElement.points[n].location.y
+        #                    y1 = curveElement.points[n + 1].location.y
+        #                    px = x0 + (x1 - x0) * (x) #/ (x1 - x0)
+        #                    py = y0 + (y1 - y0) * (x) #/ (x1 - x0)
+        #                
+        #                    x2 = 1.0 # TODO
+        #                    y2 = 1.0 # TODO
+        #                    bpy.ops.object.empty_add(type='SPHERE', location=(px,0.0,py))
+        #                    bpy.context.active_object.empty_display_size = 0.01
+        #                    self.report({'INFO'}, "adding point, n = 0")
+        ##                    
+         #               else: # [1] auto / auto clamped
+        #                    if curveElement.points[0].handle_type == "AUTO" or curveElement.points[0].handle_type == "AUTO_CLAMPED":
+        #                        self.report({'INFO'}, "AUTO handle n = 0")
+        #                        
+        #                        # n0 reflectd (n == 0)
+        #                        point_n0 = curveElement.points[n].location - (curveElement.points[n + 1].location -  curveElement.points[n].location)
+        #                        x0 = point_n0.x
+        #                        y0 = point_n0.y
+        #                        x1 = curveElement.points[n].location.x # points[0]
+        #                        y1 = curveElement.points[n].location.y
+        #                        x2 = curveElement.points[n + 1].location.x
+        #                        y2 = curveElement.points[n + 1].location.y
+        #                            
+        #                        self.report({'INFO'}, f"x0: {x0}, x1: {x1}, x2: {x2}") #OK
+        #                        self.report({'INFO'}, f"y0: {y0}, y1: {y1}, y2: {y2}") #OK
+        #                        
+        #                    if curveElement.points[1].handle_type == "AUTO" or curveElement.points[1].handle_type == "AUTO_CLAMPED":
+        #                        if len(curveElement.points) == 2:
+        #                            x0 = point_n0.x
+        #                            y0 = point_n0.y
+        #                            x1 = curveElement.points[n].location.x # points[0]
+        #                            y1 = curveElement.points[n].location.y
+        #                            x2 = curveElement.points[n + 1].location.x
+        #                            y2 = curveElement.points[n + 1].location.y
+        #                            # n3 reflected
+        #                            point_n3 = curveElement.points[1].location + (curveElement.points[1].location - curveElement.points[0].location)
+        #                            x3 = point_n3.x
+        #                            y3 = point_n3.y
+        #                            
+        #                    self.report({'INFO'}, f"x1: {x1}, x2: {x2}")
+        #                    if x1 == x2:
+        #                        self.report({'ERROR'}, "x1 == x2 : divide by 0 (set to 1)")
+        #                    t = (x - x1) / (x2 - x1)
+         ##                   if t < 0 or t > 1:
+        #                        self.report({'ERROR'}, f"t = {t} out of bounds: ")
+        #                        self.report({'ERROR'}, f"x1: {x1}, x2: {x2}, x: {x}") # x ???
+        #                    px = self.sampleSpline(x0, x1, x2, x3, t)
+        #                    py = self.sampleSpline(y0, y1, y2, y3, t)
+        #                    bpy.ops.object.empty_add(type='SPHERE', location=(px, 0.0, py))
+        #                    bpy.context.active_object.empty_display_size = 0.01
+        #                        
+        #        else: #n > 0
+        #            if x >= curveElement.points[n].location.x and x < curveElement.points[n + 1].location.x:
+        #                if curveElement.points[n].handle_type == "VECTOR" and curveElement.points[n + 1].handle_type == "VECTOR":
+        #                    #linear
+        #                    x0 = curveElement.points[n].location.x
+        #                    x1 = curveElement.points[n + 1].location.x
+        #                    
+        #                    y0 = curveElement.points[n].location.y
+        #                    y1 = curveElement.points[n + 1].location.y
+        #                    
+        #                    px = x0 + x * (x1 - x0)
+        #                    py = y0 + x * (y1 - y0)
+        #                    #px = x0 + (x1 - x0) * (x) / (x1 - x0)
+        #                    #py = y0 + (y1 - y0) * (x) / (x1 - x0)
+        #                
+        #                    
+        #                    bpy.ops.object.empty_add(type='SPHERE', location=(px,0.0,py))
+        #                    bpy.context.active_object.empty_display_size = 0.01
+        #                    self.report({'INFO'}, f"adding point, n = {n}")
+        #                
+        #                else:
+        #                    if curveElement.points[n].handle_type == "VECTOR" and (curveElement.points[n + 1].handle_type == "AUTO" or curveElement.points[n + 1].handle_type == "AUTO_CLAMPED") and n < len(curveElement.points) - 2:
+        #                    
+        #                        # n0 = (index=n - 1) reflected
+        #                        point_n0 = curveElement.points[n - 1].location - (curveElement.points[n].location -  curveEle#ment.points[n - 1].location)
+        #                        x0 = point_n0.x
+        #                        y0 = point_n0.y
+        #                        x1 = curveElement.points[n].location.x
+        #                        y1 = curveElement.points[n].location.y
+        #                        x2 = curveElement.points[n + 1].location.x
+        #                        y2 = curveElement.points[n + 1].location.y
+        #                        x3 = curveElement.points[n + 2].location.x
+        #                        y3 = curveElement.points[n + 2].location.y #TODO...
+        #                        
+        #                        bpy.ops.object.empty_add(type='SPHERE', location=(px,0.0,py))
+        #                        bpy.context.active_object.empty_display_size = 0.01
+        #                        self.report({'INFO'}, f"adding point, n = {n}")
+        #                        
+        #                        
+        #                    if (curveElement.points[n].handle_type == "AUTO" or curveElement.points[n].handle_type == "AUTO_CL#AMPED") and n < (len(curveElement.points) - 2):
+        #                        self.report({'INFO'}, f"AUTO handle n = {n}")
+        #                        # n-1 ok
+        #                        # n ok
+        #                        self.report({'INFO'}, f"len(curveElement.points) - 2: {len(curveElement.points) - 2}, n: {n}")
+        #                        x1 = curveElement.points[n].location.x
+        #                        y1 = curveElement.points[n].location.y
+        #                        x2 = curveElement.points[n + 1].location.x
+        #                        y2 = curveElement.points[n + 1].location.y
+        #                        x3 = curveElement.points[n + 2].location.x
+        #                        y3 = curveElement.points[n + 2].location.y
+        #                        
+        #                        
+        #                        px = self.sampleSpline(x0, x1, x2, x3, x)
+        #                        py = self.sampleSpline(y0, y1, y2, y3, x)
+        #                        
+        #                        bpy.ops.object.empty_add(type='SPHERE', location=(px,0.0,py))
+        #                        bpy.context.active_object.empty_display_size = 0.01
+        #                        self.report({'INFO'}, f"adding point, n = {n}")
+        #
+        #return {'FINISHED'}  
     
     
     
