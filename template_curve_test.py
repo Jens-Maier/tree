@@ -9,9 +9,6 @@ class floatProp(bpy.types.PropertyGroup):
 def myNodeTree():
     if 'TestCurveData' not in bpy.data.node_groups:
         ng = bpy.data.node_groups.new('TestCurveData', 'ShaderNodeTree')
-    #bpy.data.node_groups['TestCurveData'].nodes[0].mapping.curves[3].points[0].location = 1.0
-    #bpy.data.node_groups['TestCurveData'].nodes[0].mapping.curves[3].points[1].location = 0.0
-    
     return bpy.data.node_groups['TestCurveData'].nodes
 
 curve_node_mapping = {}
@@ -20,8 +17,6 @@ def myCurveData(curve_name):
     if curve_name not in curve_node_mapping:
         cn = myNodeTree().new('ShaderNodeRGBCurve')
         curve_node_mapping[curve_name] = cn.name
-        
-    #return myNodeTree()[curve_node_mapping[curve_name]]
     nodeTree = myNodeTree()[curve_node_mapping[curve_name]]
     
     
@@ -43,7 +38,7 @@ class initButton(bpy.types.Operator):
         self.report({'INFO'}, f"nrCurves: {nrCurves}")
         curveElement = nodeGroups.nodes[curve_node_mapping['TestOne']].mapping.curves[3] 
         
-        #initialise values (funkt!)
+        #initialise values
         curveElement.points[0].location = (0.0, 1.0)
         curveElement.points[1].location = (1.0, 0.0)
         if len(curveElement.points) > 2:
@@ -74,25 +69,12 @@ class evaluateButton(bpy.types.Operator):
     def sampleSpline(self, p0, p1, p2, p3, t):
         return self.f0(t + 1.0) * p0 + self.f1(t + 1.0) * p1 + self.f2(t + 1.0) * p2 + self.f3(t + 1.0) * p3
         
-        #a0 = self.lerp(p0, p1, t - 1.0)
-        #a1 = self.lerp(p1, p2, t - 1.0)
-        #a2 = self.lerp(p2, p3, t - 1.0)
-        #b0 = self.lerp(a0, a1, t - 1.0)
-        #b1 = self.lerp(a1, a2, t - 1.0)
-        #return self.lerp(b0, b1, t - 1.0)
-            
-    
-    
-    
     def execute(self, context):
         nodeGroups = bpy.data.node_groups.get('TestCurveData')
         curveElement = nodeGroups.nodes[curve_node_mapping['TestOne']].mapping.curves[3] 
         y = 0.0
-        nrSamplePoints = 32
+        nrSamplePoints = 10
         self.report({'INFO'}, f"length: {len(curveElement.points)}")
-        
-        #bpy.ops.object.empty_add(type='SPHERE', location=(px,0.0,py))
-        #bpy.context.active_object.empty_display_size = 0.05
         
         for i in range(0, nrSamplePoints):  
             self.report({'INFO'}, f"begin of sample point {i}")
@@ -102,10 +84,6 @@ class evaluateButton(bpy.types.Operator):
                 px = curveElement.points[n].location.x
                 py = curveElement.points[n].location.y
                 self.report({'INFO'}, f"begin of loop: n = {n}")
-                #bpy.ops.object.empty_add(type='SPHERE', location=(px,0.0,py))
-                #bpy.context.active_object.empty_display_size = 0.05
-                
-                # -> do all with bezier: p0, p1, p2, p3!
                 
                 #first segment
                 if n == 0:
@@ -117,16 +95,30 @@ class evaluateButton(bpy.types.Operator):
                         p3 = curveElement.points[1].location + (curveElement.points[1].location - curveElement.points[0].location)
                         self.report({'INFO'}, f"n = 0, linear: p0: {p0}, p1: {p1}, p2: {p2}, p3: {p3}")
                     else:
-                        p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
+                        
                         p1 = curveElement.points[0].location
                         p2 = curveElement.points[1].location
                         if curveElement.points[0].handle_type == "AUTO" or curveElement.points[0].handle_type == "AUTO_CLAMPED":
-                            self.report({'INFO'}, "n = 0, n -> 2 * slope")
                             slope2 = 2.0 * (p2.y - p1.y) / (p2.x - p1.x)
-                            p3 = mathutils.Vector((p2.x + (p2.x - p1.x), p2.y + slope2 * (p2.x - p1.x)))
+                            self.report({'INFO'}, f"n = 0, n -> 2 * slope2: {slope2}")
+                            # p0 ???
+                            self.report({'INFO'}, f"in n = 0, AUTO: p1: {p1}, p2: {p2}") #OK
+                            p0 = mathutils.Vector((p1.x - (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y - slope2 * (p2.x - p1.x)))
+                            self.report({'INFO'}, f"in n = 0, AUTO: p0: {p0}") # error here
+                            
+                            #p3 = mathutils.Vector((p2.x + (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y + slope2 * (p2.x - p1.x
+                            if len(curveElement.points) > 2:                            
+                                p3 = curveElement.points[2].location
+                            else: # (linear when only 2 points)
+                                p3 = p2
+                            self.report({'INFO'}, f"in n = 0, AUTO: p3: {p3}") # error here
                         else:
-                            self.report({'INFO'}, "n = 0, reflected == 1 * slope") #s. Block...
-                            # [0] -> reflected (OK)
+                            self.report({'INFO'}, "n = 0, reflected == 1 * slope")
+                            slope1 = 1.0 * (p2.y - p1.y) / (p2.x - p1.x)
+                            self.report({'INFO'}, f"n = 0, n -> 2 * slope1: {slope1}")
+                            p0 = mathutils.Vector((p2.x + (p2.x - p1.x), p1.y + slope2 * (p2.x - p1.x)))
+                            # p0 ???
+                            # [0] -> reflected
                             if len(curveElement.points) > 2:
                                 # cubic
                                 p3 = curveElement.points[2].location
@@ -149,9 +141,16 @@ class evaluateButton(bpy.types.Operator):
                         p2 = curveElement.points[len(curveElement.points) - 1].location
                         p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
                         if curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO" or curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO_CLAMPED":
+                            p0 = curveElement.points[len(curveElement.points) - 3].location #???
                             self.report({'INFO'}, "n = last, n -> 2 * slope")
                             slope2 = 2.0 * (p3.y - p2.y) / (p3.x - p2.x)
-                            p0 = mathutils.Vector((p3.x + (p3.x - p2.x), p3.y + slope2 * (p3.x - p2.x)))
+                            if len(curveElement.points) > 2:
+                                p3 = mathutils.Vector((p2.x + (p2.x - p1.x) / (1.0 + abs(slope2)), p3.y + slope2 * (p2.x - p1.x)))
+                            else:
+                                p3 = p2 + (p2 - p1)
+                            
+                            # in first section: 
+                            # p0 = mathutils.Vector((p1.x - (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y - slope2 * (p2.x - p1.x)))
                         else:
                             self.report({'INFO'}, "n = last, slope")
                             if len(curveElement.points) > 2:
@@ -177,6 +176,8 @@ class evaluateButton(bpy.types.Operator):
                             p1 = curveElement.points[n].location
                             p2 = curveElement.points[n + 1].location
                             p3 = curveElement.points[n + 2].location
+                            
+                            
                         
                     if curveElement.points[n].handle_type == "VECTOR":
                         if curveElement.points[n + 1].handle_type == "VECTOR":
@@ -196,7 +197,16 @@ class evaluateButton(bpy.types.Operator):
                 self.report({'INFO'}, f"found segment n={n}: p0.x: {p0.x}, p1.x: {p1.x}, p2.x: {p2.x}, p3.x: {p3.x}, x: {x}")
                 px = self.sampleSpline(p0.x, p1.x, p2.x, p3.x, x)
                 py = self.sampleSpline(p0.y, p1.y, p2.y, p3.y, x)
-                        
+                
+                bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p0.x, 0.0, p0.y))
+                bpy.context.active_object.empty_display_size = 0.03
+                bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p1.x, 0.0, p1.y))
+                bpy.context.active_object.empty_display_size = 0.03
+                bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p2.x, 0.0, p2.y))
+                bpy.context.active_object.empty_display_size = 0.03
+                bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p3.x, 0.0, p3.y))
+                bpy.context.active_object.empty_display_size = 0.03
+                
                 bpy.ops.object.empty_add(type='SPHERE', location=(px,0.0,py))
                 bpy.context.active_object.empty_display_size = 0.01
                     
@@ -232,7 +242,6 @@ class EvalPanel(bpy.types.Panel):
         layout.operator("scene.init_button", text="Initialise")
 
 def register():
-    #bpy.utils.register_class(floatProp)
     bpy.utils.register_class(CurvyPanel)
     bpy.utils.register_class(EvalPanel)
     bpy.utils.register_class(evaluateButton)
