@@ -422,6 +422,31 @@ class generateTree(bpy.types.Operator):
             bpy.ops.object.select_all(action='DESELECT')
         return {'FINISHED'}
     
+def lerp(self, a, b, t):
+        return (a + (b - 1) * t)
+    
+def f0(self, t):
+    return (2.0 - t) * (2.0 - t) * (1.0 - t) / 2.0
+def f1(self, t):
+    return (2.0 - t) * (2.0 - t) * t + (t - 1.0) * (3.0 - t) * (2.0 - t) / 2.0
+def f2(self, t):
+    return (2.0 - t) * (t - 1.0) * t / 2.0 + (3.0 - t) * (t - 1.0) * (t - 1.0)
+def f3(self, t):
+    return (t - 1.0) * (t - 1.0) * (t - 2.0) / 2.0
+    
+def sampleSpline(self, p0, p1, p2, p3, t):
+    return self.f0(t + 1.0) * p0 + self.f1(t + 1.0) * p1 + self.f2(t + 1.0) * p2 + self.f3(t + 1.0) * p3
+    
+def sampleCurve(self, context):
+    #self.report({'INFO'}, f"access? {context.scene.treeHeight}") #funkt!
+    self.report({'INFO'}, "sampling curve! in def sampleCurve")
+    nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
+    curveElement = nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves[3] 
+    y = 0.0
+    nrSamplePoints = 10
+    self.report({'INFO'}, f"length: {len(curveElement.points)}") # FUNKT !!!
+    
+    
 def drawDebugPoint(pos, name="debugPoint"):
     bpy.ops.object.empty_add(type='SPHERE', location=pos)
     bpy.context.active_object.empty_display_size = 0.1
@@ -1873,6 +1898,12 @@ class treeSettings(bpy.types.Panel):
         row = layout.row()
         layout.prop(context.scene, "taper")
         row = layout.row()
+        layout.operator("scene.reset_curves", text="Reset taper curve")
+        row = layout.row()
+        layout.operator("scene.sample_curves", text="Sample taper curve")
+        row = layout.row()
+        layout.template_curve_mapping(taperCurveData('taperMapping'), "mapping")
+        row = layout.row()
         layout.prop(context.scene, "branchTipRadius")
         row = layout.row()
         layout.prop(context.scene, "ringSpacing")
@@ -1880,9 +1911,7 @@ class treeSettings(bpy.types.Panel):
         layout.prop(context.scene, "stemRingResolution")
         row = layout.row()
         layout.prop(context.scene, "resampleNr")
-        row = layout.row()
-        #layout.prop(context.scene, "treeShapeEnumProp")
-        #row = layout.row()
+        
         
 
 class noiseSettings(bpy.types.Panel):
@@ -1967,8 +1996,54 @@ class splitSettings(bpy.types.Panel):
         row = layout.row()
         layout.prop(context.scene, "stemSplitPointAngle")
         row = layout.row()
+
+
+def taperNodeTree():
+    if 'taperNodeGroup' not in bpy.data.node_groups:
+        taperCurveNodeGroup = bpy.data.node_groups.new('taperNodeGroup', 'ShaderNodeTree')
+    return bpy.data.node_groups['taperNodeGroup'].nodes
+
+taper_node_mapping = {}
+
+def taperCurveData(taperCurve):
+    if taperCurve not in taper_node_mapping:
+        TaperNodeTree = taperNodeTree().new('ShaderNodeRGBCurve')
+        taper_node_mapping[taperCurve] = TaperNodeTree.name
+    nodeTree = taperNodeTree()[taper_node_mapping[taperCurve]]
+    return nodeTree
+
+class resetCurvesButton(bpy.types.Operator):
+    bl_idname = "scene.reset_curves"
+    bl_label = "initialise"
+    
+    def execute(self, context):
+        nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
+        nrCurves = len(nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves)
+        self.report({'INFO'}, f"nrCurves: {nrCurves}")
+        curveElement = nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves[3]
         
-        
+        #initialise values
+        curveElement.points[0].location = (0.0, 1.0)
+        curveElement.points[1].location = (1.0, 0.0)
+        if len(curveElement.points) > 2:
+            for i in range(2, len(curveElement.points)):
+                curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
+                self.report({'INFO'}, "removing point")
+        nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.update()
+        return {'FINISHED'}
+
+class sampleCruvesButton(bpy.types.Operator):
+    bl_idname = "scene.sample_curves"
+    bl_label = "evaluate"
+    
+    
+    
+    def execute(self, context):
+        self.report({'INFO'}, "sampling curve in sampleCurvesButton -> execute")
+        sampleCurve(self, context)
+        return {'FINISHED'}
+    
+
 def draw_parent_cluster_bools(layout, scene, cluster_index):
     boolListItem = scene.parentClusterBoolListList[cluster_index].value
     
@@ -2284,6 +2359,8 @@ def register():
     bpy.utils.register_class(addBranchSplitLevel)
     bpy.utils.register_class(removeBranchSplitLevel)
     bpy.utils.register_class(generateTree)
+    bpy.utils.register_class(resetCurvesButton)
+    bpy.utils.register_class(sampleCruvesButton)
     
     
     #panels
