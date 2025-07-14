@@ -310,114 +310,115 @@ class generateTree(bpy.types.Operator):
                 #self.report({'ERROR'}, "ERROR: when treeGrowDir == (0,0,1)")
                 self.report({'INFO'}, "treeGrowDir == (0,0,1)")
             
-            addBranches(
-            self, 
-            self, 
+            if context.scene.branchClusters > 0:
+                addBranches(
+                self, 
+                self, 
+                
+                context,
+                nodes[0], 
+                context.scene.branchClusters,
+                
+                context.scene.nrBranchesList, 
+                context.scene.parentClusterBoolListList, 
+                context.scene.branchesStartHeightGlobalList, 
+                
+                context.scene.branchesEndHeightGlobalList, 
+                context.scene.branchesStartHeightClusterList, 
+                context.scene.branchesEndHeightClusterList, 
+                
+                context.scene.treeGrowDir, 
+                context.scene.treeHeight, 
+                context.scene.verticalAngleCrownStartList,
+                 
+                context.scene.verticalAngleCrownEndList, 
+                context.scene.branchAngleModeList, 
+                context.scene.branchSplitRotateAngleList, 
+                
+                context.scene.rotateAngleList,
+                context.scene.rotateAngleRangeList, 
+                context.scene.stemRingResolution, 
+                
+                context.scene.taper, 
+                context.scene.taperFactorList, 
+                context.scene.relBranchLengthList, 
+                
+                context.scene.branchShapeList, 
+                context.scene.nrSplitsPerBranchList, 
+                context.scene.splitsPerBranchVariationList,
+                
+                context.scene.branchSplitAngleList, 
+                context.scene.branchSplitPointAngleList, 
+                context.scene.branchSplitHeightInLevelList_0, 
+                
+                context.scene.branchSplitHeightVariationList,
+                context.scene.branchSplitModeList,
+                context.scene.branchSplitRotateAngleList,
+                
+                context.scene.branchCurvatureOffsetStrengthList[0],
+                context.scene.branchVarianceList)
             
-            context,
-            nodes[0], 
-            context.scene.branchClusters,
-            
-            context.scene.nrBranchesList, 
-            context.scene.parentClusterBoolListList, 
-            context.scene.branchesStartHeightGlobalList, 
-            
-            context.scene.branchesEndHeightGlobalList, 
-            context.scene.branchesStartHeightClusterList, 
-            context.scene.branchesEndHeightClusterList, 
-            
-            context.scene.treeGrowDir, 
-            context.scene.treeHeight, 
-            context.scene.verticalAngleCrownStartList,
-             
-            context.scene.verticalAngleCrownEndList, 
-            context.scene.branchAngleModeList, 
-            context.scene.branchSplitRotateAngleList, 
-            
-            context.scene.rotateAngleList,
-            context.scene.rotateAngleRangeList, 
-            context.scene.stemRingResolution, 
-            
-            context.scene.taper, 
-            context.scene.taperFactorList, 
-            context.scene.relBranchLengthList, 
-            
-            context.scene.branchShapeList, 
-            context.scene.nrSplitsPerBranchList, 
-            context.scene.splitsPerBranchVariationList,
-            
-            context.scene.branchSplitAngleList, 
-            context.scene.branchSplitPointAngleList, 
-            context.scene.branchSplitHeightInLevelList_0, 
-            
-            context.scene.branchSplitHeightVariationList,
-            context.scene.branchSplitModeList,
-            context.scene.branchSplitRotateAngleList,
-            
-            context.scene.branchCurvatureOffsetStrengthList[0],
-            context.scene.branchVarianceList)
-            
-            #def addBranches(
-            #    self, 
-            #    treeGen, 
-            
-            #    context, 
-            #    rootNode, 
-            #    branchClusters,
-            
-            #    nrBranchesList, 
-            #    parentClusterBoolListList, 
-            #    branchesStartHeightGlobalList, 
-            
-            #    branchesEndHeightGlobalList, 
-            #    branchesStartHeightClusterList, 
-            #    branchesEndHeightClusterList, 
-            
-            #    treeGrowDir, 
-            #    treeHeight, 
-            #    verticalAngleCrownStart, 
-            
-            #    verticalAngleCrownEnd, 
-            #    branchAngleModeList, 
-            #    branchSplitRotateAngleList, 
-            
-            #    rotateAngleList,
-            #    rotateAngleRangeList, 
-            #    ringResolution, 
-            
-            #    taper, 
-            #    taperFactorList, 
-            #    relBranchLengthList,
-            
-            #    branchShapeList, 
-            #    nrSplitsPerBranch, 
-            #    splitsPerBranchVariation,
-            
-            #    branchSplitAngle, 
-            #    branchSplitPointAngle, 
-            #    branchSplitHeightInLevel, #==branchSplitHeightInLevelList_0
-            
-            #    branchSplitHeightVariation,
-            #    branchSplitMode,
-            #    branchSplitRotateAngle,
-            
-            #    branchCurvOffsetStrength,
-            #    branchVariance):
+                #def addBranches(
+                #    self, 
+                #    treeGen, 
+                
+                #    context, 
+                #    rootNode, 
+                #    branchClusters,
+                
+                #    nrBranchesList, 
+                #    parentClusterBoolListList, 
+                #    branchesStartHeightGlobalList, 
+                
+                #    branchesEndHeightGlobalList, 
+                #    branchesStartHeightClusterList, 
+                #    branchesEndHeightClusterList, 
+                
+                #    treeGrowDir, 
+                #    treeHeight, 
+                #    verticalAngleCrownStart, 
+                
+                #    verticalAngleCrownEnd, 
+                #    branchAngleModeList, 
+                #    branchSplitRotateAngleList, 
+                
+                #    rotateAngleList,
+                #    rotateAngleRangeList, 
+                #    ringResolution, 
+                
+                #    taper, 
+                #    taperFactorList, 
+                #    relBranchLengthList,
+                
+                #    branchShapeList, 
+                #    nrSplitsPerBranch, 
+                #    splitsPerBranchVariation,
+                
+                #    branchSplitAngle, 
+                #    branchSplitPointAngle, 
+                #    branchSplitHeightInLevel, #==branchSplitHeightInLevelList_0
+                
+                #    branchSplitHeightVariation,
+                #    branchSplitMode,
+                #    branchSplitRotateAngle,
+                
+                #    branchCurvOffsetStrength,
+                #    branchVariance):
             
             
             
-            #drawDebugPoint(nodes[0].point)
-            #drawDebugPoint(nodes[1].point)
-            #drawDebugPoint(nodes[0].next[0].point)
-            #drawDebugPoint(nodes[0].next[0].next[0].point)
-            #drawDebugPoint(nodes[0].next[0].next[1].point)
-            #drawDebugPoint(nodes[2].point)
-            #drawDebugPoint(nodes[3].point)
-            
+                #drawDebugPoint(nodes[0].point)
+                #drawDebugPoint(nodes[1].point)
+                #drawDebugPoint(nodes[0].next[0].point)
+                #drawDebugPoint(nodes[0].next[0].next[0].point)
+                #drawDebugPoint(nodes[0].next[0].next[1].point)
+                #drawDebugPoint(nodes[2].point)
+                #drawDebugPoint(nodes[3].point)
+                
             calculateRadius(self, nodes[0], 100.0, context.scene.branchTipRadius)
             segments = []
             nodes[0].getAllSegments(self, segments, False)
-            generateVerticesAndTriangles(self, segments, dir, context.scene.taper, radius, context.scene.ringSpacing, context.scene.stemRingResolution)
+            generateVerticesAndTriangles(self, self, context, segments, dir, context.scene.taper, radius, context.scene.ringSpacing, context.scene.stemRingResolution)
             
             bpy.ops.object.select_all(action='DESELECT')
         return {'FINISHED'}
@@ -425,26 +426,150 @@ class generateTree(bpy.types.Operator):
 def lerp(self, a, b, t):
         return (a + (b - 1) * t)
     
-def f0(self, t):
+def f0(t):
     return (2.0 - t) * (2.0 - t) * (1.0 - t) / 2.0
-def f1(self, t):
+def f1(t):
     return (2.0 - t) * (2.0 - t) * t + (t - 1.0) * (3.0 - t) * (2.0 - t) / 2.0
-def f2(self, t):
+def f2(t):
     return (2.0 - t) * (t - 1.0) * t / 2.0 + (3.0 - t) * (t - 1.0) * (t - 1.0)
-def f3(self, t):
+def f3(t):
     return (t - 1.0) * (t - 1.0) * (t - 2.0) / 2.0
     
-def sampleSpline(self, p0, p1, p2, p3, t):
-    return self.f0(t + 1.0) * p0 + self.f1(t + 1.0) * p1 + self.f2(t + 1.0) * p2 + self.f3(t + 1.0) * p3
+def sampleSpline(p0, p1, p2, p3, t):
+    return f0(t + 1.0) * p0 + f1(t + 1.0) * p1 + f2(t + 1.0) * p2 + f3(t + 1.0) * p3
     
-def sampleCurve(self, context):
+def sampleCurve(self, x):
     #self.report({'INFO'}, f"access? {context.scene.treeHeight}") #funkt!
     self.report({'INFO'}, "sampling curve! in def sampleCurve")
     nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
     curveElement = nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves[3] 
     y = 0.0
-    nrSamplePoints = 10
-    self.report({'INFO'}, f"length: {len(curveElement.points)}") # FUNKT !!!
+    self.report({'INFO'}, f"length: {len(curveElement.points)}, x: {x}")
+    
+    for n in range(0, len(curveElement.points) - 1):
+                px = curveElement.points[n].location.x
+                py = curveElement.points[n].location.y
+                self.report({'INFO'}, f"begin of loop: n = {n}")
+                
+                #first segment
+                if n == 0:
+                    if curveElement.points[1].handle_type == "VECTOR":
+                        self.report({'INFO'}, "n = 0, linear") 
+                        p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
+                        p1 = curveElement.points[0].location
+                        p2 = curveElement.points[1].location
+                        p3 = curveElement.points[1].location + (curveElement.points[1].location - curveElement.points[0].location)
+                        self.report({'INFO'}, f"n = 0, linear: p0: {p0}, p1: {p1}, p2: {p2}, p3: {p3}")
+                    else:
+                        
+                        p1 = curveElement.points[0].location
+                        p2 = curveElement.points[1].location
+                        if curveElement.points[0].handle_type == "AUTO" or curveElement.points[0].handle_type == "AUTO_CLAMPED":
+                            if len(curveElement.points) > 2:
+                                slope2 = 2.0 * (p2.y - p1.y) / (p2.x - p1.x)
+                                self.report({'INFO'}, f"n = 0, n -> 2 * slope2: {slope2}")
+                                self.report({'INFO'}, f"in n = 0, AUTO: p1: {p1}, p2: {p2}")
+                                p0 = mathutils.Vector((p1.x - (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y - slope2 * (p2.x - p1.x)))
+                                self.report({'INFO'}, f"in n = 0, AUTO: p0: {p0}")
+                            else: # only 2 points -> linear
+                                p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
+                                self.report({'INFO'}, f"in n = 0: only 2 points -> linear, p0.x: {p0.x}, p0.y: {p0.y}")
+                                
+                            if len(curveElement.points) > 2:                            
+                                p3 = curveElement.points[2].location
+                            else: # linear when only 2 points
+                                p3 = p2 + (p2 - p1)
+                                p0 = p1 - (p2 - p1)
+                                
+                                self.report({'INFO'}, f"in n = 0, AUTO: p0: {p0}")
+                                self.report({'INFO'}, f"in n = 0, AUTO: p3: {p3}")
+                        else:
+                            self.report({'INFO'}, "n = 0, reflected == 1 * slope")
+                            slope1 = 1.0 * (p2.y - p1.y) / (p2.x - p1.x)
+                            self.report({'INFO'}, f"n = 0, n -> 2 * slope1: {slope1}")
+                            p0 = mathutils.Vector((p2.x + (p2.x - p1.x), p1.y + slope2 * (p2.x - p1.x)))
+                            # [0] -> reflected
+                            if len(curveElement.points) > 2:
+                                # cubic
+                                p3 = curveElement.points[2].location
+                            else:
+                                # 2 points: 0: auto, 1: auto -> linear (== 1 * slope)
+                                # linear
+                                p3 = p2 + (p2 - p1)
+                                self.report("n = first, p0: {p0}, p1: {p1}, p2: {p2}, p3: {p3}")
+            
+                #last segment
+                if n == len(curveElement.points) - 2:
+                    if curveElement.points[len(curveElement.points) - 2].handle_type == "VECTOR":
+                        self.report({'INFO'}, "n = last, linear")
+                        p0 = curveElement.points[len(curveElement.points) - 2].location - (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                        p1 = curveElement.points[len(curveElement.points) - 2].location
+                        p2 = curveElement.points[len(curveElement.points) - 1].location
+                        
+                        p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                        
+                    else:
+                        p1 = curveElement.points[len(curveElement.points) - 2].location
+                        p2 = curveElement.points[len(curveElement.points) - 1].location
+                        p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                        self.report({'INFO'}, "n = last p1 p2 p3")
+                        if curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO" or curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO_CLAMPED":
+                            p0 = curveElement.points[len(curveElement.points) - 3].location
+                            self.report({'INFO'}, "n = last, n -> 2 * slope")
+                            slope2 = 2.0 * (p3.y - p2.y) / (p3.x - p2.x)
+                            if len(curveElement.points) > 2:
+                                p3 = mathutils.Vector((p2.x + (p2.x - p1.x) / (1.0 + abs(slope2)), p3.y + slope2 * (p2.x - p1.x)))
+                                self.report({'INFO'}, "n = last, p3: slope")   
+                            else:
+                                p3 = p2 + (p2 - p1)
+                                self.report({'INFO'}, f"n = last, p3: mirror, p3.x: {p3.x}, p3.y: {p3.y}")   
+                                self.report({'INFO'}, f"n = last, p3: mirror, p3.x: {p3.x}, p3.y: {p3.y}")   
+                        else:
+                            self.report({'INFO'}, "n = last, slope")
+                            if len(curveElement.points) > 2:
+                                # cubic
+                                p0 = curveElement.points[0].location
+                            else:
+                                # 2 points: 0: auto, 1: auto -> linear (== 1 * slope)
+                                # linear
+                                p0 = p1 - (p2 - p1)
+            
+                #middle segments
+                if n > 0 and n < len(curveElement.points) - 2:
+                    if curveElement.points[n].handle_type == "AUTO" or curveElement.points[n].handle_type == "AUTO_CLAMPED":
+                        if curveElement.points[n + 1].handle_type == "VECTOR":
+                            self.report({'INFO'}, "n = middle, n + 1 -> reflected")
+                            p0 = curveElement.points[n - 1].location
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
+                        else:
+                            self.report({'INFO'}, "n = middle, (cubic (clamped)) -> spline!")
+                            p0 = curveElement.points[n - 1].location
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 2].location
+                            
+                    if curveElement.points[n].handle_type == "VECTOR":
+                        if curveElement.points[n + 1].handle_type == "VECTOR":
+                            self.report({'INFO'}, "linear")
+                            p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
+                        else:
+                            self.report({'INFO'}, "n = middle, n -> reflected")
+                            p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 2].location
+            
+                self.report({'INFO'}, f"found segment n={n}: p0.x: {p0.x}, p1.x: {p1.x}, p2.x: {p2.x}, p3.x: {p3.x}, x: {x}")
+                px = sampleSpline(p0.x, p1.x, p2.x, p3.x, x)
+                py = sampleSpline(p0.y, p1.y, p2.y, p3.y, x)
+                
+                self.report({'INFO'}, f"sample point: x: {x}, y: {y}, px: {px}, py: {py}")
+    return py
     
     
 def drawDebugPoint(pos, name="debugPoint"):
@@ -1381,7 +1506,7 @@ def lerp(a, b, t):
     
     
     
-def generateVerticesAndTriangles(self, segments, dir, taper, radius, ringSpacing, stemRingRes):
+def generateVerticesAndTriangles(self, treeGen, context, segments, dir, taper, radius, ringSpacing, stemRingRes):
     vertices = []
     faces = []
     
@@ -1402,7 +1527,7 @@ def generateVerticesAndTriangles(self, segments, dir, taper, radius, ringSpacing
                 startSection = 1
                 #offset -= stemRingRes + 1
             else:
-                offset = len(vertices) # ERROR HERE: double splits... !!!
+                offset = len(vertices)
                 #self.report({'INFO'}, f"in generateVerticesAndTriangles: connectedToPrevious == False, offset: {offset}")
                 
             # double split
@@ -1427,10 +1552,16 @@ def generateVerticesAndTriangles(self, segments, dir, taper, radius, ringSpacing
                     angle = (2 * math.pi * i) / segments[s].ringResolution
                     x = math.cos(angle)
                     y = math.sin(angle)
-                    v = pos + dirA * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.cos(angle) + dirB * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.sin(angle)
+                    
+                    radius = sampleCurve(treeGen, section / (segmentLength / branchRingSpacing))
+                    treeGen.report({'INFO'}, f"radius: {radius}")
+                    
+                    v = pos + dirA * radius * math.cos(angle) + dirB * radius * math.sin(angle)
+                    
+                    
+                    #v = pos + dirA * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.cos(angle) + dirB * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.sin(angle)
+                    
                     #self.report({'INFO'}, f"in generateVerticesAndTriangles: vertex.append:  {v}")
-                    #if v.x < -10.0:
-                    #    self.report({'ERROR'}, f"ERROR: vertex: {v}")
                     vertices.append(v)
                     counter += 1
     
@@ -2040,7 +2171,8 @@ class sampleCruvesButton(bpy.types.Operator):
     
     def execute(self, context):
         self.report({'INFO'}, "sampling curve in sampleCurvesButton -> execute")
-        sampleCurve(self, context)
+        x = 0.75
+        sampleCurve(self, x)
         return {'FINISHED'}
     
 
