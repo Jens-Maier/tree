@@ -66,10 +66,11 @@ class node():
         for n, nextNode in enumerate(self.next):
             if len(self.next) > 1:
                 #treeGen.report({'INFO'}, f"in getAllSegments(): len(tangent): {len(self.tangent)}, len(next): {len(self.next)}, n: {n}")
-                
+                treeGen.report({'INFO'}, f"in getAllSegments(): self. connectedToPrevious: {connectedToPrev} -> set to False in segment!")
                 segments.append(segment(self.point, nextNode.point, self.tangent[n + 1], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.ringResolution, False))
             else:
                 #treeGen.report({'INFO'}, f"in getAllSegments(): len(tangent): {len(self.tangent)}, len(next): {len(self.next)}, n: {n}")
+                treeGen.report({'INFO'}, f"in getAllSegments(): self. connectedToPrevious: {connectedToPrev}")
                 segments.append(segment(self.point, nextNode.point, self.tangent[0], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.ringResolution, connectedToPrev))
         
             nextNode.getAllSegments(treeGen, segments, True)
@@ -206,6 +207,55 @@ class node():
             return self.next[0].lengthToTip() + (self.next[0].point - self.point).length
         else:
             return 0.0
+        
+    def resampleSpline(self, treeGen, resampleNr):
+        treeGen.report({'INFO'}, f"in resampleSpline: (executed AFTER splitRecursive()!) resampleNr: {resampleNr}")
+        #treeGen.report({'INFO'}, f"in resampleSpline: point: {self.point}")
+        #treeGen.report({'INFO'}, f"in resampleSpline: next[0].point: {self.next[0].point}")
+        
+        
+        if resampleNr > 1:
+            treeGen.report({'INFO'}, f"in resampleSpline: len(self.next): {len(self.next)}")
+            for i in range(0, len(self.next)):
+                activeNode = self
+                startNode = self
+                nextNode = self.next[i]
+                
+                for n in range(1, resampleNr):
+                    if len(self.next) > 1:
+                        samplePoint = sampleSplineT(startNode.point, nextNode.point, startNode.tangent[i + 1], nextNode.tangent[0], n / resampleNr)
+                        sampleTangent = sampleSplineTangentT(startNode.point, nextNode.point, startNode.tangent[i + 1], nextNode.tangent[0], n / resampleNr)
+                    else:
+                        samplePoint = sampleSplineT(startNode.point, nextNode.point, startNode.tangent[0], nextNode.tangent[0], n / resampleNr)
+                        sampleTangent = sampleSplineTangentT(startNode.point, nextNode.point, startNode.tangent[0], nextNode.tangent[0], n / resampleNr)
+                        
+                    sampleCotangent = lerp(startNode.cotangent, nextNode.cotangent, n / resampleNr)
+                    sampleRadius = lerp(startNode.radius, nextNode.radius, n / resampleNr)
+                    sampleTvalGlobal = lerp(startNode.tValGlobal, nextNode.tValGlobal, n / resampleNr)
+                    sampleTvalBranch = lerp(startNode.tValBranch, nextNode.tValBranch, n / resampleNr)
+                    drawDebugPoint(samplePoint)
+                    
+                    newNode = node(samplePoint, sampleRadius, sampleCotangent, self.clusterIndex, self.ringResolution, self.taper, sampleTvalGlobal, sampleTvalBranch)
+                    newNode.tangent.append(sampleTangent)
+                    if n == 1:
+                        activeNode.next[i] = newNode
+                    else:
+                        activeNode.next.append(newNode)
+                    activeNode = newNode
+                    
+                activeNode.next.append(nextNode)
+                drawDebugPoint(nextNode.point) #OK
+                    
+                #treeGen.report({'INFO'}, f"in resampleSpline: len(Next.next): {len(Next.next)}")
+                
+                if len(nextNode.next) > 0:
+                    nextNode.resampleSpline(treeGen, resampleNr)
+                    
+                    
+                #class node():
+                #   def __init__(self, Point, Radius, Cotangent, ClusterIndex, RingResolution, Taper, TvalGlobal, TvalBranch):
+                    
+
             
             
         
@@ -305,7 +355,10 @@ class generateTree(bpy.types.Operator):
             #def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, splitHeightInLevel, stemSplitMode, stemSplitRotateAngle, root_node, stemRingResolution, curvOffsetStrength, self):
             if context.scene.nrSplits > 0:
                 splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, context.scene.stemSplitHeightInLevelList, context.scene.splitHeightVariation, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution, context.scene.curvOffsetStrength, self, nodes[0])
-                
+            
+            
+            nodes[0].resampleSpline(self, context.scene.resampleNr)
+            
             if context.scene.treeGrowDir == Vector((0.0,0.0,1.0)):
                 #self.report({'ERROR'}, "ERROR: when treeGrowDir == (0,0,1)")
                 self.report({'INFO'}, "treeGrowDir == (0,0,1)")
@@ -588,7 +641,7 @@ def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
                 s += (n.point - activeNode.point).length * activeNode.taper * activeNode.taper
                 if s > max:
                     max = s
-            #self.report({'INFO'}, f"s: {s}, max: {max}")
+            #self.report({'INFO'}, f"s: {s}, max: {max}, activeNode.taper: {activeNode.taper}") # ERROR HERE: taper = 0 !!!
             sum = max
         
         if len(activeNode.branches) > 0:
@@ -598,11 +651,14 @@ def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
                     
         if sum < maxRadius:
             activeNode.radius = sum
+            #self.report({'INFO'}, f"activeNode.radius = sum = {sum}")
         else:
             activeNode.radius = maxRadius
+            #self.report({'INFO'}, f"activeNode.radius = maxRadius = {maxRadius}")
         return sum
     else:
         activeNode.radius = branchTipRadius
+        #self.report({'INFO'}, f"activeNode.radius = branchTipRadius = {branchTipRadius}")
         return branchTipRadius
     
 
@@ -805,7 +861,7 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
     newTvalBranch = lerp(splitAfterNode.tValBranch, splitAfterNode.next[nextIndex].tValBranch, splitHeight);
     
     newNode = node(newPoint, newRadius, newCotangent, splitAfterNode.clusterIndex, ring_res, taper, newTvalGlobal, newTvalBranch)
-    drawDebugPoint(newPoint)
+    #drawDebugPoint(newPoint)
     #self.report({'INFO'}, f"split: newNode.taper: {newNode.taper}")
     newNode.tangent.append(newTangent)
     # Insert new node in the chain
@@ -837,7 +893,7 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, level, sMode, rot
         right = splitNode.tangent[0].cross(Vector((0.0, 0.0, 1.0)))
         #drawDebugPoint(splitNode.point + right / 2.0)
         splitAxis = right.cross(splitNode.tangent[0]).normalized()
-        drawDebugPoint(splitNode.point + splitAxis / 2.0)
+        #drawDebugPoint(splitNode.point + splitAxis / 2.0)
 
     elif sMode == "ROTATE_ANGLE":
         splitAxis = splitNode.cotangent.normalized()
@@ -1523,20 +1579,18 @@ def generateVerticesAndTriangles(self, treeGen, context, segments, dir, taper, r
                 sections = 1
             branchRingSpacing = segmentLength / sections
             
-            if segments[s].connectedToPrevious == True:
-                startSection = 1
-                #offset -= stemRingRes + 1
-            else:
-                offset = len(vertices)
-                #self.report({'INFO'}, f"in generateVerticesAndTriangles: connectedToPrevious == False, offset: {offset}")
+            if s > 0:
+                if segments[s].connectedToPrevious == True and segments[s - 1].connectedToPrevious == False: # only on first segment 
+                    #-> later connected segments: dont subtract stemRingRes again!
+                    startSection = 1
+                    offset -= stemRingRes
+                    self.report({'INFO'}, f"in generateVerticesAndTriangles: connectedToPrevious == True, offset: {offset}") 
+                #else: #???
+                if segments[s].connectedToPrevious == False:
+                    startSection = 0
+                    offset = len(vertices)
+                    self.report({'INFO'}, f"in generateVerticesAndTriangles: connectedToPrevious == False, offset: {offset}")
                 
-            # double split
-            #  ist: 0    8   20   32
-            # soll: 0    8   20   32
-            
-            #  ist: 0   16   24   40   56
-            # soll: 0   16   24   40   56
-            #       *    *         *         <--- double split not sequentially!
                 
             controlPt1 = segments[s].start + segments[s].startTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0
             controlPt2 = segments[s].end - segments[s].endTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0
@@ -1553,27 +1607,31 @@ def generateVerticesAndTriangles(self, treeGen, context, segments, dir, taper, r
                     x = math.cos(angle)
                     y = math.sin(angle)
                     
-                    radius = sampleCurve(treeGen, section / (segmentLength / branchRingSpacing))
-                    treeGen.report({'INFO'}, f"radius: {radius}")
+                    # radius = sampleCurve(treeGen, section / (segmentLength / branchRingSpacing)) #TODO
+                    # treeGen.report({'INFO'}, f"radius: {radius}")
+                    # v = pos + dirA * radius * math.cos(angle) + dirB * radius * math.sin(angle)
                     
-                    v = pos + dirA * radius * math.cos(angle) + dirB * radius * math.sin(angle)
                     
+                    v = pos + dirA * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.cos(angle) + dirB * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.sin(angle)
                     
-                    #v = pos + dirA * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.cos(angle) + dirB * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.sin(angle)
-                    
-                    #self.report({'INFO'}, f"in generateVerticesAndTriangles: vertex.append:  {v}")
                     vertices.append(v)
+                    self.report({'INFO'}, f"in generateVerticesAndTriangles: len(vertices):  {len(vertices)}")
+                    
                     counter += 1
-    
+            self.report({'INFO'}, f"in generateVerticesAndTriangles: sections: {sections}")
             for c in range(0, sections): 
+                self.report({'INFO'}, f"section {c}")
                 for j in range(0, segments[s].ringResolution):
                     faces.append((offset + c * (segments[s].ringResolution) + j,
                         offset + c * (segments[s].ringResolution) + (j + 1) % (segments[s].ringResolution), 
                         offset + c * (segments[s].ringResolution) + segments[s].ringResolution  + (j + 1) % (segments[s].ringResolution), 
                         offset + c * (segments[s].ringResolution) + segments[s].ringResolution  + j))
-        
+                    self.report({'INFO'}, f"quad start index: {offset + c * (segments[s].ringResolution) + j}")
+            
             offset += counter
             counter = 0
+        
+            
     
     meshData = bpy.data.meshes.new("treeMesh")
     meshData.from_pydata(vertices, [], faces)
