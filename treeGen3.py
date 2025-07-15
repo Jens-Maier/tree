@@ -208,19 +208,22 @@ class node():
         else:
             return 0.0
         
-    def resampleSpline(self, treeGen, resampleNr):
-        treeGen.report({'INFO'}, f"in resampleSpline: (executed AFTER splitRecursive()!) resampleNr: {resampleNr}")
+    def resampleSpline(self, treeGen, resampleDistance):
         #treeGen.report({'INFO'}, f"in resampleSpline: point: {self.point}")
         #treeGen.report({'INFO'}, f"in resampleSpline: next[0].point: {self.next[0].point}")
         
+        treeGen.report({'INFO'}, f"in resampleSpline: resampleDistance: {resampleDistance}")
         
-        if resampleNr > 1:
-            treeGen.report({'INFO'}, f"in resampleSpline: len(self.next): {len(self.next)}")
-            for i in range(0, len(self.next)):
-                activeNode = self
-                startNode = self
-                nextNode = self.next[i]
-                
+        
+        treeGen.report({'INFO'}, f"in resampleSpline: len(self.next): {len(self.next)}")
+        for i in range(0, len(self.next)):
+            activeNode = self
+            startNode = self
+            nextNode = self.next[i]
+            
+            resampleNr = round((nextNode.point - startNode.point).length / resampleDistance)
+            treeGen.report({'INFO'}, f"resampleNr: {resampleNr}")
+            if resampleNr > 1:
                 for n in range(1, resampleNr):
                     if len(self.next) > 1:
                         samplePoint = sampleSplineT(startNode.point, nextNode.point, startNode.tangent[i + 1], nextNode.tangent[0], n / resampleNr)
@@ -248,15 +251,10 @@ class node():
                     
                 #treeGen.report({'INFO'}, f"in resampleSpline: len(Next.next): {len(Next.next)}")
                 
-                if len(nextNode.next) > 0:
-                    nextNode.resampleSpline(treeGen, resampleNr)
-                    
-                    
-                #class node():
-                #   def __init__(self, Point, Radius, Cotangent, ClusterIndex, RingResolution, Taper, TvalGlobal, TvalBranch):
-                    
-
-            
+            if len(nextNode.next) > 0:
+                nextNode.resampleSpline(treeGen, resampleDistance)
+                        
+       
             
         
         
@@ -357,7 +355,7 @@ class generateTree(bpy.types.Operator):
                 splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, context.scene.stemSplitHeightInLevelList, context.scene.splitHeightVariation, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution, context.scene.curvOffsetStrength, self, nodes[0])
             
             
-            nodes[0].resampleSpline(self, context.scene.resampleNr)
+            nodes[0].resampleSpline(self, context.scene.resampleDistance)
             
             if context.scene.treeGrowDir == Vector((0.0,0.0,1.0)):
                 #self.report({'ERROR'}, "ERROR: when treeGrowDir == (0,0,1)")
@@ -2101,7 +2099,7 @@ class treeSettings(bpy.types.Panel):
         row = layout.row()
         layout.prop(context.scene, "stemRingResolution")
         row = layout.row()
-        layout.prop(context.scene, "resampleNr")
+        layout.prop(context.scene, "resampleDistance")
         
         
 
@@ -2756,11 +2754,11 @@ def register():
         default = 16,
         min = 3
     )
-    bpy.types.Scene.resampleNr = bpy.props.IntProperty(
-        name = "Resample Nr",
-        description = "Number of resamples",
-        default = 1,
-        min = 1
+    bpy.types.Scene.resampleDistance = bpy.props.FloatProperty(
+        name = "Resample Distance", 
+        description = "Distance between nodes",
+        default = 10.0,
+        min = 0.0
     )
     bpy.types.Scene.testRecursionStop = bpy.props.IntProperty(
         name = "Test Recursion Stop",
@@ -3022,7 +3020,7 @@ def save_properties(filePath):
         "branchTipRadius": props.branchTipRadius,
         "ringSpacing": props.ringSpacing,
         "stemRingResolution": props.stemRingResolution,
-        "resampleNr": props.resampleNr,
+        "resampleDistance": props.resampleDistance,
         
         "noiseAmplitudeLower": props.noiseAmplitudeLower,
         "noiseAmplitudeUpper": props.noiseAmplitudeUpper,
@@ -3125,7 +3123,7 @@ def load_properties(filepath):
         props.branchTipRadius = data.get("branchTipRadius", props.branchTipRadius)
         props.ringSpacing = data.get("ringSpacing", props.ringSpacing)
         props.stemRingResolution = data.get("stemRingResolution", props.stemRingResolution)
-        props.resampleNr = data.get("resampleNr", props.resampleNr)
+        props.resampleDistance = data.get("resampleDistance", props.resampleDistance)
         
         props.noiseAmplitudeLower = data.get("noiseAmplitudeLower", props.noiseAmplitudeLower)
         props.noiseAmplitudeUpper = data.get("noiseAmplitudeUpper", props.noiseAmplitudeUpper)
