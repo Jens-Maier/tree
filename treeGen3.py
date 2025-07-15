@@ -1568,9 +1568,11 @@ def generateVerticesAndTriangles(self, treeGen, context, segments, dir, taper, r
     
     offset = 0
     counter = 0
-        
+    
+    startSection = 0
+    
     for s in range(0, len(segments)):
-        startSection = 0
+        
         
         segmentLength = (segments[s].end - segments[s].start).length
         if segmentLength > 0:
@@ -1615,7 +1617,7 @@ def generateVerticesAndTriangles(self, treeGen, context, segments, dir, taper, r
                     v = pos + dirA * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.cos(angle) + dirB * lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing)) * math.sin(angle)
                     
                     vertices.append(v)
-                    self.report({'INFO'}, f"in generateVerticesAndTriangles: len(vertices):  {len(vertices)}")
+                    self.report({'INFO'}, f"in generateVerticesAndTriangles: len(vertices):  {len(vertices)}, startSection: {startSection}")
                     
                     counter += 1
             self.report({'INFO'}, f"in generateVerticesAndTriangles: sections: {sections}")
