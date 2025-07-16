@@ -207,6 +207,56 @@ class node():
             return self.next[0].lengthToTip() + (self.next[0].point - self.point).length
         else:
             return 0.0
+    
+    
+    def curveBranches(self, treeGen, curvature, axis):
+        self.curveStep(-curvature, axis.normalize, self.point, true)
+        for n in self.next:
+            n.curveBranches(treeGen, curvature, axis)
+        
+    def applyCurvature(
+        self, 
+        treeGen, 
+        rootNode, 
+        treeGrowDir, 
+        treeHeight, 
+        curvature, 
+        axis):
+            
+        nextTangent = (treeGrowDir.normalized() * treeHeight - 
+        (rootNode.point + 
+        rootNode.tangent[0] * 
+        (treeGrowDir.normalized() * 
+        treeHeight - 
+        rootNode.point).length * 
+        (1.5 / 3.0))).normalized()
+        
+        centerPoint = sampleSpline(rootNode.point, treeGrowDir.normalized() * treeHeight, Vector((0.0,0.0,1.0)), nextTangent, self.tValGlobal)
+        
+        outwardDir = self.point - centerPoint
+        curveAxis = outwardDir.cross(self.tangent[0])
+        
+        if curveAxis.length > 0.0:
+            curveAxis = curveAxis.normalized()
+            
+            self.curveStep(treeGen, curvature, curveAxis, self.point, True)
+            
+        for n in self.next:
+            n.applyCurvature(treeGen, rootNode, treeGrowDir, treeHeight, curvature, axis)
+        
+    def curveStep(self, treeGen, curvature, curveAxis, rotationPoint, firstNode):
+        treeGen.report({'INFO'}, f"in curveStep(): curveAxis: {curveAxis}, curvature: {curvature}, self.point: {self.point}, rotationPoint: {rotationPoint}")
+        self.point = rotationPoint + Quaternion(curveAxis, math.radians(curvature / 2.0)) @ (self.point - rotationPoint)
+        if firstNode == True:
+            for tangentIndex in range(0, len(self.tangent)):
+                self.tangent[tangentIndex] = Quaternion(curveAxis, math.radians(curvature / 2.0)) @ self.tangent[tangentIndex]
+        else:
+            for tangentIndex in range(0, len(self.tangent)):
+                self.tangent[tangentIndex] = Quaternion(curveAxis, math.radians(curvature)) @ self.tangent[tangentIndex]
+        for n in self.next:
+            n.curveStep(treeGen, curvature, curveAxis, rotationPoint, False)
+        # splitDirA = (Quaternion(splitAxis, math.radians(splitPointAngle)) @ splitNode.tangent[0]).normalized()
+        
         
     def resampleSpline(self, treeGen, resampleDistance):
         #treeGen.report({'INFO'}, f"in resampleSpline: point: {self.point}")
@@ -366,6 +416,8 @@ class generateTree(bpy.types.Operator):
             
             
             nodes[0].resampleSpline(self, context.scene.resampleDistance)
+            
+            nodes[0].applyCurvature(self, nodes[0], context.scene.treeGrowDir, context.scene.treeHeight, context.scene.curvature, nodes[0].cotangent)
             
             if context.scene.treeGrowDir == Vector((0.0,0.0,1.0)):
                 #self.report({'ERROR'}, "ERROR: when treeGrowDir == (0,0,1)")
@@ -940,10 +992,10 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, level, sMode, rot
     splitNode.tangent.append(splitDirA)
     splitNode.tangent.append(splitDirB)
 
+
     s = splitNode
     previousNodeA = splitNode
     previousNodeB = splitNode
-
     curv_offset = splitNode.tangent[0].normalized() * (s.next[0].point - s.point).length * (splitAngle / 360.0) * curvOffsetStrength
 
     for i in range(nodesAfterSplitNode):
@@ -2134,8 +2186,6 @@ class treeSettings(bpy.types.Panel):
         row = layout.row()
         layout.operator("scene.reset_curves", text="Reset taper curve")
         row = layout.row()
-        layout.operator("scene.sample_curves", text="Sample taper curve")
-        row = layout.row()
         layout.template_curve_mapping(taperCurveData('taperMapping'), "mapping")
         row = layout.row()
         layout.prop(context.scene, "branchTipRadius")
@@ -2259,6 +2309,8 @@ class resetCurvesButton(bpy.types.Operator):
         #initialise values
         curveElement.points[0].location = (0.0, 1.0)
         curveElement.points[1].location = (1.0, 0.0)
+        curveElement.points[0].handle_type = "VECTOR"
+        curveElement.points[1].handle_type = "VECTOR"
         if len(curveElement.points) > 2:
             for i in range(2, len(curveElement.points)):
                 curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
