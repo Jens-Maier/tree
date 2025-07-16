@@ -559,7 +559,7 @@ def sampleCurve(self, x):
                         # 2 points: 0: auto, 1: auto -> linear (== 1 * slope)
                         # linear
                         p3 = p2 + (p2 - p1)
-                        self.report("n = first, p0: {p0}, p1: {p1}, p2: {p2}, p3: {p3}")
+                        #self.report("n = first, p0: {p0}, p1: {p1}, p2: {p2}, p3: {p3}")
             
         #last segment
         if n == len(curveElement.points) - 2:
@@ -627,7 +627,7 @@ def sampleCurve(self, x):
                     p2 = curveElement.points[n + 1].location
                     p3 = curveElement.points[n + 2].location
         
-        if p1.x <= x and p2.x > x:
+        if p1.x <= x and (p2.x > x or p2.x == 1.0):
             
             tx = (x - p1.x) / (p2.x - p1.x)
             
@@ -1647,7 +1647,7 @@ def generateVerticesAndTriangles(self, treeGen, context, segments, dir, taper, r
                 
                 treeGen.report({'INFO'}, f"tVal: {tVal}, radius: {radius}, section: {section}, sections: {sections}")
                 
-                radius = 8.0 * radius #for display
+                radius = context.scene.taper * context.scene.treeHeight * radius
                 
                 for i in range(0, segments[s].ringResolution):
                     angle = (2 * math.pi * i) / segments[s].ringResolution
@@ -3058,10 +3058,21 @@ def register():
 
 def save_properties(filePath):
     props = bpy.context.scene
+    
+    controlPts = []
+    handleTypes = []
+    nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
+    curveElement = nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves[3]
+    for n in range(0, len(curveElement.points)):
+        controlPts.append(list(curveElement.points[n].location))
+        handleTypes.append(curveElement.points[n].handle_type)
+    
     data = {
         "treeHeight": props.treeHeight,
         "treeGrowDir": list(props.treeGrowDir),  
         "taper": props.taper,
+        "taperCurvePoints": controlPts,
+        "taperCurveHandleTypes": handleTypes,
         "branchTipRadius": props.branchTipRadius,
         "ringSpacing": props.ringSpacing,
         "stemRingResolution": props.stemRingResolution,
@@ -3165,6 +3176,30 @@ def load_properties(filepath):
         if isinstance(treeGrowDir, list) and len(treeGrowDir) == 3:
             props.treeGrowDir = treeGrowDir
         props.taper = data.get("taper", props.taper)
+        
+        controlPts = []
+        controlPts = data.get("taperCurvePoints", controlPts)
+        handleTypes = []
+        handleTypes = data.get("taperCurveHandleTypes", handleTypes)
+        nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
+        curveElement = nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves[3]
+        
+        if len(curveElement.points) > 2:
+            for i in range(2, len(curveElement.points)):
+                curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
+        curveElement.points[0].location = controlPts[0]
+        curveElement.points[0].handle_type = handleTypes[0]
+        curveElement.points[1].location = controlPts[1]
+        curveElement.points[1].handle_type = handleTypes[0]
+        if len(controlPts) > 2:
+            for i in range(2, len(controlPts)):
+                curveElement.points.new(curveElement.points[len(curveElement.points) - 1].location.x, curveElement.points[len(curveElement.points) - 1].location.y)
+                curveElement.points[len(curveElement.points) - 1].location.x = controlPts[i][0]
+                curveElement.points[len(curveElement.points) - 1].location.y = controlPts[i][1]
+                
+                curveElement.points[len(curveElement.points) - 1].handle_type = handleTypes[i]
+        nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.update()
+        
         props.branchTipRadius = data.get("branchTipRadius", props.branchTipRadius)
         props.ringSpacing = data.get("ringSpacing", props.ringSpacing)
         props.stemRingResolution = data.get("stemRingResolution", props.stemRingResolution)
