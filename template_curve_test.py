@@ -63,12 +63,24 @@ class evaluateButton(bpy.types.Operator):
     
     def sampleSpline(self, p0, p1, p2, p3, t):
         return self.f0(t + 1.0) * p0 + self.f1(t + 1.0) * p1 + self.f2(t + 1.0) * p2 + self.f3(t + 1.0) * p3
+    
+    def f0b(self, t):
+        return (-0.5*t*t*t + t*t - 0.5*t)
+    def f1b(self, t):
+        return (1.5*t*t*t - 2.5*t*t + 1.0)
+    def f2b(self, t):
+        return (-1.5*t*t*t + 2.0*t*t + 0.5*t)
+    def f3b(self, t):
+        return (0.5*t*t*t - 0.5*t*t)
+    
+    def sampleSplineB(self, p0, p1, p2, p3, t):
+        return self.f0b(t) * p0 + self.f1b(t) * p1 + self.f2b(t) * p2 + self.f3b(t) * p3
         
     def execute(self, context):
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
         curveElement = nodeGroups.nodes[curve_node_mapping['TestOne']].mapping.curves[3] 
         y = 0.0
-        nrSamplePoints = 10
+        nrSamplePoints = 20
         self.report({'INFO'}, f"length: {len(curveElement.points)}")
         
         for i in range(0, nrSamplePoints):  
@@ -94,16 +106,24 @@ class evaluateButton(bpy.types.Operator):
                         p1 = curveElement.points[0].location
                         p2 = curveElement.points[1].location
                         if curveElement.points[0].handle_type == "AUTO" or curveElement.points[0].handle_type == "AUTO_CLAMPED":
-                            slope2 = 2.0 * (p2.y - p1.y) / (p2.x - p1.x)
-                            self.report({'INFO'}, f"n = 0, n -> 2 * slope2: {slope2}")
-                            self.report({'INFO'}, f"in n = 0, AUTO: p1: {p1}, p2: {p2}")
-                            p0 = mathutils.Vector((p1.x - (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y - slope2 * (p2.x - p1.x)))
-                            self.report({'INFO'}, f"in n = 0, AUTO: p0: {p0}")
-                            
+                            if len(curveElement.points) > 2:
+                                slope2 = 2.0 * (p2.y - p1.y) / (p2.x - p1.x)
+                                self.report({'INFO'}, f"n = 0, n -> 2 * slope2: {slope2}")
+                                self.report({'INFO'}, f"in n = 0, AUTO: p1: {p1}, p2: {p2}")
+                                p0 = mathutils.Vector((p1.x - (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y - slope2 * (p2.x - p1.x)))
+                                self.report({'INFO'}, f"in n = 0, AUTO: p0: {p0}")
+                            else: #only 2 points -> linear
+                                p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
+                                self.report({'INFO'}, f"in n = 0: only 2 points -> linear, p0.x: {p0.x}, p0.y: {p0.y}")
+                                                            
                             if len(curveElement.points) > 2:                            
                                 p3 = curveElement.points[2].location
                             else: # linear when only 2 points
-                                p3 = p2
+                                p3 = p2 + (p2 - p1)
+                                p0 = p1 - (p2 - p1)
+                                
+                                self.report({'INFO'}, f"in n = 0, AUTO: p0: {p0}")
+                                self.report({'INFO'}, f"in n = 0, AUTO: p3: {p3}")
                             self.report({'INFO'}, f"in n = 0, AUTO: p3: {p3}")
                         else:
                             self.report({'INFO'}, "n = 0, reflected == 1 * slope")
@@ -179,21 +199,38 @@ class evaluateButton(bpy.types.Operator):
                             p2 = curveElement.points[n + 1].location
                             p3 = curveElement.points[n + 2].location
             
-                self.report({'INFO'}, f"found segment n={n}: p0.x: {p0.x}, p1.x: {p1.x}, p2.x: {p2.x}, p3.x: {p3.x}, x: {x}")
-                px = self.sampleSpline(p0.x, p1.x, p2.x, p3.x, x)
-                py = self.sampleSpline(p0.y, p1.y, p2.y, p3.y, x)
+                if p1.x <= x and p2.x >= x:
+                    self.report({'INFO'}, f"found segment n={n}: p0.x: {p0.x}, p1.x: {p1.x}, p2.x: {p2.x}, p3.x: {p3.x}, x: {x}")
+                    
+                    
+                    
                 
-                bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p0.x, 0.0, p0.y))
-                bpy.context.active_object.empty_display_size = 0.03
-                bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p1.x, 0.0, p1.y))
-                bpy.context.active_object.empty_display_size = 0.03
-                bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p2.x, 0.0, p2.y))
-                bpy.context.active_object.empty_display_size = 0.03
-                bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p3.x, 0.0, p3.y))
-                bpy.context.active_object.empty_display_size = 0.03
+                    #  x: [0..1]
+                    # tx: [p1.x...p2.x]
+                    #tx = p1.x + x * (p2.x - p1.x)
+                    
+                    tx = (x - p1.x) / (p2.x - p1.x)  #AI
+                    
+                    self.report({'INFO'}, f"tx: {tx}")
+                    #py = self.sampleSpline(p0.y, p1.y, p2.y, p3.y, tx)
+                    
+                    px = self.sampleSplineB(p0.x, p1.x, p2.x, p3.x, tx) # tx (not x) (AI)
+                    py = self.sampleSplineB(p0.y, p1.y, p2.y, p3.y, tx)
+                    
+                    #py = self.sampleSpline(p0.y, p1.y, p2.y, p3.y, x)
+                    
+                    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p0.x, 0.0, p0.y))
+                    bpy.context.active_object.empty_display_size = 0.03
+                    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p1.x, 0.0, p1.y))
+                    bpy.context.active_object.empty_display_size = 0.03
+                    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p2.x, 0.0, p2.y))
+                    bpy.context.active_object.empty_display_size = 0.03
+                    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p3.x, 0.0, p3.y))
+                    bpy.context.active_object.empty_display_size = 0.03
+                    
+                    bpy.ops.object.empty_add(type='SPHERE', location= (x,0.0,py))
                 
-                bpy.ops.object.empty_add(type='SPHERE', location=(px,0.0,py))
-                bpy.context.active_object.empty_display_size = 0.01
+                    bpy.context.active_object.empty_display_size = 0.01
         return {'FINISHED'} 
         
     

@@ -488,16 +488,16 @@ def lerp(self, a, b, t):
         return (a + (b - 1) * t)
     
 def f0(t):
-    return (2.0 - t) * (2.0 - t) * (1.0 - t) / 2.0
+    return (-0.5*t*t*t + t*t - 0.5*t)
 def f1(t):
-    return (2.0 - t) * (2.0 - t) * t + (t - 1.0) * (3.0 - t) * (2.0 - t) / 2.0
+    return (1.5*t*t*t - 2.5*t*t + 1.0)
 def f2(t):
-    return (2.0 - t) * (t - 1.0) * t / 2.0 + (3.0 - t) * (t - 1.0) * (t - 1.0)
+    return (-1.5*t*t*t + 2.0*t*t + 0.5*t)
 def f3(t):
-    return (t - 1.0) * (t - 1.0) * (t - 2.0) / 2.0
+    return (0.5*t*t*t - 0.5*t*t)
     
 def sampleSpline(p0, p1, p2, p3, t):
-    return f0(t + 1.0) * p0 + f1(t + 1.0) * p1 + f2(t + 1.0) * p2 + f3(t + 1.0) * p3
+    return f0(t) * p0 + f1(t) * p1 + f2(t) * p2 + f3(t) * p3
     
 def sampleCurve(self, x):
     #self.report({'INFO'}, f"access? {context.scene.treeHeight}") #funkt!
@@ -550,7 +550,7 @@ def sampleCurve(self, x):
                     #self.report({'INFO'}, "n = 0, reflected == 1 * slope")
                     slope1 = 1.0 * (p2.y - p1.y) / (p2.x - p1.x)
                     #self.report({'INFO'}, f"n = 0, n -> 2 * slope1: {slope1}")
-                    p0 = mathutils.Vector((p2.x + (p2.x - p1.x), p1.y + slope2 * (p2.x - p1.x)))
+                    p0 = mathutils.Vector((p2.x + (p2.x - p1.x), p1.y + slope1 * (p2.x - p1.x)))
                     # [0] -> reflected
                     if len(curveElement.points) > 2:
                         # cubic
@@ -628,16 +628,20 @@ def sampleCurve(self, x):
                     p3 = curveElement.points[n + 2].location
         
         if p1.x <= x and p2.x > x:
-            px = sampleSpline(p0.x, p1.x, p2.x, p3.x, x)
-            py = sampleSpline(p0.y, p1.y, p2.y, p3.y, x)
-            self.report({'INFO'}, f"found segment n={n}: p0.x: {p0.x}, p1.x: {p1.x}, p2.x: {p2.x}, p3.x: {p3.x}, x: {x}")
+            
+            tx = (x - p1.x) / (p2.x - p1.x)
+            
+            px = sampleSpline(p0.x, p1.x, p2.x, p3.x, tx)
+            py = sampleSpline(p0.y, p1.y, p2.y, p3.y, tx)
+            
+            self.report({'INFO'}, f"found segment n={n}: p0.x: {p0.x}, p1.x: {p1.x}, p2.x: {p2.x}, p3.x: {p3.x}, px: {px}, x: {x}")
             self.report({'INFO'}, f"found segment n={n}: p0.y: {p0.y}, p1.y: {p1.y}, p2.y: {p2.y}, p3.y: {p3.y}, py: {py}" )
             
-            #ERROR HERE: found segment n=0: p0.x: -0.5, p1.x: 0.0, p2.x: 0.5, p3.x: 1.0, ist: x: 0.125  soll: x: 0.0625 <-ERROR HERE
-            #            found segment n=0: p0.y: 1.5, p1.y: 1.0, p2.y: 0.5, p3.y: 0.0,      py: 0.9375 OK
-            #                                                                            
-            #      -> double slope error ??? -> x value scaling error!                             -> GeoGebra: x: 0.9735 
-            
+            #ERROR HERE: # found segment n=0: p0.x: -0.5, p1.x: 0.0, p2.x: 0.5, p3.x: 1.0,   x: 0.125
+                         # found segment n=0: p0.y:  1.5, p1.y: 1.0, p2.y: 0.5, p3.y: 0.0, ist: py: 0.9375 = 1 - 0.125 / 2 OK
+                    #                                                                         -> GeoGebra: x: 0.0625 ERROR HERE
+                    #      -> double slope error ??? -> x value scaling error!                -> GeoGebra: y: 0.9375 OK
+                    #                                                                           ->  # px not x ???
             
             #self.report({'INFO'}, f"sample point: x: {x}, y: {y}, px: {px}, py: {py}")
             return py
@@ -1626,18 +1630,24 @@ def generateVerticesAndTriangles(self, treeGen, context, segments, dir, taper, r
                 #tVal = lerp(curveT_s, curveT_s1, section / sections)
                 
                 #tVal = curveT_s
+                treeGen.report({'INFO'}, f"segments[{s}].startTvalGlobal: {segments[s].startTvalGlobal}")
+                treeGen.report({'INFO'}, f"segments[{s}].endTvalGlobal: {segments[s].endTvalGlobal}")
+                
                 
                 tVal = segments[s].startTvalGlobal + (segments[s].endTvalGlobal - segments[s].startTvalGlobal) * (section / sections)
+                # tVal: [0...1] along ALL segments! (OK, only 1 segment)
                 
-                treeGen.report({'INFO'}, f"tVal: {tVal}")
-                radius = 8.0 * sampleCurve(treeGen, tVal)# / (segmentLength / branchRingSpacing)) # [0-1]
+                
+                radius = sampleCurve(treeGen, tVal)# / (segmentLength / branchRingSpacing)) # [0-1]
                 
                 #ERROR HERE: # found segment n=0: p0.x: -0.5, p1.x: 0.0, p2.x: 0.5, p3.x: 1.0, x: 0.125
-                             # found segment n=0: p0.y: 1.5, p1.y: 1.0, p2.y: 0.5, p3.y: 0.0, ist: py: 0.9375 = 1 - 0.125 / 2
-                    #                                                                            soll: py: 0.875  = 1 - 0.125
-                    #      -> double slope error ??? -> x value scaling error!                -> GeoGebra: 0.9735 !!!
+                             # found segment n=0: p0.y: 1.5, p1.y: 1.0, p2.y: 0.5, p3.y: 0.0, ist: py: 0.9375 = 1 - 0.125 / 2 OK
+                    #                                                                         -> GeoGebra: x: 0.0625 ERROR HERE
+                    #      -> double slope error ??? -> x value scaling error!                -> GeoGebra: y: 0.9375 OK
                 
-                treeGen.report({'INFO'}, f"radius: {radius}, section: {section}, sections: {sections}")
+                treeGen.report({'INFO'}, f"tVal: {tVal}, radius: {radius}, section: {section}, sections: {sections}")
+                
+                radius = 8.0 * radius #for display
                 
                 for i in range(0, segments[s].ringResolution):
                     angle = (2 * math.pi * i) / segments[s].ringResolution
