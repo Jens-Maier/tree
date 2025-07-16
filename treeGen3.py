@@ -63,6 +63,9 @@ class node():
         #if len(activeNode.next) > 2:
         #treeGen.report({'INFO'}, f"len(activeNode.next) = {len(activeNode.next)}")
         
+        #for t in self.tangent:
+        #    drawArrow(self.point, self.point + t * 2.0)
+        
         for n, nextNode in enumerate(self.next):
             if len(self.next) > 1:
                 #treeGen.report({'INFO'}, f"in getAllSegments(): len(tangent): {len(self.tangent)}, len(next): {len(self.next)}, n: {n}")
@@ -221,38 +224,66 @@ class node():
         treeGrowDir, 
         treeHeight, 
         curvature, 
-        axis):
+        axis, 
+        isVertical):
             
-        nextTangent = (treeGrowDir.normalized() * treeHeight - 
-        (rootNode.point + 
-        rootNode.tangent[0] * 
-        (treeGrowDir.normalized() * 
-        treeHeight - 
-        rootNode.point).length * 
-        (1.5 / 3.0))).normalized()
+        nextTangent = (treeGrowDir.normalized() * treeHeight - (rootNode.point + rootNode.tangent[0] * (treeGrowDir.normalized() * treeHeight - rootNode.point).length * (1.5 / 3.0))).normalized()
         
-        centerPoint = sampleSpline(rootNode.point, treeGrowDir.normalized() * treeHeight, Vector((0.0,0.0,1.0)), nextTangent, self.tValGlobal)
+        centerPoint = sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, Vector((0.0,0.0,1.0)), nextTangent, self.tValGlobal)
+        treeGen.report({'INFO'}, f"in curveBranches(): centerPoint: {centerPoint}, tValGlobal: {self.tValGlobal}")
+        #drawDebugPoint(centerPoint)
         
         outwardDir = self.point - centerPoint
-        curveAxis = outwardDir.cross(self.tangent[0])
+        drawArrow(self.point, self.point + 3.0 * outwardDir.normalized())
         
-        if curveAxis.length > 0.0:
-            curveAxis = curveAxis.normalized()
-            
-            self.curveStep(treeGen, curvature, curveAxis, self.point, True)
-            
+        #curveAxis = outwardDir.cross(self.tangent[0]) #ERROR HERE...TODO
+        
+        right = self.tangent[0].cross(Vector((0.0,0.0,0.1)))
+        if right.length < 0.01:
+            #near vertical branch
+            curveAxis = outwardDir.cross(self.tangent[0])
+        else:
+            curveAxis = right.normalized()
+        
+        #drawDebugPoint(self.point)
+        #drawDebugPoint(self.point + curveAxis.normalized() / 2.0)
+        drawArrow(self.point, self.point + curveAxis.normalized())
+        
+        if isVertical == False:
+            if curveAxis.length > 0.0:
+                curveAxis = curveAxis.normalized()
+                self.curveStep(treeGen, curvature, curveAxis, self.point, True)
+        else:
+            self.alignVerticalStep(treeGen, self.point)
+        
         for n in self.next:
-            n.applyCurvature(treeGen, rootNode, treeGrowDir, treeHeight, curvature, axis)
+            if self.tangent[0].normalized().dot(Vector((0.0,0.0,-1.0))) > 0.95:
+                treeGen.report({'ERROR'}, f"in curveBranches: vertical: tangent: {self.tangent[0]}")
+                n.applyCurvature(treeGen, rootNode, treeGrowDir, treeHeight, curvature, axis, True)
+            else:
+                n.applyCurvature(treeGen, rootNode, treeGrowDir, treeHeight, curvature, axis, False)
         
+    def alignVerticalStep(self, treeGen, rotationPoint):
+        axis = (self.point - rotationPoint).cross(Vector((0.0,0.0,-1.0)))
+        if axis.length > 0:
+            axis.normalize()
+            angle = (self.point -rotationPoint).angle(Vector((0.0,0.0,-1.0)))
+            self.point = rotationPoint + Quaternion(axis, angle) @ (self.point - rotationPoint)
+            for tangentIndex in range(0, len(self.tangent)):
+                self.tangent[tangentIndex] = Quatrenion(axis, angle) @ self.tangent[tangentIndex]
+        
+    
     def curveStep(self, treeGen, curvature, curveAxis, rotationPoint, firstNode):
         treeGen.report({'INFO'}, f"in curveStep(): curveAxis: {curveAxis}, curvature: {curvature}, self.point: {self.point}, rotationPoint: {rotationPoint}")
-        self.point = rotationPoint + Quaternion(curveAxis, math.radians(curvature / 2.0)) @ (self.point - rotationPoint)
+        
+        self.point = rotationPoint + Quaternion(curveAxis, math.radians(curvature)) @ (self.point - rotationPoint)
         if firstNode == True:
             for tangentIndex in range(0, len(self.tangent)):
                 self.tangent[tangentIndex] = Quaternion(curveAxis, math.radians(curvature / 2.0)) @ self.tangent[tangentIndex]
         else:
             for tangentIndex in range(0, len(self.tangent)):
                 self.tangent[tangentIndex] = Quaternion(curveAxis, math.radians(curvature)) @ self.tangent[tangentIndex]
+        
         for n in self.next:
             n.curveStep(treeGen, curvature, curveAxis, rotationPoint, False)
         # splitDirA = (Quaternion(splitAxis, math.radians(splitPointAngle)) @ splitNode.tangent[0]).normalized()
@@ -286,7 +317,7 @@ class node():
                     sampleRadius = lerp(startNode.radius, nextNode.radius, n / resampleNr)
                     sampleTvalGlobal = lerp(startNode.tValGlobal, nextNode.tValGlobal, n / resampleNr)
                     sampleTvalBranch = lerp(startNode.tValBranch, nextNode.tValBranch, n / resampleNr)
-                    drawDebugPoint(samplePoint)
+                    #drawDebugPoint(samplePoint)
                     
                     newNode = node(samplePoint, sampleRadius, sampleCotangent, self.clusterIndex, self.ringResolution, self.taper, sampleTvalGlobal, sampleTvalBranch)
                     newNode.tangent.append(sampleTangent)
@@ -297,7 +328,7 @@ class node():
                     activeNode = newNode
                     
                 activeNode.next.append(nextNode)
-                drawDebugPoint(nextNode.point) #OK
+                #drawDebugPoint(nextNode.point) #OK
                     
                 #treeGen.report({'INFO'}, f"in resampleSpline: len(Next.next): {len(Next.next)}")
                 
@@ -375,7 +406,7 @@ class generateTree(bpy.types.Operator):
         n = 50
         for x in range(0, n - 1):
             point = sampleCurve(self, x / n)
-            drawDebugPoint((x, 0.0, 100.0 * point))
+            #drawDebugPoint((x, 0.0, 100.0 * point))
         
         #delete all existing empties
         if context.active_object is not None and context.active_object.mode == 'OBJECT':
@@ -417,7 +448,7 @@ class generateTree(bpy.types.Operator):
             
             nodes[0].resampleSpline(self, context.scene.resampleDistance)
             
-            nodes[0].applyCurvature(self, nodes[0], context.scene.treeGrowDir, context.scene.treeHeight, context.scene.curvature, nodes[0].cotangent)
+            nodes[0].applyCurvature(self, nodes[0], context.scene.treeGrowDir, context.scene.treeHeight, context.scene.curvature, nodes[0].cotangent, False)
             
             if context.scene.treeGrowDir == Vector((0.0,0.0,1.0)):
                 #self.report({'ERROR'}, "ERROR: when treeGrowDir == (0,0,1)")
@@ -705,6 +736,27 @@ def drawDebugPoint(pos, name="debugPoint"):
     bpy.ops.object.empty_add(type='SPHERE', location=pos)
     bpy.context.active_object.empty_display_size = 0.1
     bpy.context.active_object.name=name
+    
+def drawArrow(a, b):
+    # Step 1: Create the empty at the position of point A with type 'SINGLE_ARROW'
+    bpy.ops.object.empty_add(type='SINGLE_ARROW', location=a)
+    empty = bpy.context.object  # Get the newly created empty
+    
+    # Step 2: Calculate the direction vector from A to B
+    direction = b - a
+    
+    # Step 3: Calculate the rotation to point from A to B
+    # Create a rotation matrix that makes the Z-axis of the empty point towards point B
+    rotation = direction.to_track_quat('Z', 'Y')  # 'Z' axis points towards B, 'Y' is up
+    
+    # Apply the rotation to the empty
+    empty.rotation_euler = rotation.to_euler()
+
+    # Step 4: Scale the empty based on the distance from A to B
+    distance = direction.length
+    empty.scale = (distance, distance, distance)  # Scale uniformly along all axes
+    
+    return empty
     
 def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
     if len(activeNode.next) > 0 or len(activeNode.branches) > 0:
