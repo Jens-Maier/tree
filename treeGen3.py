@@ -87,8 +87,8 @@ class node():
         #if len(activeNode.next) > 2:
         #treeGen.report({'INFO'}, f"len(activeNode.next) = {len(activeNode.next)}")
         
-        #for t in self.tangent:
-        #    drawArrow(self.point, self.point + t * 3.0)
+        for t in self.tangent:
+            drawArrow(self.point, self.point + t * 3.0)
             
         #drawArrow(self.point, self.point + self.cotangent)
         
@@ -286,16 +286,18 @@ class node():
         #drawDebugPoint(self.point + curveAxis.normalized() / 2.0)
         #drawArrow(self.point, self.point + curveAxis.normalized())
         
-        if isVertical == False and self.tangent[0].normalized().dot(Vector((0.0,0.0,-1.0))) <= 0.95:
+        curveStepTangent = Quaternion(curveAxis, math.radians(lerp(curvatureStart, curvatureEnd, self.tValGlobal))) @ self.tangent[0]
+        
+        if isVertical == False and curveStepTangent.normalized().dot(Vector((0.0,0.0,-1.0))) <= 0.95:
             if curveAxis.length > 0.0:
                 curveAxis = curveAxis.normalized()
-                self.curveStep(treeGen, curvatureStart, curvatureEnd, curveAxis, self.point, True)
+                self.curveStep(treeGen, lerp(curvatureStart, curvatureEnd, self.tValGlobal), curveAxis, self.point, True)
         else:
             #treeGen.report({'INFO'}, "in applyCurvature: isVertical: True")
             for n in self.next:
                 #n.alignVertical(treeGen, self.point)
                 angle = (n.point - self.point).angle(Vector((0.0,0.0,-1.0)))
-                self.alignVerticalStep(treeGen, -angle, curveAxis, self.point, self.point)
+                self.alignVerticalStep(treeGen, -angle, curveAxis, self.point, self.point, True, lerp(curvatureStart, curvatureEnd, self.tValGlobal))
         
         for n in self.next:
             if curveStep <= maxCurveSteps:
@@ -335,39 +337,47 @@ class node():
         else:
             treeGen.report({'WARNING'}, f"align vertical axis length is zero! axis: {axis}")
             
-    def alignVerticalStep(self, treeGen, angle, axis, rotationPoint, previousPoint):
+    def alignVerticalStep(self, treeGen, angle, axis, rotationPoint, previousPoint, firstNode, previousCurvature):
         #treeGen.report({'INFO'}, f"in alignVerticalStep, angle: {angle}")
         
+        
+        
         #self.point = rotationPoint + Quaternion(axis, angle) @ (self.point - rotationPoint)
-        rotationMatrix = Matrix.Rotation(angle, 4, axis)
-        self.point = rotationPoint + rotationMatrix @ (self.point - rotationPoint)
-        self.point = self.point - (Vector((self.point.x, self.point.y, 0.0)) - Vector((previousPoint.x, previousPoint.y, 0.0)))
+        
+        rotatedPoint = Vector((0.0,0.0,0.0))
+        if firstNode == True:
+            self.point = rotationPoint + Quaternion(axis, math.radians(previousCurvature)) @ (self.point - rotationPoint)
+        else:
+            rotationMatrix = Matrix.Rotation(angle, 4, axis)
+            self.point = rotationPoint + rotationMatrix @ (self.point - rotationPoint)
+            self.point = self.point - (Vector((self.point.x, self.point.y, 0.0)) - Vector((previousPoint.x, previousPoint.y, 0.0)))
+        
         
         for tangentIndex in range(0, len(self.tangent)):
             self.tangent[tangentIndex] = Vector((0.0,0.0,-1.0)) #Quaternion(axis, angle) @ self.tangent[tangentIndex]
         self.cotangent = Quaternion(axis, angle) @ self.cotangent
         
         for n in self.next:
-            n.alignVerticalStep(treeGen, angle, axis, rotationPoint, self.point)
+            n.alignVerticalStep(treeGen, angle, axis, rotationPoint, self.point, False, previousCurvature)
         
     
-    def curveStep(self, treeGen, curvatureStart, curvatureEnd, curveAxis, rotationPoint, firstNode):
+    def curveStep(self, treeGen, curvature, curveAxis, rotationPoint, firstNode):
         #treeGen.report({'INFO'}, f"in curveStep(): curveAxis: {curveAxis}, curvature: {curvature}, self.point: {self.point}, rotationPoint: {rotationPoint}")
         
         if firstNode == True:
             for tangentIndex in range(0, len(self.tangent)):
-                self.tangent[tangentIndex] = Quaternion(curveAxis, math.radians(curvatureStart / 2.0)) @ self.tangent[tangentIndex]
-            self.cotangent = Quaternion(curveAxis, math.radians(curvatureStart / 2.0)) @ self.cotangent
+                self.tangent[tangentIndex] = Quaternion(curveAxis, math.radians(curvature / 2.0)) @ self.tangent[tangentIndex] # TODO: tValBranch...
+            self.cotangent = Quaternion(curveAxis, math.radians(curvature / 2.0)) @ self.cotangent
         else:
-            self.point = rotationPoint + Quaternion(curveAxis, math.radians(curvatureStart)) @ (self.point - rotationPoint)
+            self.point = rotationPoint + Quaternion(curveAxis, math.radians(curvature)) @ (self.point - rotationPoint)
             rotLength = (self.point - rotationPoint).length
             #treeGen.report({'INFO'}, f"in curveStep(): rotLength: {rotLength}")
             for tangentIndex in range(0, len(self.tangent)):
-                self.tangent[tangentIndex] = Quaternion(curveAxis, math.radians(curvatureStart)) @ self.tangent[tangentIndex]
-            self.cotangent = Quaternion(curveAxis, math.radians(curvatureStart)) @ self.cotangent
+                self.tangent[tangentIndex] = Quaternion(curveAxis, math.radians(curvature)) @ self.tangent[tangentIndex]
+            self.cotangent = Quaternion(curveAxis, math.radians(curvature)) @ self.cotangent
         
         for n in self.next:
-            n.curveStep(treeGen, curvatureStart, curvatureEnd, curveAxis, rotationPoint, False)
+            n.curveStep(treeGen, curvature, curveAxis, rotationPoint, False)
             # splitDirA = (Quaternion(splitAxis, math.radians(splitPointAngle)) @ splitNode.tangent[0]).normalized()
        
         
