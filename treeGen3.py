@@ -87,8 +87,8 @@ class node():
         #if len(activeNode.next) > 2:
         #treeGen.report({'INFO'}, f"len(activeNode.next) = {len(activeNode.next)}")
         
-        for t in self.tangent:
-            drawArrow(self.point, self.point + t * 3.0)
+        #for t in self.tangent:
+        #    drawArrow(self.point, self.point + t * 3.0)
             
         #drawArrow(self.point, self.point + self.cotangent)
         
@@ -250,7 +250,9 @@ class node():
         rootNode, 
         treeGrowDir, 
         treeHeight, 
+        curvatureStartGlobal,
         curvatureStart,
+        curvatureEndGlobal, 
         curvatureEnd, 
         isVertical, 
         clusterIndex, 
@@ -286,12 +288,17 @@ class node():
         #drawDebugPoint(self.point + curveAxis.normalized() / 2.0)
         #drawArrow(self.point, self.point + curveAxis.normalized())
         
-        curveStepTangent = Quaternion(curveAxis, math.radians(lerp(curvatureStart, curvatureEnd, self.tValGlobal))) @ self.tangent[0]
+        globalCurvature = lerp(curvatureStartGlobal, curvatureEndGlobal, self.tValGlobal)
+        branchCurvature = lerp(curvatureStart, curvatureEnd, self.tValBranch)
+        
+        curvature = globalCurvature + branchCurvature
+        
+        curveStepTangent = Quaternion(curveAxis, math.radians(curvature)) @ self.tangent[0]
         
         if isVertical == False and curveStepTangent.normalized().dot(Vector((0.0,0.0,-1.0))) <= 0.95:
             if curveAxis.length > 0.0:
                 curveAxis = curveAxis.normalized()
-                self.curveStep(treeGen, lerp(curvatureStart, curvatureEnd, self.tValGlobal), curveAxis, self.point, True)
+                self.curveStep(treeGen, curvature, curveAxis, self.point, True)
         else:
             #treeGen.report({'INFO'}, "in applyCurvature: isVertical: True")
             for n in self.next:
@@ -307,7 +314,9 @@ class node():
                                      rootNode, 
                                      treeGrowDir, 
                                      treeHeight, 
+                                     curvatureStartGlobal,
                                      curvatureStart, #TODO: lerp between cutvature Start and curvature End
+                                     curvatureEndGlobal,
                                      curvatureEnd,
                                      True, 
                                      clusterIndex, 
@@ -315,7 +324,7 @@ class node():
                                      curveStep + 1, 
                                      maxCurveSteps)
                 else:
-                    n.applyCurvature(treeGen, rootNode, treeGrowDir, treeHeight, curvatureStart, curvatureEnd, False, clusterIndex, branchStartPoint, curveStep + 1, maxCurveSteps)
+                    n.applyCurvature(treeGen, rootNode, treeGrowDir, treeHeight, curvatureStartGlobal, curvatureStart, curvatureStartGlobal, curvatureEnd, False, clusterIndex, branchStartPoint, curveStep + 1, maxCurveSteps)
         
     def alignVertical(self, treeGen, previousPoint):
         axis = ((self.point - previousPoint).cross(Vector((0.0,0.0,-1.0)))).normalized()
@@ -542,7 +551,7 @@ class generateTree(bpy.types.Operator):
             
             nodes[0].resampleSpline(nodes[0], self, context.scene.resampleDistance)
             
-            nodes[0].applyCurvature(self, nodes[0], context.scene.treeGrowDir, context.scene.treeHeight, context.scene.curvatureStart/ context.scene.resampleDistance, context.scene.curvatureEnd / context.scene.resampleDistance, False, -1, Vector((0.0,0.0,0.0)), 0, context.scene.maxCurveSteps)
+            nodes[0].applyCurvature(self, nodes[0], context.scene.treeGrowDir, context.scene.treeHeight, context.scene.curvatureStart/ context.scene.resampleDistance, 0.0, context.scene.curvatureEnd / context.scene.resampleDistance, 0.0, False, -1, Vector((0.0,0.0,0.0)), 0, context.scene.maxCurveSteps)
             
             if context.scene.treeGrowDir == Vector((0.0,0.0,1.0)):
                 #self.report({'ERROR'}, "ERROR: when treeGrowDir == (0,0,1)")
@@ -578,13 +587,15 @@ class generateTree(bpy.types.Operator):
                 context.scene.verticalAngleBranchEndList,
                 context.scene.branchAngleModeList,  
                 
-                context.scene.branchSplitRotateAngleCrownStartList,
-                context.scene.branchSplitRotateAngleCrownEndList,
-                context.scene.branchSplitRotateAngleBranchStartList,
-                context.scene.branchSplitRotateAngleBranchEndList,
+                context.scene.rotateAngleCrownStartList,
+                context.scene.rotateAngleCrownEndList,
+                context.scene.rotateAngleBranchStartList,
+                context.scene.rotateAngleBranchEndList,
                 
                 context.scene.rotateAngleList,
                 context.scene.rotateAngleRangeList, 
+                context.scene.useFibonacciAnglesList,
+                context.scene.fibonacciNrList,
                 context.scene.stemRingResolution, 
                 
                 context.scene.taper, 
@@ -1243,14 +1254,16 @@ verticalAngleBranchEnd,
 
 branchAngleModeList, 
 
-branchSplitRotateAngleCrownStartList,
-branchSplitRotateAngleCrownEndList,
-branchSplitRotateAngleBranchStartList,
-branchSplitRotateAngleBranchEndList,
+rotateAngleCrownStartList,
+rotateAngleCrownEndList,
+rotateAngleBranchStartList,
+rotateAngleBranchEndList,
                 
 rotateAngleList,
 
 rotateAngleRangeList, 
+useFibonacciAnglesList,
+fibonacciNrList,
 ringResolution, 
 taper, 
 
@@ -1305,15 +1318,10 @@ branchVariance):
             branchesEndHeightCluster, 
             parentClusterBoolListList)
         
-        #for s in startNodesNextIndexStartTvalEndTval:
-        #    drawDebugPoint(s.startNode.point)
-        
         if len(startNodesNextIndexStartTvalEndTval) > 0:
             segmentLengths = []
             
             totalLength = calculateSegmentLengthsAndTotalLength(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal)
-            #treeGen.report({'INFO'}, f"total length: {totalLength}")
-            
             windingAngle = 0.0
             for branchIndex in range(0, nrBranchesList[clusterIndex].value):
                 branchPos = branchIndex * totalLength / nrBranchesList[clusterIndex].value
@@ -1328,62 +1336,60 @@ branchVariance):
                                                          data.tangent, 
                                                          data.startNode.next[startNodeNextIndex].tangent[0], 
                                                          data.t)
+                                                         
                 branchStartTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
+                
                 globalVerticalAngle = lerp(verticalAngleCrownStart[clusterIndex].value, verticalAngleCrownEnd[clusterIndex].value, branchStartTvalGlobal)
-                #treeGen.report({'INFO'}, f"in add Branches: branchStartTvalGlobal: {branchStartTvalGlobal}")
+                
                 branchVerticalAngle = lerp(verticalAngleBranchStart[clusterIndex].value, verticalAngleBranchEnd[clusterIndex].value, data.startNode.tValBranch)
+                
                 verticalAngle = globalVerticalAngle + branchVerticalAngle
-                #treeGen.report({'INFO'}, f"in add Branches: verticalAngleCrownStart[0].value: {verticalAngleCrownStart[0].value}") #OK
-                #treeGen.report({'INFO'}, f"in add Branches: verticalAngle: {verticalAngle}") #OK
-                #treeGen.report({'INFO'}, f"in add Branches: startPointTangent: {startPointTangent}")
+                
+                globalRotateAngle = lerp(rotateAngleCrownStartList[clusterIndex].value, rotateAngleCrownEndList[clusterIndex].value, branchStartTvalGlobal)
+                
+                branchRotateAngle = lerp(rotateAngleBranchStartList[clusterIndex].value, rotateAngleBranchEndList[clusterIndex].value, data.startNode.tValBranch)
+                
+                rotateAngle = globalRotateAngle + branchRotateAngle
+                treeGen.report({'INFO'}, f"in add Branches: rotateAngle: {rotateAngle}")
                 
                 centerDir = Quaternion(startPointTangent.cross(data.outwardDir), math.radians(-verticalAngle)) @ data.outwardDir
                 #treeGen.report({'INFO'}, f"in add Branches: outwardDir: {data.outwardDir}")
                 #treeGen.report({'INFO'}, f"in add Branches: centerDir: {centerDir}")
-            
                 #treeGen.report({'INFO'}, f"in add Branches: angleMode: {branchAngleModeList[0].value}")
                 
                 #treeGen.report({'INFO'}, f"in add Branches: clusterIndex: {clusterIndex}, branchClusters: {branchClusters}")
                 if branchAngleModeList[clusterIndex].value == "WINDING":
+                    #// TODO: fibonacci numbers: 1/2, 1/3, 2/5, 3/8 -> 180, 120, 144, 135, -> f(n)/f(n+2)
+                    
                     if rotateAngleRangeList[clusterIndex].value > 0:
-                        angle = windingAngle % (2.0 * rotateAngleRangeList[clusterIndex].value)
+                        angle = windingAngle % (2.0 * fibonacciNrList[clusterIndex].fibonacci_angle)
+                        # useFibonacciAnglesList,
+                        # fibonacciNrList,
                     else:
                         angle = 0.0
-                    #treeGen.report({'INFO'}, f"in add Branches(): angleMode.winding: angle: {angle}, windingAngle: {windingAngle}, ")
-                    
-                    #    TEST OFF
-                    #branchDir = Quaternion(startPointTangent, math.radians(-rotateAngleRangeList[clusterIndex].value + angle)) @ centerDir
-                    # ------------------ TEMP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                    branchDir = startPointTangent # TEMP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                    
-                    #treeGen.report({'INFO'}, f"in add Branches: angleMode: winding, branchDir: {branchDir}")
-                
-                #     TEST OFF
-                if branchAngleModeList[clusterIndex].value == "SYMMETRIC":
-                    #axis = startPointTangent.cross(centerDir).normalized()
-                    #axis = 
-                    
                     right = startPointTangent.cross(Vector((0.0,0.0,1.0))).normalized()
-                    
-                    
                     axis = right.cross(startPointTangent).normalized()
-                    drawArrow(startPoint, startPoint + axis * 2.0)
+                    branchDir = Quaternion(axis, math.radians(-verticalAngle)) @ startPointTangent
+                    branchDir = Quaternion(startPointTangent, math.radians(angle)) @ branchDir
                     
-                     # TODO: ERROR HERE 
-                     
-                    treeGen.report({'INFO'}, f"in addBranches(): verticalAngle: {verticalAngle}, axis: {axis}")
-                    if branchIndex % 2 == 0:
-                        branchDir = Quaternion(axis, math.radians(-rotateAngleList[clusterIndex].value)) @ startPointTangent # centerDir
-                        right = branchDir.cross(axis)
-                        drawArrow(startPoint, startPoint + right)
-                        branchDir = Quaternion(right, math.radians(verticalAngle)) @ branchDir
-                    else:
-                        branchDir = Quaternion(axis, math.radians(rotateAngleList[clusterIndex].value)) @ startPointTangent # centerDir
-                        right = branchDir.cross(axis)
-                        drawArrow(startPoint, startPoint + right)
-                        branchDir = Quaternion(right, math.radians(verticalAngle)) @ branchDir 
                 
-                #rotv = Quaternion(axis, math.radians(angle)) @ v
+                if branchAngleModeList[clusterIndex].value == "SYMMETRIC":
+                    axis = startPointTangent.cross(centerDir).normalized()
+                    
+                    if branchIndex % 2 == 0:
+                        drawArrow(startPoint, startPoint + startPointTangent)
+                        right = startPointTangent.cross(Vector((0.0,0.0,1.0))).normalized()
+                        axis = right.cross(startPointTangent).normalized()
+                        branchDir = Quaternion(axis, math.radians(-verticalAngle)) @ startPointTangent
+                        branchDir = Quaternion(startPointTangent, math.radians(-rotateAngle)) @ branchDir
+                    else:
+                        drawArrow(startPoint, startPoint + startPointTangent)
+                        right = startPointTangent.cross(Vector((0.0,0.0,1.0))).normalized()
+                        axis = right.cross(startPointTangent).normalized()
+                        drawArrow(startPoint, startPoint + axis * 2.0)
+                        branchDir = Quaternion(axis, math.radians(verticalAngle)) @ startPointTangent
+                        branchDir = Quaternion(startPointTangent, math.radians(rotateAngle)) @ branchDir
+                        
                 branchCotangent = Vector((0.0, 0.0, 0.0))            
                 #There is no single continuous function that can generate a vector in R3 that is orthogonal to a given one for all vector inputs. https://en.wikipedia.org/wiki/Hairy_ball_theorem
              
@@ -1402,14 +1408,12 @@ branchVariance):
                 branch.tValBranch = 0.0
             
                 branchLength = 0.0
-                # if clusterIndex == 0:
                 nextIndex = startNodesNextIndexStartTvalEndTval[data.startNodeIndex].nextIndex
                 startTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
                 
                 shapeRatioValue = shapeRatio(self, context, startTvalGlobal, branchShapeList[clusterIndex].value)
                 #treeGen.report({'INFO'}, f"in add Branches: branchLength: {branchLength}, shapeRatio: {shapeRatioValue}")
                 branchLength = treeHeight * relBranchLengthList[clusterIndex].value * shapeRatioValue
-                
                 
                 # TODO
                 #lengthToTip = data.startNode.lengthToTip()
@@ -1431,7 +1435,12 @@ branchVariance):
                     
                 data.startNode.branches[startNodeNextIndex].append(branch)
                 branchNodes.append(branch)
-                windingAngle += rotateAngleList[clusterIndex].value
+                
+                if context.scene.useFibonacciAnglesList[clusterIndex].value == True:
+                    windingAngle += context.scene.fibonacciNrList[clusterIndex].fibonacci_angle
+                else:
+                    windingAngle += rotateAngle
+                
                 #treeGen.report({'INFO'}, f"in add Branches(): new windingAngle: {windingAngle}, added: ")  #added rotateAngle: 25 -> 2.33999, rotateAngle: 50 -> 2.33999, rotateAngleRange: 20 -> 2.33999
                 
         
@@ -1494,8 +1503,10 @@ branchVariance):
                                       rootNode, 
                                       treeGrowDir, 
                                       treeHeight, 
-                                      context.scene.branchCurvatureList[clusterIndex].value, 
-                                      context.scene.branchCurvatureList[clusterIndex].value, 
+                                      context.scene.branchGlobalCurvatureStartList[clusterIndex].value, 
+                                      context.scene.branchCurvatureStartList[clusterIndex].value, 
+                                      context.scene.branchGlobalCurvatureEndList[clusterIndex].value, 
+                                      context.scene.branchCurvatureEndList[clusterIndex].value, 
                                       False, 
                                       clusterIndex, 
                                       branchNode.point, 
@@ -1998,6 +2009,42 @@ def generateVerticesAndTriangles(self, treeGen, context, segments, dir, taper, r
 
 class intProp(bpy.types.PropertyGroup):
     value: bpy.props.IntProperty(name = "intValue", default=0, min=0, soft_max=10) # reuse for all ints (?)
+
+
+def update_fibonacci_numbers(self):
+    fn0 = 1.0
+    fn1 = 1.0
+    self.rotate_angle_range = 360.0
+    if self.fibonacci_nr > 2:
+        for n in range(2, self.fibonacci_nr + 1):
+            temp = fn0 + fn1
+            fn0 = fn1
+            fn1 = temp
+    self.fibonacci_angle = 360.0 * (1.0 - fn0 / fn1)
+    
+    
+class fibonacciProps(bpy.types.PropertyGroup):
+    fibonacci_nr: bpy.props.IntProperty(name = "fibonacciNr", default=3, min=3, 
+        update = lambda self, context:update_fibonacci_numbers(self))
+        
+    fibonacci_angle: bpy.props.FloatProperty(name="", default=0.0, options={'HIDDEN'})
+    
+    use_fibonacci: bpy.props.BoolProperty(name = "useFibonacci", default=False,
+        update = lambda self, context:update_fibonacci_numbers(self)) ##########  -> both in one propertyGroup!
+        
+    rotate_angle_range: bpy.props.FloatProperty(name="", default=0.0, min=0.0)
+    
+        
+
+    
+    # fn0 = 1.0
+    # fn1 = 1.0
+    # if scene.fibonacciNrList[i].value > 2:
+    #     for n in range(2, scene.fibonacciNrList[i].value + 1):
+    #         temp = fn0 + fn1
+    #         fn0 = fn1
+    #         fn1 = temp
+    # scene.rotateAngleCrownStartList[i].value = 360.0 * (1.0 - fn0 / fn1) #TODO 
     
 class floatProp(bpy.types.PropertyGroup):
     value: bpy.props.FloatProperty(name = "floatValue", default=0) # reuse for all floats (?)
@@ -2159,6 +2206,7 @@ class addStemSplitLevel(bpy.types.Operator):
     bl_label = "Add split level"
     
     def execute(self, context):
+        context.scene.showStemSplitHeights = True
         newSplitHeight = context.scene.stemSplitHeightInLevelList.add()
         newSplitHeight.value = 0.5
         context.scene.stemSplitHeightInLevelListIndex = len(context.scene.stemSplitHeightInLevelList) - 1
@@ -2170,26 +2218,28 @@ class addBranchSplitLevel(bpy.types.Operator):
     level: bpy.props.IntProperty()
     
     def execute(self, context):
+        context.scene.showBranchSplitHeights[self.level].value = True
+        
         newSplitHeight = context.scene.branchSplitHeightInLevelListList[self.level].value.add()
         newSplitHeight = 0.5
         if self.level == 0:
             newSplitHeight = context.scene.branchSplitHeightInLevelList_0.add()
-            newSplitHeight = 0.5
+            newSplitHeight.value = 0.5
         if self.level == 1:
             newSplitHeight = context.scene.branchSplitHeightInLevelList_1.add()
-            newSplitHeight = 0.5
+            newSplitHeight.value = 0.5
         if self.level == 2:
             newSplitHeight = context.scene.branchSplitHeightInLevelList_2.add()
-            newSplitHeight = 0.5
+            newSplitHeight.value = 0.5
         if self.level == 3:
             newSplitHeight = context.scene.branchSplitHeightInLevelList_3.add()
-            newSplitHeight = 0.5
+            newSplitHeight.value = 0.5
         if self.level == 4:
             newSplitHeight = context.scene.branchSplitHeightInLevelList_4.add()
-            newSplitHeight = 0.5
+            newSplitHeight.value = 0.5
         if self.level == 5:
             newSplitHeight = context.scene.branchSplitHeightInLevelList_5.add()
-            newSplitHeight = 0.5
+            newSplitHeight.value = 0.5
         
         
         if self.level > 5:
@@ -2206,8 +2256,9 @@ class removeStemSplitLevel(bpy.types.Operator):
     index: bpy.props.IntProperty()
     
     def execute(self, context):
-        if len(context.scene.stemSplitHeightInLevelList) > self.index:
-            context.scene.stemSplitHeightInLevelList.remove(self.index)
+        context.scene.showStemSplitHeights = True
+        if len(context.scene.stemSplitHeightInLevelList) > 0:
+            context.scene.stemSplitHeightInLevelList.remove(len(context.scene.stemSplitHeightInLevelList) - 1)
             
         
         return {'FINISHED'}
@@ -2218,6 +2269,7 @@ class removeBranchSplitLevel(bpy.types.Operator):
     level: bpy.props.IntProperty()
         
     def execute(self, context):
+        context.scene.showBranchSplitHeights[self.level].value = True
         if self.level == 0:
             if len(context.scene.branchSplitHeightInLevelList_0) > 0:
                 context.scene.branchSplitHeightInLevelList_0.remove(context.scene.branchSplitHeightInLevelListIndex_0)
@@ -2225,23 +2277,23 @@ class removeBranchSplitLevel(bpy.types.Operator):
         if self.level == 1:
             if len(context.scene.branchSplitHeightInLevelList_1) > 0:
                 context.scene.branchSplitHeightInLevelList_1.remove(len(context.scene.branchSplitHeightInLevelList_1) - 1)
-                context.scene.branchSplitHeightInLevelListIndex_1 -= 1
+                #context.scene.branchSplitHeightInLevelListIndex_1 -= 1
         if self.level == 2:
             if len(context.scene.branchSplitHeightInLevelList_2) > 0:
                 context.scene.branchSplitHeightInLevelList_2.remove(len(context.scene.branchSplitHeightInLevelList_2) - 1)
-                context.scene.branchSplitHeightInLevelListIndex_2 -= 1
+                #context.scene.branchSplitHeightInLevelListIndex_2 -= 1
         if self.level == 3:
             if len(context.scene.branchSplitHeightInLevelList_3) > 0:
                 context.scene.branchSplitHeightInLevelList_3.remove(len(context.scene.branchSplitHeightInLevelList_3) - 1)
-                context.scene.branchSplitHeightInLevelListIndex_3 -= 1
+                #context.scene.branchSplitHeightInLevelListIndex_3 -= 1
         if self.level == 4:
             if len(context.scene.branchSplitHeightInLevelList_4) > 0:
                 context.scene.branchSplitHeightInLevelList_4.remove(len(context.scene.branchSplitHeightInLevelList_4) - 1)
-                context.scene.branchSplitHeightInLevelListIndex_4 -= 1
+                #context.scene.branchSplitHeightInLevelListIndex_4 -= 1
         if self.level == 5:
             if len(context.scene.branchSplitHeightInLevelList_5) > 0:
                 context.scene.branchSplitHeightInLevelList_5.remove(len(context.scene.branchSplitHeightInLevelList_4) - 1)
-                context.scene.branchSplitHeightInLevelListIndex_5 -= 1
+                #context.scene.branchSplitHeightInLevelListIndex_5 -= 1
         if self.level > 5:
             context.scene.branchSplitHeightInLevelListList[self.level].value.remove(len(context.scene.branchSplitHeightInLevelListList[self.level].value) - 1)
             
@@ -2294,16 +2346,19 @@ class addItem(bpy.types.Operator): # add branch cluster
         verticalAngleBranchEnd = context.scene.verticalAngleBranchEndList.add()
         verticalAngleBranchEnd.value = 0.0
         branchAngleMode = context.scene.branchAngleModeList.add()
+        useFibonacciAnglesList = context.scene.useFibonacciAnglesList.add()
+        fibonacciNrList = context.scene.fibonacciNrList.add()
+        fibonacciNrList.value = 3
         rotateAngle = context.scene.rotateAngleList.add()
         rotateAngle.value = 0.0
-        branchSplitRotateAngleCrownStart = context.scene.branchSplitRotateAngleCrownStartList.add()
-        branchSplitRotateAngleCrownStart = 0.0
-        branchSplitRotateAngleCrownEnd = context.scene.branchSplitRotateAngleCrownEndList.add()
-        branchSplitRotateAngleCrownEnd = 0.0
-        branchSplitRotateAngleBranchStart = context.scene.branchSplitRotateAngleBranchStartList.add()
-        branchSplitRotateAngleBranchStart = 0.0
-        branchSplitRotateAngleBranchEnd = context.scene.branchSplitRotateAngleBranchEndList.add()
-        branchSplitRotateAngleBranchEnd = 0.0
+        rotateAngleCrownStart = context.scene.rotateAngleCrownStartList.add()
+        rotateAngleCrownStart = 0.0
+        rotateAngleCrownEnd = context.scene.rotateAngleCrownEndList.add()
+        rotateAngleCrownEnd = 0.0
+        rotateAngleBranchStart = context.scene.rotateAngleBranchStartList.add()
+        rotateAngleBranchStart = 0.0
+        rotateAngleBranchEnd = context.scene.rotateAngleBranchEndList.add()
+        rotateAngleBranchEnd = 0.0
         
         
         rotateAngleRange = context.scene.rotateAngleRangeList.add()
@@ -2316,8 +2371,14 @@ class addItem(bpy.types.Operator): # add branch cluster
         branchesStartHeightCluster.value = 0.0
         branchesEndHeightCluster = context.scene.branchesEndHeightClusterList.add()
         branchesEndHeightCluster.value = 1.0
-        branchCurvature = context.scene.branchCurvatureList.add()
-        branchCurvature.value = 0.0
+        branchGlobalCurvatureStart = context.scene.branchGlobalCurvatureStartList.add()
+        branchGlobalCurvatureStart.value = 0.0
+        branchGlobalCurvatureEnd = context.scene.branchGlobalCurvatureEndList.add()
+        branchGlobalCurvatureEnd.value = 0.0
+        branchCurvatureStart = context.scene.branchCurvatureStartList.add()
+        branchCurvatureStart.value = 0.0
+        branchCurvatureEnd = context.scene.branchCurvatureEndList.add()
+        branchCurvatureEnd.value = 0.0
         branchCurvatureOffsetStrength = context.scene.branchCurvatureOffsetStrengthList.add()
         branchCurvatureOffsetStrength.value = 0.0
         nrSplitsPerBranch = context.scene.nrSplitsPerBranchList.add()
@@ -2327,8 +2388,8 @@ class addItem(bpy.types.Operator): # add branch cluster
         branchSplitHeightVariation = context.scene.branchSplitHeightVariationList.add()
         branchSplitHeightVariation.value = 0.0
         branchSplitHeightInLevelListListItem = context.scene.branchSplitHeightInLevelListList.add()
-        
-        
+        showBranchSplitHeight = context.scene.showBranchSplitHeights.add()
+        showBranchSplitHeight = True
         
         # ---> hardcode 20 lists -> tempplateList ( no nested List!, bakcfall: old UI...)
         # ---> call getNestedList() at beginning of updateTree()
@@ -2381,18 +2442,23 @@ class removeItem(bpy.types.Operator):
         context.scene.verticalAngleBranchStartList.remove(len(context.scene.verticalAngleBranchStartList) - 1)
         context.scene.verticalAngleBranchEndList.remove(len(context.scene.verticalAngleBranchEndList) - 1)
         context.scene.branchAngleModeList.remove(len(context.scene.branchAngleModeList) - 1)
+        context.scene.useFibonacciAnglesList.remove(len(context.scene.useFibonacciAnglesList) - 1)
+        context.scene.fibonacciNrList.remove(len(context.scene.fibonacciNrList) - 1)
         context.scene.rotateAngleList.remove(len(context.scene.rotateAngleList) - 1)
         
-        context.scene.branchSplitRotateAngleCrownStartList.remove(len(context.scene.branchSplitRotateAngleCrownStartList) - 1)
-        context.scene.branchSplitRotateAngleCrownEndList.remove(len(context.scene.branchSplitRotateAngleCrownEndList) - 1)
-        context.scene.branchSplitRotateAngleBranchStartList.remove(len(context.scene.branchSplitRotateAngleBranchStartList) - 1)
-        context.scene.branchSplitRotateAngleBranchEndList.remove(len(context.scene.branchSplitRotateAngleBranchEndList) - 1)
+        context.scene.rotateAngleCrownStartList.remove(len(context.scene.rotateAngleCrownStartList) - 1)
+        context.scene.rotateAngleCrownEndList.remove(len(context.scene.rotateAngleCrownEndList) - 1)
+        context.scene.rotateAngleBranchStartList.remove(len(context.scene.rotateAngleBranchStartList) - 1)
+        context.scene.rotateAngleBranchEndList.remove(len(context.scene.rotateAngleBranchEndList) - 1)
         
         context.scene.branchesStartHeightGlobalList.remove(len(context.scene.branchesStartHeightGlobalList) - 1)
         context.scene.branchesEndHeightGlobalList.remove(len(context.scene.branchesEndHeightGlobalList) - 1)
         context.scene.branchesStartHeightClusterList.remove(len(context.scene.branchesStartHeightClusterList) - 1)
         context.scene.branchesEndHeightClusterList.remove(len(context.scene.branchesEndHeightClusterList) - 1)
-        context.scene.branchCurvatureList.remove(len(context.scene.branchCurvatureList) - 1)
+        context.scene.branchGlobalCurvatureStartList.remove(len(context.scene.branchGlobalCurvatureStartList) - 1)
+        context.scene.branchGlobalCurvatureEndList.remove(len(context.scene.branchGlobalCurvatureEndList) - 1)
+        context.scene.branchCurvatureStartList.remove(len(context.scene.branchCurvatureStartList) - 1)
+        context.scene.branchCurvatureEndList.remove(len(context.scene.branchCurvatureEndList) - 1)
         context.scene.branchCurvatureOffsetStrengthList.remove(len(context.scene.branchCurvatureOffsetStrengthList) - 1)
         context.scene.nrSplitsPerBranchList.remove(len(context.scene.nrSplitsPerBranchList) - 1)
         context.scene.splitsPerBranchVariationList.remove(len(context.scene.splitsPerBranchVariationList) - 1)
@@ -2526,10 +2592,17 @@ class splitSettings(bpy.types.Panel):
         
         box = layout.box()
         row = box.row()
+        
+        #box.prop(scene.branchClusterBoolListList[i], "show_branch_cluster", icon="TRIA_DOWN" if scene.branchClusterBoolListList[i].show_branch_cluster else "TRIA_RIGHT", emboss=False, text=f"Branch cluster {i}", toggle=True)
+            
+        
+        row.prop(context.scene, "showStemSplitHeights", icon="TRIA_DOWN" if context.scene.showStemSplitHeights else "TRIA_RIGHT", emboss=False, text="")
+        
         row.operator("scene.add_stem_split_level", text="Add split level")
         row.operator("scene.remove_stem_split_level", text="Remove").index = scene.stemSplitHeightInLevelListIndex
-        row = layout.row()
-        row.template_list("UL_stemSplitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex")
+        if context.scene.showStemSplitHeights == True:
+            row = layout.row()
+            row.template_list("UL_stemSplitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex")
                         
         #j = 0
         #for splitLevel in context.scene.stemSplitHeightInLevelList:
@@ -2774,53 +2847,99 @@ class branchSettings(bpy.types.Panel):
                 split.label(text="Branch angle mode")
                 if i < len(scene.branchAngleModeList):
                     split.prop(scene.branchAngleModeList[i], "value", text="")
-            
-                split = box1.split(factor=0.6)
-                split.label(text="Rotate angle")
-                if i < len(scene.rotateAngleList):
-                    split.prop(scene.rotateAngleList[i], "value", text="")
-                    
-                #context.scene.branchSplitRotateAngleCrownStartList,
-                #context.scene.branchSplitRotateAngleCrownEndList,
-                #context.scene.branchSplitRotateAngleBranchStartList,
-                #context.scene.branchSplitRotateAngleBranchEndList,
                 
                 split = box1.split(factor=0.6)
-                split.label(text="Rotate angle crown start")
-                if i < len(scene.branchSplitRotateAngleCrownStartList):
-                    split.prop(scene.branchSplitRotateAngleCrownStartList[i], "value", text="")
-                    
-                split = box1.split(factor=0.6)
-                split.label(text="Rotate angle crown end")
-                if i < len(scene.branchSplitRotateAngleCrownEndList):
-                    split.prop(scene.branchSplitRotateAngleCrownEndList[i], "value", text="")
-                    
-                split = box1.split(factor=0.6)
-                split.label(text="Rotate angle branch start")
-                if i < len(scene.branchSplitRotateAngleBranchStartList):
-                    split.prop(scene.branchSplitRotateAngleBranchStartList[i], "value", text="")
-                    
-                split = box1.split(factor=0.6)
-                split.label(text="Rotate angle branch end")
-                if i < len(scene.branchSplitRotateAngleBranchEndList):
-                    split.prop(scene.branchSplitRotateAngleBranchEndList[i], "value", text="")
-                    
-                    
-                    
-                    
-                    
                 
                 if i < len(scene.branchAngleModeList):
                     if scene.branchAngleModeList[i].value == 'WINDING':
-                        split = box1.split(factor=0.6)
-                        split.label(text="Rotate angle range")
-                        split.prop(scene.rotateAngleRangeList[i], "value", text="")
+                        split.label(text="Use Fibonacci angles")
+                        if i < len(scene.useFibonacciAnglesList):
+                            split.prop(scene.useFibonacciAnglesList[i], "value", text="")
+                        if scene.useFibonacciAnglesList[i].value == True:
+                            split = box1.split(factor=0.6)
+                            split.label(text="Fibonacci number")
+                            split.prop(scene.fibonacciNrList[i], "fibonacci_nr", text="")
+                            
+                            split1 = box1.split(factor=0.6)
+                            #split = box1.split(factor=0.6)
+                            split1.label(text="Angle:")
+                            #split.prop(scene.fibonacciNrList[i], "fibonacci_angle", text="")
+                            split1.label(text=f"{scene.fibonacciNrList[i].fibonacci_angle:.2f}°")
+                            #fn0 = 1.0
+                            #fn1 = 1.0
+                            #if scene.fibonacciNrList[i].value > 2:
+                            #    for n in range(2, scene.fibonacciNrList[i].value + 1):
+                            #        temp = fn0 + fn1
+                            #        fn0 = fn1
+                            #        fn1 = temp
+                            #scene.rotateAngleCrownStartList[i].value = 360.0 + (1.0 - fn0 / fn1) #TODO 
+                            
+                            #test
+                            split = box1.split(factor=0.6)
+                            split.label(text="TESTrotateAngleRange")
+                            split.prop(scene.fibonacciNrList[i], "rotate_angle_range", text="")
+                        
+                        if scene.useFibonacciAnglesList[i].value == False:
+                            split = box1.split(factor=0.6)
+                            split.label(text="Rotate angle range")
+                            split.prop(scene.fibonacciNrList[i], "rotate_angle_range", text="")
+                            #split.prop(scene.rotateAngleRangeList[i], "value", text="")
+                
+                #split = box1.split(factor=0.6)
+                #split.label(text="Rotate angle")
+                #if i < len(scene.rotateAngleList):
+                #    split.prop(scene.rotateAngleList[i], "value", text="") #TODO: remove property!
+                    
+                #context.scene.rotateAngleCrownStartList,
+                #context.scene.rotateAngleCrownEndList,
+                #context.scene.rotateAngleBranchStartList,
+                #context.scene.rotateAngleBranchEndList,
+                
+                split = box1.split(factor=0.6)
+                split.label(text="Rotate angle crown start")
+                if i < len(scene.rotateAngleCrownStartList):
+                    split.prop(scene.rotateAngleCrownStartList[i], "value", text="")
+                    
+                split = box1.split(factor=0.6)
+                split.label(text="Rotate angle crown end")
+                if i < len(scene.rotateAngleCrownEndList):
+                    split.prop(scene.rotateAngleCrownEndList[i], "value", text="")
+                    
+                split = box1.split(factor=0.6)
+                split.label(text="Rotate angle branch start")
+                if i < len(scene.rotateAngleBranchStartList):
+                    split.prop(scene.rotateAngleBranchStartList[i], "value", text="")
+                    
+                split = box1.split(factor=0.6)
+                split.label(text="Rotate angle branch end")
+                if i < len(scene.rotateAngleBranchEndList):
+                    split.prop(scene.rotateAngleBranchEndList[i], "value", text="")
+                    
+                  
+                
+                
                         
                 split = box1.split(factor=0.6)
-                split.label(text="Branch curvature")
-                if i < len(scene.branchCurvatureList):
-                    split.prop(scene.branchCurvatureList[i], "value", text="")
+                split.label(text="Branch global curvature start")
+                if i < len(scene.branchGlobalCurvatureStartList):
+                    split.prop(scene.branchGlobalCurvatureStartList[i], "value", text="")
+                
+                split = box1.split(factor=0.6)
+                split.label(text="Branch global curvature end")
+                if i < len(scene.branchGlobalCurvatureEndList):
+                    split.prop(scene.branchGlobalCurvatureEndList[i], "value", text="")
+                
+                
+                split = box1.split(factor=0.6)
+                split.label(text="Branch curvature start")
+                if i < len(scene.branchCurvatureStartList):
+                    split.prop(scene.branchCurvatureStartList[i], "value", text="")
                     
+                split = box1.split(factor=0.6)
+                split.label(text="Branch curvature end")
+                if i < len(scene.branchCurvatureEndList):
+                    split.prop(scene.branchCurvatureEndList[i], "value", text="")
+                
                 split = box1.split(factor=0.6)
                 split.label(text="Branch curvature offset")
                 if i < len(scene.branchCurvatureOffsetStrengthList):
@@ -2882,30 +3001,40 @@ class branchSettings(bpy.types.Panel):
                     split.prop(scene.branchSplitHeightVariationList[i], "value", text="", slider=True)
                 
                 row = box2.row()
+                
+                #row.prop(context.scene, "showStemSplitHeights", icon="TRIA_DOWN" if context.scene.showStemSplitHeights else "TRIA_RIGHT", emboss=False, text="")
+                
+                #split.prop(scene.showSplitSettings[i], "value", icon="TRIA_DOWN" if scene.showSplitSettings[i].value else "TRIA_RIGHT", emboss=False, text="Split settings", toggle=True)
+                
+                row.prop(scene.showBranchSplitHeights[i], "value", icon="TRIA_DOWN" if scene.showBranchSplitHeights[i].value else "TRIA_RIGHT", text="", toggle=True)
+                
+                #row.prop(context.scene, "showBranchSplitHeights[i].value", icon="TRIA_DOWN" if context.scene.showBranchSplitHeights[i].value else "TRIA_RIGHT", emboss=False, text="")
+                
                 row.operator("scene.add_branch_split_level", text="Add split level").level = i
                 row.operator("scene.remove_branch_split_level", text="Remove").level = i
               
-                row = box2.row()
-                # ---> hardcode 20 lists -> tempplateList ( no nested List!, bakcfall: old UI...)
-                # ---> call getNestedList() at beginning of updateTree()
-                if i == 0:
-                    row.template_list("UL_branchSplitLevelListLevel_0", "", scene, "branchSplitHeightInLevelList_0", scene, "branchSplitHeightInLevelListIndex_0")
-                if i == 1:
-                    row.template_list("UL_branchSplitLevelListLevel_1", "", scene, "branchSplitHeightInLevelList_1", scene, "branchSplitHeightInLevelListIndex_1")
-                if i == 2:
-                    row.template_list("UL_branchSplitLevelListLevel_2", "", scene, "branchSplitHeightInLevelList_2", scene, "branchSplitHeightInLevelListIndex_2")
-                if i == 3:
-                    row.template_list("UL_branchSplitLevelListLevel_3", "", scene, "branchSplitHeightInLevelList_3", scene, "branchSplitHeightInLevelListIndex_3")
-                if i == 4:
-                    row.template_list("UL_branchSplitLevelListLevel_4", "", scene, "branchSplitHeightInLevelList_4", scene, "branchSplitHeightInLevelListIndex_4")
-                if i == 5:
-                    row.template_list("UL_branchSplitLevelListLevel_5", "", scene, "branchSplitHeightInLevelList_5", scene, "branchSplitHeightInLevelListIndex_5")
-                if i > 5:
-                    # TODO...
-                    j = 0
-                    for splitLevel in context.scene.branchSplitHeightInLevelListList[i].value:
-                        box2.prop(splitLevel, "value", text=f"Split height level {j}", slider=True)
-                        j += 1
+                if context.scene.showBranchSplitHeights[i].value == True:
+                    row = box2.row()
+                    # ---> hardcode 20 lists -> tempplateList ( no nested List!, bakcfall: old UI...)
+                    # ---> call getNestedList() at beginning of updateTree()
+                    if i == 0:
+                        row.template_list("UL_branchSplitLevelListLevel_0", "", scene, "branchSplitHeightInLevelList_0", scene, "branchSplitHeightInLevelListIndex_0")
+                    if i == 1:
+                        row.template_list("UL_branchSplitLevelListLevel_1", "", scene, "branchSplitHeightInLevelList_1", scene, "branchSplitHeightInLevelListIndex_1")
+                    if i == 2:
+                        row.template_list("UL_branchSplitLevelListLevel_2", "", scene, "branchSplitHeightInLevelList_2", scene, "branchSplitHeightInLevelListIndex_2")
+                    if i == 3:
+                        row.template_list("UL_branchSplitLevelListLevel_3", "", scene, "branchSplitHeightInLevelList_3", scene, "branchSplitHeightInLevelListIndex_3")
+                    if i == 4:
+                        row.template_list("UL_branchSplitLevelListLevel_4", "", scene, "branchSplitHeightInLevelList_4", scene, "branchSplitHeightInLevelListIndex_4")
+                    if i == 5:
+                        row.template_list("UL_branchSplitLevelListLevel_5", "", scene, "branchSplitHeightInLevelList_5", scene, "branchSplitHeightInLevelListIndex_5")
+                    if i > 5:
+                        # TODO...
+                        j = 0
+                        for splitLevel in context.scene.branchSplitHeightInLevelListList[i].value:
+                            box2.prop(splitLevel, "value", text=f"Split height level {j}", slider=True)
+                            j += 1
         
                 #...
                 
@@ -2926,6 +3055,7 @@ def register():
     bpy.utils.register_class(splitModeEnumProp)
     bpy.utils.register_class(angleModeEnumProp)
     bpy.utils.register_class(intProp)
+    bpy.utils.register_class(fibonacciProps)
     bpy.utils.register_class(floatProp)
     bpy.utils.register_class(posFloatProp)
     bpy.utils.register_class(floatProp01)
@@ -2968,6 +3098,10 @@ def register():
           
     #collections
     bpy.types.Scene.stemSplitHeightInLevelList = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.showStemSplitHeights = bpy.props.BoolProperty(
+        name = "Show/hide stem split heights",
+        default = True
+    )
     bpy.types.Scene.stemSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0)
     
     bpy.types.Scene.file_name = bpy.props.StringProperty(name="File Name", default="my_tree_properties")
@@ -2983,10 +3117,10 @@ def register():
     bpy.types.Scene.branchSplitModeList = bpy.props.CollectionProperty(type=splitModeEnumProp)
     bpy.types.Scene.branchVarianceList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchSplitRotateAngleList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.branchSplitRotateAngleCrownStartList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.branchSplitRotateAngleCrownEndList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.branchSplitRotateAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.branchSplitRotateAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.rotateAngleCrownStartList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.rotateAngleCrownEndList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.rotateAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.rotateAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchSplitAngleList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.branchSplitPointAngleList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.branchShapeList = bpy.props.CollectionProperty(type=treeShapeEnumProp)
@@ -2997,13 +3131,18 @@ def register():
     bpy.types.Scene.verticalAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.verticalAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchAngleModeList = bpy.props.CollectionProperty(type=angleModeEnumProp)
+    bpy.types.Scene.useFibonacciAnglesList = bpy.props.CollectionProperty(type=boolProp)
+    bpy.types.Scene.fibonacciNrList = bpy.props.CollectionProperty(type=fibonacciProps)
     bpy.types.Scene.rotateAngleList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.rotateAngleRangeList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchesStartHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchesEndHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchesStartHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchesEndHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
-    bpy.types.Scene.branchCurvatureList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.branchGlobalCurvatureStartList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.branchGlobalCurvatureEndList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.branchCurvatureStartList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.branchCurvatureEndList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchCurvatureOffsetStrengthList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.nrSplitsPerBranchList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.splitsPerBranchVariationList = bpy.props.CollectionProperty(type=floatProp)
@@ -3022,7 +3161,7 @@ def register():
     bpy.types.Scene.branchSplitHeightInLevelListIndex_4 = bpy.props.IntProperty(default = 0)
     bpy.types.Scene.branchSplitHeightInLevelList_5 = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_5 = bpy.props.IntProperty(default = 0)
-    
+    bpy.types.Scene.showBranchSplitHeights = bpy.props.CollectionProperty(type=boolProp)
     
     # bpy.props.CollectionProperty(type=intProp)
         
@@ -3086,12 +3225,12 @@ def register():
         default = 0.0
     )
     bpy.types.Scene.curvatureStart = bpy.props.FloatProperty(
-        name = "Curvature Start TODO",
+        name = "Curvature Start",
         description = "Curvature at start of branches",
         default = 0.0
     )
     bpy.types.Scene.curvatureEnd = bpy.props.FloatProperty(
-        name = "Curvature End TODO",
+        name = "Curvature End",
         description = "Curvature at end of branches",
         default = 0.0
     )
@@ -3134,6 +3273,8 @@ def register():
         min = 0.0,
         max = 360.0
     )
+    
+    
     bpy.types.Scene.stemSplitPointAngle = bpy.props.FloatProperty(
         name = "Stem Split Point Angle",
         description = "Point angle of stem splits",
@@ -3485,10 +3626,10 @@ def save_properties(filePath):
         "branchSplitModeList": [item.value for item in props.branchSplitModeList],
         "branchVarianceList": [item.value for item in props.branchVarianceList],
         "branchSplitRotateAngleList": [item.value for item in props.branchSplitRotateAngleList],
-        "branchSplitRotateAngleCrownStartList": [item.value for item in props.branchSplitRotateAngleCrownStartList],
-        "branchSplitRotateAngleCrownEndList": [item.value for item in props.branchSplitRotateAngleCrownEndList],
-        "branchSplitRotateAngleBranchStartList": [item.value for item in props.branchSplitRotateAngleBranchStartList],
-        "branchSplitRotateAngleBranchEndList": [item.value for item in props.branchSplitRotateAngleBranchEndList],
+        "rotateAngleCrownStartList": [item.value for item in props.rotateAngleCrownStartList],
+        "rotateAngleCrownEndList": [item.value for item in props.rotateAngleCrownEndList],
+        "rotateAngleBranchStartList": [item.value for item in props.rotateAngleBranchStartList],
+        "rotateAngleBranchEndList": [item.value for item in props.rotateAngleBranchEndList],
         "branchSplitAngleList": [item.value for item in props.branchSplitAngleList],
         "branchSplitPointAngleList": [item.value for item in props.branchSplitPointAngleList],
         "branchShapeList": [item.value for item in props.branchShapeList],
@@ -3499,13 +3640,17 @@ def save_properties(filePath):
         "verticalAngleBranchStartList": [item.value for item in props.verticalAngleBranchStartList],
         "verticalAngleBranchEndList": [item.value for item in props.verticalAngleBranchEndList],
         "branchAngleModeList": [item.value for item in props.branchAngleModeList],
+        "useFibonacciAnglesList": [item.value for item in props.useFibonacciAnglesList],
         "rotateAngleList": [item.value for item in props.rotateAngleList],
         "rotateAngleRangeList": [item.value for item in props.rotateAngleRangeList],
         "branchesStartHeightGlobalList": [item.value for item in props.branchesStartHeightGlobalList],
         "branchesEndHeightGlobalList": [item.value for item in props.branchesEndHeightGlobalList],
         "branchesStartHeightClusterList": [item.value for item in props.branchesStartHeightClusterList],
         "branchesEndHeightClusterList": [item.value for item in props.branchesEndHeightClusterList],
-        "branchCurvatureList": [item.value for item in props.branchCurvatureList],
+        "branchGlobalCurvatureStartList": [item.value for item in props.branchGlobalCurvatureStartList],
+        "branchGlobalCurvatureEndList": [item.value for item in props.branchGlobalCurvatureEndList],
+        "branchCurvatureStartList": [item.value for item in props.branchCurvatureStartList],
+        "branchCurvatureEndList": [item.value for item in props.branchCurvatureEndList],
         "branchCurvatureOffsetStrengthList": [item.value for item in props.branchCurvatureOffsetStrengthList],
         "nrSplitsPerBranchList": [item.value for item in props.nrSplitsPerBranchList],
         "splitsPerBranchVariationList": [item.value for item in props.splitsPerBranchVariationList],
@@ -3610,20 +3755,20 @@ def load_properties(filepath, context):
             item = props.branchSplitRotateAngleList.add()
             item.value = value
         
-        for value in data.get("branchSplitRotateAngleCrownStartList", []):
-            item = props.branchSplitRotateAngleCrownStartList.add()
+        for value in data.get("rotateAngleCrownStartList", []):
+            item = props.rotateAngleCrownStartList.add()
             item.value = value
             
-        for value in data.get("branchSplitRotateAngleCrownEndList", []):
-            item = props.branchSplitRotateAngleCrownEndList.add()
+        for value in data.get("rotateAngleCrownEndList", []):
+            item = props.rotateAngleCrownEndList.add()
             item.value = value
             
-        for value in data.get("branchSplitRotateAngleBranchStartList", []):
-            item = props.branchSplitRotateAngleBranchStartList.add()
+        for value in data.get("rotateAngleBranchStartList", []):
+            item = props.rotateAngleBranchStartList.add()
             item.value = value
             
-        for value in data.get("branchSplitRotateAngleBranchEndList", []):
-            item = props.branchSplitRotateAngleBranchEndList.add()
+        for value in data.get("rotateAngleBranchEndList", []):
+            item = props.rotateAngleBranchEndList.add()
             item.value = value
             
             
@@ -3681,10 +3826,22 @@ def load_properties(filepath, context):
             item = props.branchesEndHeightClusterList.add()
             item.value = value
             
-        for value in data.get("branchCurvatureList", []):
-            item = props.branchCurvatureList.add()
+        for value in data.get("branchGlobalCurvatureStartList", []):
+            item = props.branchGlobalCurvatureStartList.add()
             item.value = value
             
+        for value in data.get("branchGlobalCurvatureEndList", []):
+            item = props.branchGlobalCurvatureEndList.add()
+            item.value = value
+        
+        for value in data.get("branchCurvatureStartList", []):
+            item = props.branchCurvatureStartList.add()
+            item.value = value
+           
+        for value in data.get("branchCurvatureEndList", []):
+            item = props.branchCurvatureEndList.add()
+            item.value = value
+        
         for value in data.get("branchCurvatureOffsetStrengthList", []):
             item = props.branchCurvatureOffsetStrengthList.add()
             item.value = value
