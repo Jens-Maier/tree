@@ -563,7 +563,7 @@ class generateTree(bpy.types.Operator):
             
             #def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, splitHeightInLevel, stemSplitMode, stemSplitRotateAngle, root_node, stemRingResolution, curvOffsetStrength, self):
             if context.scene.nrSplits > 0:
-                splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, context.scene.stemSplitHeightInLevelList, context.scene.splitHeightVariation, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution, context.scene.curvOffsetStrength, self, nodes[0])
+                splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, context.scene.stemSplitHeightInLevelList, context.scene.splitHeightVariation, context.scene.splitLengthVariation, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution, context.scene.curvOffsetStrength, self, nodes[0])
             
             
             nodes[0].resampleSpline(nodes[0], self, context.scene.resampleDistance)
@@ -628,8 +628,10 @@ class generateTree(bpy.types.Operator):
                 context.scene.branchSplitHeightInLevelList_0, 
                 
                 context.scene.branchSplitHeightVariationList,
+                context.scene.branchSplitLengthVariationList,
                 context.scene.branchSplitModeList,
                 context.scene.branchSplitRotateAngleList,
+                context.scene.branchSplitAxisVariationList,
                 
                 context.scene.branchCurvatureOffsetStrengthList[0],
                 context.scene.branchVarianceList)
@@ -940,7 +942,7 @@ def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
 
 #nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, 0.5, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0]
 
-def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, splitHeightInLevel, splitHeightVariation, stemSplitMode, stemSplitRotateAngle, root_node, stemRingResolution, curvOffsetStrength, self, rootNode):
+def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, splitHeightInLevel, splitHeightVariation, splitLengthVariation, stemSplitMode, stemSplitRotateAngle, root_node, stemRingResolution, curvOffsetStrength, self, rootNode):
     #self.report({'INFO'}, f"splitRecursive! nrSplits: {nrSplits}")
     while len(splitHeightInLevel) < nrSplits:
         newHeight = splitHeightInLevel.add()
@@ -1033,7 +1035,7 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
                     splitNode = split(
                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0],
                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][1],
-                        splitHeight, splitAngle, splitPointAngle, level, stemSplitMode, stemSplitRotateAngle, stemRingResolution, curvOffsetStrength, self, rootNode)
+                        splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, stemSplitMode, stemSplitRotateAngle, 0.0, stemRingResolution, curvOffsetStrength, self, rootNode)
                     #if splitNode == nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0]:
                     #    nodeIndices.pop(indexToSplit) # error here !!! -> split at startNode possible!
                          #self.report({'INFO'}, f"in splitRecursive: splitNode == startNode")
@@ -1051,11 +1053,13 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
 def split(startNode, 
           nextIndex, 
           splitHeight, 
+          splitLengthVariation,
           splitAngle, 
           splitPointAngle, 
           level, 
           mode, 
           rotationAngle, 
+          branchSplitAxisVariation, 
           stemRingResolution, 
           curvOffsetStrength, 
           self, 
@@ -1079,10 +1083,10 @@ def split(startNode,
                         splitNode = splitNode.next[0]
                 
                 if splitNode != startNode:
-                    calculateSplitData(splitNode, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
+                    calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
                 else:
                     # TODO -> split at new node!!!
-                    return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, rootNode)
+                    return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, mode, rotationAngle, branchSplitAxisVariation, stemRingResolution, curvOffsetStrength, self, rootNode)
                     #return startNode
                     self.report({'INFO'}, f"splitNode == startNode")
                 #    if splitNode == rootNode:
@@ -1090,12 +1094,12 @@ def split(startNode,
                 self.report({'INFO'}, f"split at existing node")
                 #return splitNode
             else:
-                return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, rootNode) # clusterIndex???
+                return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, mode, rotationAngle, branchSplitAxisVariation, stemRingResolution, curvOffsetStrength, self, rootNode) # clusterIndex???
                 
     self.report({'INFO'}, f"split failed! nrNodesToTip: {nrNodesToTip}, len(startNode.next): {len(startNode.next)}, nextIndex: {nextIndex}")
     return startNode
 
-def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, rootNode):
+def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, mode, rotationAngle, branchSplitAxisVariation, stemRingResolution, curvOffsetStrength, self, rootNode):
     # Split at new node between two nodes
     
     splitAfterNode = startNode
@@ -1148,11 +1152,11 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
     
     # ERROR: when splitHeightVariation is large !!!
     
-    calculateSplitData(newNode, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
+    calculateSplitData(newNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
     self.report({'INFO'}, f"did split at new node!")
     return newNode
 
-def calculateSplitData(splitNode, splitAngle, splitPointAngle, level, sMode, rotationAngle, stemRingResolution, curvOffsetStrength, self):
+def calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, sMode, rotationAngle, stemRingResolution, curvOffsetStrength, self):
     
     n = splitNode
     nodesAfterSplitNode = 0
@@ -1169,6 +1173,8 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, level, sMode, rot
         right = splitNode.tangent[0].cross(Vector((0.0, 0.0, 1.0)))
         #drawDebugPoint(splitNode.point + right / 2.0)
         splitAxis = right.cross(splitNode.tangent[0]).normalized()
+        
+        splitAxis = Quaternion(splitNode.tangent[0], random.uniform(-branchSplitAxisVariation, branchSplitAxisVariation)) @ splitAxis
         #drawDebugPoint(splitNode.point + splitAxis / 2.0)
 
     elif sMode == "ROTATE_ANGLE":
@@ -1208,7 +1214,9 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, level, sMode, rot
         cotangent_b = (Quaternion(splitAxis, -math.radians(splitAngle)) @ s.cotangent).normalized()
 
         offset_a = (Quaternion(splitAxis, math.radians(splitAngle)) @ rel_pos)
+        offset_a = offset_a * (1.0 + random.uniform(-1.0, 1.0) * splitLengthVariation)
         offset_b = (Quaternion(splitAxis, -math.radians(splitAngle)) @ rel_pos)
+        offset_b = offset_b * (1.0 + random.uniform(-1.0, 1.0) * splitLengthVariation)
 
         # Assuming the class node has a constructor that matches the parameters
         tValBranch = 0.0  # TODO: define this as needed
@@ -1300,9 +1308,11 @@ branchSplitAngle,
 branchSplitPointAngle, 
 branchSplitHeightInLevel, #==branchSplitHeightInLevelList_0
 branchSplitHeightVariation,
+branchSplitLengthVariation,
 
 branchSplitMode,
 branchSplitRotateAngle,
+branchSplitAxisVariationList,
 branchCurvOffsetStrength,
 branchVariance):
     
@@ -1509,14 +1519,16 @@ branchVariance):
                                   splitsPerBranchVariation[clusterIndex].value, 
                                   branchSplitHeightInLevel, # == branchSplitHeightInLevelList_0
                                   branchSplitHeightVariation[clusterIndex].value, 
+                                  branchSplitLengthVariation[clusterIndex].value,
                                   
                                   branchSplitMode[clusterIndex].value, 
                                   branchSplitRotateAngle[clusterIndex].value,
                                   0, #level ???
                                   
-                                  ringResolution, 
+                                  ringResolutionList[clusterIndex].value, 
                                   0.0,#branchCurvOffsetStrength[0], #TODO: variable for each branch cluster... 
-                                  branchVariance[clusterIndex].value)
+                                  branchVariance[clusterIndex].value, 
+                                  branchSplitAxisVariationList[clusterIndex].value)
                     
         #TODO
         #def resampleSpline(self, treeGen, resampleDistance):
@@ -1570,12 +1582,14 @@ def splitBranches(self,
                   splitsPerBranchVariation, 
                   branchSplitHeightInLevel, # == branchSplitHeightInLevelList_0
                   branchSplitHeightVariation, 
+                  branchSplitLengthVariation, 
                   branchSplitMode, 
                   branchSplitRotateAngle, 
                   level,
                   stemRingResolution, 
                   curvOffsetStrength, 
-                  variance):
+                  variance, 
+                  branchSplitAxisVariation):
                       
     allBranchNodes = []
     
@@ -1723,15 +1737,18 @@ def splitBranches(self,
                             nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel,
                             nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nextIndex, 
                             branchSplitHeight, 
+                            branchSplitLengthVariation,
                             splitAngle,
                             splitPointAngle, 
                             level, 
                             branchSplitMode, 
                             branchSplitRotateAngle, 
+                            branchSplitAxisVariation, 
                             stemRingResolution,
                             0.0, #curvOffsetStrength,
                             self, 
                             rootNode)
+                            
                         if splitNode == nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel:
                             #did not split
                             totalWeight -= branchWeights[indexToSplit]
@@ -2396,6 +2413,8 @@ class addItem(bpy.types.Operator): # add branch cluster
         branchVariance = context.scene.branchVarianceList.add()
         branchSplitRotateAngle = context.scene.branchSplitRotateAngleList.add()
         branchSplitRotateAngle.value = 0.0
+        branchSplitAxisVariation = context.scene.branchSplitAxisVariationList.add()
+        branchSplitAxisVariation.value = 0.0
         branchSplitAngle = context.scene.branchSplitAngleList.add()
         branchSplitAngle.value = 0.0
         branchSplitPointAngle = context.scene.branchSplitPointAngleList.add()
@@ -2472,6 +2491,8 @@ class addItem(bpy.types.Operator): # add branch cluster
         splitsPerBranchVariation.value = 0.0
         branchSplitHeightVariation = context.scene.branchSplitHeightVariationList.add()
         branchSplitHeightVariation.value = 0.0
+        branchSplitLengthVariation = context.scene.branchSplitLengthVariationList.add()
+        branchSplitLengthVariation.value = 0.0
         branchSplitHeightInLevelListListItem = context.scene.branchSplitHeightInLevelListList.add()
         showBranchSplitHeight = context.scene.showBranchSplitHeights.add()
         showBranchSplitHeight = True
@@ -2514,6 +2535,7 @@ class removeItem(bpy.types.Operator):
         context.scene.branchSplitModeList.remove(len(context.scene.branchSplitModeList) - 1)
         context.scene.branchVarianceList.remove(len(context.scene.branchVarianceList) - 1)
         context.scene.branchSplitRotateAngleList.remove(len(context.scene.branchSplitRotateAngleList) - 1)
+        context.scene.branchSplitAxisVariationList.remove(len(context.scene.branchSplitAxisVariationList) - 1)
         context.scene.branchSplitAngleList.remove(len(context.scene.branchSplitAngleList) - 1)
         context.scene.branchSplitPointAngleList.remove(len(context.scene.branchSplitPointAngleList) - 1)
         context.scene.branchShapeList.remove(len(context.scene.branchShapeList) - 1)
@@ -2549,6 +2571,7 @@ class removeItem(bpy.types.Operator):
         context.scene.nrSplitsPerBranchList.remove(len(context.scene.nrSplitsPerBranchList) - 1)
         context.scene.splitsPerBranchVariationList.remove(len(context.scene.splitsPerBranchVariationList) - 1)
         context.scene.branchSplitHeightVariationList.remove(len(context.scene.branchSplitHeightVariationList) - 1)
+        context.scene.branchSplitLengthVariationList.remove(len(context.scene.branchSplitLengthVariationList) - 1)
         context.scene.branchSplitHeightInLevelListList.remove(len(context.scene.branchSplitHeightInLevelListList) - 1)
         
         #context.scene.branchSplitHeightInLevelListIndex.remove(len(context.scene.branchSplitHeightInLevelListIndex) - 1)
@@ -2987,16 +3010,23 @@ class branchSettings(bpy.types.Panel):
                 if scene.showSplitSettings[i].value:
                     box2 = box.box()
                 
-                    split = box2.split(factor=0.6)
-                    split.label(text="Branch split mode")
+                    box3 = box2.box()
+                    split = box3.split(factor=0.6)
                     if i < len(scene.branchSplitModeList):
+                        split.label(text="Branch split mode")
                         split.prop(scene.branchSplitModeList[i], "value", text="")
                         mode = scene.branchSplitModeList[i].value
                         if mode == "ROTATE_ANGLE":
-                            split = box2.split(factor=0.6)
+                            split = box3.split(factor=0.6)
                             split.label(text="Branch split rotate angle")
                             if i < len(scene.branchSplitRotateAngleList):
                                 split.prop(scene.branchSplitRotateAngleList[i], "value", text="")
+                                
+                        if mode == "HORIZONTAL":
+                            split = box3.split(factor=0.6)
+                            split.label(text="Branch split axis variation")
+                            if i < len(scene.branchSplitAxisVariationList):
+                                split.prop(scene.branchSplitAxisVariationList[i], "value", text="")
                     
                     if i < len(scene.branchSplitAngleList):
                         split = box2.split(factor=0.6)
@@ -3022,6 +3052,11 @@ class branchSettings(bpy.types.Panel):
                     split.label(text="Branch split height variation")
                     if i < len(scene.branchSplitHeightVariationList):
                         split.prop(scene.branchSplitHeightVariationList[i], "value", text="", slider=True)
+                    
+                    split = box2.split(factor=0.6)
+                    split.label(text="Branch split length variation")
+                    if i < len(scene.branchSplitLengthVariationList):
+                        split.prop(scene.branchSplitLengthVariationList[i], "value", text="", slider=True)
                     
                     row = box2.row()
                     
@@ -3126,6 +3161,7 @@ def register():
     bpy.types.Scene.branchSplitModeList = bpy.props.CollectionProperty(type=splitModeEnumProp)
     bpy.types.Scene.branchVarianceList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchSplitRotateAngleList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.branchSplitAxisVariationList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.rotateAngleCrownStartList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.rotateAngleCrownEndList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.rotateAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
@@ -3157,6 +3193,7 @@ def register():
     bpy.types.Scene.nrSplitsPerBranchList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.splitsPerBranchVariationList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchSplitHeightVariationList = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitLengthVariationList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchSplitHeightInLevelListList = bpy.props.CollectionProperty(type=floatListProp01)
     bpy.types.Scene.branchSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0)
     bpy.types.Scene.branchSplitHeightInLevelList_0 = bpy.props.CollectionProperty(type=floatProp01)
@@ -3295,6 +3332,12 @@ def register():
     bpy.types.Scene.splitHeightVariation = bpy.props.FloatProperty(
         name = "Split Height Variation",
         description = "Variation in split height",
+        default = 0.0,
+        min = 0.0
+    )
+    bpy.types.Scene.splitLengthVariation = bpy.props.FloatProperty(
+        name = "Split Length Variation",
+        description = "Variation in split length",
         default = 0.0,
         min = 0.0
     )
@@ -3577,6 +3620,7 @@ def register():
         default = [0.0],
         min = 0.0
     )
+    
 
 def save_properties(filePath):
     props = bpy.context.scene
@@ -3621,6 +3665,7 @@ def save_properties(filePath):
            for i in range(6)},
            
         "splitHeightVariation": props.splitHeightVariation,
+        "splitLengthVariation": props.splitLengthVariation,
         "stemSplitAngle": props.stemSplitAngle,
         "stemSplitPointAngle": props.stemSplitPointAngle,
         
@@ -3636,6 +3681,7 @@ def save_properties(filePath):
         "branchSplitModeList": [item.value for item in props.branchSplitModeList],
         "branchVarianceList": [item.value for item in props.branchVarianceList],
         "branchSplitRotateAngleList": [item.value for item in props.branchSplitRotateAngleList],
+        "branchSplitAxisVariationList": [item.value for item in props.branchSplitAxisVariationList],
         "rotateAngleCrownStartList": [item.value for item in props.rotateAngleCrownStartList],
         "rotateAngleCrownEndList": [item.value for item in props.rotateAngleCrownEndList],
         "rotateAngleBranchStartList": [item.value for item in props.rotateAngleBranchStartList],
@@ -3749,6 +3795,7 @@ def load_properties(filepath, context):
         props.stemSplitRotateAngle = data.get("stemSplitRotateAngle", props.stemSplitRotateAngle)
         props.curvOffsetStrength = data.get("curvOffsetStrength", props.curvOffsetStrength)
         props.splitHeightVariation = data.get("splitHeightVariation", props.splitHeightVariation)
+        props.splitLengthVariation = data.get("splitLengthVariation", props.splitLengthVariation)
         props.stemSplitAngle = data.get("stemSplitAngle", props.stemSplitAngle)
         props.stemSplitPointAngle = data.get("stemSplitPointAngle", props.stemSplitPointAngle)
         
@@ -3764,6 +3811,10 @@ def load_properties(filepath, context):
             
         for value in data.get("branchSplitRotateAngleList", []):
             item = props.branchSplitRotateAngleList.add()
+            item.value = value
+            
+        for value in data.get("branchSplitAxisVariationList", []):
+            item = props.branchSplitAxisVariationList.add()
             item.value = value
         
         for value in data.get("rotateAngleCrownStartList", []):
@@ -3874,6 +3925,9 @@ def load_properties(filepath, context):
             item = props.branchSplitHeightVariationList.add()
             item.value = value
         
+        for value in data.get("branchSplitLengthVariationList", []):
+            item = props.branchSplitLengthVariationList.add()
+            item.value = value
         
             
         #generateTree()
