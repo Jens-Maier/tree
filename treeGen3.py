@@ -57,9 +57,9 @@ class node():
         self.branches = []
         self.branchLength = BranchLength
         
-    def drawDebugPoint(pos, name="debugPoint"):
+    def drawDebugPoint(pos, size, name="debugPoint"):
         bpy.ops.object.empty_add(type='SPHERE', location=pos)
-        bpy.context.active_object.empty_display_size = 0.1
+        bpy.context.active_object.empty_display_size = size
         bpy.context.active_object.name=name
         
     def drawTangentArrows(self, treeGen):
@@ -97,13 +97,13 @@ class node():
         #if len(activeNode.next) > 2:
         #treeGen.report({'INFO'}, f"len(activeNode.next) = {len(activeNode.next)}")
         
-        #for t in self.tangent:
-        #    drawArrow(self.point, self.point + t * 3.0)
+        for t in self.tangent:
+            drawArrow(self.point, self.point + t)
         if self.clusterIndex == -1: 
-            drawDebugPoint(self.point)
+            drawDebugPoint(self.point, 0.1)
         
         #for n in self.next:
-        #    drawDebugPoint(n.point)
+        #    drawDebugPoint(n.point, 0.1)
         #drawArrow(self.point, self.point + self.cotangent)
         
         for n, nextNode in enumerate(self.next):
@@ -289,7 +289,7 @@ class node():
         
             centerPoint = sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, Vector((0.0,0.0,1.0)), nextTangent, self.tValGlobal)
             #treeGen.report({'INFO'}, f"in applyCurvature(): centerPoint: {centerPoint}, tValGlobal: {self.tValGlobal}")
-            drawDebugPoint(centerPoint)
+            drawDebugPoint(centerPoint, 0.1)
         else:
             # in branch cluster ... TODO
             centerPoint = branchStartPoint
@@ -309,8 +309,8 @@ class node():
         else:
             curveAxis = right.normalized()
         
-        drawDebugPoint(self.point)
-        drawDebugPoint(self.point + curveAxis.normalized() / 2.0)
+        drawDebugPoint(self.point, 0.1)
+        drawDebugPoint(self.point + curveAxis.normalized() / 2.0, 0.1)
         drawArrow(self.point, self.point + curveAxis.normalized())
         
         treeGen.report({'INFO'}, f"in applyCurvature: self.tValGlobal: {self.tValGlobal}, curvatureStartGlobal: {curvatureStartGlobal}, curvatureEndGlobal: {curvatureEndGlobal}")
@@ -328,10 +328,19 @@ class node():
                 self.curveStep(treeGen, curvature, curveAxis, self.point, True)
         else:
             #treeGen.report({'INFO'}, "in applyCurvature: isVertical: True")
-            for n in self.next:
-                #n.alignVertical(treeGen, self.point)
-                angle = (n.point - self.point).angle(Vector((0.0,0.0,-1.0)))
-                self.alignVerticalStep(treeGen, -angle, curveAxis, self.point, self.point, True, lerp(curvatureStartGlobal, curvatureEndGlobal, self.tValGlobal), transitionVal)
+            if len(self.next) > 1:
+                if curveAxis.length > 0.0:
+                    self.curveStep(treeGen, curvature, curveAxis, self.point, True)
+            else:
+                for n in self.next:
+                    #n.alignVertical(treeGen, self.point)
+                    angle = (n.point - self.point).angle(Vector((0.0,0.0,-1.0)))
+                    if len(self.next) > 1:
+                        for n in self.next:
+                            #TODO: calculate required curvature here -> use recursive in alignVerticalStep!
+                            self.alignVerticalStep(treeGen, -angle, curveAxis, self.point, self.point, True, lerp(curvatureStartGlobal, curvatureEndGlobal, self.tValGlobal), transitionVal, True, self.next[1].point - self.next[0].point)
+                    else:
+                        self.alignVerticalStep(treeGen, -angle, curveAxis, self.point, self.point, True, lerp(curvatureStartGlobal, curvatureEndGlobal, self.tValGlobal), transitionVal, False, Vector((0.0,0.0,0.0)))
         
         for n in self.next:
             if curveStep <= maxCurveSteps:
@@ -344,7 +353,7 @@ class node():
                 
                 
                 verticalParam = self.tangent[0].normalized().dot(Vector((0.0,0.0,-1.0)))
-                verticalParamStart = 0.6
+                verticalParamStart = 0.8
                 verticalParamEnd = 0.9
                 # f(x) = m * x + t
                 m = 1.0 / (verticalParamEnd - verticalParamStart)
@@ -414,30 +423,60 @@ class node():
             # splitDirA = (Quaternion(splitAxis, math.radians(splitPointAngle)) @ splitNode.tangent[0]).normalized()
        
     
-    def alignVerticalStep(self, treeGen, angle, axis, rotationPoint, previousPoint, firstNode, previousCurvature, transitionVal):
+    def alignVerticalStep(self, treeGen, angle, axis, rotationPoint, previousPoint, firstNode, previousCurvature, transitionVal, isSplit, splitVector):
         treeGen.report({'INFO'}, f"in alignVerticalStep, angle: {angle}, transitionVal: {transitionVal}")
         
-        #self.point = rotationPoint + Quaternion(axis, angle) @ (self.point - rotationPoint)
+        self.point = rotationPoint + Quaternion(axis, angle) @ (self.point - rotationPoint)
+        self.tangent[0] = Quaternion(axis, angle) @ self.tangent[0] #TODO...
+        
+        treeGen.report({'INFO'}, f"transitionVal: {transitionVal}")
         
         rotatedPoint = Vector((0.0,0.0,0.0))
-        if firstNode == True:
-            self.point = rotationPoint + Quaternion(axis, math.radians(previousCurvature)) @ (self.point - rotationPoint)
-        else:
-            rotationMatrix = Matrix.Rotation(angle * transitionVal, 4, axis)
-            self.point = rotationPoint + rotationMatrix @ (self.point - rotationPoint)
-            
-            alignedPoint = self.point - (Vector((self.point.x, self.point.y, 0.0)) - Vector((previousPoint.x, previousPoint.y, 0.0)))
-            self.point = self.point + (alignedPoint - self.point) * transitionVal
         
+        #if firstNode == True: # TEST OFF
+        #    self.point = rotationPoint + Quaternion(axis, math.radians(previousCurvature)) @ (self.point - rotationPoint)
+        #else:
         
-        for tangentIndex in range(0, len(self.tangent)):
-            self.tangent[tangentIndex] = (1.0 - transitionVal) * Vector((0.0,0.0,-1.0)) + transitionVal * self.tangent[tangentIndex]
+        #if isSplit == False:
+        #if len(self.next) > 1:
+        #    rotatedPoint = rotationPoint + Quaternion(axis, math.radians(previousCurvature)) @ (self.point - rotationPoint)
+        #    drawDebugPoint(rotatedPoint, 0.05)
+        #    rotationMatrix = Matrix.Rotation(angle * transitionVal, 4, axis)
+        #    #self.point = rotationPoint + rotationMatrix @ (self.point - rotationPoint)
+        #    
+        #    drawDebugPoint(self.point, 0.1)
+        #    alignedPoint = self.point - (Vector((self.point.x, self.point.y, 0.0)) - Vector((previousPoint.x, previous#Point.y, 0.0)))
+        #    #self.point = self.point + (alignedPoint - self.point) * transitionVal
+        #    self.point = rotatedPoint + (alignedPoint - rotatedPoint) * transitionVal
+        #    drawDebugPoint(alignedPoint, 0.1)
+        #
+        #    for tangentIndex in range(0, len(self.tangent)):
+        #        self.tangent[tangentIndex] = Quaternion(axis, math.radians(previousCurvature)) @ self.tan#gent[tangentIndex]
+        #        #rotate tangent before!
+        #        self.tangent[tangentIndex] = (transitionVal) * Vector((0.0,0.0,-1.0)) + (1.0 - transitionVal) * self.tangent[tangentIndex]
+        
+        #else:
+            #self.point = rotationPoint + Quaternion(axis, math.radians(angle)) @ (self.point - rotationPoint)
+            #rotLength = (self.point - rotationPoint).length
+            ##treeGen.report({'INFO'}, f"in curveStep(): rotLength: {rotLength}")
+            #for tangentIndex in range(0, len(self.tangent)):
+            #    self.tangent[tangentIndex] = Quaternion(axis, math.radians(angle)) @ self.tangent[tangentIndex]
+            #self.cotangent = Quaternion(axis, math.radians(angle)) @ self.cotangent
+        
+            #rotatedPoint = rotationPoint + Quaternion(axis, math.radians(previousCurvature)) @ (self.point - rotationPoint)
+            #alignedPoint = self.point - (Vector((self.point.x, self.point.y, 0.0)) - Vector((previousPoint.x, previousPoint.y, 0.0)))
+            # -> use vector of next[0] to next[1]: splitVector
+            #self.point = rotatedPoint + (alignedPoint - rotatedPoint) * transitionVal + splitVector
             
-             #Quaternion(axis, angle) @ self.tangent[tangentIndex]
+                 #Quaternion(axis, angle) @ self.tangent[tangentIndex]
         self.cotangent = Quaternion(axis, angle) @ self.cotangent
         
-        for n in self.next:
-            n.alignVerticalStep(treeGen, angle, axis, rotationPoint, self.point, False, previousCurvature, transitionVal)
+        if len(self.next) > 1:
+            for n in self.next:
+                n.alignVerticalStep(treeGen, angle, axis, rotationPoint, self.point, False, previousCurvature, transitionVal, True, self.next[1].point - self.next[0].point)
+        else:
+            for n in self.next:
+                n.alignVerticalStep(treeGen, angle, axis, rotationPoint, self.point, False, previousCurvature, transitionVal, False, Vector((0.0,0.0,0.0)))
         
     
     
@@ -470,7 +509,7 @@ class node():
                     sampleRadius = lerp(startNode.radius, nextNode.radius, n / resampleNr)
                     sampleTvalGlobal = lerp(startNode.tValGlobal, nextNode.tValGlobal, n / resampleNr)
                     sampleTvalBranch = lerp(startNode.tValBranch, nextNode.tValBranch, n / resampleNr)
-                    #drawDebugPoint(samplePoint)
+                    #drawDebugPoint(samplePoint, 0.1)
                     
                     newNode = node(samplePoint, sampleRadius, sampleCotangent, self.clusterIndex, self.ringResolution, self.taper, sampleTvalGlobal, sampleTvalBranch, startNode.branchLength)
                     newNode.tangent.append(sampleTangent)
@@ -481,7 +520,7 @@ class node():
                     activeNode = newNode
                     
                 activeNode.next.append(nextNode)
-                #drawDebugPoint(nextNode.point) #OK
+                #drawDebugPoint(nextNode.point, 0.1) #OK
                     
                 #treeGen.report({'INFO'}, f"in resampleSpline: len(Next.next): {len(Next.next)}")
                 
@@ -565,7 +604,7 @@ class generateTree(bpy.types.Operator):
         n = 50
         for x in range(0, n - 1):
             point = sampleCurve(self, x / n)
-            #drawDebugPoint((x, 0.0, 100.0 * point))
+            #drawDebugPoint((x, 0.0, 100.0 * point), 0.1)
         
         #delete all existing empties
         if context.active_object is not None and context.active_object.mode == 'OBJECT':
@@ -589,9 +628,9 @@ class generateTree(bpy.types.Operator):
             nodes[0].next.append(nodes[1])
             #nodes[1].next.append(nodes[2])
         
-            #drawDebugPoint(nodes[0].point)
-            #drawDebugPoint(nodes[1].point)
-            #drawDebugPoint(nodes[2].point)
+            #drawDebugPoint(nodes[0].point, 0.1)
+            #drawDebugPoint(nodes[1].point, 0.1)
+            #drawDebugPoint(nodes[2].point, 0.1)
             
             #if context.scene.nrSplits > 0:
                 #splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, [0.5], context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution)
@@ -771,13 +810,13 @@ class generateTree(bpy.types.Operator):
             
             
             
-                #drawDebugPoint(nodes[0].point)
+                #drawDebugPoint(nodes[0].point, 0.1)
                 #drawDebugPoint(nodes[1].point)
-                #drawDebugPoint(nodes[0].next[0].point)
-                #drawDebugPoint(nodes[0].next[0].next[0].point)
-                #drawDebugPoint(nodes[0].next[0].next[1].point)
-                #drawDebugPoint(nodes[2].point)
-                #drawDebugPoint(nodes[3].point)
+                #drawDebugPoint(nodes[0].next[0].point, 0.1)
+                #drawDebugPoint(nodes[0].next[0].next[0].point, 0.1)
+                #drawDebugPoint(nodes[0].next[0].next[1].point, 0.1)
+                #drawDebugPoint(nodes[2].point, 0.1)
+                #drawDebugPoint(nodes[3].point, 0.1)
                 
             calculateRadius(self, nodes[0], 100.0, context.scene.branchTipRadius)
             segments = []
@@ -957,9 +996,9 @@ def sampleCurve(self, x):
     return 0.0
     
     
-def drawDebugPoint(pos, name="debugPoint"):
+def drawDebugPoint(pos, size, name="debugPoint"):
     bpy.ops.object.empty_add(type='SPHERE', location=pos)
-    bpy.context.active_object.empty_display_size = 0.1
+    bpy.context.active_object.empty_display_size = size
     bpy.context.active_object.name=name
     
 def drawArrow(a, b):
@@ -1216,7 +1255,7 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
     newTvalBranch = lerp(splitAfterNode.tValBranch, splitAfterNode.next[nextIndex].tValBranch, splitHeight);
     
     newNode = node(newPoint, newRadius, newCotangent, splitAfterNode.clusterIndex, ring_res, taper, newTvalGlobal, newTvalBranch, splitAfterNode.branchLength)
-    #drawDebugPoint(newPoint)
+    #drawDebugPoint(newPoint, 0.1)
     #self.report({'INFO'}, f"split: newNode.taper: {newNode.taper}")
     newNode.tangent.append(newTangent)
     # Insert new node in the chain
@@ -1246,11 +1285,11 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariat
     if sMode == "HORIZONTAL":
         #splitAxis = splitNode.cotangent
         right = splitNode.tangent[0].cross(Vector((0.0, 0.0, 1.0)))
-        #drawDebugPoint(splitNode.point + right / 2.0)
+        #drawDebugPoint(splitNode.point + right / 2.0, 0.1)
         splitAxis = right.cross(splitNode.tangent[0]).normalized()
         
         splitAxis = Quaternion(splitNode.tangent[0], random.uniform(-branchSplitAxisVariation, branchSplitAxisVariation)) @ splitAxis
-        #drawDebugPoint(splitNode.point + splitAxis / 2.0)
+        #drawDebugPoint(splitNode.point + splitAxis / 2.0, 0.1)
 
     elif sMode == "ROTATE_ANGLE":
         splitAxis = splitNode.cotangent.normalized()
@@ -1647,7 +1686,7 @@ branchVariance):
                 branchNext.tValBranch = 1.0
                 branch.next.append(branchNext)
                 
-                #drawDebugPoint(data.startPoint + branchDir * branchLength)
+                #drawDebugPoint(data.startPoint + branchDir * branchLength, 0.1)
                 
                 if len(data.startNode.branches) < startNodeNextIndex + 1:
                     for m in range(len(data.startNode.next)):
@@ -2132,8 +2171,8 @@ def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLen
     #self.report({'INFO'}, f"in generateStartPointData: startPoint: {startPoint}")
     #self.report({'INFO'}, f"in generateStartPointData: outwardDir: {outwardDir}")
     
-    #drawDebugPoint(startPoint)
-    #drawDebugPoint(startPoint + outwardDir)
+    #drawDebugPoint(startPoint, 0.1)
+    #drawDebugPoint(startPoint + outwardDir, 0.1)
     
     #self.report({'INFO'}, f"in add Branches(): startPoint: {startPoint}, outwardDir: {outwardDir}")
     #self.report({'INFO'}, f"in add Branches(): centerPoint: {centerPoint}")
