@@ -83,67 +83,36 @@ class node():
         distance = direction.length
         empty.scale = (distance, distance, distance)  # Scale uniformly along all axes
     
-    #def getLongestBranchLengthInCluster(self, clusterIndex, length, maxLength):
-    #    if self.clusterIndex == clusterIndex:
-    #        return length 
-    #    else:
-    #        for n in self.next:
-    #            return n.getLongestBranchLengthInCluster(clusterIndex, length, maxLength)
-    #        for l in self.children:
-    #            for c in l:
-    #                c.getLongestBranchLengthInCluster(clusterIndex, length, maxLength)
         
     def getAllSegments(self, treeGen, rootNode, segments, connectedToPrev):
-        #if len(activeNode.next) > 2:
-        #treeGen.report({'INFO'}, f"len(activeNode.next) = {len(activeNode.next)}")
-        
         for t in self.tangent:
             drawArrow(self.point, self.point + t)
-        if self.clusterIndex == -1: 
-            drawDebugPoint(self.point, 0.1)
-        
-        #for n in self.next:
-        #    drawDebugPoint(n.point, 0.1)
-        #drawArrow(self.point, self.point + self.cotangent)
+        #if self.clusterIndex == -1: 
+        #    drawDebugPoint(self.point, 0.1)
         
         for n, nextNode in enumerate(self.next):
+            longestBranchLengthInCluster = 1.0
             
-            longestBranchLengthInCluster = 1.0#rootNode.getLongestBranchLengthInCluster(self.clusterIndex)
-            
-            #treeGen.report({'INFO'}, f"in getAllSegments():self.point: {self.point}, self.tValGlobal: {self.tValGlobal}, nextNode.tValGlobal: {nextNode.tValGlobal} self.tValBranch: {self.tValBranch}, nextNode.tValBranch: {nextNode.tValBranch}")
             if len(self.next) > 1:
-                #treeGen.report({'INFO'}, f"in getAllSegments(): len(tangent): {len(self.tangent)}, len(next): {len(self.next)}, n: {n}")
-                #treeGen.report({'INFO'}, f"in getAllSegments() len(self.next) > 1: self.tValGlobal: {self.tValGlobal}, nextNode.tValGlobal: {nextNode.tValGlobal}")
                 segments.append(segment(self.clusterIndex, self.point, nextNode.point, self.tangent[n + 1], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.tValGlobal, nextNode.tValGlobal, self.tValBranch, nextNode.tValBranch, self.ringResolution, False, self.branchLength, longestBranchLengthInCluster, self.taper, nextNode.taper))
             else:
-                #treeGen.report({'INFO'}, f"in getAllSegments(): len(tangent): {len(self.tangent)}, len(next): {len(self.next)}, n: {n}")
-                #treeGen.report({'INFO'}, f"in getAllSegments(): self. connectedToPrevious: {connectedToPrev}")
-                #treeGen.report({'INFO'}, f"in getAllSegments(): self.tValGlobal: {self.tValGlobal}, nextNode.tValGlobal: {nextNode.tValGlobal}")
                 segments.append(segment(self.clusterIndex, self.point, nextNode.point, self.tangent[0], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.tValGlobal, nextNode.tValGlobal, self.tValBranch, nextNode.tValBranch, self.ringResolution, connectedToPrev, self.branchLength, longestBranchLengthInCluster, self.taper, nextNode.taper))
         
             nextNode.getAllSegments(treeGen, rootNode, segments, True)
         
         for branchList in self.branches:
             for b in branchList:
-                #treeGen.report({'INFO'}, f"adding branch to segments!")
                 b.getAllSegments(treeGen, rootNode, segments, False)
             
     
     def getAllBranchStartNodes(self, treeGen, allBranchNodes, branchCluster):
-        #treeGen.report({'INFO'}, f"in getAllBranchStartNodes(): self.clusterIndex: {self.clusterIndex}, branchCluster: {branchCluster}")
-        #if self.clusterIndex == branchCluster:
-            #treeGen.report({'INFO'}, "getAllBranchStartNodes(): adding node!")
-            #allBranchNodes.append(self)
         for c in self.branches:
             for n in c:
                 if n.clusterIndex == branchCluster:
-                    #treeGen.report({'INFO'}, "getAllBranchStartNodes(): adding node!")
                     allBranchNodes.append(n)
-                #treeGen.report({'INFO'}, "getAllBranchStartNodes(): branches.getAllBranchStartNodes()")
                 n.getAllBranchStartNodes(treeGen, allBranchNodes, branchCluster)
         
         for n in self.next:
-            #treeGen.report({'INFO'}, "getAllBranchStartNodes(): next.getAllBranchStartNodes()")
             n.getAllBranchStartNodes(treeGen, allBranchNodes, branchCluster)
     
     
@@ -161,15 +130,11 @@ class node():
         parentClusterBoolListList, 
         newClusterIndex):
             
-        treeGen.report({'INFO'}, f"in getAllStartNodes() self.cluster: {self.clusterIndex}")
+        #treeGen.report({'INFO'}, f"in getAllStartNodes() self.cluster: {self.clusterIndex}")
         
         if self.clusterIndex == -1:
             #stem
-            
-            #treeGen.report({'INFO'}, f"in getAllStartNodes(): self.clusterIndex: {self.clusterIndex}, newClusterIndex: {newClusterIndex}")
-            #treeGen.report({'INFO'}, f"in getAllStartNodes(): self.clusterIndex: {self.clusterIndex}, newClusterIndex: {newClusterIndex}")
             if parentClusterBoolListList[newClusterIndex].value[0].value == True:
-                #treeGen.report({'INFO'}, f"in getAllStartNodes(): self.clusterIndex: {self.clusterIndex}, self.point: {self.point}, len(self.next): {len(self.next)}")
                 for n in range(len(self.next)):
                     # test if overlap    |----*--v--*----*---v--*
                     if self.next[n].tValGlobal > startHeightGlobal and self.tValGlobal < endHeightGlobal:
@@ -180,30 +145,20 @@ class node():
                         endTvalSegment = (segmentEndGlobal - self.tValGlobal) / (self.next[n].tValGlobal - self.tValGlobal)
                      
                         startNodesNextIndexStartTvalEndTval.append(startNodeInfo(self, n, startTvalSegment, endTvalSegment))
-                        treeGen.report({'INFO'}, f"in getAllStartNodes(): stem: adding node: self.point: {self.point}, newClusterIndex: {newClusterIndex}")
+                        #treeGen.report({'INFO'}, f"in getAllStartNodes(): stem: adding node: self.point: {self.point}, newClusterIndex: {newClusterIndex}")
         
-        else: # not in stem
-            #treeGen.report({'INFO'}, "getAllStartNodes: not in stem")
-            #treeGen.report({'INFO'}, f"in getAllStartNodes(): self.clusterIndex: {self.clusterIndex}, newClusterIndex: {newClusterIndex}") # self.clusterIndex: 0 | newClusterIndex: 2
-            #treeGen.report({'INFO'}, f"len(parentClusterBoolListList[newClusterIndex].value): {len(parentClusterBoolListList[newClusterIndex].value)}") # 2
-            
+        else: # not in stem            
             if len(parentClusterBoolListList[newClusterIndex].value) > self.clusterIndex + 1:
-                #treeGen.report({'INFO'}, f"parentClusterBoolListList[newClusterIndex].value[self.clusterIndex + 1].value: {parentClusterBoolListList[newClusterIndex].value[self.clusterIndex + 1].value}") # True
-                
                 if parentClusterBoolListList[newClusterIndex].value[self.clusterIndex + 1].value == True:
-                   # treeGen.report({'INFO'}, f"parentClusterBoolListList True for newClusterIndex: {newClusterIndex}, self.clusterIndex: {self.clusterIndex}") # newClusterIndex: 1, self.clusterIndex: 0
-                    #treeGen.report({'INFO'}, f"self.tValGlobal: {self.tValGlobal}, startHeightGlobal: {startHeightGlobal}, endHeightGlobal: {endHeightGlobal}")
                     for n in range(len(self.next)):
                         if self.tValGlobal >= startHeightGlobal and self.tValGlobal < endHeightGlobal:
                             tA = self.tValBranch
                             tB = self.next[n].tValBranch
-                           # treeGen.report({'INFO'}, f"self.tValBranch: {tA}, self.next[{n}].tValBranch: {tB}, startHeightCluster: {startHeightCluster}, endHeightCluster: {endHeightCluster}")
                             if tA > tB:
                                 tmp = tA
                                 tA = tB
                                 tB = tmp
                             #only process if ther is overlap
-                            #treeGen.report({'INFO'}, f"in getAllStartNodes: startHeightCluster: {startHeightCluster}, tB: {tB}, endHeightCluster: {endHeightCluster}, tA: {tA}")
                             if tB > startHeightCluster and tA < endHeightCluster:
                                # treeGen.report({'INFO'}, "overlap!")
                                 segStart = max(tA, startHeightCluster)
@@ -211,14 +166,10 @@ class node():
                                 
                                 startTval = (segStart - tA) / (tB - tA)
                                 endTval = (segEnd - tA) / (tB - tA)
-                                #treeGen.report({'INFO'}, f"in getAllStartNodes: startTval: {startTval}, endTval: {endTval}")
                                 startNodesNextIndexStartTvalEndTval.append(startNodeInfo(self, n, startTval, endTval))
-                               # treeGen.report({'INFO'}, f"in getAllStartNodes(): not in stem, self.clusterIndex: {self.clusterIndex}: adding node: self.point: {self.point}, newClusterIndex: {newClusterIndex}")
-                                
                                 if activeBranchIndex != -1:
                                     branchNodesNextIndexStartTvalEndTval[activeBranchIndex].append(startNodeInfo(self, n, startTval, endTval))
         for n in self.next:
-            #treeGen.report({'INFO'}, "in getAllStartNodes(): calling self.next.getAllStartNodes()")
             n.getAllStartNodes(treeGen, 
                                startNodesNextIndexStartTvalEndTval, 
                                branchNodesNextIndexStartTvalEndTval, 
@@ -235,8 +186,6 @@ class node():
             for n in b:
                 for i in range(0, len(n.next)):
                     branchNodesNextIndexStartTvalEndTval[len(branchNodesNextIndexStartTvalEndTval) - 1].append(startNodeInfo(n, i, 0.0, 1.0))
-                #treeGen.report({'INFO'}, f"calling getAllBranchNodes on self.branches: self.branches[0].clusterIndex: {n.clusterIndex}, parameter newClusterIndex: {newClusterIndex}")
-                #treeGen.report({'INFO'}, "in getAllStartNodes(): calling self.branches.getAllStartNodes()")
                 n.getAllStartNodes(
                     treeGen,
                     startNodesNextIndexStartTvalEndTval, 
@@ -249,8 +198,6 @@ class node():
                     parentClusterBoolListList, 
                     newClusterIndex)
                   
-        
-        #treeGen.report({'INFO'}, f"in getAllStartNodes(): len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}")
             
     def lengthToTip(self):
         if len(self.next) > 0:
@@ -274,22 +221,17 @@ class node():
         curvatureStartGlobal,
         curvatureStartBranch,
         curvatureEndGlobal, 
-        curvatureEndBranch, 
-        isVertical, 
-        transitionVal,
+        curvatureEndBranch,
         clusterIndex, 
         branchStartPoint, 
         curveStep,
         maxCurveSteps):
-            
-        treeGen.report({'INFO'}, f"in applyCurvature: transitionVal: {transitionVal}")
         
         if clusterIndex == -1:
             nextTangent = (treeGrowDir.normalized() * treeHeight - (rootNode.point + rootNode.tangent[0] * (treeGrowDir.normalized() * treeHeight - rootNode.point).length * (1.5 / 3.0))).normalized()
         
             centerPoint = sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, Vector((0.0,0.0,1.0)), nextTangent, self.tValGlobal)
-            #treeGen.report({'INFO'}, f"in applyCurvature(): centerPoint: {centerPoint}, tValGlobal: {self.tValGlobal}")
-            drawDebugPoint(centerPoint, 0.1)
+            #drawDebugPoint(centerPoint, 0.1)
         else:
             # in branch cluster ... TODO
             centerPoint = branchStartPoint
@@ -309,11 +251,11 @@ class node():
         else:
             curveAxis = right.normalized()
         
-        drawDebugPoint(self.point, 0.1)
-        drawDebugPoint(self.point + curveAxis.normalized() / 2.0, 0.1)
-        drawArrow(self.point, self.point + curveAxis.normalized())
+        #drawDebugPoint(self.point, 0.1)
+        #drawDebugPoint(self.point + curveAxis.normalized() / 2.0, 0.1)
+        #drawArrow(self.point, self.point + curveAxis.normalized())
         
-        treeGen.report({'INFO'}, f"in applyCurvature: self.tValGlobal: {self.tValGlobal}, curvatureStartGlobal: {curvatureStartGlobal}, curvatureEndGlobal: {curvatureEndGlobal}")
+        #treeGen.report({'INFO'}, f"in applyCurvature: self.tValGlobal: {self.tValGlobal}, curvatureStartGlobal: {curvatureStartGlobal}, curvatureEndGlobal: {curvatureEndGlobal}")
         globalCurvature = lerp(curvatureStartGlobal, curvatureEndGlobal, self.tValGlobal) # ERROR HERE---
         branchCurvature = lerp(curvatureStartBranch, curvatureEndBranch, self.tValBranch)
         
@@ -323,89 +265,24 @@ class node():
         
         curveAxis = curveAxis.normalized()
         
-        if isVertical == False and curveStepTangent.normalized().dot(Vector((0.0,0.0,-1.0))) <= 0.95:
-            if curveAxis.length > 0.0:
-                self.curveStep(treeGen, curvature, curveAxis, self.point, True)
-        else:
-            #treeGen.report({'INFO'}, "in applyCurvature: isVertical: True")
-            if len(self.next) > 1:
-                if curveAxis.length > 0.0:
-                    self.curveStep(treeGen, curvature, curveAxis, self.point, True)
-            else:
-                for n in self.next:
-                    #n.alignVertical(treeGen, self.point)
-                    angle = (n.point - self.point).angle(Vector((0.0,0.0,-1.0)))
-                    if len(self.next) > 1:
-                        for n in self.next:
-                            #TODO: calculate required curvature here -> use recursive in alignVerticalStep!
-                            self.alignVerticalStep(treeGen, -angle, curveAxis, self.point, self.point, True, lerp(curvatureStartGlobal, curvatureEndGlobal, self.tValGlobal), transitionVal, True, self.next[1].point - self.next[0].point)
-                    else:
-                        self.alignVerticalStep(treeGen, -angle, curveAxis, self.point, self.point, True, lerp(curvatureStartGlobal, curvatureEndGlobal, self.tValGlobal), transitionVal, False, Vector((0.0,0.0,0.0)))
+        self.curveStep(treeGen, curvature, curveAxis, self.point, True)
         
         for n in self.next:
             if curveStep <= maxCurveSteps:
-                #transitionVal = (1.0 / transitionWidth) * verticalParam + 1.0 - 1.0 / transitionWidth
-                #treeGen.report({'ERROR'}, f"in applyCurvature: verticalParam: {verticalParam}, transitionVal: {transitionVal}")
-                #if transitionVal < 0.0:
-                #    transitionVal = 0.0
-                #if transitionVal > 1.0:
-                #    transitionVal = 1.0
-                
-                
-                verticalParam = self.tangent[0].normalized().dot(Vector((0.0,0.0,-1.0)))
-                verticalParamStart = 0.8
-                verticalParamEnd = 0.9
-                # f(x) = m * x + t
-                m = 1.0 / (verticalParamEnd - verticalParamStart)
-                t = -m * verticalParamStart
-                transitionVal = 0.0
-                if verticalParam > verticalParamEnd:
-                    transitionVal = 1.0
-                else:
-                    if verticalParam < verticalParamStart:
-                        transitionVal = 0.0
-                    else:
-                        transitionVal = m * verticalParam + t
-                treeGen.report({'INFO'}, f"in applyCurvature: transitionVal: {transitionVal}")
-                
-                
-                
-                if transitionVal > 0.1: #temp
-                    
-                    treeGen.report({'INFO'}, f"in applyCurvature: vertical")
-                    n.applyCurvature(treeGen, 
-                                     rootNode, 
-                                     treeGrowDir, 
-                                     treeHeight, 
-                                     curvatureStartGlobal,
-                                     curvatureStartBranch, #TODO: lerp between cutvature Start and curvature End
-                                     curvatureEndGlobal,
-                                     curvatureEndBranch,
-                                     True, 
-                                     transitionVal,
-                                     clusterIndex, 
-                                     branchStartPoint, 
-                                     curveStep + 1, 
-                                     maxCurveSteps)
-                else:
-                    n.applyCurvature(treeGen, 
-                                     rootNode, 
-                                     treeGrowDir, 
-                                     treeHeight, 
-                                     curvatureStartGlobal, 
-                                     curvatureStartBranch, 
-                                     curvatureEndGlobal, 
-                                     curvatureEndBranch, 
-                                     False, 
-                                     transitionVal, 
-                                     clusterIndex, 
-                                     branchStartPoint, 
-                                     curveStep + 1, 
-                                     maxCurveSteps)
+                n.applyCurvature(treeGen, 
+                                 rootNode, 
+                                 treeGrowDir, 
+                                 treeHeight, 
+                                 curvatureStartGlobal,
+                                 curvatureStartBranch, #TODO: lerp between cutvature Start and curvature End
+                                 curvatureEndGlobal,
+                                 curvatureEndBranch,
+                                 clusterIndex, 
+                                 branchStartPoint, 
+                                 curveStep + 1, 
+                                 maxCurveSteps)
     
-    def curveStep(self, treeGen, curvature, curveAxis, rotationPoint, firstNode):
-        #treeGen.report({'INFO'}, f"in curveStep(): curveAxis: {curveAxis}, curvature: {curvature}, self.point: {self.point}, rotationPoint: {rotationPoint}")
-        
+    def curveStep(self, treeGen, curvature, curveAxis, rotationPoint, firstNode):        
         if firstNode == True:
             for tangentIndex in range(0, len(self.tangent)):
                 self.tangent[tangentIndex] = Quaternion(curveAxis, math.radians(curvature / 2.0)) @ self.tangent[tangentIndex] # TODO: tValBranch...
@@ -420,74 +297,57 @@ class node():
         
         for n in self.next:
             n.curveStep(treeGen, curvature, curveAxis, rotationPoint, False)
-            # splitDirA = (Quaternion(splitAxis, math.radians(splitPointAngle)) @ splitNode.tangent[0]).normalized()
-       
     
-    def alignVerticalStep(self, treeGen, angle, axis, rotationPoint, previousPoint, firstNode, previousCurvature, transitionVal, isSplit, splitVector):
-        treeGen.report({'INFO'}, f"in alignVerticalStep, angle: {angle}, transitionVal: {transitionVal}")
+    #def alignVerticalStep(self, treeGen, angle, axis, rotationPoint, previousPoint, firstNode, previousCurvature, transitionVal, isSplit, splitVector):
+    #    treeGen.report({'INFO'}, f"in alignVerticalStep, angle: {angle}, transitionVal: {transitionVal}")
+    #    
+    #    self.point = rotationPoint + Quaternion(axis, angle) @ (self.point - rotationPoint)
+    #    
+    #    if len(self.tangent) == 1:
+    #        self.tangent[0] = Quaternion(axis, angle) @ self.tangent[0] #TODO.............. (is this the solution?!?!?)
+    #    else:
+    #        for t in self.tangent:
+    #            t = Quaternion(axis, angle) @ t #TEST    
+    #    
+    #    
+    #    treeGen.report({'INFO'}, f"transitionVal: {transitionVal}")
+    #    
+    #    rotatedPoint = Vector((0.0,0.0,0.0))
+    #    
+    #    self.cotangent = Quaternion(axis, angle) @ self.cotangent
+    #    
+    #    for n in self.next:
+    #        if len(self.next) > 1:
+    #            n.alignVerticalStep(treeGen, angle, axis, self.point, self.point, False, previousCurvature, transitionVal, True, Vector((0.0,0.0,0.0))) # at split: self.point becomes new rotation point
+    #        else:
+    #            if transitionVal > 0.9:
+    #                n.alignVerticalStep(treeGen, angle, axis, rotationPoint, self.point, False, previousCurvature, transitionVal, False, Vector((0.0,0.0,0.0)))
+    #            else:
+    #                n.alignVerticalStep(treeGen, angle, axis, rotationPoint, self.point, False, previousCurvature, transitionVal, False, Vector((0.0,0.0,0.0)))
         
-        self.point = rotationPoint + Quaternion(axis, angle) @ (self.point - rotationPoint)
-        self.tangent[0] = Quaternion(axis, angle) @ self.tangent[0] #TODO...
-        
-        treeGen.report({'INFO'}, f"transitionVal: {transitionVal}")
-        
-        rotatedPoint = Vector((0.0,0.0,0.0))
-        
-        #if firstNode == True: # TEST OFF
-        #    self.point = rotationPoint + Quaternion(axis, math.radians(previousCurvature)) @ (self.point - rotationPoint)
-        #else:
-        
-        #if isSplit == False:
-        #if len(self.next) > 1:
-        #    rotatedPoint = rotationPoint + Quaternion(axis, math.radians(previousCurvature)) @ (self.point - rotationPoint)
-        #    drawDebugPoint(rotatedPoint, 0.05)
-        #    rotationMatrix = Matrix.Rotation(angle * transitionVal, 4, axis)
-        #    #self.point = rotationPoint + rotationMatrix @ (self.point - rotationPoint)
-        #    
-        #    drawDebugPoint(self.point, 0.1)
-        #    alignedPoint = self.point - (Vector((self.point.x, self.point.y, 0.0)) - Vector((previousPoint.x, previous#Point.y, 0.0)))
-        #    #self.point = self.point + (alignedPoint - self.point) * transitionVal
-        #    self.point = rotatedPoint + (alignedPoint - rotatedPoint) * transitionVal
-        #    drawDebugPoint(alignedPoint, 0.1)
-        #
-        #    for tangentIndex in range(0, len(self.tangent)):
-        #        self.tangent[tangentIndex] = Quaternion(axis, math.radians(previousCurvature)) @ self.tan#gent[tangentIndex]
-        #        #rotate tangent before!
-        #        self.tangent[tangentIndex] = (transitionVal) * Vector((0.0,0.0,-1.0)) + (1.0 - transitionVal) * self.tangent[tangentIndex]
-        
-        #else:
-            #self.point = rotationPoint + Quaternion(axis, math.radians(angle)) @ (self.point - rotationPoint)
-            #rotLength = (self.point - rotationPoint).length
-            ##treeGen.report({'INFO'}, f"in curveStep(): rotLength: {rotLength}")
-            #for tangentIndex in range(0, len(self.tangent)):
-            #    self.tangent[tangentIndex] = Quaternion(axis, math.radians(angle)) @ self.tangent[tangentIndex]
-            #self.cotangent = Quaternion(axis, math.radians(angle)) @ self.cotangent
-        
-            #rotatedPoint = rotationPoint + Quaternion(axis, math.radians(previousCurvature)) @ (self.point - rotationPoint)
-            #alignedPoint = self.point - (Vector((self.point.x, self.point.y, 0.0)) - Vector((previousPoint.x, previousPoint.y, 0.0)))
-            # -> use vector of next[0] to next[1]: splitVector
-            #self.point = rotatedPoint + (alignedPoint - rotatedPoint) * transitionVal + splitVector
-            
-                 #Quaternion(axis, angle) @ self.tangent[tangentIndex]
-        self.cotangent = Quaternion(axis, angle) @ self.cotangent
-        
-        if len(self.next) > 1:
-            for n in self.next:
-                n.alignVerticalStep(treeGen, angle, axis, rotationPoint, self.point, False, previousCurvature, transitionVal, True, self.next[1].point - self.next[0].point)
-        else:
-            for n in self.next:
-                n.alignVerticalStep(treeGen, angle, axis, rotationPoint, self.point, False, previousCurvature, transitionVal, False, Vector((0.0,0.0,0.0)))
-        
+    
+    
+    
+    
+    
+    # hanging branches independent of resample, only 3 nodes!, curveBranches -> directly with spline! curved section, vertical section!
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
     def resampleSpline(self, rootNode, treeGen, resampleDistance):
         #treeGen.report({'INFO'}, f"in resampleSpline: point: {self.point}")
         #treeGen.report({'INFO'}, f"in resampleSpline: next[0].point: {self.next[0].point}")
-        
         #treeGen.report({'INFO'}, f"in resampleSpline: resampleDistance: {resampleDistance}")
-        
-        
         #treeGen.report({'INFO'}, f"in resampleSpline: len(self.next): {len(self.next)}")
         for i in range(0, len(self.next)):
             activeNode = self
@@ -521,16 +381,39 @@ class node():
                     
                 activeNode.next.append(nextNode)
                 #drawDebugPoint(nextNode.point, 0.1) #OK
-                    
                 #treeGen.report({'INFO'}, f"in resampleSpline: len(Next.next): {len(Next.next)}")
                 
             if len(nextNode.next) > 0:
                 nextNode.resampleSpline(rootNode, treeGen, resampleDistance)
                         
-       
+    def hangingBranches(self, treeGen, curvatureStartGlobal, curvatureEndGlobal):
+        
+        curvature  = lerp(curvatureStartGlobal, curvatureEndGlobal, self.tValGlobal)
+        treeGen.report({'INFO'}, f"in hangingBranches(), curvature: {curvature}")
+        
+        if curvature != 0.0:
+            radius = 1.0 / curvature
+            branchLength = (self.next[0].point - self.point).length
+            branchDir = (self.next[0].point - self.point) / branchLength
             
-        
-        
+            totalRotationAngle = math.acos(branchDir.dot(Vector((0.0,0.0,-1.0))))
+            
+            if branchLength > radius * totalRotationAngle:
+                outwardDir = self.tangent[0].cross(self.tangent[0].cross(Vector((0.0,0.0,1.0))))
+                centerPoint = self.point - outwardDir * radius
+                drawDebugPoint(centerPoint, 1.0)
+                
+                verticalPoint = centerPoint - radius * Vector((outwardDir.x, outwardDir.y, 0.0)) / Vector((outwardDir.x, outwardDir.y, 0.0)).length
+                
+                drawDebugPoint(verticalPoint, 0.5)
+                
+                self.next[0].point = verticalPoint
+                self.next[0].tangent[0] = Vector((0.0,0.0,-1.0))
+                self.next[0].next.append(node(verticalPoint + (branchLength - radius * totalRotationAngle) * Vector((0.0,0.0,-1.0)), self.next[0].radius, self.next[0].cotangent, self.clusterIndex, self.ringResolution, self.taper, self.tValGlobal, self.tValBranch, self.branchLength)) #TODO: tValBranch, cotangent, radius, ...
+                self.next[0].next[0].tangent.append(Vector((0.0,0.0,-1.0)))
+                
+                #class node():
+                #   def __init__(self, Point, Radius, Cotangent, ClusterIndex, RingResolution, Taper, TvalGlobal, TvalBranch, BranchLength):
         
         
 class segment():
@@ -617,29 +500,12 @@ class generateTree(bpy.types.Operator):
             nodes = []
             nodeTangents = []
             nodeTangents.append(Vector((0.0, 0.0, 1.0)))
-            
             nodes.append(node(Vector((0.0, 0.0, 0.0)), 0.1, Vector((1.0, 0.0, 0.0)), -1, context.scene.stemRingResolution, context.scene.taper, 0.0, 0.0, height))
-            
             nodes[0].tangent.append(Vector((0.0, 0.0, 1.0)))
-            
-            #nodes.append(node(dir * height * 0.7, 0.1, Vector((0.0, 0.5, 1.0)), Vector((1.0, 0.0, 0.0)), context.scene.stemRingResolution, context.scene.taper, 0.7, 0.0))
             nodes.append(node(dir * height, 0.1, Vector((1.0, 0.0, 0.0)), -1, context.scene.stemRingResolution, context.scene.taper, 1.0, 0.0, height))
             nodes[1].tangent.append(Vector((0.0, 0.0, 1.0)))
             nodes[0].next.append(nodes[1])
-            #nodes[1].next.append(nodes[2])
-        
-            #drawDebugPoint(nodes[0].point, 0.1)
-            #drawDebugPoint(nodes[1].point, 0.1)
-            #drawDebugPoint(nodes[2].point, 0.1)
             
-            #if context.scene.nrSplits > 0:
-                #splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, [0.5], context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution)
-                
-             #split(startNode, nextIndex, splitHeight, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution):
-             
-            #split(nodes[0], 0, 0.4, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, 0, 0, context.scene.stemSplitRotateAngle, context.scene.stemRingResolution, context.scene.curvOffsetStrength, self) # funkt!
-            
-            #def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, splitHeightInLevel, stemSplitMode, stemSplitRotateAngle, root_node, stemRingResolution, curvOffsetStrength, self):
             if context.scene.nrSplits > 0:
                 splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, context.scene.stemSplitHeightInLevelList, context.scene.splitHeightVariation, context.scene.splitLengthVariation, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution, context.scene.curvOffsetStrength, self, nodes[0])
             
@@ -654,29 +520,14 @@ class generateTree(bpy.types.Operator):
                                     0.0, 
                                     context.scene.curvatureEnd / context.scene.resampleDistance, 
                                     0.0, 
-                                    False, 
-                                    0.0,
+                                    #False, 
+                                    #0.0,
                                     -1, 
                                     Vector((0.0,0.0,0.0)), 
                                     0, 
                                     context.scene.maxCurveSteps)
-            
-        #    def applyCurvature(
-        #self, 
-        #treeGen, 
-        #rootNode, 
-        #treeGrowDir, 
-        #treeHeight, 
-        #curvatureStartGlobal,
-        #curvatureStartBranch,
-        #curvatureEndGlobal, 
-        #curvatureEndBranch, 
-        #isVertical, 
-        #transitionVal,
-        #clusterIndex, 
-        #branchStartPoint, 
-        #curveStep,
-        #maxCurveSteps):
+         
+      
             
             if context.scene.treeGrowDir == Vector((0.0,0.0,1.0)):
                 #self.report({'ERROR'}, "ERROR: when treeGrowDir == (0,0,1)")
@@ -742,89 +593,13 @@ class generateTree(bpy.types.Operator):
                 context.scene.branchSplitAxisVariationList,
                 
                 context.scene.branchCurvatureOffsetStrengthList[0],
-                context.scene.branchVarianceList)
+                context.scene.branchVarianceList, 
                 
-                #    def applyCurvature(
-        #self, 
-        #treeGen, 
-        #rootNode, 
-        #treeGrowDir, 
-        #treeHeight, 
-        #curvatureStartGlobal,
-        #curvatureStartBranch,
-        #curvatureEndGlobal, 
-        #curvatureEndBranch, 
-        #isVertical, 
-        #transitionVal,
-        #clusterIndex, 
-        #branchStartPoint, 
-        #curveStep,
-        #maxCurveSteps):
-        
-                #def addBranches(
-                #    self, 
-                #    treeGen, 
-                
-                #    context, 
-                #    rootNode, 
-                #    branchClusters,
-                
-                #    nrBranchesList, 
-                #    parentClusterBoolListList, 
-                #    branchesStartHeightGlobalList, 
-                
-                #    branchesEndHeightGlobalList, 
-                #    branchesStartHeightClusterList, 
-                #    branchesEndHeightClusterList, 
-                
-                #    treeGrowDir, 
-                #    treeHeight, 
-                #    verticalAngleCrownStart, 
-                
-                #    verticalAngleCrownEnd, 
-                #    branchAngleModeList, 
-                #    branchSplitRotateAngleList, 
-                
-                #    rotateAngleList,
-                #    rotateAngleRangeList, 
-                #    ringResolution, 
-                
-                #    taper, 
-                #    taperFactorList, 
-                #    relBranchLengthList,
-                
-                #    branchShapeList, 
-                #    nrSplitsPerBranch, 
-                #    splitsPerBranchVariation,
-                
-                #    branchSplitAngle, 
-                #    branchSplitPointAngle, 
-                #    branchSplitHeightInLevel, #==branchSplitHeightInLevelList_0
-                
-                #    branchSplitHeightVariation,
-                #    branchSplitMode,
-                #    branchSplitRotateAngle,
-                
-                #    branchCurvOffsetStrength,
-                #    branchVariance):
-            
-            
-            
-                #drawDebugPoint(nodes[0].point, 0.1)
-                #drawDebugPoint(nodes[1].point)
-                #drawDebugPoint(nodes[0].next[0].point, 0.1)
-                #drawDebugPoint(nodes[0].next[0].next[0].point, 0.1)
-                #drawDebugPoint(nodes[0].next[0].next[1].point, 0.1)
-                #drawDebugPoint(nodes[2].point, 0.1)
-                #drawDebugPoint(nodes[3].point, 0.1)
-                
+                context.scene.hangingBranchesList)
+              
             calculateRadius(self, nodes[0], 100.0, context.scene.branchTipRadius)
             segments = []
             nodes[0].getAllSegments(self, nodes[0], segments, False)
-            #self.report({'INFO'}, f"taper: {context.scene.taper}")
-            #self.report({'INFO'}, f"ringSpacing: {context.scene.ringSpacing}")
-            #self.report({'INFO'}, f"stemRingResolution: {context.scene.stemRingResolution}")
-            #self.report({'INFO'}, f"taperFacrorList: {context.scene.taperFactorList[0].value}")
             
             generateVerticesAndTriangles(self, self, context, segments, dir, context.scene.taper, radius, context.scene.ringSpacing, context.scene.stemRingResolution, context.scene.taperFactorList, context.scene.branchTipRadius)
             
@@ -832,8 +607,7 @@ class generateTree(bpy.types.Operator):
         return {'FINISHED'}
     
 def lerp(self, a, b, t):
-        return (a + (b - 1) * t)
-    
+        return (a + (b - 1) * t)    
 def f0(t):
     return (-0.5*t*t*t + t*t - 0.5*t)
 def f1(t):
@@ -871,7 +645,6 @@ def sampleCurve(self, x):
                 p3 = curveElement.points[1].location + (curveElement.points[1].location - curveElement.points[0].location)
                 #self.report({'INFO'}, f"n = 0, linear: p0: {p0}, p1: {p1}, p2: {p2}, p3: {p3}")
             else:
-                
                 p1 = curveElement.points[0].location
                 p2 = curveElement.points[1].location
                 if curveElement.points[0].handle_type == "AUTO" or curveElement.points[0].handle_type == "AUTO_CLAMPED":
@@ -1428,7 +1201,9 @@ branchSplitMode,
 branchSplitRotateAngle,
 branchSplitAxisVariationList,
 branchCurvOffsetStrength,
-branchVariance):
+branchVariance, 
+
+hangingBranchesList):
     
     #treeGen.report({'INFO'}, f"in add Branches(): len(nrBranchesList): {len(nrBranchesList)}, ")
     #if len(nrBranchesList) > 0 and len(branchesStartHeightGlobalList) > 0:
@@ -1439,7 +1214,7 @@ branchVariance):
         branchesStartHeightCluster = branchesStartHeightClusterList[clusterIndex].value
         branchesEndHeightCluster = branchesEndHeightClusterList[clusterIndex].value
         
-        treeGen.report({'INFO'}, f"in add Branches() clusterIndex: {clusterIndex}")
+        #treeGen.report({'INFO'}, f"in add Branches() clusterIndex: {clusterIndex}")
         
         startNodesNextIndexStartTvalEndTval = []
         branchNodesNextIndexStartTvalEndTval = []
@@ -1453,7 +1228,7 @@ branchVariance):
         for i in range(0, nrBranchesList[c].value):
             branchNodesNextIndexStartTvalEndTval.append([])
         
-        treeGen.report({'INFO'}, f"calling rootNode.getAllStartNodes(), clusterIndex: {clusterIndex}")
+        #treeGen.report({'INFO'}, f"calling rootNode.getAllStartNodes(), clusterIndex: {clusterIndex}")
         rootNode.getAllStartNodes(
             self, 
             startNodesNextIndexStartTvalEndTval, 
@@ -1466,7 +1241,7 @@ branchVariance):
             parentClusterBoolListList, 
             clusterIndex)
             
-        treeGen.report({'INFO'}, f"in addBranches(): clusterIndex: {clusterIndex}, len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}, len(branchNodes): {len(branchNodesNextIndexStartTvalEndTval)}")
+        #treeGen.report({'INFO'}, f"in addBranches(): clusterIndex: {clusterIndex}, len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}, len(branchNodes): {len(branchNodesNextIndexStartTvalEndTval)}")
         
         #for info in startNodesNextIndexStartTvalEndTval:
             #treeGen.report({'INFO'}, f"startNode.point: {info.startNode.point}, startTval: {info.startTval}, endTval: {info.endTval}")
@@ -1489,9 +1264,9 @@ branchVariance):
            # treeGen.report({'INFO'}, f"len(startNodesNextIndexStartTvalEndTval): {len(startNodesNextIndexStartTvalEndTval)}")
             #for info in startNodesNextIndexStartTvalEndTval:
                 #treeGen.report({'INFO'}, f"startTval: {info.startTval}, endTval: {info.endTval}")
-            treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex} -> calling calculateSegmentLenghsAndTotalLength(): len(segmentLengths): {len(segmentLengths)}")
+            #treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex} -> calling calculateSegmentLenghsAndTotalLength(): len(segmentLengths): {len(segmentLengths)}")
             totalLength = calculateSegmentLengthsAndTotalLength(self, treeGen, startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster)
-            treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, totalLength: {totalLength}") 
+            #treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, totalLength: {totalLength}") 
             
             windingAngle = 0.0
             for branchIndex in range(0, nrBranchesList[clusterIndex].value):
@@ -1513,10 +1288,11 @@ branchVariance):
                 branchStartTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
                 
                 globalVerticalAngle = lerp(verticalAngleCrownStart[clusterIndex].value, verticalAngleCrownEnd[clusterIndex].value, data.startNode.tValGlobal)
-                #treeGen.report({'INFO'}, f"in add Branches: branchStartTvalGlobal: {branchStartTvalGlobal}, globalVerticalAngle: {globalVerticalAngle}")
+                
                 branchVerticalAngle = lerp(verticalAngleBranchStart[clusterIndex].value, verticalAngleBranchEnd[clusterIndex].value, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
                 
                 verticalAngle = globalVerticalAngle + branchVerticalAngle
+                treeGen.report({'INFO'}, f"in add Branches: branchStartTvalGlobal: {branchStartTvalGlobal}, globalVerticalAngle: {globalVerticalAngle}, verticalAngle: {verticalAngle}")
                 
                 globalRotateAngle = lerp(rotateAngleCrownStartList[clusterIndex].value, rotateAngleCrownEndList[clusterIndex].value, branchStartTvalGlobal)
                 
@@ -1540,23 +1316,18 @@ branchVariance):
                 
                 #treeGen.report({'INFO'}, f"in add Branches: clusterIndex: {clusterIndex}, branchClusters: {branchClusters}")
                 if branchAngleModeList[clusterIndex].value == "WINDING":
+                    
                     centerDir = data.outwardDir # for symmetric!
-                    drawArrow(startPoint, startPoint + data.outwardDir) #OK
+                    drawArrow(startPoint, startPoint + data.outwardDir)
                 
                 
                     drawArrow(startPoint, startPoint + centerDir * 2.5) #???
                 
-                    #// TODO: fibonacci numbers: 1/2, 1/3, 2/5, 3/8 -> 180, 120, 144, 135, -> f(n)/f(n+2)
                     if useFibonacciAnglesList[clusterIndex].value == True:
-                        #treeGen.report({'INFO'}, f"in add Branches: fibonacci angle: {fibonacciNrList[clusterIndex].fibonacci_angle}")
-                        
-                        #treeGen.report({'INFO'}, f"in add Branches: clusterIndex: {clusterIndex}, rotateAngle: {rotateAngle}, globalRotateAngle: {globalRotateAngle}, branchRotateAngle: {branchRotateAngle}, rotateAngleRange: {rotateAngleRangeList[clusterIndex].value}, fibonacci->rotateAngleRange: {fibonacciNrList[clusterIndex].rotate_angle_range}")
                 
                         
                         if rotateAngleRangeList[clusterIndex].value > 0:
                             angle = (windingAngle + 360.0) % 360.0
-                            #treeGen.report({'INFO'}, f"in add Branches: windingAngle: {windingAngle}")
-                            # useFibonacciAnglesList,
                             # fibonacciNrList,
                         else:
                             angle = 0.0
@@ -1570,16 +1341,16 @@ branchVariance):
                         
                     right = startPointTangent.cross(Vector((0.0,0.0,1.0))).normalized()
                     axis = right.cross(startPointTangent).normalized()
-                    branchDir = Quaternion(axis, math.radians(-verticalAngle)) @ centerDir
-                    #treeGen.report({'INFO'}, f"WINDING: verticalAngle: {verticalAngle}")
+                    #axis = startPointTangent.cross(data.outwardDir)
+                    branchDir = Quaternion(axis, math.radians(-verticalAngle)) @ startPointTangent
+                    treeGen.report({'INFO'}, f"WINDING: verticalAngle: {verticalAngle}, axis: {axis}, branchDir: {branchDir}")
                     branchDir = Quaternion(startPointTangent, math.radians(angle)) @ branchDir
                     
                 # if context.scene.useFibonacciAnglesList[clusterIndex].value == True:
                 #     windingAngle += context.scene.fibonacciNrList[clusterIndex].fibonacci_angle
                 # else:
                 #     windingAngle += rotateAngle
-                    
-                
+                   
                 if branchAngleModeList[clusterIndex].value == "SYMMETRIC":
                     centerDir = Quaternion(startPointTangent.cross(data.outwardDir), math.radians(-verticalAngle)) @ data.outwardDir # for symmetric!
                     axis = startPointTangent.cross(centerDir).normalized()
@@ -1701,90 +1472,64 @@ branchVariance):
                     rotateAngle = (globalRotateAngle + branchRotateAngle) % fibonacciNrList[clusterIndex].rotate_angle_range #rotateAngleRangeList[clusterIndex].value
                     windingAngle += rotateAngle
                 
-                #treeGen.report({'INFO'}, f"in add Branches(): new windingAngle: {windingAngle}, added: ")  #added rotateAngle: 25 -> 2.33999, rotateAngle: 50 -> 2.33999, rotateAngleRange: 20 -> 2.33999
-                
         
-        if nrSplitsPerBranch != None:
-            if len(nrSplitsPerBranch) > 0: # > clusterIndex:
-                if nrSplitsPerBranch[clusterIndex].value > 0.0: # [clusterIndex]
-                    #treeGen.report({'INFO'}, f"in add Branches()")
-                    #treeGen.report({'INFO'}, f"branchCurvOffsetStrength: {branchCurvOffsetStrength}")
-                    #length = len(branchCurvOffsetStrength)
-                    
-                    
-                    #treeGen.report({'INFO'}, f"in addBranches: branchSplitRotateAnlge: {len(branchSplitRotateAngle)}, clusterIndex: {clusterIndex}")
-                    
-                    
-                    splitBranches(self, 
-                                  rootNode, 
-                                  0, 
-                                  int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value), 
-                                  
-                                  branchSplitAngle[clusterIndex].value, 
-                                  branchSplitPointAngle[clusterIndex].value, 
-                                  nrSplitsPerBranch[clusterIndex].value, 
-                                  
-                                  splitsPerBranchVariation[clusterIndex].value, 
-                                  branchSplitHeightInLevel, # == branchSplitHeightInLevelList_0
-                                  branchSplitHeightVariation[clusterIndex].value, 
-                                  branchSplitLengthVariation[clusterIndex].value,
-                                  
-                                  branchSplitMode[clusterIndex].value, 
-                                  branchSplitRotateAngle[clusterIndex].value,
-                                  0, #level ???
-                                  
-                                  ringResolutionList[clusterIndex].value, 
-                                  0.0,#branchCurvOffsetStrength[0], #TODO: variable for each branch cluster... 
-                                  branchVariance[clusterIndex].value, 
-                                  branchSplitAxisVariationList[clusterIndex].value)
-                    
-        #TODO
-        #def resampleSpline(self, treeGen, resampleDistance):
-        #nodes[0].resampleSpline(self, context.scene.resampleDistance)
-        
-        #nodes[0].applyCurvature(self, nodes[0], context.scene.treeGrowDir, context.scene.treeHeight, context.scene.curvature, nodes[0].cotangent, False)
-        
-        #    def applyCurvature(
-        #self, 
-        #treeGen, 
-        #rootNode, 
-        #treeGrowDir, 
-        #treeHeight, 
-        #curvatureStartGlobal,
-        #curvatureStartBranch,
-        #curvatureEndGlobal, 
-        #curvatureEndBranch, 
-        #isVertical, 
-        #transitionVal,
-        #clusterIndex, 
-        #branchStartPoint, 
-        #curveStep,
-        #maxCurveSteps):
-        
-        #TODO
-        for branchNode in branchNodes:
-            branchNode.resampleSpline(rootNode, treeGen, resampleDistance)
-            
-            #treeGen.report({'INFO'}, f"in addBranches(): curvatureList[clusterIndex]: {context.scene.branchCurvatureList[clusterIndex].value}")
-            branchNode.applyCurvature(treeGen, 
+        if hangingBranchesList[clusterIndex].value == False:
+            if nrSplitsPerBranch != None:
+                if len(nrSplitsPerBranch) > 0: # > clusterIndex:
+                    if nrSplitsPerBranch[clusterIndex].value > 0.0: # [clusterIndex]
+                            
+                        splitBranches(self, 
                                       rootNode, 
-                                      treeGrowDir, 
-                                      treeHeight, 
-                                      context.scene.branchGlobalCurvatureStartList[clusterIndex].value, 
-                                      context.scene.branchCurvatureStartList[clusterIndex].value, 
-                                      context.scene.branchGlobalCurvatureEndList[clusterIndex].value, 
-                                      context.scene.branchCurvatureEndList[clusterIndex].value, 
-                                      False, 
-                                      clusterIndex, 
-                                      branchNode.point, 
                                       0, 
-                                      context.scene.maxCurveSteps)
-                      
-        # TODO -> # splitRecursive -> resampleSpline -> applyCurvature
-                                  
+                                      int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value), 
+                                      
+                                      branchSplitAngle[clusterIndex].value, 
+                                      branchSplitPointAngle[clusterIndex].value, 
+                                      nrSplitsPerBranch[clusterIndex].value, 
+                                      
+                                      splitsPerBranchVariation[clusterIndex].value, 
+                                      branchSplitHeightInLevel, # == branchSplitHeightInLevelList_0
+                                      branchSplitHeightVariation[clusterIndex].value, 
+                                      branchSplitLengthVariation[clusterIndex].value,
+                                      
+                                      branchSplitMode[clusterIndex].value, 
+                                      branchSplitRotateAngle[clusterIndex].value,
+                                      0, #level ???
+                                      
+                                      ringResolutionList[clusterIndex].value, 
+                                      0.0,#branchCurvOffsetStrength[0], #TODO: variable for each branch cluster... 
+                                      branchVariance[clusterIndex].value, 
+                                      branchSplitAxisVariationList[clusterIndex].value)
                 
-                    
-                    
+            for branchNode in branchNodes:
+                
+                branchNode.resampleSpline(rootNode, treeGen, resampleDistance)
+                
+                branchNode.applyCurvature(treeGen, 
+                                          rootNode, 
+                                          treeGrowDir, 
+                                          treeHeight, 
+                                          context.scene.branchGlobalCurvatureStartList[clusterIndex].value, 
+                                          context.scene.branchCurvatureStartList[clusterIndex].value, 
+                                          context.scene.branchGlobalCurvatureEndList[clusterIndex].value, 
+                                          context.scene.branchCurvatureEndList[clusterIndex].value, 
+                                          clusterIndex, 
+                                          branchNode.point, 
+                                          0, 
+                                          context.scene.maxCurveSteps)
+                                          
+        else: #hangingBranchesList[clusterIndex].value == True:
+            for branchNode in branchNodes:
+                
+                #branchNode.resampleSpline(rootNode, treeGen, resampleDistance)
+                
+                branchNode.hangingBranches(treeGen, 
+                                           context.scene.branchGlobalCurvatureStartList[clusterIndex].value, 
+                                           context.scene.branchGlobalCurvatureEndList[clusterIndex].value)
+            
+            
+        
+            
 def splitBranches(self, 
                   rootNode, 
                   branchCluster, 
@@ -2020,7 +1765,7 @@ def shapeRatio(self, context, tValGlobal, treeShape):
 def calculateSegmentLengthsAndTotalLength(self, treeGen, startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster):
     #useTvalBranch == False
     totalLength = 0.0
-    treeGen.report({'INFO'}, f"in calculateSegmentLengthsAndTotalLength(): len(startNodesNextIndexStartTvalEndTval): {len(startNodesNextIndexStartTvalEndTval)}")
+    #treeGen.report({'INFO'}, f"in calculateSegmentLengthsAndTotalLength(): len(startNodesNextIndexStartTvalEndTval): {len(startNodesNextIndexStartTvalEndTval)}")
     for i in range(0, len(startNodesNextIndexStartTvalEndTval)):
         
         segmentLength = 0.0
@@ -2071,7 +1816,7 @@ def calculateSegmentLengthsAndTotalLength(self, treeGen, startNodesNextIndexStar
             if tA_branch - tB_branch != 0.0:
                 frac = (tEnd - tStart) / (tB_branch - tA_branch)
             segmentLengthAbove = segmentLength * frac
-        treeGen.report({'INFO'}, f"in calculateSegmentLengthsAndTotalLength(): adding length: {segmentLengthAbove}")
+        #treeGen.report({'INFO'}, f"in calculateSegmentLengthsAndTotalLength(): adding length: {segmentLengthAbove}")
         segmentLengths.append(segmentLengthAbove)
         totalLength += segmentLengthAbove
         
@@ -2090,10 +1835,10 @@ def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLen
     startNodeIndex = 0
     tVal = 0.0
     
-    self.report({'INFO'}, f"in generateStartPointData: branchPos: {branchPos}, len(SegmentLengths): {len(segmentLengths)}")
+    #self.report({'INFO'}, f"in generateStartPointData: branchPos: {branchPos}, len(SegmentLengths): {len(segmentLengths)}")
     
     for i in range(len(segmentLengths)):
-        self.report({'INFO'}, f"in generateStartPointData: segmentLengths[{i}]: {segmentLengths[i]}")
+        #self.report({'INFO'}, f"in generateStartPointData: segmentLengths[{i}]: {segmentLengths[i]}")
         if accumLength + segmentLengths[i] >= branchPos:
             startNodeIndex = i
             segStart = accumLength
@@ -2736,6 +2481,8 @@ class addItem(bpy.types.Operator): # add branch cluster
         branchesStartHeightCluster.value = 0.0
         branchesEndHeightCluster = context.scene.branchesEndHeightClusterList.add()
         branchesEndHeightCluster.value = 1.0
+        hangingBranches = context.scene.hangingBranchesList.add()
+        hangingBranches = False
         branchGlobalCurvatureStart = context.scene.branchGlobalCurvatureStartList.add()
         branchGlobalCurvatureStart.value = 0.0
         branchGlobalCurvatureEnd = context.scene.branchGlobalCurvatureEndList.add()
@@ -2824,6 +2571,7 @@ class removeItem(bpy.types.Operator):
         context.scene.branchesEndHeightGlobalList.remove(len(context.scene.branchesEndHeightGlobalList) - 1)
         context.scene.branchesStartHeightClusterList.remove(len(context.scene.branchesStartHeightClusterList) - 1)
         context.scene.branchesEndHeightClusterList.remove(len(context.scene.branchesEndHeightClusterList) - 1)
+        context.scene.hangingBranchesList.remove(len(context.scene.hangingBranchesList) - 1)
         context.scene.branchGlobalCurvatureStartList.remove(len(context.scene.branchGlobalCurvatureStartList) - 1)
         context.scene.branchGlobalCurvatureEndList.remove(len(context.scene.branchGlobalCurvatureEndList) - 1)
         context.scene.branchCurvatureStartList.remove(len(context.scene.branchCurvatureStartList) - 1)
@@ -2918,7 +2666,30 @@ class noiseSettings(bpy.types.Panel):
         layout.prop(context.scene, "noiseAmplitudeLowerUpperExponent")
         row = layout.row()
         layout.prop(context.scene, "noiseScale")
+
+class angleSettings(bpy.types.Panel):
+    bl_label = "Angle Settings"
+    bl_idname = "PT_AngleSettings"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'treeGen'
+    
+    def draw(self, context):
+        layout = self.layout
+        obj = context.object
+        scene = context.scene
+        bl_parent_id = 'PT_TreeGen'
+        bl_optione = {'DEFAULT_CLOSED'}
         
+        
+        row = layout.row()
+        layout.prop(context.scene, "curvatureStart")
+        row = layout.row()
+        layout.prop(context.scene, "curvatureEnd")
+        row = layout.row()
+        layout.prop(context.scene, "maxCurveSteps")
+        row = layout.row()
+        layout.prop(context.scene, "testRecursionStop")
         
 class splitSettings(bpy.types.Panel):
     bl_label = "Split Settings"
@@ -2934,18 +2705,10 @@ class splitSettings(bpy.types.Panel):
         bl_parent_id = 'PT_TreeGen'
         bl_optione = {'DEFAULT_CLOSED'}
         
+        
         row = layout.row()
         layout.prop(context.scene, "nrSplits")
-        row = layout.row()
-        layout.prop(context.scene, "curvature")
-        row = layout.row()
-        layout.prop(context.scene, "curvatureStart")
-        row = layout.row()
-        layout.prop(context.scene, "curvatureEnd")
-        row = layout.row()
-        layout.prop(context.scene, "maxCurveSteps")
-        row = layout.row()
-        layout.prop(context.scene, "testRecursionStop")
+        
         row = layout.row()
         layout.prop(context.scene, "variance", slider=True)
         row = layout.row()
@@ -2978,8 +2741,8 @@ class splitSettings(bpy.types.Panel):
         #for splitLevel in context.scene.stemSplitHeightInLevelList:
         #    box.prop(splitLevel, "value", text=f"Split height level {j}", slider=True)
         #    j += 1
-        
-        
+            
+            
         #box.template_list("UI_UL_list", "stemSplitHeightInLevelList", context.scene, "stemSplitHeightInLevelList", context.scene.stemSplitHeightInLevelList,  0)
         #box.template_list("myList", "stemSplitHeightInLevelList", context.scene, "stemSplitHeightInLevelListIndex", active_propname, *, item_dyntip_propname='', rows=5, maxrows=5, type='DEFAULT', columns=9, sort_reverse=False, sort_lock=False)
         #row = box.row()
@@ -3238,32 +3001,49 @@ class branchSettings(bpy.types.Panel):
                             split.label(text="Rotate angle branch end")
                             if i < len(scene.rotateAngleBranchEndList):
                                 split.prop(scene.rotateAngleBranchEndList[i], "value", text="")
-                           
-                        split = box1.split(factor=0.6)
-                        split.label(text="Branch global curvature start")
-                        if i < len(scene.branchGlobalCurvatureStartList):
-                            split.prop(scene.branchGlobalCurvatureStartList[i], "value", text="")
                         
-                        split = box1.split(factor=0.6)
-                        split.label(text="Branch global curvature end")
-                        if i < len(scene.branchGlobalCurvatureEndList):
-                            split.prop(scene.branchGlobalCurvatureEndList[i], "value", text="")
+                        box3 = box1.box()
+                        split = box3.split(factor=0.6)
+                        split.label(text="Hanging branches")
+                        if i < len(scene.hangingBranchesList):
+                            split.prop(scene.hangingBranchesList[i], "value", text="")
                         
-                        
-                        split = box1.split(factor=0.6)
-                        split.label(text="Branch curvature start")
-                        if i < len(scene.branchCurvatureStartList):
-                            split.prop(scene.branchCurvatureStartList[i], "value", text="")
+                        if scene.hangingBranchesList[i].value == True:
+                            split = box3.split(factor=0.6)
+                            split.label(text="Branch global curvature start")
+                            if i < len(scene.branchGlobalCurvatureStartList):
+                                split.prop(scene.branchGlobalCurvatureStartList[i], "value", text="")
                             
-                        split = box1.split(factor=0.6)
-                        split.label(text="Branch curvature end")
-                        if i < len(scene.branchCurvatureEndList):
-                            split.prop(scene.branchCurvatureEndList[i], "value", text="")
-                    
-                        split = box1.split(factor=0.6)
-                        split.label(text="Branch curvature offset")
-                        if i < len(scene.branchCurvatureOffsetStrengthList):
-                            split.prop(scene.branchCurvatureOffsetStrengthList[i], "value", text="")
+                            split = box3.split(factor=0.6)
+                            split.label(text="Branch global curvature end")
+                            if i < len(scene.branchGlobalCurvatureEndList):
+                                split.prop(scene.branchGlobalCurvatureEndList[i], "value", text="")
+                        else:
+                            split = box3.split(factor=0.6)
+                            split.label(text="Branch global curvature start")
+                            if i < len(scene.branchGlobalCurvatureStartList):
+                                split.prop(scene.branchGlobalCurvatureStartList[i], "value", text="")
+                            
+                            split = box3.split(factor=0.6)
+                            split.label(text="Branch global curvature end")
+                            if i < len(scene.branchGlobalCurvatureEndList):
+                                split.prop(scene.branchGlobalCurvatureEndList[i], "value", text="")
+                            
+                            split = box3.split(factor=0.6)
+                            split.label(text="Branch curvature start")
+                            if i < len(scene.branchCurvatureStartList):
+                                split.prop(scene.branchCurvatureStartList[i], "value", text="")
+                                
+                            split = box3.split(factor=0.6)
+                            split.label(text="Branch curvature end")
+                            if i < len(scene.branchCurvatureEndList):
+                                split.prop(scene.branchCurvatureEndList[i], "value", text="")
+                        
+                            split = box3.split(factor=0.6)
+                            split.label(text="Branch curvature offset")
+                            if i < len(scene.branchCurvatureOffsetStrengthList):
+                                split.prop(scene.branchCurvatureOffsetStrengthList[i], "value", text="")
+                        
                 
                 split = box.split(factor=0.6)
                 split.prop(scene.showSplitSettings[i], "value", icon="TRIA_DOWN" if scene.showSplitSettings[i].value else "TRIA_RIGHT", emboss=False, text="Split settings", toggle=True)
@@ -3388,6 +3168,7 @@ def register():
     bpy.utils.register_class(treeGenPanel)
     bpy.utils.register_class(treeSettings)
     bpy.utils.register_class(noiseSettings)
+    bpy.utils.register_class(angleSettings)
     bpy.utils.register_class(splitSettings)
     bpy.utils.register_class(branchSettings)
     #bpy.utils.register_class(parentClusterPanel)
@@ -3446,6 +3227,7 @@ def register():
     bpy.types.Scene.branchesEndHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchesStartHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchesEndHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.hangingBranchesList = bpy.props.CollectionProperty(type=boolProp)
     bpy.types.Scene.branchGlobalCurvatureStartList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchGlobalCurvatureEndList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchCurvatureStartList = bpy.props.CollectionProperty(type=floatProp)
@@ -3526,12 +3308,7 @@ def register():
         description = "Scale of the noise",
         default = 1.0,
         min = 0.0
-    )
-    bpy.types.Scene.curvature = bpy.props.FloatProperty(
-        name = "Curvature",
-        description = "Curvature of branches",
-        default = 0.0
-    )
+    )    
     bpy.types.Scene.curvatureStart = bpy.props.FloatProperty(
         name = "Curvature Start",
         description = "Curvature at start of branches",
@@ -3548,12 +3325,12 @@ def register():
         default = 10,
         min = 0
     )
-    bpy.types.Scene.shyBranchesMaxDistance = bpy.props.FloatProperty(
-        name = "Shy Branches Max Distance",
-        description = "Maximum distance for shy branches",
-        default = 0.1,
-        min = 0.0
-    )
+    #bpy.types.Scene.shyBranchesMaxDistance = bpy.props.FloatProperty(
+    #    name = "Shy Branches Max Distance",
+    #    description = "Maximum distance for shy branches",
+    #    default = 0.1,
+    #    min = 0.0
+    #)
     bpy.types.Scene.stemSplitRotateAngle = bpy.props.FloatProperty(
         name = "Stem Split Rotate Angle",
         description = "Rotation angle for stem splits",
@@ -3910,8 +3687,9 @@ def save_properties(filePath):
         "noiseAmplitudeLowerUpperExponent": props.noiseAmplitudeLowerUpperExponent,
         "noiseScale": props.noiseScale,
         
-        "nrSplits": props.nrSplits,        
-        "curvature": props.curvature,
+        "nrSplits": props.nrSplits, 
+        "curvatureStart": props.curvatureStart,
+        "curvatureEnd": props.curvatureEnd,
         "testRecursionStop": props.testRecursionStop,
         "variance": props.variance,
         "stemSplitMode": props.stemSplitMode,
@@ -3965,6 +3743,7 @@ def save_properties(filePath):
         "branchesEndHeightGlobalList": [item.value for item in props.branchesEndHeightGlobalList],
         "branchesStartHeightClusterList": [item.value for item in props.branchesStartHeightClusterList],
         "branchesEndHeightClusterList": [item.value for item in props.branchesEndHeightClusterList],
+        "hangingBranchesList": [item.value for item in props.hangingBranchesList],
         "branchGlobalCurvatureStartList": [item.value for item in props.branchGlobalCurvatureStartList],
         "branchGlobalCurvatureEndList": [item.value for item in props.branchGlobalCurvatureEndList],
         "branchCurvatureStartList": [item.value for item in props.branchCurvatureStartList],
@@ -4049,7 +3828,8 @@ def load_properties(filepath, context):
         props.noiseScale = data.get("noiseScale", props.noiseScale)
         
         props.nrSplits = data.get("nrSplits", props.nrSplits)
-        props.curvature = data.get("curvature", props.curvature)
+        props.curvatureStart = data.get("curvatureStart", props.curvatureStart)
+        props.curvatureEnd = data.get("curvatureEnd", props.curvatureEnd)
         props.testRecursionStop = data.get("testRecursionStop", props.testRecursionStop)
         props.variance = data.get("variance", props.variance)
         props.stemSplitMode = data.get("stemSplitMode", props.stemSplitMode)
@@ -4152,6 +3932,10 @@ def load_properties(filepath, context):
             
         for value in data.get("branchesEndHeightClusterList", []):
             item = props.branchesEndHeightClusterList.add()
+            item.value = value
+            
+        for value in data.get("hangingBranchesList", []):
+            item = props.hangingBranchesList.add()
             item.value = value
             
         for value in data.get("branchGlobalCurvatureStartList", []):
