@@ -85,10 +85,10 @@ class node():
     
         
     def getAllSegments(self, treeGen, rootNode, segments, connectedToPrev):
-        for t in self.tangent:
-            drawArrow(self.point, self.point + t)
+        #for t in self.tangent:
+        #    #drawArrow(self.point, self.point + t)
         #if self.clusterIndex == -1: 
-        #    drawDebugPoint(self.point, 0.1)
+        #    #drawDebugPoint(self.point, 0.1)
         
         for n, nextNode in enumerate(self.next):
             longestBranchLengthInCluster = 1.0
@@ -392,25 +392,78 @@ class node():
         treeGen.report({'INFO'}, f"in hangingBranches(), curvature: {curvature}")
         
         if curvature != 0.0:
-            radius = 1.0 / curvature
+            
+            radius = abs(1.0 / curvature)
+            
             branchLength = (self.next[0].point - self.point).length
             branchDir = (self.next[0].point - self.point) / branchLength
             
             totalRotationAngle = math.acos(branchDir.dot(Vector((0.0,0.0,-1.0))))
             
-            if branchLength > radius * totalRotationAngle:
-                outwardDir = self.tangent[0].cross(self.tangent[0].cross(Vector((0.0,0.0,1.0))))
-                centerPoint = self.point - outwardDir * radius
+            if branchLength <= radius * totalRotationAngle:
+                centerDir = Quaternion(self.cotangent, math.radians(90)) @ self.tangent[0]
+                centerPoint = self.point + centerDir * radius
+                drawArrow(self.point, self.point + centerDir)
                 drawDebugPoint(centerPoint, 1.0)
                 
-                verticalPoint = centerPoint - radius * Vector((outwardDir.x, outwardDir.y, 0.0)) / Vector((outwardDir.x, outwardDir.y, 0.0)).length
+                branchEndAngle = branchLength / radius
+                newDir = Quaternion(self.cotangent, branchEndAngle) @ (self.tangent[0]).normalized()
+                drawArrow(centerPoint, centerPoint + newDir)
+                treeGen.report({'INFO'}, f"length: {(self.point - centerPoint).length}") #OK (5.376)
+                treeGen.report({'INFO'}, f"self.point: {self.point}")
+                treeGen.report({'INFO'}, f"centerPoint: {centerPoint}")
+                treeGen.report({'INFO'}, f"newDir.length: {newDir.length}") # 1.0
+                
+                branchEndPoint = centerPoint + (self.point - centerPoint).length * (Quaternion(self.cotangent, -90.0) @ newDir) # ERROR HERE (???)
+                drawDebugPoint(branchEndPoint, 0.2)
+                
+                branchEndTangent = Quaternion(self.cotangent, branchEndAngle) @ self.next[0].tangent[0]
+                self.next[0].point = branchEndPoint
+                self.next[0].tangent[0] = branchEndTangent
+            
+            if branchLength > radius * totalRotationAngle:
+                
+                verticalRadiusFactor = 0.75
+                
+                outwardDir = Vector((self.tangent[0].x, self.tangent[0].y, 0.0)) 
+                
+                drawArrow(self.point, self.point + self.tangent[0])
+                drawArrow(self.point, self.point + self.cotangent)
+                self.cotangent = self.cotangent.normalized()
+                
+                centerDir = Quaternion(self.cotangent, math.radians(90)) @ self.tangent[0]
+                drawArrow(self.point, self.point + centerDir)
+                                
+                centerPoint = self.point + centerDir * radius
+                drawDebugPoint(centerPoint, 1.0)
+                
+                verticalPoint = centerPoint + radius * Vector((outwardDir.x, outwardDir.y, 0.0)) / Vector((outwardDir.x, outwardDir.y, 0.0)).length
+                
+                verticalPointReducedRadius = centerPoint + radius * verticalRadiusFactor * Vector((outwardDir.x, outwardDir.y, 0.0)) / Vector((outwardDir.x, outwardDir.y, 0.0)).length #TEST: reduce radius!
                 
                 drawDebugPoint(verticalPoint, 0.5)
                 
-                self.next[0].point = verticalPoint
-                self.next[0].tangent[0] = Vector((0.0,0.0,-1.0))
-                self.next[0].next.append(node(verticalPoint + (branchLength - radius * totalRotationAngle) * Vector((0.0,0.0,-1.0)), self.next[0].radius, self.next[0].cotangent, self.clusterIndex, self.ringResolution, self.taper, self.tValGlobal, self.tValBranch, self.branchLength)) #TODO: tValBranch, cotangent, radius, ...
-                self.next[0].next[0].tangent.append(Vector((0.0,0.0,-1.0)))
+                middlePoint = centerPoint + radius * ((verticalPoint + self.point) / 2.0 - centerPoint) / ((verticalPoint + self.point) / 2.0 - centerPoint).length
+                drawDebugPoint(middlePoint, 0.1)
+                
+                middleTangent = (self.tangent[0] + Vector((0.0,0.0,-1.0))) / 2.0
+                drawArrow(middlePoint, middlePoint + middleTangent)
+                
+                self.next[0].point = middlePoint
+                self.next[0].tangent[0] = middleTangent
+                
+                verticalNode = node(verticalPointReducedRadius, self.next[0].radius, self.next[0].cotangent, self.clusterIndex, self.ringResolution, self.taper, self.tValGlobal, self.tValBranch, self.branchLength)
+                verticalNode.tangent.append(Vector((0.0,0.0,-1.0)))
+                
+                self.next[0].next.append(verticalNode)
+                
+                treeGen.report({'INFO'}, f"in hangingBranches(), totalRotationAngle: {totalRotationAngle}")
+                newLength = branchLength - radius * totalRotationAngle
+                treeGen.report({'INFO'}, f"in hangingBranches(), branchLength: {branchLength}, newBranchLength: {newLength}, totalRotationAngle: {totalRotationAngle}, radius: {radius}")
+                
+                verticalNode.next.append(node(verticalPointReducedRadius + (branchLength - radius * totalRotationAngle) * Vector((0.0,0.0,-1.0)), self.next[0].radius, self.next[0].cotangent, self.clusterIndex, self.ringResolution, self.taper, self.tValGlobal, self.tValBranch, self.branchLength)) #TODO: tValBranch, cotangent, radius, ...
+                
+                verticalNode.next[0].tangent.append(Vector((0.0,0.0,-1.0)))
                 
                 #class node():
                 #   def __init__(self, Point, Radius, Cotangent, ClusterIndex, RingResolution, Taper, TvalGlobal, TvalBranch, BranchLength):
@@ -1318,10 +1371,10 @@ hangingBranchesList):
                 if branchAngleModeList[clusterIndex].value == "WINDING":
                     
                     centerDir = data.outwardDir # for symmetric!
-                    drawArrow(startPoint, startPoint + data.outwardDir)
+                    #drawArrow(startPoint, startPoint + data.outwardDir)
                 
                 
-                    drawArrow(startPoint, startPoint + centerDir * 2.5) #???
+                    #drawArrow(startPoint, startPoint + centerDir * 2.5) #???
                 
                     if useFibonacciAnglesList[clusterIndex].value == True:
                 
@@ -1336,7 +1389,7 @@ hangingBranchesList):
                         #treeGen.report({'INFO'}, f"in add Branches: windingAngle: {windingAngle}")
                         if fibonacciNrList[clusterIndex].rotate_angle_range <= 0.0:
                             fibonacciNrList[clusterIndex].rotate_angle_range = 180.0
-                        angle = windingAngle % fibonacciNrList[clusterIndex].rotate_angle_range
+                        angle = windingAngle % fibonacciNrList[clusterIndex].rotate_angle_range + fibonacciNrList[clusterIndex].rotate_angle_offset - fibonacciNrList[clusterIndex].rotate_angle_range / 2.0
                         #treeGen.report({'INFO'}, f"in add Branches: angle: {angle}")
                         
                     right = startPointTangent.cross(Vector((0.0,0.0,1.0))).normalized()
@@ -1527,7 +1580,7 @@ hangingBranchesList):
                                            context.scene.branchGlobalCurvatureStartList[clusterIndex].value, 
                                            context.scene.branchGlobalCurvatureEndList[clusterIndex].value)
             
-            
+                # TODO -> split() -> splitNode.hangingBranches() after each split!
         
             
 def splitBranches(self, 
@@ -2125,7 +2178,7 @@ class fibonacciProps(bpy.types.PropertyGroup):
         update = lambda self, context:update_fibonacci_numbers(self)) ##########  -> both in one propertyGroup!
         
     rotate_angle_range: bpy.props.FloatProperty(name="", default=0.0, min=0.0)
-    
+    rotate_angle_offset: bpy.props.FloatProperty(name="", default=0.0)
         
 
     
@@ -2981,7 +3034,13 @@ class branchSettings(bpy.types.Panel):
                             split = box2.split(factor=0.6)
                             split.label(text="Rotate angle range")
                             split.prop(scene.fibonacciNrList[i], "rotate_angle_range", text="")
-                                
+                            
+                        if scene.useFibonacciAnglesList[i].value == False and scene.branchAngleModeList[i].value == 'WINDING':
+                            split = box2.split(factor=0.6)
+                            split.label(text="Rotate angle offset")
+                            split.prop(scene.fibonacciNrList[i], "rotate_angle_offset", text="")
+                        
+                        if scene.useFibonacciAnglesList[i].value == False or scene.branchAngleModeList[i].value == 'SYMMETRIC':
                             split = box2.split(factor=0.6)
                             split.label(text="Rotate angle crown start")
                             if i < len(scene.rotateAngleCrownStartList):
@@ -3050,6 +3109,11 @@ class branchSettings(bpy.types.Panel):
                 
                 if scene.showSplitSettings[i].value:
                     box2 = box.box()
+                    
+                    split = box2.split(factor=0.6)
+                    split.label(text="Nr splits per branch")
+                    if i < len(scene.nrSplitsPerBranchList):
+                        split.prop(scene.nrSplitsPerBranchList[i], "value", text="")
                 
                     box3 = box2.box()
                     split = box3.split(factor=0.6)
@@ -3079,11 +3143,6 @@ class branchSettings(bpy.types.Panel):
                         split.label(text="Branch split point angle")
                         split.prop(scene.branchSplitPointAngleList[i], "value", text="")
                         
-                    split = box2.split(factor=0.6)
-                    split.label(text="Nr splits per branch")
-                    if i < len(scene.nrSplitsPerBranchList):
-                        split.prop(scene.nrSplitsPerBranchList[i], "value", text="")
-                
                     split = box2.split(factor=0.6)
                     split.label(text="Splits per branch variation")
                     if i < len(scene.splitsPerBranchVariationList):
