@@ -16,6 +16,7 @@ import mathutils
 from mathutils import Vector, Quaternion, Matrix
 import random
 import json
+import traceback
 
 class startNodeInfo():
     def __init__(self, StartNode, NextIndex, StartTval, EndTval):
@@ -88,13 +89,19 @@ class node():
         #for t in self.tangent:
         #    #drawArrow(self.point, self.point + t)
         #if self.clusterIndex == -1: 
-        #    #drawDebugPoint(self.point, 0.1)
+        drawDebugPoint(self.point, 0.05)
         
         for n, nextNode in enumerate(self.next):
             longestBranchLengthInCluster = 1.0
             
             if len(self.next) > 1:
-                segments.append(segment(self.clusterIndex, self.point, nextNode.point, self.tangent[n + 1], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.tValGlobal, nextNode.tValGlobal, self.tValBranch, nextNode.tValBranch, self.ringResolution, False, self.branchLength, longestBranchLengthInCluster, self.taper, nextNode.taper))
+                if len(self.tangent) > n + 1:
+                    nextTangent = self.tangent[n + 1]
+                else:
+                    nextTangent = self.tangent[0]
+                    treeGen.report({'WARNING'}, "ERROR: only one tangent found at split point!")
+                    traceback.print_stack()
+                segments.append(segment(self.clusterIndex, self.point, nextNode.point, nextTangent, nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.tValGlobal, nextNode.tValGlobal, self.tValBranch, nextNode.tValBranch, self.ringResolution, False, self.branchLength, longestBranchLengthInCluster, self.taper, nextNode.taper))
             else:
                 segments.append(segment(self.clusterIndex, self.point, nextNode.point, self.tangent[0], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.tValGlobal, nextNode.tValGlobal, self.tValBranch, nextNode.tValBranch, self.ringResolution, connectedToPrev, self.branchLength, longestBranchLengthInCluster, self.taper, nextNode.taper))
         
@@ -395,7 +402,7 @@ class node():
             if len(nextNode.next) > 0:
                 nextNode.resampleSpline(rootNode, treeGen, resampleDistance)
                         
-    def hangingBranches(self, treeGen, curvatureStartGlobal, curvatureEndGlobal): #TODO: correct tVal -> for branch radius!
+    def hangingBranches(self, treeGen, curvatureStartGlobal, curvatureEndGlobal, verticalRadiusFactor): #TODO: correct tVal -> for branch radius!
         
         curvature  = lerp(curvatureStartGlobal, curvatureEndGlobal, self.tValGlobal)
         treeGen.report({'INFO'}, f"in hangingBranches(), curvature: {curvature}")
@@ -432,7 +439,7 @@ class node():
             
             if branchLength > radius * totalRotationAngle:
                 
-                verticalRadiusFactor = 0.75
+                #verticalRadiusFactor = 0.6 #TODO: make parameter
                 
                 outwardDir = Vector((self.tangent[0].x, self.tangent[0].y, 0.0)) 
                 
@@ -448,7 +455,7 @@ class node():
                 
                 verticalPoint = centerPoint + radius * Vector((outwardDir.x, outwardDir.y, 0.0)) / Vector((outwardDir.x, outwardDir.y, 0.0)).length
                 
-                verticalPointReducedRadius = centerPoint + radius * verticalRadiusFactor * Vector((outwardDir.x, outwardDir.y, 0.0)) / Vector((outwardDir.x, outwardDir.y, 0.0)).length #TEST: reduce radius!
+                verticalPointReducedRadius = centerPoint + radius * verticalRadiusFactor * Vector((outwardDir.x, outwardDir.y, 0.0)) / Vector((outwardDir.x, outwardDir.y, 0.0)).length + radius * (1.0 - verticalRadiusFactor) * ((verticalPoint + self.point) / 2.0 - centerPoint) / ((verticalPoint + self.point) / 2.0 - centerPoint).length #TEST: reduce radius!
                 
                 drawDebugPoint(verticalPoint, 0.5)
                 
@@ -460,9 +467,11 @@ class node():
                 
                 self.next[0].point = middlePoint
                 self.next[0].tangent[0] = middleTangent
-                
+                self.next[0].tValBranch = ((-centerDir).dot(Vector((0.0,0.0,1.0))) * radius / branchLength) #???a
+                treeGen.report({'INFO'}, f"in hangingBranches(): middle point tValBranch: {self.next[0].tValBranch}")
                 verticalNode = node(verticalPointReducedRadius, self.next[0].radius, self.next[0].cotangent, self.clusterIndex, self.ringResolution, self.taper, self.tValGlobal, self.tValBranch, self.branchLength)
                 verticalNode.tangent.append(Vector((0.0,0.0,-1.0)))
+                verticalNode.tValBranch = radius * totalRotationAngle / branchLength
                 
                 self.next[0].next.append(verticalNode)
                 
@@ -470,7 +479,7 @@ class node():
                 newLength = branchLength - radius * totalRotationAngle
                 treeGen.report({'INFO'}, f"in hangingBranches(), branchLength: {branchLength}, newBranchLength: {newLength}, totalRotationAngle: {totalRotationAngle}, radius: {radius}")
                 
-                verticalNode.next.append(node(verticalPointReducedRadius + (branchLength - radius * totalRotationAngle) * Vector((0.0,0.0,-1.0)), self.next[0].radius, self.next[0].cotangent, self.clusterIndex, self.ringResolution, self.taper, self.tValGlobal, self.tValBranch, self.branchLength)) #TODO: tValBranch, cotangent, radius, ...
+                verticalNode.next.append(node(verticalPointReducedRadius + (branchLength - radius * totalRotationAngle) * Vector((0.0,0.0,-1.0)), self.next[0].radius, self.next[0].cotangent, self.clusterIndex, self.ringResolution, self.taper, self.tValGlobal, 1.0, self.branchLength)) #TODO: tValBranch, cotangent, radius, ...
                 
                 verticalNode.next[0].tangent.append(Vector((0.0,0.0,-1.0)))
                 
@@ -569,7 +578,7 @@ class generateTree(bpy.types.Operator):
             nodes[0].next.append(nodes[1])
             
             if context.scene.nrSplits > 0:
-                splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, context.scene.stemSplitHeightInLevelList, context.scene.splitHeightVariation, context.scene.splitLengthVariation, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution, context.scene.curvOffsetStrength, self, nodes[0])
+                splitRecursive(self, nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, context.scene.stemSplitHeightInLevelList, context.scene.splitHeightVariation, context.scene.splitLengthVariation, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution, context.scene.curvOffsetStrength, self, nodes[0])
             
             
             nodes[0].resampleSpline(nodes[0], self, context.scene.resampleDistance)
@@ -597,6 +606,8 @@ class generateTree(bpy.types.Operator):
                 
             # splitRecursive -> resampleSpline -> applyCurvature
             nodes[0].drawTangentArrows(self)
+            
+            
             
             if context.scene.branchClusters > 0:
                 addBranches(
@@ -646,7 +657,14 @@ class generateTree(bpy.types.Operator):
                 
                 context.scene.branchSplitAngleList, 
                 context.scene.branchSplitPointAngleList, 
-                context.scene.branchSplitHeightInLevelList_0, 
+                context.scene.branchSplitHeightInLevelList_0,
+                context.scene.branchSplitHeightInLevelList_1,
+                context.scene.branchSplitHeightInLevelList_2,
+                context.scene.branchSplitHeightInLevelList_3,
+                context.scene.branchSplitHeightInLevelList_4,
+                context.scene.branchSplitHeightInLevelList_5,
+                 # TODO: add items so len == nrBranches!
+                #                                               TODO: use correct list for branch clusters!
                 
                 context.scene.branchSplitHeightVariationList,
                 context.scene.branchSplitLengthVariationList,
@@ -659,7 +677,8 @@ class generateTree(bpy.types.Operator):
                 
                 context.scene.hangingBranchesList, 
                 context.scene.branchGlobalCurvatureStartList, 
-                context.scene.branchGlobalCurvatureEndList)
+                context.scene.branchGlobalCurvatureEndList, 
+                context.scene.verticalRadiusFactorList)
               
             calculateRadius(self, nodes[0], 100.0, context.scene.branchTipRadius)
             segments = []
@@ -671,7 +690,7 @@ class generateTree(bpy.types.Operator):
         return {'FINISHED'}
     
 def lerp(self, a, b, t):
-        return (a + (b - 1) * t)    
+        return (a + (b - a) * t)    
 def f0(t):
     return (-0.5*t*t*t + t*t - 0.5*t)
 def f1(t):
@@ -893,7 +912,7 @@ def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
 
 #nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, 0.5, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0]
 
-def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, splitHeightInLevel, splitHeightVariation, splitLengthVariation, stemSplitMode, stemSplitRotateAngle, root_node, stemRingResolution, curvOffsetStrength, self, rootNode):
+def splitRecursive(treeGen, startNode, nrSplits, splitAngle, splitPointAngle, variance, splitHeightInLevel, splitHeightVariation, splitLengthVariation, stemSplitMode, stemSplitRotateAngle, root_node, stemRingResolution, curvOffsetStrength, self, rootNode):
     #self.report({'INFO'}, f"splitRecursive! nrSplits: {nrSplits}")
     while len(splitHeightInLevel) < nrSplits:
         newHeight = splitHeightInLevel.add()
@@ -983,7 +1002,7 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
                         #self.report({'ERROR'}, f"splitHeight out of bounds! splitHeight: {splitHeight}")
                     #self.report({'INFO'}, f"splitRecursive: splitHeight: {splitHeight}")
                     #self.report({'INFO'}, f"splitRecursive(): stemSplitRotateAngle {stemSplitRotateAngle}")
-                    splitNode = split(
+                    splitNode = split(treeGen,
                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0],
                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][1],
                         splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, stemSplitMode, stemSplitRotateAngle, 0.0, stemRingResolution, curvOffsetStrength, self, rootNode)
@@ -1001,7 +1020,8 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
                 self.report({'INFO'}, f"break!")
                 break
             
-def split(startNode, 
+def split(treeGen,
+          startNode, 
           nextIndex, 
           splitHeight, 
           splitLengthVariation,
@@ -1034,6 +1054,7 @@ def split(startNode,
                         splitNode = splitNode.next[0]
                 
                 if splitNode != startNode:
+                    self.report({'WARNING'}, f"in split(): len(splitNode.next): {len(splitNode.next)}") # 2 ERROR
                     calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
                 else:
                     # TODO -> split at new node!!!
@@ -1104,7 +1125,7 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
     # ERROR: when splitHeightVariation is large !!!
     
     calculateSplitData(newNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
-  #  self.report({'INFO'}, f"did split at new node!")
+    self.report({'INFO'}, f"did split at new node!, len(newNode.tangent): {len(newNode.tangent)}")
     return newNode
 
 def calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, sMode, rotationAngle, stemRingResolution, curvOffsetStrength, self):
@@ -1189,7 +1210,15 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariat
             previousNodeB.next.append(nodeB)
             previousNodeA = nodeA
             previousNodeB = nodeB
-            
+        
+        if len(splitNode.next) > 2:
+            self.report({'WARNING'}, f"ERROR: in split(): nr next nodes of splitNode after split: {len(splitNode.next)}") 
+            stackList = traceback.format_stack()
+            stackString = "".join(stackList)
+            self.report({'WARNING'}, stackString)
+            # 3 ERROR HERE!!
+        else:
+            self.report({'INFO'}, f"in split(): nr next nodes of splitNode after split: {len(splitNode.next)}")
     
 
 def nodesToTip(n, i):
@@ -1258,6 +1287,12 @@ branchSplitAngle,
 
 branchSplitPointAngle, 
 branchSplitHeightInLevel, #==branchSplitHeightInLevelList_0
+branchSplitHeightInLevel_1,
+branchSplitHeightInLevel_2,
+branchSplitHeightInLevel_3,
+branchSplitHeightInLevel_4,
+branchSplitHeightInLevel_5,
+
 branchSplitHeightVariation,
 branchSplitLengthVariation,
 
@@ -1269,7 +1304,8 @@ branchVariance,
 
 hangingBranchesList, 
 curvatureStartGlobalList, 
-curvatureEndGlobalList):
+curvatureEndGlobalList, 
+verticalRadiusFactorList):
     
     #treeGen.report({'INFO'}, f"in add Branches(): len(nrBranchesList): {len(nrBranchesList)}, ")
     #if len(nrBranchesList) > 0 and len(branchesStartHeightGlobalList) > 0:
@@ -1544,17 +1580,55 @@ curvatureEndGlobalList):
                 else:
                     rotateAngle = (globalRotateAngle + branchRotateAngle) % fibonacciNrList[clusterIndex].rotate_angle_range #rotateAngleRangeList[clusterIndex].value
                     windingAngle += rotateAngle
-                
+        
+        nrSplits = int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value)
+        if clusterIndex == 0:
+            while len(branchSplitHeightInLevel) < nrSplits:
+                treeGen.report({'INFO'}, f"in addBranches(): adding splitLevel clusterIndex 0")
+                newHeight = branchSplitHeightInLevel.add()
+                newHeight = 0.5
+        
+        if clusterIndex == 1:
+            while len(branchSplitHeightInLevel_1) < nrSplits:
+                treeGen.report({'INFO'}, f"in addBranches(): adding splitLevel clusterIndex 1")
+                newHeight = branchSplitHeightInLevel_1.add()
+                newHeight = 0.5
+        
+        if clusterIndex == 2:
+            while len(branchSplitHeightInLevel_2) < nrSplits:
+                treeGen.report({'INFO'}, f"in addBranches(): adding splitLevel clusterIndex 2")
+                newHeight = branchSplitHeightInLevel_2.add()
+                newHeight = 0.5
+        
+        if clusterIndex == 3:
+            while len(branchSplitHeightInLevel_3) < nrSplits:
+                treeGen.report({'INFO'}, f"in addBranches(): adding splitLevel clusterIndex 3")
+                newHeight = branchSplitHeightInLevel_3.add()
+                newHeight = 0.5
+        
+        if clusterIndex == 4:
+            while len(branchSplitHeightInLevel_4) < nrSplits:
+                treeGen.report({'INFO'}, f"in addBranches(): adding splitLevel clusterIndex 4")
+                newHeight = branchSplitHeightInLevel_4.add()
+                newHeight = 0.5
+        
+        if clusterIndex == 5:
+            while len(branchSplitHeightInLevel_5) < nrSplits:
+                treeGen.report({'INFO'}, f"in addBranches(): adding splitLevel clusterIndex 5")
+                newHeight = branchSplitHeightInLevel_5.add()
+                newHeight = 0.5
+                            
         
         if hangingBranchesList[clusterIndex].value == False:
             if nrSplitsPerBranch != None:
                 if len(nrSplitsPerBranch) > 0: # > clusterIndex:
                     if nrSplitsPerBranch[clusterIndex].value > 0.0: # [clusterIndex]
+                        if int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value) > 0:
                             
-                        splitBranches(treeGen,
+                            splitBranches(treeGen,
                                       rootNode, 
                                       0, 
-                                      int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value), 
+                                      nrSplits, 
                                       
                                       branchSplitAngle[clusterIndex].value, 
                                       branchSplitPointAngle[clusterIndex].value, 
@@ -1577,7 +1651,8 @@ curvatureEndGlobalList):
                                       False, 
                                       
                                       curvatureStartGlobalList[clusterIndex].value, 
-                                      curvatureEndGlobalList[clusterIndex].value)
+                                      curvatureEndGlobalList[clusterIndex].value, 
+                                      verticalRadiusFactorList[clusterIndex].value)
                                       
                                       
                 
@@ -1600,22 +1675,22 @@ curvatureEndGlobalList):
                                           
         else: #hangingBranchesList[clusterIndex].value == True:
             for branchNode in branchNodes:
-                
                 #branchNode.resampleSpline(rootNode, treeGen, resampleDistance)
-                
                 branchNode.hangingBranches(treeGen, 
                                            context.scene.branchGlobalCurvatureStartList[clusterIndex].value, 
-                                           context.scene.branchGlobalCurvatureEndList[clusterIndex].value)
+                                           context.scene.branchGlobalCurvatureEndList[clusterIndex].value, 
+                                           context.scene.verticalRadiusFactorList[clusterIndex].value)
             
-                # TODO -> split() -> splitNode.hangingBranches() after each split!
-                if nrSplitsPerBranch != None:
-                    if len(nrSplitsPerBranch) > 0: # > clusterIndex:
-                        if nrSplitsPerBranch[clusterIndex].value > 0.0: # [clusterIndex]
-                            
+            # TODO -> split() -> splitNode.hangingBranches() after each split! 
+            if nrSplitsPerBranch != None:
+                if len(nrSplitsPerBranch) > 0: # > clusterIndex:
+                    if nrSplitsPerBranch[clusterIndex].value > 0.0: # [clusterIndex]
+                        if int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value) > 0:
+                            # called for every branchNode! (???)
                             splitBranches(treeGen,
                                           rootNode, 
                                           0, 
-                                          int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value), 
+                                          nrSplits, 
                                           
                                           branchSplitAngle[clusterIndex].value, 
                                           branchSplitPointAngle[clusterIndex].value, 
@@ -1638,7 +1713,8 @@ curvatureEndGlobalList):
                                           True, 
                                           
                                           context.scene.branchGlobalCurvatureStartList[clusterIndex].value, 
-                                          context.scene.branchGlobalCurvatureEndList[clusterIndex].value)
+                                          context.scene.branchGlobalCurvatureEndList[clusterIndex].value, 
+                                          context.scene.verticalRadiusFactorList[clusterIndex].value)
                                           
                 #def splitBranches(self, 
                   # rootNode, 
@@ -1667,7 +1743,8 @@ curvatureEndGlobalList):
                   # treeGen, 
                   # 
                   # curvatureStartGlobal, 
-                  # curvatureEndGlobal):
+                  # curvatureEndGlobal, 
+                  # verticalRadiusFactor):
                       
                       
             
@@ -1697,7 +1774,8 @@ def splitBranches(treeGen,
                   hangingBranches,
                   
                   curvatureStartGlobal, 
-                  curvatureEndGlobal):
+                  curvatureEndGlobal, 
+                  verticalRadiusFactor):
                       
     allBranchNodes = []
     
@@ -1706,9 +1784,8 @@ def splitBranches(treeGen,
     
     splitProbabilityInLevel = [0.0 for i in range(nrBranchSplits)]
     expectedSplitsInLevel = [0 for i in range(nrBranchSplits)]
-    
     meanLevelBranch = max(0, math.floor(math.log2(nrBranchSplits / len(allBranchNodes))))
-    #treeGen.report({'INFO'}, f"in split Branches(): meanLevelBranch: {meanLevelBranch}, nrBranchSplits: {nrBranchSplits}, len(allBranchNodes): {len(allBranchNodes)}")
+    treeGen.report({'INFO'}, f"in split Branches(): meanLevelBranch: {meanLevelBranch}, nrBranchSplits: {nrBranchSplits}, len(allBranchNodes): {len(allBranchNodes)}")
     
     if meanLevelBranch >= 0:
         if nrBranchSplits < len(allBranchNodes):
@@ -1753,9 +1830,9 @@ def splitBranches(treeGen,
                 nodesInLevelNextIndexSplitsPerBranch[0].append(nodeInfo(branch, n, 0))
         
         totalSplitCounter = 0
-        #treeGen.report({'INFO'}, f"in split Branches(): nrBranchSplits: {nrBranchSplits}")
+        treeGen.report({'INFO'}, f"in split Branches(): nrBranchSplits: {nrBranchSplits}")
         for level in range(0, nrBranchSplits):
-            maxSplitsPerBranch = math.floor(nrSplitsPerBranch + splitsPerBranchVariation)
+            maxSplitsPerBranch = math.floor(nrSplitsPerBranch + splitsPerBranchVariation) + 1 # TODO...
             
             branchLengths = []
             branchWeights = []
@@ -1768,8 +1845,7 @@ def splitBranches(treeGen,
             #        self.splitsPerBranch = SplitsPerBranch
             length = len(nodesInLevelNextIndexSplitsPerBranch[level])
             
-            #if length > 0:
-                #treeGen.report({'INFO'}, f"in split Branches(): level: {level}: len(nodesInLevelNextIndexSplitsPerBranch): {length}")
+            treeGen.report({'INFO'}, f"in split Branches(): level: {level}: len(nodesInLevelNextIndexSplitsPerBranch): {length}")
             
             
             for n in range(0, len(nodesInLevelNextIndexSplitsPerBranch[level])):
@@ -1785,17 +1861,17 @@ def splitBranches(treeGen,
                 N = n.nodeInLevel
                 branchLength = N.lengthToTip()
                 branchLengths.append(branchLength)
-                #treeGen.report({'INFO'}, f"adding branchLength: {branchLength}")
+                treeGen.report({'INFO'}, f"adding branchLength: {branchLength}")
                 
-                weight = pow(branchLength, 8.0)
+                weight = pow(branchLength, 8.0) #/ 134217728.0 # 2**27
                 branchWeights.append(weight)
                 totalWeight += weight
-                #treeGen.report({'INFO'}, f"adding branchWeight: {weight}")
+                treeGen.report({'INFO'}, f"adding branchWeight: {weight}")
                 
-            #if len(nodesInLevelNextIndexSplitsPerBranch[level]) > 0:
-                #treeGen.report({'INFO'}, f"totalWeight: {totalWeight}")
-                #for i in range(len(branchWeights)):
-                    #treeGen.report({'INFO'}, f"branchWeights[{i}]: {branchWeights[i]}")
+            if len(nodesInLevelNextIndexSplitsPerBranch[level]) > 0:
+                treeGen.report({'INFO'}, f"totalWeight: {totalWeight}")
+                for i in range(len(branchWeights)):
+                    treeGen.report({'INFO'}, f"branchWeights[{i}]: {branchWeights[i]}")
             
             splitsInLevel = 0
             safetyCounter = 0
@@ -1818,30 +1894,50 @@ def splitBranches(treeGen,
                     break
                 if totalSplitCounter == nrBranchSplits:
                     break
+                if totalWeight < 0.00001:
+                    treeGen.report({'WARNING'}, f"ERROR: totalWeight: {totalWeight} -> Break!")
+                    traceback.print_stack()
+                    break
+                    
                 r = random.uniform(0.0, 1.0 - 1e-10)
                 h = random.uniform(0.0, 1.0 - 1e-10) - 0.5
+                #treeGen.report({'INFO'}, f"splitProbabilityInLevel[{level}]: {splitProbabilityInLevel[level]}, random: {r}")
                 if r < splitProbabilityInLevel[level]:
                     #split
-                    #treeGen.report({'INFO'}, "in split Branches(): split!")
+                    treeGen.report({'INFO'}, f"in split Branches(): -> split, totalWeight: {totalWeight}") # ERROR HERE! totalWeight < 0 !!!
                     randomValue = random.uniform(0.0, 1.0 - 1e-10) * totalWeight
                     cumulativeWeight = 0.0
                     indexToSplit = -1
                     
                     for i in range(len(branchWeights)):
+                        treeGen.report({'INFO'}, f"in split Branches(): -> split: branchWeights[{i}]: {branchWeights[i]}")
                         cumulativeWeight += branchWeights[i]
                         if randomValue <= cumulativeWeight:
                             indexToSplit = i
                             break
+                    treeGen.report({'INFO'}, f"in split Branches(): cumulativeWeight: {cumulativeWeight}, randomValue: {randomValue}")
+                    treeGen.report({'INFO'}, f"in split Branches(): -> indexToSplit: {indexToSplit}, len(nodeIndices): {len(nodeIndices)}") # ERROR HERE !!
+                    #treeGen.report({'INFO'}, f"in split Branches(): nodesInLevel.splitsPerBranch: {nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch}, maxSplitsPerBranch: {maxSplitsPerBranch}")
+                    
+                    if indexToSplit == -1:
+                        break
                     
                     if indexToSplit != -1 and len(nodeIndices) > 0  and indexToSplit >= 0 and indexToSplit < len(nodeIndices) and nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch < maxSplitsPerBranch:
                         # == branchSplitHeightInLevelList_0
+                        treeGen.report({'INFO'}, f"in split Branches(): len(branchSplitHeightInLevel): {len(branchSplitHeightInLevel)}, level: {level}") # ERROR HERE !!!
+                        
                         branchSplitHeight = max(0.05, min(branchSplitHeightInLevel[level].value + h * branchSplitHeightVariation * min(branchSplitHeightInLevel[level].value, 1.0 - branchSplitHeightInLevel[level].value), 0.95))
                         
                         #treeGen.report({'INFO'}, "in split Branches(): branchSplitHeightInLevel[{level}]: {branchSplitHeightInLevel[level].value}")
                         
                         #treeGen.report({'INFO'}, f"split Branches(): branchSplitRotateAngle {branchSplitRotateAngle}")
+                        treeGen.report({'INFO'}, f"in split Branches(): split! len(nodeToSplit.next): {len(nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel.next)}")
+                        treeGen.report({'INFO'}, f"in split Branches(): split! len(nodeToSplit.next[0].next): {len(nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel.next[0].next)}")
+                        if len(nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel.next[0].next) > 0:
+                            treeGen.report({'INFO'}, f"in split Branches(): split! len(nodeToSplit.next[0].next[0].next): {len(nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel.next[0].next[0].next)}")
                         
                         splitNode = split(
+                            treeGen,
                             nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel,
                             nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nextIndex, 
                             branchSplitHeight, 
@@ -1859,33 +1955,47 @@ def splitBranches(treeGen,
                             
                         if splitNode == nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel:
                             #did not split
-                            totalWeight -= branchWeights[indexToSplit]
-                            branchWeights.remove(indexToSplit)
-                            nodeIndices.remove(indexToSplit)
-                            #treeGen.report({'INFO'}, "did not split!")
+                            treeGen.report({'INFO'}, f"did not split! indexToSplit: {indexToSplit}, len(branchWeights): {len(branchWeights)}")
+                            totalWeight -= branchWeights[indexToSplit] # [nodeIndices[indexToSplit]] ?!?!
+                            #branchWeights.remove(indexToSplit)
+                            for index in nodeIndices:
+                                treeGen.report({'INFO'}, f"did not split! nodeIndex: {index}") # ???
+                            
+                            del branchWeights[indexToSplit]
+                            if indexToSplit in nodeIndices:
+                                nodeIndices.remove(indexToSplit)
+                            
                         else:
-                            #treeGen.report({'INFO'}, f"index to remove: {indexToSplit}, len(nodeIndices): {len(nodeIndices)}")
-                            #for index in nodeIndices:
-                            #    treeGen.report({'INFO'}, f"in nodeIndices: {index}")
-                            totalWeight -= branchWeights[indexToSplit]
+                            treeGen.report({'INFO'}, f"index to remove: {indexToSplit}, len(nodeIndices): {len(nodeIndices)}")
+                            
+                            totalWeight -= branchWeights[indexToSplit] # [nodeIndices[indexToSplit]] ?!?!
                             lengthA = splitNode.next[0].lengthToTip()
                             lengthB = splitNode.next[1].lengthToTip()
                             
                             del branchWeights[indexToSplit]
+                            
                             totalWeight += lengthA + lengthB
                             
                             nodesInLevelNextIndexSplitsPerBranch[level + 1].append(nodeInfo(splitNode, 0, nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch + 1))
                             nodesInLevelNextIndexSplitsPerBranch[level + 1].append(nodeInfo(splitNode, 1, nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch + 1))
                             
-                            del nodeIndices[indexToSplit]
+                            #del nodeIndices[indexToSplit]
+                            
+                            if indexToSplit in nodeIndices: #NEW
+                                nodeIndices.remove(indexToSplit)
+                            
+                            
+                            for index in nodeIndices:
+                                treeGen.report({'INFO'}, f"in nodeIndices: {index}")
                             
                             splitsInLevel += 1
                             totalSplitCounter += 1
                             
-                        if hangingBranches == True:
-                            splitNode.hangingBranches(treeGen, curvatureStartGlobal, curvatureEndGlobal)
+                        #if hangingBranches == True: # TEST OFF -------!!!---------------!!!---------------
+                        #    splitNode.hangingBranches(treeGen, curvatureStartGlobal, curvatureEndGlobal, verticalRadiusFactor)
                 
                 safetyCounter += 1
+                #treeGen.report({'INFO'}, f"safetyCounter: {safetyCounter}")
                 if safetyCounter > 2147483647:
                     treeGen.report({'INFO'}, f"ERROR: safetyCounter: {safetyCounter}")
                     break
@@ -2309,6 +2419,9 @@ class posFloatPropSoftMax1(bpy.types.PropertyGroup):
 class floatProp01(bpy.types.PropertyGroup):
     value: bpy.props.FloatProperty(name = "floatValue01", default=0, min=0, max=1)
     
+class floatProp01default0p5(bpy.types.PropertyGroup):
+    value: bpy.props.FloatProperty(name = "floatValue01", default=0.5, min=0, max=1)
+    
 class floatListProp(bpy.types.PropertyGroup):
     value: bpy.props.CollectionProperty(name = "floatListProperty", type=floatProp)
     
@@ -2640,6 +2753,8 @@ class addItem(bpy.types.Operator): # add branch cluster
         branchGlobalCurvatureStart.value = 0.0
         branchGlobalCurvatureEnd = context.scene.branchGlobalCurvatureEndList.add()
         branchGlobalCurvatureEnd.value = 0.0
+        verticalRadiusFactor = context.scene.verticalRadiusFactorList.add()
+        verticalRadiusFactor = 1.0
         branchCurvatureStart = context.scene.branchCurvatureStartList.add()
         branchCurvatureStart.value = 0.0
         branchCurvatureEnd = context.scene.branchCurvatureEndList.add()
@@ -2727,6 +2842,7 @@ class removeItem(bpy.types.Operator):
         context.scene.hangingBranchesList.remove(len(context.scene.hangingBranchesList) - 1)
         context.scene.branchGlobalCurvatureStartList.remove(len(context.scene.branchGlobalCurvatureStartList) - 1)
         context.scene.branchGlobalCurvatureEndList.remove(len(context.scene.branchGlobalCurvatureEndList) - 1)
+        context.scene.verticalRadiusFactorList.remove(len(context.scene.verticalRadiusFactorList) - 1)
         context.scene.branchCurvatureStartList.remove(len(context.scene.branchCurvatureStartList) - 1)
         context.scene.branchCurvatureEndList.remove(len(context.scene.branchCurvatureEndList) - 1)
         context.scene.branchCurvatureOffsetStrengthList.remove(len(context.scene.branchCurvatureOffsetStrengthList) - 1)
@@ -3177,6 +3293,11 @@ class branchSettings(bpy.types.Panel):
                             split.label(text="Branch global curvature end")
                             if i < len(scene.branchGlobalCurvatureEndList):
                                 split.prop(scene.branchGlobalCurvatureEndList[i], "value", text="")
+                                
+                            split = box3.split(factor=0.6)
+                            split.label(text="Vertical radius factor")
+                            if i < len(scene.verticalRadiusFactorList):
+                                split.prop(scene.verticalRadiusFactorList[i], "value", text="", slider=True)
                         else:
                             split = box3.split(factor=0.6)
                             split.label(text="Branch global curvature start")
@@ -3303,6 +3424,7 @@ def register():
     bpy.utils.register_class(floatProp)
     bpy.utils.register_class(posFloatProp)
     bpy.utils.register_class(floatProp01)
+    bpy.utils.register_class(floatProp01default0p5)
     bpy.utils.register_class(posFloatPropSoftMax1)
     bpy.utils.register_class(floatListProp)
     bpy.utils.register_class(floatListProp01)
@@ -3389,6 +3511,7 @@ def register():
     bpy.types.Scene.hangingBranchesList = bpy.props.CollectionProperty(type=boolProp)
     bpy.types.Scene.branchGlobalCurvatureStartList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchGlobalCurvatureEndList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.verticalRadiusFactorList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchCurvatureStartList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchCurvatureEndList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchCurvatureOffsetStrengthList = bpy.props.CollectionProperty(type=posFloatProp)
@@ -3396,19 +3519,19 @@ def register():
     bpy.types.Scene.splitsPerBranchVariationList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.branchSplitHeightVariationList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchSplitLengthVariationList = bpy.props.CollectionProperty(type=floatProp01)
-    bpy.types.Scene.branchSplitHeightInLevelListList = bpy.props.CollectionProperty(type=floatListProp01)
+    bpy.types.Scene.branchSplitHeightInLevelListList = bpy.props.CollectionProperty(type=floatProp01default0p5)
     bpy.types.Scene.branchSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_0 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelList_0 = bpy.props.CollectionProperty(type=floatProp01default0p5)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_0 = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_1 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelList_1 = bpy.props.CollectionProperty(type=floatProp01default0p5)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_1 = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_2 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelList_2 = bpy.props.CollectionProperty(type=floatProp01default0p5)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_2 = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_3 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelList_3 = bpy.props.CollectionProperty(type=floatProp01default0p5)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_3 = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_4 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelList_4 = bpy.props.CollectionProperty(type=floatProp01default0p5)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_4 = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_5 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelList_5 = bpy.props.CollectionProperty(type=floatProp01default0p5)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_5 = bpy.props.IntProperty(default = 0)
     bpy.types.Scene.showBranchSplitHeights = bpy.props.CollectionProperty(type=boolProp)
     
@@ -3905,6 +4028,7 @@ def save_properties(filePath):
         "hangingBranchesList": [item.value for item in props.hangingBranchesList],
         "branchGlobalCurvatureStartList": [item.value for item in props.branchGlobalCurvatureStartList],
         "branchGlobalCurvatureEndList": [item.value for item in props.branchGlobalCurvatureEndList],
+        "verticalRadiusFactorList": [item.value for item in props.verticalRadiusFactorList],
         "branchCurvatureStartList": [item.value for item in props.branchCurvatureStartList],
         "branchCurvatureEndList": [item.value for item in props.branchCurvatureEndList],
         "branchCurvatureOffsetStrengthList": [item.value for item in props.branchCurvatureOffsetStrengthList],
@@ -4103,6 +4227,10 @@ def load_properties(filepath, context):
             
         for value in data.get("branchGlobalCurvatureEndList", []):
             item = props.branchGlobalCurvatureEndList.add()
+            item.value = value
+            
+        for value in data.get("verticalRadiusFactorList", []):
+            item = props.verticalRadiusFactorList.add()
             item.value = value
         
         for value in data.get("branchCurvatureStartList", []):
