@@ -1852,7 +1852,7 @@ def splitBranches(treeGen,
             #        self.splitsPerBranch = SplitsPerBranch
             length = len(nodesInLevelNextIndexSplitsPerBranch[level])
             
-            treeGen.report({'INFO'}, f"in split Branches(): level: {level}: len(nodesInLevelNextIndexSplitsPerBranch): {length}")
+            treeGen.report({'INFO'}, f"in split Branches(): level: {level}: len(nodesInLevelNextIndexSplitsPerBranch): {length}") # 3
             
             
             for n in range(0, len(nodesInLevelNextIndexSplitsPerBranch[level])):
@@ -1864,6 +1864,9 @@ def splitBranches(treeGen,
                 #if n == 0:
                     #treeGen.report({'INFO'}, f"level: {level}: branchLength: {branchLength}")
             
+            length = len(nodesInLevelNextIndexSplitsPerBranch[level])
+            treeGen.report({'INFO'}, f"in split Branches(): level: {level}: len(nodesInLevelNextIndexSplitsPerBranch): {length}") # 3
+            
             for n in nodesInLevelNextIndexSplitsPerBranch[level]:
                 N = n.nodeInLevel
                 branchLength = N.lengthToTip()
@@ -1874,6 +1877,9 @@ def splitBranches(treeGen,
                 branchWeights.append(weight)
                 totalWeight += weight
                 treeGen.report({'INFO'}, f"adding branchWeight: {weight}")
+            
+            length = len(nodesInLevelNextIndexSplitsPerBranch[level])
+            treeGen.report({'INFO'}, f"in split Branches(): level: {level}: len(nodesInLevelNextIndexSplitsPerBranch): {length}") # 3
                 
             if len(nodesInLevelNextIndexSplitsPerBranch[level]) > 0:
                 treeGen.report({'INFO'}, f"totalWeight: {totalWeight}")
@@ -1883,10 +1889,18 @@ def splitBranches(treeGen,
             splitsInLevel = 0
             safetyCounter = 0
             
+            length = len(nodesInLevelNextIndexSplitsPerBranch[level])
+            treeGen.report({'INFO'}, f"in split Branches(): level: {level}: len(nodesInLevelNextIndexSplitsPerBranch): {length}") # 3
+            
             nodeIndices = []
-            for i in range(len(nodesInLevelNextIndexSplitsPerBranch)):
+            
+            for i in range(len(nodesInLevelNextIndexSplitsPerBranch)): 
                 nodeIndices.append(i)
-            #treeGen.report({'INFO'}, f"len(nodeIndices): {len(nodeIndices)}")
+            length = len(nodesInLevelNextIndexSplitsPerBranch[level])
+            treeGen.report({'INFO'}, f"init nodeIndices: len(nodesInLevelNextIndexSplitsPerBranch): {length}") # ERROR HERE ??? (len = 2, but 3 branches ???)
+            treeGen.report({'INFO'}, f"init nodeIndices: len(nodeIndices): {len(nodeIndices)}")
+            
+            
             
             if len(nodeIndices) == 0:
                 continue
@@ -1923,7 +1937,8 @@ def splitBranches(treeGen,
                             indexToSplit = i
                             break
                     treeGen.report({'INFO'}, f"in split Branches(): cumulativeWeight: {cumulativeWeight}, randomValue: {randomValue}")
-                    treeGen.report({'INFO'}, f"in split Branches(): -> indexToSplit: {indexToSplit}, len(nodeIndices): {len(nodeIndices)}") # ERROR HERE !!
+                    treeGen.report({'INFO'}, f"in split Branches(): -> indexToSplit: {indexToSplit}, len(nodeIndices): {len(nodeIndices)}") # len(nodeIndices) = 13 !! ERROR HERE !!
+                    
                     #treeGen.report({'INFO'}, f"in split Branches(): nodesInLevel.splitsPerBranch: {nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch}, maxSplitsPerBranch: {maxSplitsPerBranch}")
                     
                     if indexToSplit == -1:
@@ -1970,6 +1985,9 @@ def splitBranches(treeGen,
                             
                             del branchWeights[indexToSplit]
                             #if indexToSplit in nodeIndices:
+                            for i in nodeIndices:
+                                treeGen.report({'INFO'}, f"nodeIndices: {i}")
+                            treeGen.report({'INFO'}, f"index to remove: {indexToSplit}")
                             nodeIndices.remove(indexToSplit)
                             
                         else:
