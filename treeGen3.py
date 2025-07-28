@@ -1000,7 +1000,7 @@ def splitRecursive(treeGen, startNode, nrSplits, splitAngle, splitPointAngle, va
                         splitHeight = min(splitHeight + h * splitHeightVariation, 0.95)
                     #if splitHeight < 0.0 or splitHeight > 1.0:
                         #self.report({'ERROR'}, f"splitHeight out of bounds! splitHeight: {splitHeight}")
-                    #self.report({'INFO'}, f"splitRecursive: splitHeight: {splitHeight}")
+                    self.report({'INFO'}, f"splitRecursive: splitHeight: {splitHeight}, splitHeightVariatioin: {splitHeightVariation}")
                     #self.report({'INFO'}, f"splitRecursive(): stemSplitRotateAngle {stemSplitRotateAngle}")
                     splitNode = split(treeGen,
                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0],
@@ -1053,12 +1053,15 @@ def split(treeGen,
                     else:
                         splitNode = splitNode.next[0]
                 
-                if splitNode != startNode:
-                    self.report({'WARNING'}, f"in split(): len(splitNode.next): {len(splitNode.next)}") # 2 ERROR
+                if splitNode != startNode and len(splitNode.next) < 2:
+                    self.report({'WARNING'}, f"in split(): len(splitNode.next): {len(splitNode.next)}") # 2, 3 ERROR
                     calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
                 else:
                     # TODO -> split at new node!!!
-                    return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, mode, rotationAngle, branchSplitAxisVariation, stemRingResolution, curvOffsetStrength, self, rootNode)
+                    if len(splitNode.next) > nextIndex:
+                        return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, mode, rotationAngle, branchSplitAxisVariation, stemRingResolution, curvOffsetStrength, self, rootNode)
+                    else:
+                        self.report({'WARNING'}, f"in split(): len(splitAfternode.next) <= nextIndex!")
                     #return startNode
                    # self.report({'INFO'}, f"splitNode == startNode")
                 #    if splitNode == rootNode:
@@ -1078,18 +1081,21 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
     splitAtStartNode = True
     for i in range(splitAfterNodeNr):
         if i == 0:
-            splitAfterNode = splitAfterNode.next[nextIndex]
-            splitAtStartNode = False
-            nextIndex = 0
+            if len(splitAfterNode.next[nextIndex].next) > 0:
+                splitAfterNode = splitAfterNode.next[nextIndex]
+                splitAtStartNode = False
+                nextIndex = 0
         else:
-            splitAfterNode = splitAfterNode.next[0]
-            splitAtStartNode = False
+            if (len(splitAfterNode.next[0].next) > 0):
+                splitAfterNode = splitAfterNode.next[0]
+                splitAtStartNode = False
                         
     tangentIndex = 0
     if splitAtStartNode == True and len(startNode.next) > 1:
         tangentIndex = nextIndex + 1
     else:
         tangentIndex = nextIndex
+    self.report({'INFO'}, f"split at new node: nextIndex: {nextIndex}, len(splitAfterNode.next): {len(splitAfterNode.next)}")
 
     # Interpolate position and attributes for the new node
     t = nrNodesToTip * splitHeight - splitAfterNodeNr
@@ -1115,6 +1121,7 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
     newNode = node(newPoint, newRadius, newCotangent, splitAfterNode.clusterIndex, ring_res, taper, newTvalGlobal, newTvalBranch, splitAfterNode.branchLength)
     #drawDebugPoint(newPoint, 0.1)
     #self.report({'INFO'}, f"split: newNode.taper: {newNode.taper}")
+    self.report({'INFO'}, f"split at new node: t: {t}")
     newNode.tangent.append(newTangent)
     # Insert new node in the chain
     newNode.next.append(splitAfterNode.next[nextIndex])
@@ -1125,7 +1132,7 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
     # ERROR: when splitHeightVariation is large !!!
     
     calculateSplitData(newNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
-    self.report({'INFO'}, f"did split at new node!, len(newNode.tangent): {len(newNode.tangent)}")
+    self.report({'INFO'}, f"did split at new node!, len(newNode.tangent): {len(newNode.tangent)}") # 3 ERROR HERE !!!
     return newNode
 
 def calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, sMode, rotationAngle, stemRingResolution, curvOffsetStrength, self):
@@ -1928,7 +1935,7 @@ def splitBranches(treeGen,
                         
                         branchSplitHeight = max(0.05, min(branchSplitHeightInLevel[level].value + h * branchSplitHeightVariation * min(branchSplitHeightInLevel[level].value, 1.0 - branchSplitHeightInLevel[level].value), 0.95))
                         
-                        #treeGen.report({'INFO'}, "in split Branches(): branchSplitHeightInLevel[{level}]: {branchSplitHeightInLevel[level].value}")
+                        treeGen.report({'INFO'}, f"in split Branches(): branchSplitHeightInLevel[{level}]: {branchSplitHeightInLevel[level].value}, branchSplitHeightVariation: {branchSplitHeightVariation}")
                         
                         #treeGen.report({'INFO'}, f"split Branches(): branchSplitRotateAngle {branchSplitRotateAngle}")
                         treeGen.report({'INFO'}, f"in split Branches(): split! len(nodeToSplit.next): {len(nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel.next)}")
@@ -1962,8 +1969,8 @@ def splitBranches(treeGen,
                                 treeGen.report({'INFO'}, f"did not split! nodeIndex: {index}") # ???
                             
                             del branchWeights[indexToSplit]
-                            if indexToSplit in nodeIndices:
-                                nodeIndices.remove(indexToSplit)
+                            #if indexToSplit in nodeIndices:
+                            nodeIndices.remove(indexToSplit)
                             
                         else:
                             treeGen.report({'INFO'}, f"index to remove: {indexToSplit}, len(nodeIndices): {len(nodeIndices)}")
@@ -1972,21 +1979,23 @@ def splitBranches(treeGen,
                             lengthA = splitNode.next[0].lengthToTip()
                             lengthB = splitNode.next[1].lengthToTip()
                             
-                            del branchWeights[indexToSplit]
-                            
                             totalWeight += lengthA + lengthB
+                            
+                            del branchWeights[indexToSplit]
                             
                             nodesInLevelNextIndexSplitsPerBranch[level + 1].append(nodeInfo(splitNode, 0, nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch + 1))
                             nodesInLevelNextIndexSplitsPerBranch[level + 1].append(nodeInfo(splitNode, 1, nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch + 1))
                             
-                            #del nodeIndices[indexToSplit]
                             
-                            if indexToSplit in nodeIndices: #NEW
-                                nodeIndices.remove(indexToSplit)
+                            
+                            #if indexToSplit in nodeIndices: #NEW
+                            #    nodeIndices.remove(indexToSplit)
                             
                             
                             for index in nodeIndices:
                                 treeGen.report({'INFO'}, f"in nodeIndices: {index}")
+                                
+                            del nodeIndices[indexToSplit] 
                             
                             splitsInLevel += 1
                             totalSplitCounter += 1
