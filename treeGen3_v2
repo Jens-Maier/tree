@@ -1620,15 +1620,15 @@ curvatureEndGlobalList):
                         
                         splitHeightInLevelList = branchSplitHeightInLevel  # == branchSplitHeightInLevelList_0
                         if clusterIndex == 1:
-                            splitHeightInLevelList_1
+                            splitHeightInLevelList = branchSplitHeightInLevelList_1
                         if clusterIndex == 2:
-                            splitHeightInLevelList_2
+                            splitHeightInLevelList = branchSplitHeightInLevelList_2
                         if clusterIndex == 3:
-                            splitHeightInLevelList_3
+                            splitHeightInLevelList = branchSplitHeightInLevelList_3
                         if clusterIndex == 4:
-                            splitHeightInLevelList_4
+                            splitHeightInLevelList = branchSplitHeightInLevelList_4
                         if clusterIndex == 5:
-                            splitHeightInLevelList_5
+                            splitHeightInLevelList = branchSplitHeightInLevelList_5
                         
                         nrSplits = int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value)
                         length = len(splitHeightInLevelList)
