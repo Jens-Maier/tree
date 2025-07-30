@@ -2390,6 +2390,9 @@ class fibonacciProps(bpy.types.PropertyGroup):
 
 class intProp(bpy.types.PropertyGroup):
     value: bpy.props.IntProperty(name = "intValue", default=0, min=0, soft_max=10) # reuse for all ints (?)
+    
+class intPropL(bpy.types.PropertyGroup):
+    value: bpy.props.IntProperty(name = "intValue", default=0, min=0, soft_max=200)
 
 class posIntProp3(bpy.types.PropertyGroup):
     value: bpy.props.IntProperty(name = "posIntProp3", default=3, min=3, soft_max=12)
@@ -2696,6 +2699,10 @@ class addItem(bpy.types.Operator): # add branch cluster
             parentClusterBoolListList.value.add()
         parentClusterBoolListList.value[0].value = True
         
+        #boolListItem = scene.leafParentClusterBoolListList[cluster_index].value
+        for leafParentClusterList in context.scene.leafParentClusterBoolListList:
+            leafParentClusterList.value.add()
+        
         branchClusterBoolListList = context.scene.branchClusterBoolListList.add()
                 
         branchSplitMode = context.scene.branchSplitModeList.add()  # TODO (???) #branchSplitMode...
@@ -2822,6 +2829,16 @@ class removeItem(bpy.types.Operator):
                 context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value.remove(len(context.scene.parentClusterBoolListList[i].value) - 1)
             context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
         
+        for leafParentClusterList in context.scene.leafParentClusterBoolListList:
+            if len(leafParentClusterList.value) > 1:
+                leafParentClusterList.value.remove(len(leafParentClusterList.value) - 1)
+                
+                allFalse = True
+                for b in leafParentClusterList.value:
+                    if b.value == True:
+                        allFalse = False
+                if allFalse == True:
+                    leafParentClusterList.value[0].value = True
         
         context.scene.branchSplitModeList.remove(len(context.scene.branchSplitModeList) - 1)
         context.scene.branchVarianceList.remove(len(context.scene.branchVarianceList) - 1)
@@ -3113,11 +3130,14 @@ class sampleCruvesButton(bpy.types.Operator):
 def draw_leaf_cluster_bools(layout, scene, cluster_index):
     boolListItem = scene.leafParentClusterBoolListList[cluster_index].value
     split = layout.split(factor=0.6)
-    split.label(text="Branch cluster")
+    split.label(text="Parent clusters")
     
     for j, boolItem in enumerate(boolListItem):
         split = layout.split(factor=0.6)
-        split.label(text=f"Branch cluster {j}")
+        if j == 0:
+            split.label(text=f"Stem")
+        else:
+            split.label(text=f"Branch cluster {j - 1}")
         rightColumn = split.column(align=True)
         row = rightColumn.row(align=True)
         row.alignment = 'CENTER'
@@ -3460,13 +3480,16 @@ class addLeafItem(bpy.types.Operator):
         
         nrLeaves = context.scene.nrLeavesList.add()
         
-        context.scene.leafParentClusterBoolListList.add()
+        leafParentClusterBoolListList = context.scene.leafParentClusterBoolListList.add()
+        stemBool = context.scene.leafParentClusterBoolListList[len(context.scene.leafParentClusterBoolListList) - 1].value.add()
+        stemBool = True
+                
         for b in range(0, context.scene.branchClusters):
             self.report({'INFO'}, f"adding leaf cluster")
-            newBool = context.scene.leafParentClusterBoolListList[len(context.scene.leafParentClusterBoolListList) - 1].value.add()
-            newBool = True
+            context.scene.leafParentClusterBoolListList[len(context.scene.leafParentClusterBoolListList) - 1].value.add()
             self.report({'INFO'}, f"len(leafParentClusterBoolListList): {len(context.scene.leafParentClusterBoolListList)}")
-            
+        
+        leafParentClusterBoolListList.value[0].value = True
         
         # parentClusterBoolListList = context.scene.parentClusterBoolListList.add()
         # for b in range(0, context.scene.branchClusters):
@@ -3489,7 +3512,7 @@ class removeLeafItem(bpy.types.Operator):
             listToClear = context.scene.leafParentClusterBoolListList[len(context.scene.leafParentClusterBoolListList) - 1].value
             lenToClear = len(listToClear)
             for i in range(0, lenToClear):
-                context.scene.leafParentClusterBoolListList[len(context.scene.leafParentClusterBoolListList) - 1].value.remove(len(context.scene.leafParentClusterBoolListList[i].value) - 1)
+                listToClear.remove(len(listToClear) - 1)
             context.scene.leafParentClusterBoolListList.remove(len(context.scene.leafParentClusterBoolListList) - 1)
             
         self.report({'INFO'}, f"len(leafParentClusterBoolListList): {len(context.scene.leafParentClusterBoolListList)}")
@@ -3551,6 +3574,7 @@ def register():
     bpy.utils.register_class(splitModeEnumProp)
     bpy.utils.register_class(angleModeEnumProp)
     bpy.utils.register_class(intProp)
+    bpy.utils.register_class(intPropL)
     bpy.utils.register_class(posIntProp3)
     bpy.utils.register_class(fibonacciProps)
     bpy.utils.register_class(floatProp)
@@ -3671,7 +3695,7 @@ def register():
     bpy.types.Scene.branchSplitHeightInLevelListIndex_5 = bpy.props.IntProperty(default = 0)
     bpy.types.Scene.showBranchSplitHeights = bpy.props.CollectionProperty(type=boolProp)
     
-    bpy.types.Scene.nrLeavesList = bpy.props.CollectionProperty(type=intProp)
+    bpy.types.Scene.nrLeavesList = bpy.props.CollectionProperty(type=intPropL)
     bpy.types.Scene.nrLeavesListIndex = bpy.props.IntProperty(default=0)
     
     #leafParentClusterBoolListProp
