@@ -9,7 +9,7 @@ bl_info = {
     "wiki_url" : "",
     "category" : "Add Mesh",
 }
-1
+
 import bpy
 import math
 import mathutils
@@ -2441,6 +2441,14 @@ class parentClusterBoolListProp(bpy.types.PropertyGroup):
         default=True
     )
     
+class leafParentClusterBoolListProp(bpy.types.PropertyGroup):
+    value: bpy.props.CollectionProperty(name = "leafParentClusterBoolListProperty", type=boolProp)
+    show_leaf_cluster: bpy.props.BoolProperty(
+        name="Show Leaf Cluster",
+        description="Show/hide leaf parent clusters",
+        default=True
+    )
+    
 class branchClusterBoolListProp(bpy.types.PropertyGroup):
     value: bpy.props.CollectionProperty(name = "branchClusterBoolListProperty", type=boolProp)
     show_branch_cluster: bpy.props.BoolProperty(
@@ -2449,7 +2457,13 @@ class branchClusterBoolListProp(bpy.types.PropertyGroup):
         default=True
     )
     
-
+class leafClusterBoolListProp(bpy.types.PropertyGroup):
+    value: bpy.props.CollectionProperty(name = "leafClusterBoolListProperty", type=boolProp)
+    show_leaf_cluster: bpy.props.BoolProperty(
+        name="Show Leaf Cluster",
+        description="Show/hide leaf clusters",
+        default=True
+    )
     
 class treeShapeEnumProp(bpy.types.PropertyGroup):
     value: bpy.props.EnumProperty(
@@ -2504,6 +2518,25 @@ class toggleBool(bpy.types.Operator):
             boolList[0].value = True
             
         return {'FINISHED'} #bpy.ops.scene.toggle_bool(list_index=0, bool_index=0)
+
+class toggleLeafBool(bpy.types.Operator):
+    bl_idname = "scene.toggle_leaf_bool"
+    bl_label = "Toggle Leaf Bool"
+    bl_description = "At least one item has to he true"
+    
+    list_index: bpy.props.IntProperty()
+    bool_index: bpy.props.IntProperty()
+    
+    def execute(self, context):
+        boolList = context.scene.leafParentClusterBoolListList[self.list_index].value
+        boolItem = boolList[self.bool_index]
+        boolItem.value = not boolItem.value
+        
+        if not any(b.value for b in boolList):
+            boolList[0].value = True
+            
+        return {'FINISHED'} #bpy.ops.scene.toggle_bool(list_index=0, bool_index=0)
+
     
 class UL_stemSplitLevelList(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
@@ -3055,6 +3088,44 @@ class sampleCruvesButton(bpy.types.Operator):
         sampleCurve(self, x)
         return {'FINISHED'}
     
+# def draw_parent_cluster_bools(layout, scene, cluster_index):
+#    boolListItem = scene.parentClusterBoolListList[cluster_index].value
+#    
+#    boolCount = 0
+#    for j, boolItem in enumerate(boolListItem):
+#        split = layout.split(factor=0.6)
+#        #row = box.row()
+#        if boolCount == 0:
+#            split.label(text=f"Stem")
+#            boolCount += 1
+#        else:
+#            split.label(text=f"Branch cluster {boolCount - 1}")
+#            boolCount += 1
+#            
+#        rightColumn = split.column(align=True)
+#        row = rightColumn.row(align=True)
+#        row.alignment = 'CENTER'              # align to center
+#        
+#        op = row.operator("scene.toggle_bool", text="", depress=boolItem.value)
+#        op.list_index = cluster_index
+#        op.bool_index = j
+    
+def draw_leaf_cluster_bools(layout, scene, cluster_index):
+    boolListItem = scene.leafParentClusterBoolListList[cluster_index].value
+    split = layout.split(factor=0.6)
+    split.label(text="Branch cluster")
+    
+    for j, boolItem in enumerate(boolListItem):
+        split = layout.split(factor=0.6)
+        split.label(text=f"Branch cluster {j}")
+        rightColumn = split.column(align=True)
+        row = rightColumn.row(align=True)
+        row.alignment = 'CENTER'
+        
+        op = row.operator("scene.toggle_leaf_bool", text="", depress=boolItem.value)
+        op.list_index = cluster_index
+        op.bool_index = j
+    
 
 def draw_parent_cluster_bools(layout, scene, cluster_index):
     boolListItem = scene.parentClusterBoolListList[cluster_index].value
@@ -3079,7 +3150,6 @@ def draw_parent_cluster_bools(layout, scene, cluster_index):
         op.bool_index = j
         
 
-        
 class branchSettings(bpy.types.Panel):
     bl_label = "Branch Settings"
     bl_idname = "PT_BranchSettings"
@@ -3381,6 +3451,92 @@ class branchSettings(bpy.types.Panel):
                             for splitLevel in context.scene.branchSplitHeightInLevelListList[i].value:
                                 box2.prop(splitLevel, "value", text=f"Split height level {j}", slider=True)
                                 j += 1
+
+class addLeafItem(bpy.types.Operator):
+    bl_idname = "scene.add_leaf_item"
+    bl_label = "Add Item"
+    def execute(self, context):
+        context.scene.leafClusters += 1
+        
+        nrLeaves = context.scene.nrLeavesList.add()
+        
+        context.scene.leafParentClusterBoolListList.add()
+        for b in range(0, context.scene.branchClusters):
+            self.report({'INFO'}, f"adding leaf cluster")
+            newBool = context.scene.leafParentClusterBoolListList[len(context.scene.leafParentClusterBoolListList) - 1].value.add()
+            newBool = True
+            self.report({'INFO'}, f"len(leafParentClusterBoolListList): {len(context.scene.leafParentClusterBoolListList)}")
+            
+        
+        # parentClusterBoolListList = context.scene.parentClusterBoolListList.add()
+        # for b in range(0, context.scene.branchClusters):
+        #     parentClusterBoolListList.value.add()
+        # parentClusterBoolListList.value[0].value = True
+        
+        return {'FINISHED'}
+        
+class removeLeafItem(bpy.types.Operator):
+    bl_idname = "scene.remove_leaf_item"
+    bl_label = "Remove Item"
+    index: bpy.props.IntProperty()
+    def execute(self, context): 
+        context.scene.leafClusters -= 1
+        
+        if len(context.scene.nrLeavesList) > 0:
+            context.scene.nrLeavesList.remove(len(context.scene.nrLeavesList) - 1)
+        
+        if len(context.scene.leafParentClusterBoolListList) > 0:
+            listToClear = context.scene.leafParentClusterBoolListList[len(context.scene.leafParentClusterBoolListList) - 1].value
+            lenToClear = len(listToClear)
+            for i in range(0, lenToClear):
+                context.scene.leafParentClusterBoolListList[len(context.scene.leafParentClusterBoolListList) - 1].value.remove(len(context.scene.leafParentClusterBoolListList[i].value) - 1)
+            context.scene.leafParentClusterBoolListList.remove(len(context.scene.leafParentClusterBoolListList) - 1)
+            
+        self.report({'INFO'}, f"len(leafParentClusterBoolListList): {len(context.scene.leafParentClusterBoolListList)}")
+        
+        # if len(context.scene.parentClusterBoolListList) > 0:
+        #     listToClear = context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value
+        #     lenToClear = len(listToClear)
+        #     for i in range(0, lenToClear):
+        #         context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value.remove(len(context.scene.parentClusterBoolListList[i].value) - 1)
+        #     context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
+        
+            
+        
+        return {'FINISHED'}
+        
+class leafSettings(bpy.types.Panel):
+    bl_label = "Leaf Settings"
+    bl_idname = "PT_LeafSettings"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'treeGen'
+    
+    def draw(self, context):
+        layout = self.layout
+        obj = context.object
+        scene = context.scene
+        bl_parent_id = 'PT_TreeGen'
+        bl_optione = {'DEFAULT_CLOSED'}
+        
+        row = layout.row(align = True)
+        row.operator("scene.add_leaf_item", text="Add")
+        row.operator("scene.remove_leaf_item", text="Remove").index = context.scene.nrLeavesListIndex
+        row = layout.row()
+        
+        for i, outer in enumerate(scene.nrLeavesList):
+            box = layout.box()
+            
+            split = box.split(factor=0.6)
+            split.label(text="Number of leaves")
+            split.prop(scene.nrLeavesList[i], "value", text="")
+            
+            #box1 = box.box()
+            #draw_parent_cluster_bools(box1, scene, i)
+            
+            box1 = box.box()
+            draw_leaf_cluster_bools(box1, scene, i)
+                        
             
             
             
@@ -3406,11 +3562,13 @@ def register():
     bpy.utils.register_class(boolProp)
     bpy.utils.register_class(parentClusterBoolListProp)
     bpy.utils.register_class(branchClusterBoolListProp)
+    bpy.utils.register_class(leafParentClusterBoolListProp)
     
     #operators
     bpy.utils.register_class(addItem)
     bpy.utils.register_class(removeItem)
     bpy.utils.register_class(toggleBool)
+    bpy.utils.register_class(toggleLeafBool)
     bpy.utils.register_class(addStemSplitLevel)
     bpy.utils.register_class(removeStemSplitLevel)
     bpy.utils.register_class(addBranchSplitLevel)
@@ -3418,6 +3576,8 @@ def register():
     bpy.utils.register_class(generateTree)
     bpy.utils.register_class(resetCurvesButton)
     bpy.utils.register_class(sampleCruvesButton)
+    bpy.utils.register_class(addLeafItem)
+    bpy.utils.register_class(removeLeafItem)
     
     
     #panels
@@ -3427,6 +3587,8 @@ def register():
     bpy.utils.register_class(angleSettings)
     bpy.utils.register_class(splitSettings)
     bpy.utils.register_class(branchSettings)
+    bpy.utils.register_class(leafSettings)
+    
     #bpy.utils.register_class(parentClusterPanel)
     
     #UILists
@@ -3508,6 +3670,12 @@ def register():
     bpy.types.Scene.branchSplitHeightInLevelList_5 = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_5 = bpy.props.IntProperty(default = 0)
     bpy.types.Scene.showBranchSplitHeights = bpy.props.CollectionProperty(type=boolProp)
+    
+    bpy.types.Scene.nrLeavesList = bpy.props.CollectionProperty(type=intProp)
+    bpy.types.Scene.nrLeavesListIndex = bpy.props.IntProperty(default=0)
+    
+    #leafParentClusterBoolListProp
+    bpy.types.Scene.leafParentClusterBoolListList = bpy.props.CollectionProperty(type=leafParentClusterBoolListProp)
     
     # bpy.props.CollectionProperty(type=intProp)
         
@@ -3913,6 +4081,13 @@ def register():
         size = 1, # Start with a single element
         default = [0.0],
         min = 0.0
+    )
+    
+    bpy.types.Scene.leafClusters = bpy.props.IntProperty(
+        name = "Leaf Clusters",
+        description = "Number of leaf clusters",
+        default = 0,
+        min = 0
     )
     
 
