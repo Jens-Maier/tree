@@ -1089,7 +1089,7 @@ def split(startNode,
             else:
                 return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, mode, rotationAngle, branchSplitAxisVariation, stemRingResolution, curvOffsetStrength, self, rootNode) # clusterIndex???
                 
-   # self.report({'INFO'}, f"split failed! nrNodesToTip: {nrNodesToTip}, len(startNode.next): {len(startNode.next)}, nextIndex: {nextIndex}")
+    self.report({'INFO'}, f"split failed! nrNodesToTip: {nrNodesToTip}, len(startNode.next): {len(startNode.next)}, nextIndex: {nextIndex}")
     return startNode
 
 def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, mode, rotationAngle, branchSplitAxisVariation, stemRingResolution, curvOffsetStrength, self, rootNode):
@@ -1639,7 +1639,7 @@ curvatureEndGlobalList):
                         
                         splitBranches(treeGen,
                                       rootNode, 
-                                      0, 
+                                      clusterIndex, 
                                       nrSplits, 
                                       
                                       branchSplitAngle[clusterIndex].value, 
@@ -1653,7 +1653,6 @@ curvatureEndGlobalList):
                                       
                                       branchSplitMode[clusterIndex].value, 
                                       branchSplitRotateAngle[clusterIndex].value,
-                                      0, #level ???
                                       
                                       ringResolutionList[clusterIndex].value, 
                                       0.0,#branchCurvOffsetStrength[0], #TODO: variable for each branch cluster... 
@@ -1700,7 +1699,7 @@ curvatureEndGlobalList):
                             
                             splitBranches(treeGen,
                                           rootNode, 
-                                          0, 
+                                          clusterIndex, 
                                           int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value), 
                                           
                                           branchSplitAngle[clusterIndex].value, 
@@ -1714,7 +1713,6 @@ curvatureEndGlobalList):
                                           
                                           branchSplitMode[clusterIndex].value, 
                                           branchSplitRotateAngle[clusterIndex].value,
-                                          0, #level ???
                                           
                                           ringResolutionList[clusterIndex].value, 
                                           0.0,#branchCurvOffsetStrength[0], #TODO: variable for each branch cluster... 
@@ -1742,8 +1740,7 @@ curvatureEndGlobalList):
                   # 
                   # branchSplitMode, 
                   # branchSplitRotateAngle, 
-                  # level,
-                  # 
+                  
                   # stemRingResolution, 
                   # curvOffsetStrength, 
                   # variance, 
@@ -1773,7 +1770,6 @@ def splitBranches(treeGen,
                   
                   branchSplitMode, 
                   branchSplitRotateAngle, 
-                  level,
                   
                   stemRingResolution, 
                   curvOffsetStrength, 
@@ -1787,16 +1783,19 @@ def splitBranches(treeGen,
                       
     allBranchNodes = []
     
-    rootNode.getAllBranchStartNodes(treeGen, allBranchNodes, 0)
-    treeGen.report({'INFO'}, f"in split Branches(): nrSplits: {nrBranchSplits}, hangingBranches: {hangingBranches}")  
+    rootNode.getAllBranchStartNodes(treeGen, allBranchNodes, branchCluster) #0)# ERROR HERE ???
+    treeGen.report({'INFO'}, f"in split Branches(): branchCluster: {branchCluster}, nrSplits: {nrBranchSplits}, len(allBranchNodes): {len(allBranchNodes)}, hangingBranches: {hangingBranches}")  
     
     splitProbabilityInLevel = [0.0 for i in range(nrBranchSplits)]
     expectedSplitsInLevel = [0 for i in range(nrBranchSplits)]
     
-    meanLevelBranch = max(0, math.floor(math.log2(nrBranchSplits / len(allBranchNodes))))
+    meanLevelBranch = 0
+    if nrBranchSplits > 0:
+        meanLevelBranch = max(0, math.floor(math.log2(nrBranchSplits / len(allBranchNodes))))
+    
     #treeGen.report({'INFO'}, f"in split Branches(): meanLevelBranch: {meanLevelBranch}, nrBranchSplits: {nrBranchSplits}, len(allBranchNodes): {len(allBranchNodes)}")
     
-    if meanLevelBranch >= 0:
+    if meanLevelBranch >= 0 and nrBranchSplits > 0:
         if nrBranchSplits < len(allBranchNodes):
             expectedSplitsInLevel[0] = nrBranchSplits
             splitProbabilityInLevel[0] = 1.0
