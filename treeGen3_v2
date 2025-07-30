@@ -400,7 +400,7 @@ class node():
             nextNode = self.next[i]
             
             resampleNr = round((nextNode.point - startNode.point).length / resampleDistance)
-            #treeGen.report({'INFO'}, f"resampleNr: {resampleNr}")
+            treeGen.report({'INFO'}, f"resampleNr: {resampleNr}, startNode.ringResolution: {startNode.ringResolution}")
             if resampleNr > 1:
                 for n in range(1, resampleNr):
                     if len(self.next) > 1:
@@ -416,7 +416,7 @@ class node():
                     sampleTvalBranch = lerp(startNode.tValBranch, nextNode.tValBranch, n / resampleNr)
                     #drawDebugPoint(samplePoint, 0.1)
                     
-                    newNode = node(samplePoint, sampleRadius, sampleCotangent, self.clusterIndex, self.ringResolution, self.taper, sampleTvalGlobal, sampleTvalBranch, startNode.branchLength)
+                    newNode = node(samplePoint, sampleRadius, sampleCotangent, startNode.clusterIndex, startNode.ringResolution, self.taper, sampleTvalGlobal, sampleTvalBranch, startNode.branchLength)
                     newNode.tangent.append(sampleTangent)
                     if n == 1:
                         activeNode.next[i] = newNode
@@ -3256,10 +3256,10 @@ class branchSettings(bpy.types.Panel):
                                 split.prop(scene.rotateAngleBranchEndList[i], "value", text="")
                         
                         box3 = box1.box()
-                        split = box3.split(factor=0.6)
-                        split.label(text="Hanging branches")
-                        if i < len(scene.hangingBranchesList):
-                            split.prop(scene.hangingBranchesList[i], "value", text="")
+                        #split = box3.split(factor=0.6)
+                        #split.label(text="Hanging branches")
+                        #if i < len(scene.hangingBranchesList):
+                        #    split.prop(scene.hangingBranchesList[i], "value", text="")
                         
                         if scene.hangingBranchesList[i].value == True:
                             split = box3.split(factor=0.6)
