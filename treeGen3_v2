@@ -93,6 +93,8 @@ class node():
         for n, nextNode in enumerate(self.next):
             longestBranchLengthInCluster = 1.0
             
+            treeGen.report({'INFO'}, f"in getAllSegments(): clusterIndex: {self.clusterIndex}, ringResolution: {self.ringResolution}")
+            
             if len(self.next) > 1:
                 segments.append(segment(self.clusterIndex, self.point, nextNode.point, self.tangent[n + 1], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.tValGlobal, nextNode.tValGlobal, self.tValBranch, nextNode.tValBranch, self.ringResolution, False, self.branchLength, longestBranchLengthInCluster, self.taper, nextNode.taper))
             else:
@@ -414,10 +416,11 @@ class node():
                     sampleRadius = lerp(startNode.radius, nextNode.radius, n / resampleNr)
                     sampleTvalGlobal = lerp(startNode.tValGlobal, nextNode.tValGlobal, n / resampleNr)
                     sampleTvalBranch = lerp(startNode.tValBranch, nextNode.tValBranch, n / resampleNr)
-                    #drawDebugPoint(samplePoint, 0.1)
+                    drawDebugPoint(samplePoint, 0.4)
                     
                     newNode = node(samplePoint, sampleRadius, sampleCotangent, startNode.clusterIndex, startNode.ringResolution, self.taper, sampleTvalGlobal, sampleTvalBranch, startNode.branchLength)
                     newNode.tangent.append(sampleTangent)
+                    newNode.connectedToPrevious = True
                     if n == 1:
                         activeNode.next[i] = newNode
                     else:
