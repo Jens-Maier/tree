@@ -1324,6 +1324,9 @@ def addLeaves(self, treeGen, rootNode,
             nrLeaves = totalLength * leavesDensityList[leafClusterIndex].value
             treeGen.report({'INFO'}, f"leafCluster: {leafClusterIndex}: nrLeaves: {nrLeaves}")
             
+            leafFaces = []
+            leafVertices = []
+            
             for leafIndex in range(0, int(nrLeaves)):
                 leafPos = leafIndex * totalLength / nrLeaves
                 
@@ -1364,7 +1367,7 @@ def addLeaves(self, treeGen, rootNode,
                 leafTangent = Quaternion(right, math.radians(verticalAngle)) @ startPointTangent
                 leafCotangent = right
                 
-                treeGen.report({'INFO'}, f"leafClusterIndex: {leafClusterIndex}, startPointTangent: {startPointTangent}") 
+                #treeGen.report({'INFO'}, f"leafClusterIndex: {leafClusterIndex}, startPointTangent: {startPointTangent}") 
                 
                 if leafAngleModeList[leafClusterIndex].value == "ALTERNATING":
                     axis = right.cross(startPointTangent)
@@ -1380,6 +1383,34 @@ def addLeaves(self, treeGen, rootNode,
                 drawArrow(startPoint, startPoint + leafTangent * leafSizeList[leafClusterIndex].value)
                 drawArrow(startPoint, startPoint + leafCotangent * leafSizeList[leafClusterIndex].value)
                 #data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, leafPos, treeGrowDir, rootNode, treeHeight, False)
+                
+                
+                leafVertices.append(startPoint - leafCotangent * leafSizeList[leafClusterIndex].value / 4.0)
+                leafVertices.append(startPoint - leafCotangent * leafSizeList[leafClusterIndex].value / 4.0 
+                                               + leafTangent   * leafSizeList[leafClusterIndex].value)
+                leafVertices.append(startPoint + leafCotangent * leafSizeList[leafClusterIndex].value / 4.0 
+                                               + leafTangent   * leafSizeList[leafClusterIndex].value)
+                leafVertices.append(startPoint + leafCotangent * leafSizeList[leafClusterIndex].value / 4.0)
+                leafFaces.append((4 * leafIndex, 4 * leafIndex + 1, 4 * leafIndex + 2, 4 * leafIndex + 3))
+                
+                leafMeshData = bpy.data.meshes.new("leafMesh")
+                leafMeshData.from_pydata(leafVertices, [], leafFaces)
+                leafMeshData.update()
+                
+                for polygon in leafMeshData.polygons:
+                    polygon.use_smooth = True
+    
+            name = "leaves"
+            if name in bpy.data.objects:
+                bpy.data.objects[name].data = leafMeshData
+                leafObject = bpy.data.objects[name]
+                leafObject.select_set(True)
+            else:
+                leafObject = bpy.data.objects.new("leaves", leafMeshData)
+                bpy.context.collection.objects.link(leafObject)
+                leafObject.select_set(True)
+        
+                
 
 
 def addBranches(
