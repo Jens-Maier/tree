@@ -133,12 +133,12 @@ class node():
         newClusterIndex):
             
         treeGen.report({'INFO'}, f"in getAllStartNodes() self.cluster: {self.clusterIndex}")
-        if self.clusterIndex == -1:
-            drawDebugPoint(self.point, 0.8)
-        if self.clusterIndex == 0:
-            drawDebugPoint(self.point, 0.3)
-        if self.clusterIndex == 1:
-            drawDebugPoint(self.point, 0.1)
+        #if self.clusterIndex == -1:
+        #    drawDebugPoint(self.point, 0.8)
+        #if self.clusterIndex == 0:
+        #    drawDebugPoint(self.point, 0.3)
+        #if self.clusterIndex == 1:
+        #    drawDebugPoint(self.point, 0.1)
         
         if self.clusterIndex == -1:
             #stem
@@ -416,7 +416,7 @@ class node():
                     sampleRadius = lerp(startNode.radius, nextNode.radius, n / resampleNr)
                     sampleTvalGlobal = lerp(startNode.tValGlobal, nextNode.tValGlobal, n / resampleNr)
                     sampleTvalBranch = lerp(startNode.tValBranch, nextNode.tValBranch, n / resampleNr)
-                    drawDebugPoint(samplePoint, 0.4)
+                    #drawDebugPoint(samplePoint, 0.4)
                     
                     newNode = node(samplePoint, sampleRadius, sampleCotangent, startNode.clusterIndex, startNode.ringResolution, self.taper, sampleTvalGlobal, sampleTvalBranch, startNode.branchLength)
                     newNode.tangent.append(sampleTangent)
@@ -709,6 +709,24 @@ class generateTree(bpy.types.Operator):
             calculateRadius(self, nodes[0], 100.0, context.scene.branchTipRadius)
             segments = []
             nodes[0].getAllSegments(self, nodes[0], segments, False)
+            
+            addLeaves(self, self, nodes[0], 
+                context.scene.treeGrowDir, 
+                context.scene.treeHeight, 
+                context.scene.leavesDensityList, 
+                context.scene.leafSizeList,
+                context.scene.leafParentClusterBoolListList, 
+                context.scene.leafStartHeightGlobalList, 
+                context.scene.leafEndHeightGlobalList, 
+                context.scene.leafStartHeightClusterList, 
+                context.scene.leafEndHeightClusterList, 
+                context.scene.leafVerticalAngleBranchStartList, 
+                context.scene.leafVerticalAngleBranchEndList, 
+                context.scene.leafRotateAngleBranchStartList,
+                context.scene.leafRotateAngleBranchEndList,
+                context.scene.leafTiltAngleBranchStartList,
+                context.scene.leafTiltAngleBranchEndList,
+                context.scene.leafAngleModeList)
             
             generateVerticesAndTriangles(self, self, context, segments, dir, context.scene.taper, radius, context.scene.ringSpacing, context.scene.stemRingResolution, context.scene.taperFactorList, context.scene.branchTipRadius)
             
@@ -1254,6 +1272,115 @@ def lerp(a, b, t):
 # sampleSplineT and sampleSplineTangentT should be defined as in your script
 
 
+def addLeaves(self, treeGen, rootNode, 
+        treeGrowDir, 
+        treeHeight, 
+        leavesDensityList, 
+        leafSizeList,
+        leafParentClusterBoolListList, 
+        leafStartHeightGlobalList, 
+        leafEndHeightGlobalList, 
+        leafStartHeightClusterList, 
+        leafEndHeightClusterList, 
+        leafVerticalAngleBranchStartList, 
+        leafVerticalAngleBranchEndList, 
+        leafRotateAngleBranchStartList,
+        leafRotateAngleBranchEndList,
+        leafTiltAngleBranchStartList,
+        leafTiltAngleBranchEndList,
+        leafAngleModeList):
+            
+    for leafClusterIndex in range(0, len(leavesDensityList)):
+        treeGen.report({'INFO'}, f"leaf cluster: {leafClusterIndex}")
+        
+        startNodesNextIndexStartTvalEndTval = []
+        branchNodesNextIndexStartTvalEndTval = []
+        
+        rootNode.getAllStartNodes(
+            self, 
+            startNodesNextIndexStartTvalEndTval, 
+            branchNodesNextIndexStartTvalEndTval,
+            -1, 
+            leafStartHeightGlobalList[leafClusterIndex].value, # StartHeightGlobal, 
+            leafEndHeightGlobalList[leafClusterIndex].value, # EndHeightGlobal, 
+            leafStartHeightClusterList[leafClusterIndex].value, # StartHeightCluster, 
+            leafEndHeightClusterList[leafClusterIndex].value, # EndHeightCluster, 
+            leafParentClusterBoolListList, 
+            leafClusterIndex)
+            
+        #for startNode in startNodesNextIndexStartTvalEndTval:
+        #    drawDebugPoint(startNode.startNode.point, 0.1)
+            
+        if len(startNodesNextIndexStartTvalEndTval) > 0:
+            segmentLengths = []
+            totalLength = calculateSegmentLengthsAndTotalLength(self, treeGen, 
+                                                                startNodesNextIndexStartTvalEndTval, 
+                                                                segmentLengths, 
+                                                                0.0, # StartHeightGlobal, 
+                                                                1.0, # EndHeightGlobal, 
+                                                                0.2, # StartHeightCluster, 
+                                                                1.0) # EndHeightCluster, 
+            
+            nrLeaves = totalLength * leavesDensityList[leafClusterIndex].value
+            treeGen.report({'INFO'}, f"leafCluster: {leafClusterIndex}: nrLeaves: {nrLeaves}")
+            
+            for leafIndex in range(0, int(nrLeaves)):
+                leafPos = leafIndex * totalLength / nrLeaves
+                
+                data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, leafPos, treeGrowDir, rootNode, treeHeight, False)
+                
+                startPoint = data.startPoint
+                #treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, startPoint: {startPoint}")
+                
+                startNodeNextIndex = data.startNodeNextIndex
+                startPointTangent = sampleSplineTangentT(data.startNode.point, 
+                                                         data.startNode.next[startNodeNextIndex].point, 
+                                                         data.tangent, 
+                                                         data.startNode.next[startNodeNextIndex].tangent[0], 
+                                                         data.t)
+                                                         
+                drawDebugPoint(startPoint, 0.1)
+                
+                verticalAngle = lerp(leafVerticalAngleBranchStartList[leafClusterIndex].value, leafVerticalAngleBranchEndList[leafClusterIndex].value, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
+                
+                rotateAngle = lerp(leafRotateAngleBranchStartList[leafClusterIndex].value, leafRotateAngleBranchEndList[leafClusterIndex].value, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
+                
+                tiltAngle = lerp(leafTiltAngleBranchStartList[leafClusterIndex].value, leafTiltAngleBranchEndList[leafClusterIndex].value, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
+                
+                
+                
+                #centerDir = Quaternion(startPointTangent.cross(data.outwardDir), math.radians(-verticalAngle)) @ data.outwardDir # for symmetric!
+                                
+                right = startPointTangent.cross(Vector((0.0,0.0,1.0)))
+                if right.length > 0.001:
+                    right = right.normalized()
+                else:
+                    #vertical
+                    right = data.outwardDir
+                
+                
+                #drawArrow(startPoint, startPoint + right)
+                
+                leafTangent = Quaternion(right, math.radians(verticalAngle)) @ startPointTangent
+                leafCotangent = right
+                
+                treeGen.report({'INFO'}, f"leafClusterIndex: {leafClusterIndex}, startPointTangent: {startPointTangent}") 
+                
+                if leafAngleModeList[leafClusterIndex].value == "ALTERNATING":
+                    axis = right.cross(startPointTangent)
+                    if leafIndex % 2 == 0:
+                        leafTangent = Quaternion(axis, math.radians(rotateAngle)) @ leafTangent
+                        leafCotangent = Quaternion(axis, math.radians(rotateAngle)) @ leafCotangent
+                        leafCotangent = Quaternion(leafTangent, math.radians(tiltAngle)) @ leafCotangent
+                    else:
+                        leafTangent = Quaternion(axis, math.radians(-rotateAngle)) @ leafTangent
+                        leafCotangent = Quaternion(axis, math.radians(-rotateAngle)) @ leafCotangent
+                        leafCotangent = Quaternion(leafTangent, math.radians(-tiltAngle)) @ leafCotangent
+                        
+                drawArrow(startPoint, startPoint + leafTangent * leafSizeList[leafClusterIndex].value)
+                drawArrow(startPoint, startPoint + leafCotangent * leafSizeList[leafClusterIndex].value)
+                #data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, leafPos, treeGrowDir, rootNode, treeHeight, False)
+
 
 def addBranches(
 self, 
@@ -1373,9 +1500,9 @@ curvatureEndGlobalList):
        # parentClusterBoolListList, 
        # newClusterIndex):
             
-        if clusterIndex == 1:
-            for startNode in startNodesNextIndexStartTvalEndTval:
-                drawDebugPoint(startNode.startNode.point, 0.1)
+        #if clusterIndex == 1:
+        #    for startNode in startNodesNextIndexStartTvalEndTval:
+        #        drawDebugPoint(startNode.startNode.point, 0.1)
             
         #treeGen.report({'INFO'}, f"in addBranches(): clusterIndex: {clusterIndex}, len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}, len(branchNodes): {len(branchNodesNextIndexStartTvalEndTval)}")
         
@@ -2080,6 +2207,7 @@ def calculateSegmentLengthsAndTotalLength(self, treeGen, startNodesNextIndexStar
             
     return totalLength
 
+
 def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, calledFromAddLeaves):
     accumLength = 0.0
     startNodeIndex = 0
@@ -2507,7 +2635,7 @@ class angleModeEnumProp(bpy.types.PropertyGroup):
 class toggleBool(bpy.types.Operator):
     bl_idname = "scene.toggle_bool"
     bl_label = "Toggle Bool"
-    bl_description = "At least one item has to he true"
+    bl_description = "At least one item has to be true"
     
     list_index: bpy.props.IntProperty()
     bool_index: bpy.props.IntProperty()
@@ -2525,7 +2653,7 @@ class toggleBool(bpy.types.Operator):
 class toggleLeafBool(bpy.types.Operator):
     bl_idname = "scene.toggle_leaf_bool"
     bl_label = "Toggle Leaf Bool"
-    bl_description = "At least one item has to he true"
+    bl_description = "At least one item has to be true"
     
     list_index: bpy.props.IntProperty()
     bool_index: bpy.props.IntProperty()
@@ -2540,6 +2668,27 @@ class toggleLeafBool(bpy.types.Operator):
             
         return {'FINISHED'} #bpy.ops.scene.toggle_bool(list_index=0, bool_index=0)
 
+class leafAngleModeEnumProp(bpy.types.PropertyGroup):
+    value: bpy.props.EnumProperty(
+        name = "leafAngleMode",
+        items=[
+            ('ALTERNATING', "Alternating", "alternating leaf angles"),
+            ('WINDING', "Winding", "winding leaf angles")
+        ],
+        default='WINDING'
+    )
+    
+class leafTypeEnumProp(bpy.types.PropertyGroup):
+    value: bpy.props.EnumProperty(
+        name = "leafType",
+        items=[
+            ('OPPOSITE', "Opposite", "opposite leaves"),
+            ('ALTERNATING', "Alternating", "alternating leaves"),
+            ('WHORLED', "Whorled", "whorled leaves")
+        ],
+        default='ALTERNATING'
+    )
+        
     
 class UL_stemSplitLevelList(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
@@ -3127,25 +3276,27 @@ class sampleCruvesButton(bpy.types.Operator):
 #        op.list_index = cluster_index
 #        op.bool_index = j
     
-def draw_leaf_cluster_bools(layout, scene, cluster_index):
+def draw_leaf_cluster_bools(layout, scene, cluster_index, leafParentClusterBool):
     boolListItem = scene.leafParentClusterBoolListList[cluster_index].value
-    split = layout.split(factor=0.6)
-    split.label(text="Parent clusters")
     
-    for j, boolItem in enumerate(boolListItem):
-        split = layout.split(factor=0.6)
-        if j == 0:
-            split.label(text=f"Stem")
-        else:
-            split.label(text=f"Branch cluster {j - 1}")
-        rightColumn = split.column(align=True)
-        row = rightColumn.row(align=True)
-        row.alignment = 'CENTER'
-        
-        op = row.operator("scene.toggle_leaf_bool", text="", depress=boolItem.value)
-        op.list_index = cluster_index
-        op.bool_index = j
+    row = layout.row()
+    row.prop(leafParentClusterBool, "show_leaf_cluster", icon="TRIA_DOWN" if leafParentClusterBool.show_leaf_cluster else "TRIA_RIGHT", emboss=False, text="Parent clusters", toggle=True)
     
+    if leafParentClusterBool.show_leaf_cluster == True:
+        for j, boolItem in enumerate(boolListItem):
+            split = layout.split(factor=0.6)
+            if j == 0:
+                split.label(text=f"Stem")
+            else:
+                split.label(text=f"Branch cluster {j - 1}")
+            rightColumn = split.column(align=True)
+            row = rightColumn.row(align=True)
+            row.alignment = 'CENTER'
+            
+            op = row.operator("scene.toggle_leaf_bool", text="", depress=boolItem.value)
+            op.list_index = cluster_index
+            op.bool_index = j
+            
 
 def draw_parent_cluster_bools(layout, scene, cluster_index):
     boolListItem = scene.parentClusterBoolListList[cluster_index].value
@@ -3198,14 +3349,15 @@ class branchSettings(bpy.types.Panel):
             row.prop(outer, "show_branch_cluster", icon="TRIA_DOWN", emboss=False, text=f"Branch cluster", toggle=True)
             
             if scene.branchClusterBoolListList[i].show_branch_cluster:
-                row = box.row()
+                box1 = box.box()
+                row = box1.row()
                 
                 row.prop(outer, "show_cluster", icon="TRIA_DOWN" if outer.show_cluster else "TRIA_RIGHT", emboss=False, text=f"Parent clusters", toggle=True)
                 
                 if outer.show_cluster:
                     if i < len(context.scene.nrBranchesList):
                         
-                        box1 = box.box()
+                        #box1 = box.box()
                         draw_parent_cluster_bools(box1, scene, i) #FUNKT!
                         
                         parentClusterBoolListList = context.scene.parentClusterBoolListList
@@ -3478,7 +3630,34 @@ class addLeafItem(bpy.types.Operator):
     def execute(self, context):
         context.scene.leafClusters += 1
         
-        nrLeaves = context.scene.nrLeavesList.add()
+        showLeafSettings = context.scene.showLeafSettings.add()
+        showLeafSettings.value = True
+        
+        nrLeaves = context.scene.leavesDensityList.add()
+        leafSize = context.scene.leafSizeList.add()
+        leafAngleMode = context.scene.leafAngleModeList.add()
+        leafType = context.scene.leafTypeList.add()
+        leafStartHeightGlobal = context.scene.leafStartHeightGlobalList.add()
+        leafEndHeightGlobal = context.scene.leafEndHeightGlobalList.add()
+        leafEndHeightGlobal.value = 1.0
+        leafStartHeightCluster = context.scene.leafStartHeightClusterList.add()
+        leafEndHeightCluster = context.scene.leafEndHeightClusterList.add()
+        leafEndHeightCluster.value = 1.0
+        
+        leafVerticalAngleBranchStart = context.scene.leafVerticalAngleBranchStartList.add()
+        leafVerticalAngleBranchStart.value = 0.0
+        leafVerticalAngleBranchEnd = context.scene.leafVerticalAngleBranchEndList.add()
+        leafVerticalAngleBranchEnd.value = 0.0
+        
+        leafRotateAngleBranchStartList = context.scene.leafRotateAngleBranchStartList.add()
+        leafRotateAngleBranchStartList = 0.0
+        leafRotateAngleBranchEndList = context.scene.leafRotateAngleBranchEndList.add()
+        leafRotateAngleBranchEndList = 0.0
+        
+        leafTiltAngleBranchStartList = context.scene.leafTiltAngleBranchStartList.add()
+        leafTiltAngleBranchStartList = 0.0
+        leafTiltAngleBranchEndList = context.scene.leafTiltAngleBranchEndList.add()
+        leafTiltAngleBranchEndList = 0.0
         
         leafParentClusterBoolListList = context.scene.leafParentClusterBoolListList.add()
         stemBool = context.scene.leafParentClusterBoolListList[len(context.scene.leafParentClusterBoolListList) - 1].value.add()
@@ -3505,8 +3684,40 @@ class removeLeafItem(bpy.types.Operator):
     def execute(self, context): 
         context.scene.leafClusters -= 1
         
-        if len(context.scene.nrLeavesList) > 0:
-            context.scene.nrLeavesList.remove(len(context.scene.nrLeavesList) - 1)
+        if len(context.scene.showLeafSettings) > 0:
+            context.scene.showLeafSettings.remove(len(context.scene.showLeafSettings) - 1)
+        
+        if len(context.scene.leavesDensityList) > 0:
+            context.scene.leavesDensityList.remove(len(context.scene.leavesDensityList) - 1)
+        if len(context.scene.leafSizeList) > 0:
+            context.scene.leafSizeList.remove(len(context.scene.leafSizeList) - 1)
+        if len(context.scene.leafAngleModeList) > 0:
+            context.scene.leafAngleModeList.remove(len(context.scene.leafAngleModeList) - 1)
+        if len(context.scene.leafTypeList) > 0:
+            context.scene.leafTypeList.remove(len(context.scene.leafTypeList) - 1)
+        if len(context.scene.leafStartHeightGlobalList) > 0:
+            context.scene.leafStartHeightGlobalList.remove(len(context.scene.leafStartHeightGlobalList) - 1)
+        if len(context.scene.leafEndHeightGlobalList) > 0:
+            context.scene.leafEndHeightGlobalList.remove(len(context.scene.leafEndHeightGlobalList) - 1)
+        if len(context.scene.leafStartHeightClusterList) > 0:
+            context.scene.leafStartHeightClusterList.remove(len(context.scene.leafStartHeightClusterList) - 1)
+        if len(context.scene.leafEndHeightClusterList) > 0:
+            context.scene.leafEndHeightClusterList.remove(len(context.scene.leafEndHeightClusterList) - 1)
+        
+        if len(context.scene.leafVerticalAngleBranchStartList) > 0:
+            context.scene.leafVerticalAngleBranchStartList.remove(len(context.scene.leafVerticalAngleBranchStartList) - 1)
+        if len(context.scene.leafVerticalAngleBranchEndList) > 0:
+            context.scene.leafVerticalAngleBranchEndList.remove(len(context.scene.leafVerticalAngleBranchEndList) - 1)
+        
+        if len(context.scene.leafRotateAngleBranchStartList) > 0:
+            context.scene.leafRotateAngleBranchStartList.remove(len(context.scene.leafRotateAngleBranchStartList) - 1)
+        if len(context.scene.leafRotateAngleBranchEndList) > 0:
+            context.scene.leafRotateAngleBranchEndList.remove(len(context.scene.leafRotateAngleBranchEndList) - 1)
+        
+        if len(context.scene.leafTiltAngleBranchStartList) > 0:
+            context.scene.leafTiltAngleBranchStartList.remove(len(context.scene.leafTiltAngleBranchStartList) - 1)
+        if len(context.scene.leafTiltAngleBranchEndList) > 0:
+            context.scene.leafTiltAngleBranchEndList.remove(len(context.scene.leafTiltAngleBranchEndList) - 1)
         
         if len(context.scene.leafParentClusterBoolListList) > 0:
             listToClear = context.scene.leafParentClusterBoolListList[len(context.scene.leafParentClusterBoolListList) - 1].value
@@ -3544,23 +3755,79 @@ class leafSettings(bpy.types.Panel):
         
         row = layout.row(align = True)
         row.operator("scene.add_leaf_item", text="Add")
-        row.operator("scene.remove_leaf_item", text="Remove").index = context.scene.nrLeavesListIndex
+        row.operator("scene.remove_leaf_item", text="Remove").index = context.scene.leavesDensityListIndex
         row = layout.row()
         
-        for i, outer in enumerate(scene.nrLeavesList):
+        for i, outer in enumerate(scene.leavesDensityList):
+            
             box = layout.box()
+            box.prop(scene.showLeafSettings[i], "value", icon="TRIA_DOWN" if scene.showLeafSettings[i].value else "TRIA_RIGHT", emboss=False, text=f"Leaf cluster {i}", toggle=True)
             
-            split = box.split(factor=0.6)
-            split.label(text="Number of leaves")
-            split.prop(scene.nrLeavesList[i], "value", text="")
-            
-            #box1 = box.box()
-            #draw_parent_cluster_bools(box1, scene, i)
-            
-            box1 = box.box()
-            draw_leaf_cluster_bools(box1, scene, i)
+            if scene.showLeafSettings[i].value:
+                split = box.split(factor=0.6)
+                split.label(text="Leaf density")
+                split.prop(scene.leavesDensityList[i], "value", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Leaf size")
+                split.prop(scene.leafSizeList[i], "value", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Leaf start height global")
+                split.prop(scene.leafStartHeightGlobalList[i], "value", text="", slider=True)
+                
+                split = box.split(factor=0.6)
+                split.label(text="Leaf end height global")
+                split.prop(scene.leafEndHeightGlobalList[i], "value", text="", slider=True)
+                
+                split = box.split(factor=0.6)
+                split.label(text="Leaf start height cluster")
+                split.prop(scene.leafStartHeightClusterList[i], "value", text="", slider=True)
+                
+                split = box.split(factor=0.6)
+                split.label(text="Leaf end height cluster")
+                split.prop(scene.leafEndHeightClusterList[i], "value", text="", slider=True)
+                
+                split = box.split(factor=0.6)
+                split.label(text="Leaf type")
+                split.prop(scene.leafTypeList[i], "value", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Leaf angle mode")
+                split.prop(scene.leafAngleModeList[i], "value", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Vertical angle branch start")
+                split.prop(scene.leafVerticalAngleBranchStartList[i], "value", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Vertical angle branch end")
+                split.prop(scene.leafVerticalAngleBranchEndList[i], "value", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Rotate angle branch start")
+                split.prop(scene.leafRotateAngleBranchStartList[i], "value", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Rotate angle branch end")
+                split.prop(scene.leafRotateAngleBranchEndList[i], "value", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Tilt angle branch start")
+                split.prop(scene.leafTiltAngleBranchStartList[i], "value", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Tilt angle branch end")
+                split.prop(scene.leafTiltAngleBranchEndList[i], "value", text="")
+                
+                
+                
+                
+                
+                
+                box1 = box.box()
+                draw_leaf_cluster_bools(box1, scene, i, scene.leafParentClusterBoolListList[i])
                         
-            
             
             
 def register():
@@ -3587,6 +3854,8 @@ def register():
     bpy.utils.register_class(parentClusterBoolListProp)
     bpy.utils.register_class(branchClusterBoolListProp)
     bpy.utils.register_class(leafParentClusterBoolListProp)
+    bpy.utils.register_class(leafAngleModeEnumProp)
+    bpy.utils.register_class(leafTypeEnumProp)
     
     #operators
     bpy.utils.register_class(addItem)
@@ -3636,6 +3905,7 @@ def register():
     
     bpy.types.Scene.showAngleSettings = bpy.props.CollectionProperty(type=boolProp)
     bpy.types.Scene.showSplitSettings = bpy.props.CollectionProperty(type=boolProp)
+    bpy.types.Scene.showLeafSettings = bpy.props.CollectionProperty(type=boolProp)
     
     bpy.types.Scene.parentClusterBoolList = bpy.props.CollectionProperty(type=boolProp)
     bpy.types.Scene.parentClusterBoolListList = bpy.props.CollectionProperty(type=parentClusterBoolListProp)
@@ -3695,8 +3965,22 @@ def register():
     bpy.types.Scene.branchSplitHeightInLevelListIndex_5 = bpy.props.IntProperty(default = 0)
     bpy.types.Scene.showBranchSplitHeights = bpy.props.CollectionProperty(type=boolProp)
     
-    bpy.types.Scene.nrLeavesList = bpy.props.CollectionProperty(type=intPropL)
-    bpy.types.Scene.nrLeavesListIndex = bpy.props.IntProperty(default=0)
+    bpy.types.Scene.leavesDensityList = bpy.props.CollectionProperty(type=posFloatProp)
+    bpy.types.Scene.leavesDensityListIndex = bpy.props.IntProperty(default=0)
+    bpy.types.Scene.leafSizeList = bpy.props.CollectionProperty(type=posFloatProp)
+    bpy.types.Scene.leafAngleModeList = bpy.props.CollectionProperty(type=leafAngleModeEnumProp)
+    bpy.types.Scene.leafTypeList = bpy.props.CollectionProperty(type=leafTypeEnumProp)
+    bpy.types.Scene.leafStartHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.leafEndHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.leafStartHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.leafEndHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.leafVerticalAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.leafVerticalAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.leafRotateAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.leafRotateAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.leafTiltAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.leafTiltAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
+    
     
     #leafParentClusterBoolListProp
     bpy.types.Scene.leafParentClusterBoolListList = bpy.props.CollectionProperty(type=leafParentClusterBoolListProp)
@@ -4466,7 +4750,7 @@ def load_properties(filepath, context):
 def unregister():
     
     #properties
-    bpy.utils.unregister_class(treeShapeEnumProp)
+    #bpy.utils.unregister_class(treeShapeEnumProp)
     #bpy.utils.unregister_class(splitModeEnumProp)
     #bpy.utils.unregister_class(angleModeEnumProp)
     #bpy.utils.unregister_class(intProp)
