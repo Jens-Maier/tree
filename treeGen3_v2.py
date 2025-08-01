@@ -715,6 +715,7 @@ class generateTree(bpy.types.Operator):
                 context.scene.treeHeight, 
                 context.scene.leavesDensityList, 
                 context.scene.leafSizeList,
+                context.scene.leafAspectRatioList,
                 context.scene.leafParentClusterBoolListList, 
                 context.scene.leafStartHeightGlobalList, 
                 context.scene.leafEndHeightGlobalList, 
@@ -726,7 +727,8 @@ class generateTree(bpy.types.Operator):
                 context.scene.leafRotateAngleBranchEndList,
                 context.scene.leafTiltAngleBranchStartList,
                 context.scene.leafTiltAngleBranchEndList,
-                context.scene.leafAngleModeList)
+                context.scene.leafAngleModeList, 
+                context.scene.leafTypeList)
             
             generateVerticesAndTriangles(self, self, context, segments, dir, context.scene.taper, radius, context.scene.ringSpacing, context.scene.stemRingResolution, context.scene.taperFactorList, context.scene.branchTipRadius)
             
@@ -1272,11 +1274,12 @@ def lerp(a, b, t):
 # sampleSplineT and sampleSplineTangentT should be defined as in your script
 
 
-def addLeaves(self, treeGen, rootNode, 
+def addLeaves(self, treeGen, rootNode,        #     TODO: support multiple leaf clusters !!!
         treeGrowDir, 
         treeHeight, 
         leavesDensityList, 
         leafSizeList,
+        leafAspectRatioList,
         leafParentClusterBoolListList, 
         leafStartHeightGlobalList, 
         leafEndHeightGlobalList, 
@@ -1288,7 +1291,8 @@ def addLeaves(self, treeGen, rootNode,
         leafRotateAngleBranchEndList,
         leafTiltAngleBranchStartList,
         leafTiltAngleBranchEndList,
-        leafAngleModeList):
+        leafAngleModeList, 
+        leafTypeList):
             
     for leafClusterIndex in range(0, len(leavesDensityList)):
         treeGen.report({'INFO'}, f"leaf cluster: {leafClusterIndex}")
@@ -1326,6 +1330,7 @@ def addLeaves(self, treeGen, rootNode,
             
             leafFaces = []
             leafVertices = []
+            leafUVs = []
             
             for leafIndex in range(0, int(nrLeaves)):
                 leafPos = leafIndex * totalLength / nrLeaves
@@ -1342,14 +1347,21 @@ def addLeaves(self, treeGen, rootNode,
                                                          data.startNode.next[startNodeNextIndex].tangent[0], 
                                                          data.t)
                                                          
-                drawDebugPoint(startPoint, 0.1)
+                startPointRadius = lerp(data.startNode.radius, data.startNode.next[startNodeNextIndex].radius, data.t)
+                                                         
+                #drawDebugPoint(startPoint, 0.1)
                 
                 verticalAngle = lerp(leafVerticalAngleBranchStartList[leafClusterIndex].value, leafVerticalAngleBranchEndList[leafClusterIndex].value, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
                 
                 rotateAngle = lerp(leafRotateAngleBranchStartList[leafClusterIndex].value, leafRotateAngleBranchEndList[leafClusterIndex].value, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
                 
                 tiltAngle = lerp(leafTiltAngleBranchStartList[leafClusterIndex].value, leafTiltAngleBranchEndList[leafClusterIndex].value, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
-                
+    
+                offset = 0.0
+                factor = math.cos(math.radians(verticalAngle))        
+                #if factor != 0.0:
+                #    offset = startPointRadius / factor
+                offset = startPointRadius    
                 
                 
                 #centerDir = Quaternion(startPointTangent.cross(data.outwardDir), math.radians(-verticalAngle)) @ data.outwardDir # for symmetric!
@@ -1369,47 +1381,115 @@ def addLeaves(self, treeGen, rootNode,
                 
                 #treeGen.report({'INFO'}, f"leafClusterIndex: {leafClusterIndex}, startPointTangent: {startPointTangent}") 
                 
-                if leafAngleModeList[leafClusterIndex].value == "ALTERNATING":
-                    axis = right.cross(startPointTangent)
-                    if leafIndex % 2 == 0:
-                        leafTangent = Quaternion(axis, math.radians(rotateAngle)) @ leafTangent
-                        leafCotangent = Quaternion(axis, math.radians(rotateAngle)) @ leafCotangent
-                        leafCotangent = Quaternion(leafTangent, math.radians(tiltAngle)) @ leafCotangent
-                    else:
-                        leafTangent = Quaternion(axis, math.radians(-rotateAngle)) @ leafTangent
-                        leafCotangent = Quaternion(axis, math.radians(-rotateAngle)) @ leafCotangent
-                        leafCotangent = Quaternion(leafTangent, math.radians(-tiltAngle)) @ leafCotangent
+                if leafTypeList[leafClusterIndex].value == "SINGLE":
+                    
+                    if leafAngleModeList[leafClusterIndex].value == "ALTERNATING":
+                        axis = right.cross(startPointTangent)
+                        if leafIndex % 2 == 0:
+                            leafTangent = Quaternion(axis, math.radians(rotateAngle)) @ leafTangent
+                            leafCotangent = Quaternion(axis, math.radians(rotateAngle)) @ leafCotangent
+                            leafCotangent = Quaternion(leafTangent, math.radians(tiltAngle)) @ leafCotangent
+                        else:
+                            leafTangent = Quaternion(axis, math.radians(-rotateAngle)) @ leafTangent
+                            leafCotangent = Quaternion(axis, math.radians(-rotateAngle)) @ leafCotangent
+                            leafCotangent = Quaternion(leafTangent, math.radians(-tiltAngle)) @ leafCotangent
+                    
+                        drawDebugPoint(startPoint + offset * leafTangent, 0.01)
+                    
+                        leafVertices.append(startPoint - leafCotangent *  leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangent * offset)
+                        leafVertices.append(startPoint - leafCotangent *  leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangent   * (leafSizeList[leafClusterIndex].value + offset))
+                        leafVertices.append(startPoint + leafCotangent *  leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangent   * (leafSizeList[leafClusterIndex].value + offset))
+                        leafVertices.append(startPoint + leafCotangent *  leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangent * offset)
+                        leafFaces.append((4 * leafIndex, 4 * leafIndex + 1, 4 * leafIndex + 2, 4 * leafIndex + 3))
                         
-                drawArrow(startPoint, startPoint + leafTangent * leafSizeList[leafClusterIndex].value)
-                drawArrow(startPoint, startPoint + leafCotangent * leafSizeList[leafClusterIndex].value)
+                        leafUVs.append((0.0,0.0))
+                        leafUVs.append((0.0,1.0))
+                        leafUVs.append((1.0,1.0))
+                        leafUVs.append((1.0,0.0))
+                            
+                    
+                if leafTypeList[leafClusterIndex].value == "OPPOSITE":
+                    if leafAngleModeList[leafClusterIndex].value == "ALTERNATING":
+                        axis = right.cross(startPointTangent)
+                        
+                        leafTangentA = Quaternion(axis, math.radians(rotateAngle)) @ leafTangent
+                        leafCotangentA = Quaternion(axis, math.radians(rotateAngle)) @ leafCotangent
+                        leafCotangentA = Quaternion(leafTangent, math.radians(tiltAngle)) @ leafCotangentA
+                        
+                        leafTangentB = Quaternion(axis, math.radians(-rotateAngle)) @ leafTangent
+                        leafCotangentB = Quaternion(axis, math.radians(-rotateAngle)) @ leafCotangent
+                        leafCotangentB = Quaternion(leafTangent, math.radians(tiltAngle)) @ leafCotangentB
+                    
+                        drawDebugPoint(startPoint + offset * leafTangentA, 0.01)
+                    
+                        leafVertices.append(startPoint - leafCotangentA * leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangentA * offset)
+                        leafVertices.append(startPoint - leafCotangentA * leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangentA * (leafSizeList[leafClusterIndex].value + offset))
+                        leafVertices.append(startPoint + leafCotangentA * leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangentA * (leafSizeList[leafClusterIndex].value + offset))
+                        leafVertices.append(startPoint + leafCotangentA * leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangentA * offset)
+                        leafFaces.append((8 * leafIndex, 8 * leafIndex + 1, 8 * leafIndex + 2, 8 * leafIndex + 3))
+                        
+                        
+                        leafVertices.append(startPoint - leafCotangentB * leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangentB * offset)
+                        leafVertices.append(startPoint + leafCotangentB * leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangentB * offset)
+                        leafVertices.append(startPoint + leafCotangentB * leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangentB * (leafSizeList[leafClusterIndex].value + offset))
+                        leafVertices.append(startPoint - leafCotangentB * leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangentB * (leafSizeList[leafClusterIndex].value + offset))
+                        
+                        
+                        
+                        leafFaces.append((8 * leafIndex + 4, 8 * leafIndex + 5, 8 * leafIndex + 6, 8 * leafIndex + 7))
+                        
+                        leafUVs.append((0.0,0.0))
+                        leafUVs.append((0.0,1.0))
+                        leafUVs.append((1.0,1.0))
+                        leafUVs.append((1.0,0.0))
+                         
+                        leafUVs.append((0.0,0.0))
+                        leafUVs.append((0.0,1.0))
+                        leafUVs.append((1.0,1.0))
+                        leafUVs.append((1.0,0.0))
+                         
+                
+                if leafTypeList[leafClusterIndex].value == "WHORLED":
+                    pass
+                
+                #drawArrow(startPoint, startPoint + leafTangent * leafSizeList[leafClusterIndex].value)
+                #drawArrow(startPoint, startPoint + leafCotangent * leafSizeList[leafClusterIndex].value)
                 #data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, leafPos, treeGrowDir, rootNode, treeHeight, False)
+            
+            leafMeshData = bpy.data.meshes.new("leafMesh")
+            leafMeshData.from_pydata(leafVertices, [], leafFaces)
+            if len(leafMeshData.uv_layers) == 0:
+                leafMeshData.uv_layers.new()
+            
+            uvLayer = leafMeshData.uv_layers.active
+            
+            for i, face in enumerate(leafFaces):
+                uvLayer.data[leafMeshData.polygons[i].loop_indices[0]].uv = leafUVs[face[0]]
+                uvLayer.data[leafMeshData.polygons[i].loop_indices[1]].uv = leafUVs[face[1]]
+                uvLayer.data[leafMeshData.polygons[i].loop_indices[2]].uv = leafUVs[face[2]]
+                uvLayer.data[leafMeshData.polygons[i].loop_indices[3]].uv = leafUVs[face[3]]
                 
                 
-                leafVertices.append(startPoint - leafCotangent * leafSizeList[leafClusterIndex].value / 4.0)
-                leafVertices.append(startPoint - leafCotangent * leafSizeList[leafClusterIndex].value / 4.0 
-                                               + leafTangent   * leafSizeList[leafClusterIndex].value)
-                leafVertices.append(startPoint + leafCotangent * leafSizeList[leafClusterIndex].value / 4.0 
-                                               + leafTangent   * leafSizeList[leafClusterIndex].value)
-                leafVertices.append(startPoint + leafCotangent * leafSizeList[leafClusterIndex].value / 4.0)
-                leafFaces.append((4 * leafIndex, 4 * leafIndex + 1, 4 * leafIndex + 2, 4 * leafIndex + 3))
-                
-                leafMeshData = bpy.data.meshes.new("leafMesh")
-                leafMeshData.from_pydata(leafVertices, [], leafFaces)
-                leafMeshData.update()
-                
-                for polygon in leafMeshData.polygons:
-                    polygon.use_smooth = True
+            leafMeshData.update()
+            leafMeshData.flip_normals()
+            
+            for polygon in leafMeshData.polygons:
+                polygon.use_smooth = True
     
-            name = "leaves"
+            name = "leaves_" + str(leafClusterIndex)
             if name in bpy.data.objects:
                 bpy.data.objects[name].data = leafMeshData
                 leafObject = bpy.data.objects[name]
                 leafObject.select_set(True)
             else:
-                leafObject = bpy.data.objects.new("leaves", leafMeshData)
+                leafObject = bpy.data.objects.new("leaves_" + str(leafClusterIndex), leafMeshData)
                 bpy.context.collection.objects.link(leafObject)
                 leafObject.select_set(True)
         
+            leafMaterial = bpy.data.materials.get("Leaf")
+            if leafMaterial is not None:
+                leafObject.data.materials.clear()
+                leafObject.data.materials.append(leafMaterial)
                 
 
 
@@ -2509,7 +2589,11 @@ def generateVerticesAndTriangles(self, treeGen, context, segments, dir, taper, r
         bpy.context.collection.objects.link(treeObject)
         treeObject.select_set(True)
         
-
+    barkMaterial = bpy.data.materials.get("Bark")
+    if barkMaterial is not None:
+        treeObject.data.materials.clear()
+        treeObject.data.materials.append(barkMaterial)
+                
 
 
 def update_fibonacci_numbers(self):
@@ -2561,6 +2645,12 @@ class floatProp(bpy.types.PropertyGroup):
     
 class posFloatProp(bpy.types.PropertyGroup):
     value: bpy.props.FloatProperty(name = "floatValue", default=0, min=0)
+    
+class posFloatPropDefault1(bpy.types.PropertyGroup):
+    value: bpy.props.FloatProperty(name = "floatValue", default=1, min=0)
+    
+class posFloatPropSoftMax2(bpy.types.PropertyGroup):
+    value: bpy.props.FloatProperty(name = "floatValue", default = 1.0, min = 0, soft_max=2.0)
     
 class posFloatPropSoftMax1(bpy.types.PropertyGroup):
     value: bpy.props.FloatProperty(name = "floatValue", default=1, min=0, soft_max=1.0)
@@ -2713,12 +2803,15 @@ class leafTypeEnumProp(bpy.types.PropertyGroup):
     value: bpy.props.EnumProperty(
         name = "leafType",
         items=[
+            ('SINGLE', "Single", "single leaf"),
             ('OPPOSITE', "Opposite", "opposite leaves"),
-            ('ALTERNATING', "Alternating", "alternating leaves"),
             ('WHORLED', "Whorled", "whorled leaves")
         ],
-        default='ALTERNATING'
+        default='SINGLE'
     )
+    
+class materialSettings(bpy.types.PropertyGroup):
+    leaf_material: bpy.props.PointerProperty(type=bpy.data.materials)
         
     
 class UL_stemSplitLevelList(bpy.types.UIList): #template for UIList
@@ -3103,8 +3196,14 @@ class treeSettings(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         obj = context.object
-        row = layout.row()
         
+        mat = context.material
+        if mat:
+            row = layout.row()
+            row.label(text="Select Leaf Material:")
+            row.prop_search(context.scene, "leaf_material", bpy.data, "materials", text="")
+        
+        row = layout.row()
         layout.prop(context.scene, "treeHeight")
         row = layout.row()
         layout.prop(context.scene, "treeGrowDir")
@@ -3666,6 +3765,7 @@ class addLeafItem(bpy.types.Operator):
         
         nrLeaves = context.scene.leavesDensityList.add()
         leafSize = context.scene.leafSizeList.add()
+        leafAspectRatio = context.scene.leafAspectRatioList.add()
         leafAngleMode = context.scene.leafAngleModeList.add()
         leafType = context.scene.leafTypeList.add()
         leafStartHeightGlobal = context.scene.leafStartHeightGlobalList.add()
@@ -3722,6 +3822,8 @@ class removeLeafItem(bpy.types.Operator):
             context.scene.leavesDensityList.remove(len(context.scene.leavesDensityList) - 1)
         if len(context.scene.leafSizeList) > 0:
             context.scene.leafSizeList.remove(len(context.scene.leafSizeList) - 1)
+        if len(context.scene.leafAspectRatioList) > 0:
+            context.scene.leafAspectRatioList.remove(len(context.scene.leafAspectRatioList) - 1)
         if len(context.scene.leafAngleModeList) > 0:
             context.scene.leafAngleModeList.remove(len(context.scene.leafAngleModeList) - 1)
         if len(context.scene.leafTypeList) > 0:
@@ -3804,6 +3906,10 @@ class leafSettings(bpy.types.Panel):
                 split.prop(scene.leafSizeList[i], "value", text="")
                 
                 split = box.split(factor=0.6)
+                split.label(text="Leaf aspect ratio")
+                split.prop(scene.leafAspectRatioList[i], "value", text="", slider=True)
+                
+                split = box.split(factor=0.6)
                 split.label(text="Leaf start height global")
                 split.prop(scene.leafStartHeightGlobalList[i], "value", text="", slider=True)
                 
@@ -3877,8 +3983,10 @@ def register():
     bpy.utils.register_class(fibonacciProps)
     bpy.utils.register_class(floatProp)
     bpy.utils.register_class(posFloatProp)
+    bpy.utils.register_class(posFloatPropDefault1)
     bpy.utils.register_class(floatProp01)
     bpy.utils.register_class(posFloatPropSoftMax1)
+    bpy.utils.register_class(posFloatPropSoftMax2)
     bpy.utils.register_class(floatListProp)
     bpy.utils.register_class(floatListProp01)
     bpy.utils.register_class(boolProp)
@@ -3887,6 +3995,7 @@ def register():
     bpy.utils.register_class(leafParentClusterBoolListProp)
     bpy.utils.register_class(leafAngleModeEnumProp)
     bpy.utils.register_class(leafTypeEnumProp)
+    bpy.utils.register_class(materialSettings)
     
     #operators
     bpy.utils.register_class(addItem)
@@ -3998,7 +4107,8 @@ def register():
     
     bpy.types.Scene.leavesDensityList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.leavesDensityListIndex = bpy.props.IntProperty(default=0)
-    bpy.types.Scene.leafSizeList = bpy.props.CollectionProperty(type=posFloatProp)
+    bpy.types.Scene.leafSizeList = bpy.props.CollectionProperty(type=posFloatPropDefault1)
+    bpy.types.Scene.leafAspectRatioList = bpy.props.CollectionProperty(type=posFloatPropSoftMax2)
     bpy.types.Scene.leafAngleModeList = bpy.props.CollectionProperty(type=leafAngleModeEnumProp)
     bpy.types.Scene.leafTypeList = bpy.props.CollectionProperty(type=leafTypeEnumProp)
     bpy.types.Scene.leafStartHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
@@ -4011,6 +4121,8 @@ def register():
     bpy.types.Scene.leafRotateAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.leafTiltAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.leafTiltAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
+    
+    bpy.types.Scene.leaf_material = bpy.props.PointerProperty(type=bpy.data.materials)
     
     
     #leafParentClusterBoolListProp
@@ -4557,7 +4669,7 @@ def load_properties(filepath, context):
     with open(filepath, 'r') as f:
         data = json.load(f)
         props = context.scene
-        
+                
         props.treeHeight = data.get("treeHeight", props.treeHeight)
         treeGrowDir = data.get("treeGrowDir", props.treeGrowDir)
         if isinstance(treeGrowDir, list) and len(treeGrowDir) == 3:
