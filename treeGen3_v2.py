@@ -41,6 +41,7 @@ class startPointData():
         self.t = T
         self.tangent = Tangent
         self.cotangent = Cotangent
+        
 
 class node():
     def __init__(self, Point, Radius, Cotangent, ClusterIndex, RingResolution, Taper, TvalGlobal, TvalBranch, BranchLength):
@@ -87,8 +88,8 @@ class node():
     def getAllSegments(self, treeGen, rootNode, segments, connectedToPrev):
         #for t in self.tangent:
         #    #drawArrow(self.point, self.point + t)
-        #if self.clusterIndex == -1: 
-        #    #drawDebugPoint(self.point, 0.1)
+        if self.clusterIndex == -1: 
+            drawDebugPoint(self.point, 0.1)
         
         for n, nextNode in enumerate(self.next):
             longestBranchLengthInCluster = 1.0
@@ -272,7 +273,11 @@ class node():
         clusterIndex, 
         branchStartPoint, 
         curveStep,
-        maxCurveSteps):
+        maxCurveSteps, 
+        noise_generator, 
+        noiseAmplitudeLower, 
+        noiseAmplitudeUpper, 
+        noiseScale):
         
         if clusterIndex == -1:
             nextTangent = (treeGrowDir.normalized() * treeHeight - (rootNode.point + rootNode.tangent[0] * (treeGrowDir.normalized() * treeHeight - rootNode.point).length * (1.5 / 3.0))).normalized()
@@ -314,6 +319,37 @@ class node():
         
         self.curveStep(treeGen, curvature, curveAxis, self.point, True)
         
+        noiseX = noise_generator.coherent_noise(x=self.point.x / noiseScale, y=self.point.y / noiseScale, z=self.point.z / noiseScale)
+        noiseY = noise_generator.coherent_noise(x=self.point.x / noiseScale + 1000.0, y=self.point.y / noiseScale + 1000.0, z=self.point.z / noiseScale + 1000.0)
+        
+        ####################################################################
+        # TODO: noise octave settings ...  !!!
+        ####################################################################
+        
+        noiseAmplitude = lerp(noiseAmplitudeLower, noiseAmplitudeUpper, self.tValGlobal)
+        
+        # does not work! -> use direct noise offsets!
+        #
+        #self.curveStep(treeGen, noiseX * noiseAmplitude, self.cotangent, self.point, True)
+        #self.curveStep(treeGen, noiseY * noiseAmplitude, self.tangent[0].cross(self.cotangent), self.point, True)
+        
+        self.point += noiseX * noiseAmplitude * self.cotangent.normalized() + noiseY * noiseAmplitude * self.tangent[0].normalized().cross(self.cotangent.normalized())
+        
+        if len(self.next) > 0:
+            nextNoiseX = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale, y=self.next[0].point.y / noiseScale, z=self.next[0].point.z / noiseScale)
+            nextNoiseY = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale + 1000.0, y=self.next[0].point.y / noiseScale + 1000.0, z=self.next[0].point.z / noiseScale + 1000.0)
+        
+            nextPoint = self.next[0].point + nextNoiseX * noiseAmplitude * self.next[0].cotangent.normalized() + nextNoiseY * noiseAmplitude * self.next[0].tangent[0].normalized().cross(self.next[0].cotangent.normalized())
+            self.tangent[0] = nextPoint - self.point
+            drawArrow(self.point, self.point + self.tangent[0])
+            ####################################################################
+            # TODO: tangent = next.point - prev.point 
+            ####################################################################
+            
+        #drawArrow(self.point, self.point - noiseX * self.tangent[0].cross(self.cotangent))
+        drawArrow(self.point - noiseX * noiseAmplitude * self.cotangent + noiseY * noiseAmplitude * self.tangent[0].cross(self.cotangent), self.point) # ??? length of cotangent ???
+        treeGen.report({'INFO'}, f"self.point: {self.point}, self.cotangent: {self.cotangent}, noiseY: {noiseY}")
+        
         for n in self.next:
             if curveStep <= maxCurveSteps:
                 n.applyCurvature(treeGen, 
@@ -327,7 +363,11 @@ class node():
                                  clusterIndex, 
                                  branchStartPoint, 
                                  curveStep + 1, 
-                                 maxCurveSteps)
+                                 maxCurveSteps, 
+                                 noise_generator, 
+                                 noiseAmplitudeLower, 
+                                 noiseAmplitudeUpper, 
+                                 noiseScale)
     
     def curveStep(self, treeGen, curvature, curveAxis, rotationPoint, firstNode):        
         if firstNode == True:
@@ -568,6 +608,7 @@ class importProperties(bpy.types.Operator):
         filepath = bpy.path.abspath(f"//{filename}")  # Load from the specified filename  
         load_properties(filepath, context)
         self.report({'INFO'}, f'Loaded properties from {filepath}')
+        
         bpy.ops.object.generate_tree()
         return {'FINISHED'}
         
@@ -585,6 +626,11 @@ class generateTree(bpy.types.Operator):
         #normals: mesh overlays (only in edit mode) -> Normals
         context.scene.maxSplitHeightUsed = 0
         
+        context.scene.seed += 1
+        noise_generator = SimplexNoiseGenerator(self, context.scene.seed)
+        result = noise_generator.coherent_noise(x=1.0, y=2.0, z=3.0)
+        self.report({'INFO'}, f"Generated noise value: {result}, seed: {context.scene.seed}")
+        
         # test sampleCurve:
         n = 50
         for x in range(0, n - 1):
@@ -601,12 +647,15 @@ class generateTree(bpy.types.Operator):
             
             nodes = []
             nodeTangents = []
-            nodeTangents.append(Vector((0.0, 0.0, 1.0)))
-            nodes.append(node(Vector((0.0, 0.0, 0.0)), 0.1, Vector((1.0, 0.0, 0.0)), -1, context.scene.stemRingResolution, context.scene.taper, 0.0, 0.0, height))
-            nodes[0].tangent.append(Vector((0.0, 0.0, 1.0)))
-            nodes.append(node(dir * height, 0.1, Vector((1.0, 0.0, 0.0)), -1, context.scene.stemRingResolution, context.scene.taper, 1.0, 0.0, height))
-            nodes[1].tangent.append(Vector((0.0, 0.0, 1.0)))
+            nodeTangents.append(Vector((0.0,0.0,1.0)))
+            nodes.append(node(Vector((0.0,0.0,0.0)), 0.1, Vector((1.0,0.0,0.0)), -1, context.scene.stemRingResolution, context.scene.taper, 0.0, 0.0, height))
+            nodes[0].tangent.append(Vector((0.0,0.0,1.0)))
+            nodes[0].cotangent = Vector((1.0,0.0,0.0))
+            nodes.append(node(dir * height, 0.1, Vector((1.0,0.0,0.0)), -1, context.scene.stemRingResolution, context.scene.taper, 1.0, 0.0, height))
+            nodes[1].tangent.append(Vector((0.0,0.0,1.0)))
+            nodes[1].cotangent = Vector((1.0,0.0,0.0))
             nodes[0].next.append(nodes[1])
+            
             
             if context.scene.nrSplits > 0:
                 maxSplitHeightUsed = splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, context.scene.stemSplitHeightInLevelList, context.scene.splitHeightVariation, context.scene.splitLengthVariation, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution, context.scene.curvOffsetStrength, self, nodes[0])
@@ -628,7 +677,11 @@ class generateTree(bpy.types.Operator):
                                     -1, 
                                     Vector((0.0,0.0,0.0)), 
                                     0, 
-                                    context.scene.maxCurveSteps)
+                                    context.scene.maxCurveSteps, 
+                                    noise_generator, 
+                                    context.scene.noiseAmplitudeLower, 
+                                    context.scene.noiseAmplitudeUpper, 
+                                    context.scene.noiseScale)
          
       
             
@@ -706,7 +759,8 @@ class generateTree(bpy.types.Operator):
                 
                 context.scene.hangingBranchesList, 
                 context.scene.branchGlobalCurvatureStartList, 
-                context.scene.branchGlobalCurvatureEndList)
+                context.scene.branchGlobalCurvatureEndList, 
+                noise_generator)
               
             calculateRadius(self, nodes[0], 100.0, context.scene.branchTipRadius)
             segments = []
@@ -1612,7 +1666,11 @@ branchVariance,
 
 hangingBranchesList, 
 curvatureStartGlobalList, 
-curvatureEndGlobalList):
+curvatureEndGlobalList, 
+
+noiseGenerator):
+    
+     
     
     #treeGen.report({'INFO'}, f"in add Branches(): len(nrBranchesList): {len(nrBranchesList)}, ")
     #if len(nrBranchesList) > 0 and len(branchesStartHeightGlobalList) > 0:
@@ -1976,7 +2034,8 @@ curvatureEndGlobalList):
                                           clusterIndex, 
                                           branchNode.point, 
                                           0, 
-                                          context.scene.maxCurveSteps)
+                                          context.scene.maxCurveSteps, 
+                                          noiseGenerator)
                                           
         else: #hangingBranchesList[clusterIndex].value == True:
             for branchNode in branchNodes:
@@ -2672,6 +2731,114 @@ def generateVerticesAndTriangles(self, treeGen, context, segments, dir, taper, r
     treeObject.data.materials.clear()
     treeObject.data.materials.append(barkMaterial)
                 
+class SimplexNoiseGenerator():
+    def __init__(self, treeGen, seed=None):
+        self.onethird = 1.0 / 3.0
+        self.onesixth = 1.0 / 6.0
+
+        # Initialize all required variables as instance variables
+        self.A = [0, 0, 0]
+        self.s = 0.0
+        self.u = 0.0
+        self.v = 0.0
+        self.w = 0.0
+        self.i = 0
+        self.j = 0
+        self.k = 0
+
+        # Initialize the permutation table (T)
+        if seed is None:
+            self.T = [int((x * 0x10000) % 0xFFFFFFFF) for x in range(8)]
+        else:
+            #self.T = [int(val) for val in seed.split()]
+            expandedSeed = []
+            random.seed(seed) # set the seed
+            self.T = [random.randint(0, 2**31 - 1) for _ in range(8)]
+            
+            for t in self.T:
+                treeGen.report({'INFO'}, f"T: {t}")
+
+    def coherent_noise(self, x, y, z, octaves=2, multiplier=25, amplitude=0.5, lacunarity=2, persistence=0.9):
+        v3 = mathutils.Vector([x, y, z]) / multiplier
+        val = 0.0
+        for n in range(octaves):
+            val += self.noise(v3.x, v3.y, v3.z) * amplitude
+            v3 *= lacunarity
+            amplitude *= persistence
+        return val
+
+    def noise(self, x, y, z):
+        self.s = (x + y + z) * self.onethird
+        self.i = self.fastfloor(x + self.s)
+        self.j = self.fastfloor(y + self.s)
+        self.k = self.fastfloor(z + self.s)
+
+        self.s = (self.i + self.j + self.k) * self.onesixth
+        self.u = x - self.i + self.s
+        self.v = y - self.j + self.s
+        self.w = z - self.k + self.s
+
+        # Reset A at the start of each noise calculation
+        self.A = [0, 0, 0]
+
+        hi = 0 if self.u >= self.w else 1 if self.u >= self.v else 2
+        lo = 0 if self.u < self.w else 1 if self.u < self.v else 2
+
+        return self.kay(hi) + self.kay(3 - hi - lo) + self.kay(lo) + self.kay(0)
+
+    def kay(self, a):
+        self.s = (self.A[0] + self.A[1] + self.A[2]) * self.onesixth
+        x = self.u - self.A[0] + self.s
+        y = self.v - self.A[1] + self.s
+        z = self.w - self.A[2] + self.s
+        t = 0.6 - x * x - y * y - z * z
+
+        h = self.shuffle(self.i + self.A[0], self.j + self.A[1], self.k + self.A[2])
+        self.A[a] += 1
+        if t < 0:
+            return 0
+        b5 = h >> 5 & 1
+        b4 = h >> 4 & 1
+        b3 = h >> 3 & 1
+        b2 = h >> 2 & 1
+        b1 = h & 3
+
+        p, q, r = self.get_pqr(b1, x, y, z)
+
+        if b5 == b3:
+            p = -p
+        if b5 == b4:
+            q = -q
+        if b5 != (b4 ^ b3):
+            r = -r
+        t *= t
+        if b1 == 0:
+            return 8 * t * t * (p + q + r)
+        if b2 == 0:
+            return 8 * t * t * (q + r)
+        return 8 * t * t * r
+
+    def get_pqr(self, b1, x, y, z):
+        if b1 == 1:
+            p, q, r = x, y, z
+        elif b1 == 2:
+            p, q, r = y, z, x
+        else:
+            p, q, r = z, x, y
+        return p, q, r
+
+    def shuffle(self, i, j, k):
+        return self.bb(i, j, k, 0) + self.bb(j, k, i, 1) + self.bb(k, i, j, 2) + self.bb(i, j, k, 3) + \
+               self.bb(j, k, i, 4) + self.bb(k, i, j, 5) + self.bb(i, j, k, 6) + self.bb(j, k, i, 7)
+
+    def bb(self, i, j, k, B):
+        return self.T[self.b(i, B) << 2 | self.b(j, B) << 1 | self.b(k, B)]
+
+    def b(self, N, B):
+        return N >> B & 1
+
+    def fastfloor(self, n):
+        return int(n) if n > 0 else int(n) - 1
 
 
 def update_fibonacci_numbers(self):
@@ -3323,6 +3490,8 @@ class noiseSettings(bpy.types.Panel):
         layout.prop(context.scene, "noiseAmplitudeLowerUpperExponent")
         row = layout.row()
         layout.prop(context.scene, "noiseScale")
+        row = layout.row()
+        layout.prop(context.scene, "seed")
 
 class angleSettings(bpy.types.Panel):
     bl_label = "Angle Settings"
@@ -4268,7 +4437,11 @@ def register():
         description = "Scale of the noise",
         default = 1.0,
         min = 0.0
-    )    
+    )
+    bpy.types.Scene.seed = bpy.props.IntProperty(
+        name = "Seed",
+        description = "Noise generator seed"
+    )
     bpy.types.Scene.curvatureStart = bpy.props.FloatProperty(
         name = "Curvature Start",
         description = "Curvature at start of branches",
@@ -4768,6 +4941,7 @@ def save_properties(filePath):
         "noiseAmplitudeUpper": props.noiseAmplitudeUpper,
         "noiseAmplitudeLowerUpperExponent": props.noiseAmplitudeLowerUpperExponent,
         "noiseScale": props.noiseScale,
+        "seed": props.seed,
         
         "curvatureStart": props.curvatureStart,
         "curvatureEnd": props.curvatureEnd,
@@ -4925,6 +5099,7 @@ def load_properties(filepath, context):
         props.noiseAmplitudeUpper = data.get("noiseAmplitudeUpper", props.noiseAmplitudeUpper)
         props.noiseAmplitudeLowerUpperExponent = data.get("noiseAmplitudeLowerUpperExponent", props.noiseAmplitudeLowerUpperExponent)
         props.noiseScale = data.get("noiseScale", props.noiseScale)
+        props.seed = data.get("seed", props.seed)
         
         props.nrSplits = data.get("nrSplits", props.nrSplits)
         props.curvatureStart = data.get("curvatureStart", props.curvatureStart)
