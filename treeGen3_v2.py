@@ -86,8 +86,8 @@ class node():
     
         
     def getAllSegments(self, treeGen, rootNode, segments, connectedToPrev):
-        #for t in self.tangent:
-        #    #drawArrow(self.point, self.point + t)
+        for t in self.tangent:
+            drawArrow(self.point, self.point + t / 2.0)
         if self.clusterIndex == -1: 
             drawDebugPoint(self.point, 0.1)
         
@@ -259,7 +259,56 @@ class node():
         self.curveStep(-curvature, axis.normalized(), self.point, true, 0, 100000000)
         for n in self.next:
             n.curveBranches(treeGen, curvature, axis)
+    
+    def applyNoise(
+        self, 
+        treeGen, 
+        noise_generator, 
+        noiseAmplitudeLower, 
+        noiseAmplitudeUpper, 
+        noiseScale, 
+        prevPoint):
         
+        noiseX = noise_generator.coherent_noise(x=self.point.x / noiseScale, y=self.point.y / noiseScale, z=self.point.z / noiseScale)
+        noiseY = noise_generator.coherent_noise(x=self.point.x / noiseScale + 1000.0, y=self.point.y / noiseScale + 1000.0, z=self.point.z / noiseScale + 1000.0)
+        
+        ####################################################################
+        # TODO: control horizontal noise, vertical noise individually ...
+        # TODO: noise octave settings ...  !!!
+        ####################################################################
+        
+        if self.clusterIndex == -1:
+            noiseAmplitude = lerp(noiseAmplitudeLower, noiseAmplitudeUpper, self.tValGlobal) #TODO
+        else:
+            noiseAmplitude = lerp(noiseAmplitudeLower, noiseAmplitudeUpper, self.tValBranch) #TODO
+        
+        
+        self.point += noiseX * noiseAmplitude * self.cotangent.normalized() + noiseY * noiseAmplitude * self.tangent[0].normalized().cross(self.cotangent.normalized())
+        
+        if len(self.next) > 0:
+            nextNoiseX = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale, y=self.next[0].point.y / noiseScale, z=self.next[0].point.z / noiseScale)
+            nextNoiseY = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale + 1000.0, y=self.next[0].point.y / noiseScale + 1000.0, z=self.next[0].point.z / noiseScale + 1000.0)
+        
+            nextPoint = self.next[0].point + nextNoiseX * noiseAmplitude * self.next[0].cotangent.normalized() + nextNoiseY * noiseAmplitude * self.next[0].tangent[0].normalized().cross(self.next[0].cotangent.normalized())
+            if len(self.tangent) == 1:
+                self.tangent[0] = (nextPoint - prevPoint) / 2.0
+            
+            #drawArrow(self.point, self.point + (nextPoint - prevPoint) / 2.0)
+            
+        #drawArrow(self.point, self.point - noiseX * self.tangent[0].cross(self.cotangent))
+        #drawArrow(self.point - noiseX * noiseAmplitude * self.cotangent + noiseY * noiseAmplitude * self.tangent[0].cross(self.cotangent), self.point) # ??? length of cotangent ???
+        treeGen.report({'INFO'}, f"self.point: {self.point}, self.cotangent: {self.cotangent}, noiseY: {noiseY}")
+        
+        for n in self.next:
+            n.applyNoise(
+                    treeGen, 
+                    noise_generator, 
+                    noiseAmplitudeLower, 
+                    noiseAmplitudeUpper, 
+                    noiseScale, 
+                    self.point)
+        
+    
     def applyCurvature(
         self, 
         treeGen, 
@@ -273,11 +322,7 @@ class node():
         clusterIndex, 
         branchStartPoint, 
         curveStep,
-        maxCurveSteps, 
-        noise_generator, 
-        noiseAmplitudeLower, 
-        noiseAmplitudeUpper, 
-        noiseScale):
+        maxCurveSteps):
         
         if clusterIndex == -1:
             nextTangent = (treeGrowDir.normalized() * treeHeight - (rootNode.point + rootNode.tangent[0] * (treeGrowDir.normalized() * treeHeight - rootNode.point).length * (1.5 / 3.0))).normalized()
@@ -319,36 +364,6 @@ class node():
         
         self.curveStep(treeGen, curvature, curveAxis, self.point, True)
         
-        noiseX = noise_generator.coherent_noise(x=self.point.x / noiseScale, y=self.point.y / noiseScale, z=self.point.z / noiseScale)
-        noiseY = noise_generator.coherent_noise(x=self.point.x / noiseScale + 1000.0, y=self.point.y / noiseScale + 1000.0, z=self.point.z / noiseScale + 1000.0)
-        
-        ####################################################################
-        # TODO: noise octave settings ...  !!!
-        ####################################################################
-        
-        noiseAmplitude = lerp(noiseAmplitudeLower, noiseAmplitudeUpper, self.tValGlobal)
-        
-        # does not work! -> use direct noise offsets!
-        #
-        #self.curveStep(treeGen, noiseX * noiseAmplitude, self.cotangent, self.point, True)
-        #self.curveStep(treeGen, noiseY * noiseAmplitude, self.tangent[0].cross(self.cotangent), self.point, True)
-        
-        self.point += noiseX * noiseAmplitude * self.cotangent.normalized() + noiseY * noiseAmplitude * self.tangent[0].normalized().cross(self.cotangent.normalized())
-        
-        if len(self.next) > 0:
-            nextNoiseX = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale, y=self.next[0].point.y / noiseScale, z=self.next[0].point.z / noiseScale)
-            nextNoiseY = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale + 1000.0, y=self.next[0].point.y / noiseScale + 1000.0, z=self.next[0].point.z / noiseScale + 1000.0)
-        
-            nextPoint = self.next[0].point + nextNoiseX * noiseAmplitude * self.next[0].cotangent.normalized() + nextNoiseY * noiseAmplitude * self.next[0].tangent[0].normalized().cross(self.next[0].cotangent.normalized())
-            self.tangent[0] = nextPoint - self.point
-            drawArrow(self.point, self.point + self.tangent[0])
-            ####################################################################
-            # TODO: tangent = next.point - prev.point 
-            ####################################################################
-            
-        #drawArrow(self.point, self.point - noiseX * self.tangent[0].cross(self.cotangent))
-        drawArrow(self.point - noiseX * noiseAmplitude * self.cotangent + noiseY * noiseAmplitude * self.tangent[0].cross(self.cotangent), self.point) # ??? length of cotangent ???
-        treeGen.report({'INFO'}, f"self.point: {self.point}, self.cotangent: {self.cotangent}, noiseY: {noiseY}")
         
         for n in self.next:
             if curveStep <= maxCurveSteps:
@@ -363,11 +378,7 @@ class node():
                                  clusterIndex, 
                                  branchStartPoint, 
                                  curveStep + 1, 
-                                 maxCurveSteps, 
-                                 noise_generator, 
-                                 noiseAmplitudeLower, 
-                                 noiseAmplitudeUpper, 
-                                 noiseScale)
+                                 maxCurveSteps)
     
     def curveStep(self, treeGen, curvature, curveAxis, rotationPoint, firstNode):        
         if firstNode == True:
@@ -677,12 +688,14 @@ class generateTree(bpy.types.Operator):
                                     -1, 
                                     Vector((0.0,0.0,0.0)), 
                                     0, 
-                                    context.scene.maxCurveSteps, 
-                                    noise_generator, 
-                                    context.scene.noiseAmplitudeLower, 
-                                    context.scene.noiseAmplitudeUpper, 
-                                    context.scene.noiseScale)
-         
+                                    context.scene.maxCurveSteps)
+            
+            nodes[0].applyNoise(self, 
+                                noise_generator, 
+                                context.scene.noiseAmplitudeLower, 
+                                context.scene.noiseAmplitudeUpper, 
+                                context.scene.noiseScale, 
+                                nodes[0].point - (nodes[0].next[0].point - nodes[0].point))
       
             
             if context.scene.treeGrowDir == Vector((0.0,0.0,1.0)):
@@ -2034,8 +2047,14 @@ noiseGenerator):
                                           clusterIndex, 
                                           branchNode.point, 
                                           0, 
-                                          context.scene.maxCurveSteps, 
-                                          noiseGenerator)
+                                          context.scene.maxCurveSteps)
+                                          
+                branchNode.applyNoise(treeGen, 
+                                      noiseGenerator,
+                                      context.scene.noiseAmplitudeLower, 
+                                      context.scene.noiseAmplitudeUpper, 
+                                      context.scene.noiseScale, 
+                                      rootNode.point - (rootNode.next[0].point - rootNode.point))
                                           
         else: #hangingBranchesList[clusterIndex].value == True:
             for branchNode in branchNodes:
@@ -2079,7 +2098,14 @@ noiseGenerator):
                                           context.scene.branchGlobalCurvatureEndList[clusterIndex].value)
                                           
                             contexe.scene.maxSplitHeightUsed = max(context.scene.maxSplitHeightUsed, maxSplitHeightUsed)
-                                          
+                            
+                branchNode.applyNoise(treeGen, 
+                                      noiseGenerator,
+                                      context.scene.noiseAmplitudeLower, 
+                                      context.scene.noiseAmplitudeUpper, 
+                                      context.scene.noiseScale, 
+                                      nodes[0].point - (nodes[0].next[0].point - nodes[0].point))
+                                      
                 #def splitBranches(self, 
                   # rootNode, 
                   # branchCluster, 
@@ -2273,7 +2299,7 @@ def splitBranches(treeGen,
                 h = random.uniform(0.0, 1.0 - 1e-10) - 0.5
                 if r < splitProbabilityInLevel[level]:
                     #split
-                    treeGen.report({'INFO'}, "in split Branches(): split!")
+                    #treeGen.report({'INFO'}, "in split Branches(): split!")
                     randomValue = random.uniform(0.0, 1.0 - 1e-10) * totalWeight
                     cumulativeWeight = 0.0
                     indexToSplit = -1
@@ -2283,16 +2309,16 @@ def splitBranches(treeGen,
                         if randomValue <= cumulativeWeight:
                             indexToSplit = i
                             break
-                    treeGen.report({'INFO'}, f"in split Branches(): indexToSplit: {indexToSplit}")
-                    treeGen.report({'INFO'}, f"in split Branches(): len(nodeIndices): {len(nodeIndices)}")
+                    #treeGen.report({'INFO'}, f"in split Branches(): indexToSplit: {indexToSplit}")
+                    #treeGen.report({'INFO'}, f"in split Branches(): len(nodeIndices): {len(nodeIndices)}")
                     #treeGen.report({'INFO'}, f"in split Branches(): splitsPerBranch: {nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch}")
-                    treeGen.report({'INFO'}, f"in split Branches(): maxSplitsPerBranch: {maxSplitsPerBranch}")
+                    #treeGen.report({'INFO'}, f"in split Branches(): maxSplitsPerBranch: {maxSplitsPerBranch}")
                     
                     if indexToSplit != -1 and len(nodeIndices) > 0 and indexToSplit >= 0 and indexToSplit < len(nodeIndices) and nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch < maxSplitsPerBranch:
                         # == branchSplitHeightInLevelList_0
                         branchSplitHeight = max(0.05, min(branchSplitHeightInLevel[level].value + h * branchSplitHeightVariation * min(branchSplitHeightInLevel[level].value, 1.0 - branchSplitHeightInLevel[level].value), 0.95))
                         
-                        treeGen.report({'INFO'}, f"in split Branches(): branchSplitHeightInLevel[{level}]: {branchSplitHeightInLevel[level].value}")
+                        #treeGen.report({'INFO'}, f"in split Branches(): branchSplitHeightInLevel[{level}]: {branchSplitHeightInLevel[level].value}")
                         
                         #treeGen.report({'INFO'}, f"split Branches(): branchSplitRotateAngle {branchSplitRotateAngle}")
                         
@@ -2314,12 +2340,12 @@ def splitBranches(treeGen,
                             
                         
                             
-                        treeGen.report({'INFO'}, f"in split Branches(): splitNode.tValBranch: {splitNode.tValBranch}") # ERROR HERE !!!
+                        #treeGen.report({'INFO'}, f"in split Branches(): splitNode.tValBranch: {splitNode.tValBranch}") # ERROR HERE !!!
                             
                         if splitNode == nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel:
                             #did not split
                             totalWeight -= branchWeights[indexToSplit]
-                            treeGen.report({'INFO'}, f"did not split: indexToSplit: {indexToSplit}")
+                            #treeGen.report({'INFO'}, f"did not split: indexToSplit: {indexToSplit}")
                             #for weight in branchWeights:
                             #    treeGen.report({'INFO'}, f"did not split: branchWeight: {weight}")
                             #for index in nodeIndices:
@@ -2330,7 +2356,7 @@ def splitBranches(treeGen,
                             
                             #treeGen.report({'INFO'}, "did not split!")
                         else:
-                            treeGen.report({'INFO'}, f"index to remove: {indexToSplit}, len(nodeIndices): {len(nodeIndices)}, level: {level}")
+                            #treeGen.report({'INFO'}, f"index to remove: {indexToSplit}, len(nodeIndices): {len(nodeIndices)}, level: {level}")
                             
                             #for index in nodeIndices:
                             #    treeGen.report({'INFO'}, f"in nodeIndices: {index}")
@@ -2359,7 +2385,7 @@ def splitBranches(treeGen,
                 if safetyCounter > 2147483647:
                     treeGen.report({'INFO'}, f"ERROR: safetyCounter: {safetyCounter}")
                     break
-    treeGen.report({'INFO'}, f"in splitBranches(): returning maxSplitHeightInLevelUsed: {maxSplitHeightInLevelUsed}")
+    #treeGen.report({'INFO'}, f"in splitBranches(): returning maxSplitHeightInLevelUsed: {maxSplitHeightInLevelUsed}")
     return maxSplitHeightInLevelUsed
                                         
             
@@ -3240,6 +3266,18 @@ class addItem(bpy.types.Operator): # add branch cluster
         taperFactor.value = 1.0
         ringResolution = context.scene.ringResolutionList.add()
         
+        showNoiseSettings = context.scene.showNoiseSettings.add()
+        showNoiseSettings.value = True
+        
+        noiseAmplitudeLower = context.scene.noiseAmplitudeLowerList.add()
+        noiseAmplitudeLower = 0.0
+        noiseAmplitudeUpper = context.scene.noiseAmplitudeUpperList.add()
+        noiseAmplitudeUpper = 0.0
+        noiseAmplitudeLowerUpperExponent = context.scene.noiseAmplitudeLowerUpperExponentList.add()
+        noiseAmplitudeLowerUpperExponent = 1.0
+        noiseScale = context.scene.noiseScaleList.add()
+        noiseScale = 1.0
+        
         # TODO (?????)
         #
         #if context.scene.branchClusters == 1:
@@ -3367,7 +3405,13 @@ class removeItem(bpy.types.Operator):
         context.scene.relBranchLengthVariationList.remove(len(context.scene.relBranchLengthVariationList) - 1)
         context.scene.taperFactorList.remove(len(context.scene.taperFactorList) - 1)
         context.scene.ringResolutionList.remove(len(context.scene.ringResolutionList) - 1)
-        #context.scene.verticalRangeList.remove(len(context.scene.verticalRangeList) - 1)
+        
+        context.scene.showNoiseSettings.remove(len(context.scene.showNoiseSettings) - 1)
+        context.scene.noiseAmplitudeLowerList.remove(len(context.scene.noiseAmplitudeLowerList) - 1)
+        context.scene.noiseAmplitudeUpperList.remove(len(context.scene.noiseAmplitudeUpperList) - 1)
+        context.scene.noiseAmplitudeLowerUpperExponentList.remove(len(context.scene.noiseAmplitudeLowerUpperExponentList) - 1)
+        context.scene.noiseScaleList.remove(len(context.scene.noiseScaleList) - 1)
+        
         context.scene.showAngleSettings.remove(len(context.scene.showAngleSettings) - 1)
         context.scene.showSplitSettings.remove(len(context.scene.showSplitSettings) - 1)
         context.scene.verticalAngleCrownStartList.remove(len(context.scene.verticalAngleCrownStartList) - 1)
@@ -3795,8 +3839,35 @@ class branchSettings(bpy.types.Panel):
                 split.label(text="Branches end height cluster")
                 if i < len(scene.branchesEndHeightClusterList):
                     split.prop(scene.branchesEndHeightClusterList[i], "value", text="", slider=True)
+            
+            split = box.split(factor=0.6)
+            if len(scene.showNoiseSettings) <= i:
+                split.label(text=f"ERROR: len(showNoiseSettings): {len(scene.showNoiseSettings)}")
+            else:
+                split.prop(scene.showNoiseSettings[i], "value", icon="TRIA_DOWN" if scene.showNoiseSettings[i].value else "TRIA_RIGHT", emboss=False, text="Noise settings", toggle=True)
                 
-                
+                if scene.showNoiseSettings[i].value:
+                    box1 = box.box()
+                    split = box1.split(factor=0.6)
+                    split.label(text="Noise Amplitude Lower")
+                    if i < len(scene.noiseAmplitudeLowerList):
+                        split.prop(scene.noiseAmplitudeLowerList[i], "value", text="")
+                    
+                    split = box1.split(factor=0.6)
+                    split.label(text="Noise Amplitude Upper")
+                    if i < len(scene.noiseAmplitudeUpperList):
+                        split.prop(scene.noiseAmplitudeUpperList[i], "value", text="")
+                    
+                    split = box1.split(factor=0.6)
+                    split.label(text="Noise Amplitude Exponent")
+                    if i < len(scene.noiseAmplitudeLowerUpperExponentList):
+                        split.prop(scene.noiseAmplitudeLowerUpperExponentList[i], "value", text="")
+                    
+                    split = box1.split(factor=0.6)
+                    split.label(text="Noise Scale")
+                    if i < len(scene.noiseScaleList):
+                        split.prop(scene.noiseScaleList[i], "value", text="")
+                            
                 
             split = box.split(factor=0.6)
             if len(scene.showAngleSettings) <= i:
@@ -4295,6 +4366,7 @@ def register():
     
     bpy.types.Scene.file_name = bpy.props.StringProperty(name="File Name", default="my_tree_properties")
     
+    bpy.types.Scene.showNoiseSettings = bpy.props.CollectionProperty(type=boolProp)
     bpy.types.Scene.showAngleSettings = bpy.props.CollectionProperty(type=boolProp)
     bpy.types.Scene.showSplitSettings = bpy.props.CollectionProperty(type=boolProp)
     bpy.types.Scene.showLeafSettings = bpy.props.CollectionProperty(type=boolProp)
@@ -4319,6 +4391,10 @@ def register():
     bpy.types.Scene.relBranchLengthVariationList = bpy.props.CollectionProperty(type=posFloatPropSoftMax1Default0)
     bpy.types.Scene.taperFactorList = bpy.props.CollectionProperty(type=posFloatPropSoftMax1)
     bpy.types.Scene.ringResolutionList = bpy.props.CollectionProperty(type=posIntProp3)
+    bpy.types.Scene.noiseAmplitudeLowerList = bpy.props.CollectionProperty(type=posFloatProp)
+    bpy.types.Scene.noiseAmplitudeUpperList = bpy.props.CollectionProperty(type=posFloatProp)
+    bpy.types.Scene.noiseAmplitudeLowerUpperExponentList = bpy.props.CollectionProperty(type=posFloatProp)
+    bpy.types.Scene.noiseScaleList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.verticalAngleCrownStartList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.verticalAngleCrownEndList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.verticalAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
