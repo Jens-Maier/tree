@@ -88,8 +88,8 @@ class node():
     def getAllSegments(self, treeGen, rootNode, segments, connectedToPrev):
         for t in self.tangent:
             drawArrow(self.point, self.point + t / 2.0)
-        if self.clusterIndex == -1: 
-            drawDebugPoint(self.point, 0.1)
+        #if self.clusterIndex == -1: 
+        #   #drawDebugPoint(self.point, 0.1)
         
         for n, nextNode in enumerate(self.next):
             longestBranchLengthInCluster = 1.0
@@ -264,8 +264,9 @@ class node():
         self, 
         treeGen, 
         noise_generator, 
-        noiseAmplitudeLower, 
-        noiseAmplitudeUpper, 
+        noiseAmplitudeStart, 
+        noiseAmplitudeEnd, 
+        noiseAmplitudeExponent,
         noiseScale, 
         prevPoint):
         
@@ -275,25 +276,52 @@ class node():
         ####################################################################
         # TODO: control horizontal noise, vertical noise individually ...
         # TODO: noise octave settings ...  !!!
+        # TODO: individual noise offset for each branch ...
+        
+        # !!! link noiseScale with node distance !!!
+        # (( apply noise at vertex level? ))
         ####################################################################
         
         if self.clusterIndex == -1:
-            noiseAmplitude = lerp(noiseAmplitudeLower, noiseAmplitudeUpper, self.tValGlobal) #TODO
+            noiseAmplitude = pow(lerp(noiseAmplitudeStart, noiseAmplitudeEnd, self.tValGlobal), noiseAmplitudeExponent) #TODO
         else:
-            noiseAmplitude = lerp(noiseAmplitudeLower, noiseAmplitudeUpper, self.tValBranch) #TODO
+            noiseAmplitude = pow(lerp(noiseAmplitudeStart, noiseAmplitudeEnd, self.tValBranch), noiseAmplitudeExponent) #TODO
         
+        treeGen.report({'INFO'}, f"noiseAmplitude: {noiseAmplitude}")
         
-        self.point += noiseX * noiseAmplitude * self.cotangent.normalized() + noiseY * noiseAmplitude * self.tangent[0].normalized().cross(self.cotangent.normalized())
+        #self.point += noiseX * noiseAmplitude * self.cotangent.normalized() + noiseY * noiseAmplitude * self.tangent[0].normalized().cross(self.cotangent.normalized())
         
-        if len(self.next) > 0:
-            nextNoiseX = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale, y=self.next[0].point.y / noiseScale, z=self.next[0].point.z / noiseScale)
-            nextNoiseY = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale + 1000.0, y=self.next[0].point.y / noiseScale + 1000.0, z=self.next[0].point.z / noiseScale + 1000.0)
+        #horizontal = self.cotangent
+        #drawArrow(self.point, self.point + horizontal)
+        right = self.tangent[0].cross(Vector((0.0,0.0,1.0)))
+        if right.length > 0.001:
+            right = right.normalized()
+            drawArrow(self.point, self.point + right)
+        else:
+            #vertical
+            right = Vector((1.0,0.0,0.0)) #TODO
         
-            nextPoint = self.next[0].point + nextNoiseX * noiseAmplitude * self.next[0].cotangent.normalized() + nextNoiseY * noiseAmplitude * self.next[0].tangent[0].normalized().cross(self.next[0].cotangent.normalized())
-            if len(self.tangent) == 1:
-                self.tangent[0] = (nextPoint - prevPoint) / 2.0
-            
-            #drawArrow(self.point, self.point + (nextPoint - prevPoint) / 2.0)
+        self.point += noiseX * noiseAmplitude * right
+        
+        #if len(self.next) > 0:
+        #    nextNoiseX = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale, y=self.next[0].point.y / noiseScale, z=self.next[0].point.z / noiseScale)
+        #    nextNoiseY = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale + 1000.0, y=self.next[0].point.y / noiseScale + 1000.0, z=self.next[0].point.z / noiseScale + 1000.0)
+        
+        #    nextPoint = self.next[0].point + nextNoiseX * noiseAmplitude * self.next[0].cotangent.normalized() + nextNoiseY * noiseAmplitude * self.next[0].tangent[0].normalized().cross(self.next[0].cotangent.normalized())
+        #    if len(self.next) > 1:
+        #        nextPointB = self.next[1].point + nextNoiseX * noiseAmplitude * self.next[1].cotangent.normalized() + nextNoiseY * noiseAmplitude * self.next[1].tangent[0].normalized().cross(self.next[1].cotangent.normalized())
+        #        
+        #    #nextPoint = self.next[0].point + nextNoiseX * noiseAmplitude * self.next[0].cotangent.normalized() + nextNoiseY * noiseAmplitude * self.next[0].tangent[0].normalized().cross(self.next[0].cotangent.normalized())
+        #    
+        #    
+        #    if len(self.next) > 1:
+        #        self.tangent[0] = (nextPoint + nextPointB) / 2.0 - self.point #self.point - prevPoint
+        #        self.tangent[1] = nextPoint - self.point
+        #        self.tangent[2] = nextPointB - self.point
+        #    else:
+        #        self.tangent[0] = (nextPoint - prevPoint) / 2.0
+        #    
+        #    drawArrow(self.point, self.point + (nextPoint - prevPoint) / 2.0)
             
         #drawArrow(self.point, self.point - noiseX * self.tangent[0].cross(self.cotangent))
         #drawArrow(self.point - noiseX * noiseAmplitude * self.cotangent + noiseY * noiseAmplitude * self.tangent[0].cross(self.cotangent), self.point) # ??? length of cotangent ???
@@ -303,8 +331,9 @@ class node():
             n.applyNoise(
                     treeGen, 
                     noise_generator, 
-                    noiseAmplitudeLower, 
-                    noiseAmplitudeUpper, 
+                    noiseAmplitudeStart, 
+                    noiseAmplitudeEnd, 
+                    noiseAmplitudeExponent, 
                     noiseScale, 
                     self.point)
         
@@ -628,6 +657,14 @@ class generateTree(bpy.types.Operator):
     bl_idname = "object.generate_tree"
     
     def execute(self, context):
+        #delete all existing empties
+        if context.active_object is not None and context.active_object.mode == 'OBJECT':
+            bpy.ops.object.select_all(action='DESELECT')
+            for obj in bpy.context.scene.objects:
+                if obj.type == 'EMPTY':
+                    obj.select_set(True)
+            bpy.ops.object.delete()
+            
         dir = context.scene.treeGrowDir
         height = context.scene.treeHeight
         taper = context.scene.taper
@@ -642,20 +679,23 @@ class generateTree(bpy.types.Operator):
         result = noise_generator.coherent_noise(x=1.0, y=2.0, z=3.0)
         self.report({'INFO'}, f"Generated noise value: {result}, seed: {context.scene.seed}")
         
+        for i in range(0, 200):
+            noiseX = noise_generator.coherent_noise(x=i / context.scene.noiseScale, y=0.0, z=0.0)
+            self.report({'INFO'}, f"noiseX: {noiseX}")
+            v = Vector((i, 0.0, noiseX * 10.0))
+            drawDebugPoint(v, 0.1)
+            self.report({'INFO'}, f"noisePoint: {v}")
+        
         # test sampleCurve:
         n = 50
         for x in range(0, n - 1):
             point = sampleCurve(self, x / n)
             #drawDebugPoint((x, 0.0, 100.0 * point), 0.1)
         
-        #delete all existing empties
+        
         if context.active_object is not None and context.active_object.mode == 'OBJECT':
             bpy.ops.object.select_all(action='DESELECT')
-            for obj in bpy.context.scene.objects:
-                if obj.type == 'EMPTY':
-                    obj.select_set(True)
-            bpy.ops.object.delete()
-            
+                        
             nodes = []
             nodeTangents = []
             nodeTangents.append(Vector((0.0,0.0,1.0)))
@@ -692,8 +732,9 @@ class generateTree(bpy.types.Operator):
             
             nodes[0].applyNoise(self, 
                                 noise_generator, 
-                                context.scene.noiseAmplitudeLower, 
-                                context.scene.noiseAmplitudeUpper, 
+                                context.scene.noiseAmplitudeStart, 
+                                context.scene.noiseAmplitudeEnd, 
+                                context.scene.noiseAmplitudeStartUpperExponent, 
                                 context.scene.noiseScale, 
                                 nodes[0].point - (nodes[0].next[0].point - nodes[0].point))
       
@@ -1447,6 +1488,7 @@ def addLeaves(self, treeGen, rootNode,        #     TODO: support multiple leaf 
                 startPoint = data.startPoint
                 treeGen.report({'INFO'}, f"leafClusterIndex: {leafClusterIndex}, startPoint: {startPoint}")
                 
+                
                 startNodeNextIndex = data.startNodeNextIndex
                 startPointTangent = sampleSplineTangentT(data.startNode.point, 
                                                          data.startNode.next[startNodeNextIndex].point, 
@@ -1774,6 +1816,7 @@ noiseGenerator):
                 
                 startPoint = data.startPoint
                 #treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, startPoint: {startPoint}")
+                drawDebugPoint(startPoint, 0.04)
                 
                 startNodeNextIndex = data.startNodeNextIndex
                 startPointTangent = sampleSplineTangentT(data.startNode.point, 
@@ -2051,10 +2094,12 @@ noiseGenerator):
                                           
                 branchNode.applyNoise(treeGen, 
                                       noiseGenerator,
-                                      context.scene.noiseAmplitudeLower, 
-                                      context.scene.noiseAmplitudeUpper, 
-                                      context.scene.noiseScale, 
-                                      rootNode.point - (rootNode.next[0].point - rootNode.point))
+                                      context.scene.noiseAmplitudeBranchStartList[clusterIndex].value, 
+                                      context.scene.noiseAmplitudeBranchEndList[clusterIndex].value, 
+                                      context.scene.noiseAmplitudeBranchExponentList[clusterIndex].value, 
+                                      context.scene.noiseScaleList[clusterIndex].value, 
+                                      branchNode.point - (branchNode.next[0].point - branchNode.point)) 
+                                      
                                           
         else: #hangingBranchesList[clusterIndex].value == True:
             for branchNode in branchNodes:
@@ -2101,10 +2146,11 @@ noiseGenerator):
                             
                 branchNode.applyNoise(treeGen, 
                                       noiseGenerator,
-                                      context.scene.noiseAmplitudeLower, 
-                                      context.scene.noiseAmplitudeUpper, 
-                                      context.scene.noiseScale, 
-                                      nodes[0].point - (nodes[0].next[0].point - nodes[0].point))
+                                      context.scene.noiseAmplitudeBranchStartList[clusterIndex].value, 
+                                      context.scene.noiseAmplitudeBranchEndList[clusterIndex].value, 
+                                      context.scene.noiseAmplitudeExponentList[clusterIndex].value, 
+                                      context.scene.noiseScaleList[clusterIndex].value, 
+                                      branchNode.point - (branchNode.next[0].point - branchNode.point))
                                       
                 #def splitBranches(self, 
                   # rootNode, 
@@ -3269,12 +3315,12 @@ class addItem(bpy.types.Operator): # add branch cluster
         showNoiseSettings = context.scene.showNoiseSettings.add()
         showNoiseSettings.value = True
         
-        noiseAmplitudeLower = context.scene.noiseAmplitudeLowerList.add()
-        noiseAmplitudeLower = 0.0
-        noiseAmplitudeUpper = context.scene.noiseAmplitudeUpperList.add()
-        noiseAmplitudeUpper = 0.0
-        noiseAmplitudeLowerUpperExponent = context.scene.noiseAmplitudeLowerUpperExponentList.add()
-        noiseAmplitudeLowerUpperExponent = 1.0
+        noiseAmplitudeStart = context.scene.noiseAmplitudeBranchStartList.add()
+        noiseAmplitudeStart = 0.0
+        noiseAmplitudeEnd = context.scene.noiseAmplitudeBranchEndList.add()
+        noiseAmplitudeEnd = 0.0
+        noiseAmplitudeStartUpperExponent = context.scene.noiseAmplitudeBranchExponentList.add()
+        noiseAmplitudeStartUpperExponent = 1.0
         noiseScale = context.scene.noiseScaleList.add()
         noiseScale = 1.0
         
@@ -3407,9 +3453,9 @@ class removeItem(bpy.types.Operator):
         context.scene.ringResolutionList.remove(len(context.scene.ringResolutionList) - 1)
         
         context.scene.showNoiseSettings.remove(len(context.scene.showNoiseSettings) - 1)
-        context.scene.noiseAmplitudeLowerList.remove(len(context.scene.noiseAmplitudeLowerList) - 1)
-        context.scene.noiseAmplitudeUpperList.remove(len(context.scene.noiseAmplitudeUpperList) - 1)
-        context.scene.noiseAmplitudeLowerUpperExponentList.remove(len(context.scene.noiseAmplitudeLowerUpperExponentList) - 1)
+        context.scene.noiseAmplitudeBranchStartList.remove(len(context.scene.noiseAmplitudeBranchStartList) - 1)
+        context.scene.noiseAmplitudeBranchEndList.remove(len(context.scene.noiseAmplitudeBranchEndList) - 1)
+        context.scene.noiseAmplitudeBranchExponentList.remove(len(context.scene.noiseAmplitudeBranchExponentList) - 1)
         context.scene.noiseScaleList.remove(len(context.scene.noiseScaleList) - 1)
         
         context.scene.showAngleSettings.remove(len(context.scene.showAngleSettings) - 1)
@@ -3527,11 +3573,11 @@ class noiseSettings(bpy.types.Panel):
         bl_optione = {'DEFAULT_CLOSED'}
         
         row = layout.row()
-        layout.prop(context.scene, "noiseAmplitudeLower")
+        layout.prop(context.scene, "noiseAmplitudeStart")
         row = layout.row()
-        layout.prop(context.scene, "noiseAmplitudeUpper")
+        layout.prop(context.scene, "noiseAmplitudeEnd")
         row = layout.row()
-        layout.prop(context.scene, "noiseAmplitudeLowerUpperExponent")
+        layout.prop(context.scene, "noiseAmplitudeStartUpperExponent")
         row = layout.row()
         layout.prop(context.scene, "noiseScale")
         row = layout.row()
@@ -3849,19 +3895,19 @@ class branchSettings(bpy.types.Panel):
                 if scene.showNoiseSettings[i].value:
                     box1 = box.box()
                     split = box1.split(factor=0.6)
-                    split.label(text="Noise Amplitude Lower")
-                    if i < len(scene.noiseAmplitudeLowerList):
-                        split.prop(scene.noiseAmplitudeLowerList[i], "value", text="")
+                    split.label(text="Noise Amplitude Start")
+                    if i < len(scene.noiseAmplitudeBranchStartList):
+                        split.prop(scene.noiseAmplitudeBranchStartList[i], "value", text="")
                     
                     split = box1.split(factor=0.6)
-                    split.label(text="Noise Amplitude Upper")
-                    if i < len(scene.noiseAmplitudeUpperList):
-                        split.prop(scene.noiseAmplitudeUpperList[i], "value", text="")
+                    split.label(text="Noise Amplitude End")
+                    if i < len(scene.noiseAmplitudeBranchEndList):
+                        split.prop(scene.noiseAmplitudeBranchEndList[i], "value", text="")
                     
                     split = box1.split(factor=0.6)
                     split.label(text="Noise Amplitude Exponent")
-                    if i < len(scene.noiseAmplitudeLowerUpperExponentList):
-                        split.prop(scene.noiseAmplitudeLowerUpperExponentList[i], "value", text="")
+                    if i < len(scene.noiseAmplitudeBranchExponentList):
+                        split.prop(scene.noiseAmplitudeBranchExponentList[i], "value", text="")
                     
                     split = box1.split(factor=0.6)
                     split.label(text="Noise Scale")
@@ -4391,9 +4437,9 @@ def register():
     bpy.types.Scene.relBranchLengthVariationList = bpy.props.CollectionProperty(type=posFloatPropSoftMax1Default0)
     bpy.types.Scene.taperFactorList = bpy.props.CollectionProperty(type=posFloatPropSoftMax1)
     bpy.types.Scene.ringResolutionList = bpy.props.CollectionProperty(type=posIntProp3)
-    bpy.types.Scene.noiseAmplitudeLowerList = bpy.props.CollectionProperty(type=posFloatProp)
-    bpy.types.Scene.noiseAmplitudeUpperList = bpy.props.CollectionProperty(type=posFloatProp)
-    bpy.types.Scene.noiseAmplitudeLowerUpperExponentList = bpy.props.CollectionProperty(type=posFloatProp)
+    bpy.types.Scene.noiseAmplitudeBranchStartList = bpy.props.CollectionProperty(type=posFloatProp)
+    bpy.types.Scene.noiseAmplitudeBranchEndList = bpy.props.CollectionProperty(type=posFloatProp)
+    bpy.types.Scene.noiseAmplitudeBranchExponentList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.noiseScaleList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.verticalAngleCrownStartList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.verticalAngleCrownEndList = bpy.props.CollectionProperty(type=floatProp)
@@ -4490,19 +4536,19 @@ def register():
         default = 0.1,
         min = 0.001
     )
-    bpy.types.Scene.noiseAmplitudeLower = bpy.props.FloatProperty(
-        name = "Noise Amplitude Lower",
-        description = "Lower bound of noise amplitude",
+    bpy.types.Scene.noiseAmplitudeStart = bpy.props.FloatProperty(
+        name = "Noise Amplitude Start",
+        description = "Noise amplitude at the base of the tree",
         default = 0.0,
         min = 0.0
     )
-    bpy.types.Scene.noiseAmplitudeUpper = bpy.props.FloatProperty(
-        name = "Noise Amplitude Upper",
-        description = "Upper bound of noise amplitude",
+    bpy.types.Scene.noiseAmplitudeEnd = bpy.props.FloatProperty(
+        name = "Noise Amplitude End",
+        description = "Noise Amplitude at the top of the tree",
         default = 0.1,
         min = 0.0
     )
-    bpy.types.Scene.noiseAmplitudeLowerUpperExponent = bpy.props.FloatProperty(
+    bpy.types.Scene.noiseAmplitudeStartUpperExponent = bpy.props.FloatProperty(
         name = "Noise Amplitude Exponent",
         description = "Exponent for noise amplitude",
         default = 1.0,
@@ -4882,9 +4928,9 @@ def register():
     #    "stemRingResolution": props.stemRingResolution,
     #    "resampleDistance": props.resampleDistance,
     #    
-    #    "noiseAmplitudeLower": props.noiseAmplitudeLower,
-    #    "noiseAmplitudeUpper": props.noiseAmplitudeUpper,
-    #    "noiseAmplitudeLowerUpperExponent": props.noiseAmplitudeLowerUpperExponent,
+    #    "noiseAmplitudeStart": props.noiseAmplitudeStart,
+    #    "noiseAmplitudeEnd": props.noiseAmplitudeEnd,
+    #    "noiseAmplitudeStartUpperExponent": props.noiseAmplitudeStartUpperExponent,
     #    "noiseScale": props.noiseScale,
     #    
     #    "curvatureStart": props.curvatureStart,
@@ -5013,9 +5059,9 @@ def save_properties(filePath):
         "stemRingResolution": props.stemRingResolution,
         "resampleDistance": props.resampleDistance,
     
-        "noiseAmplitudeLower": props.noiseAmplitudeLower,
-        "noiseAmplitudeUpper": props.noiseAmplitudeUpper,
-        "noiseAmplitudeLowerUpperExponent": props.noiseAmplitudeLowerUpperExponent,
+        "noiseAmplitudeStart": props.noiseAmplitudeStart,
+        "noiseAmplitudeEnd": props.noiseAmplitudeEnd,
+        "noiseAmplitudeStartUpperExponent": props.noiseAmplitudeStartUpperExponent,
         "noiseScale": props.noiseScale,
         "seed": props.seed,
         
@@ -5171,9 +5217,9 @@ def load_properties(filepath, context):
         props.stemRingResolution = data.get("stemRingResolution", props.stemRingResolution)
         props.resampleDistance = data.get("resampleDistance", props.resampleDistance)
         
-        props.noiseAmplitudeLower = data.get("noiseAmplitudeLower", props.noiseAmplitudeLower)
-        props.noiseAmplitudeUpper = data.get("noiseAmplitudeUpper", props.noiseAmplitudeUpper)
-        props.noiseAmplitudeLowerUpperExponent = data.get("noiseAmplitudeLowerUpperExponent", props.noiseAmplitudeLowerUpperExponent)
+        props.noiseAmplitudeStart = data.get("noiseAmplitudeStart", props.noiseAmplitudeStart)
+        props.noiseAmplitudeEnd = data.get("noiseAmplitudeEnd", props.noiseAmplitudeEnd)
+        props.noiseAmplitudeStartUpperExponent = data.get("noiseAmplitudeStartUpperExponent", props.noiseAmplitudeStartUpperExponent)
         props.noiseScale = data.get("noiseScale", props.noiseScale)
         props.seed = data.get("seed", props.seed)
         
@@ -5399,9 +5445,9 @@ def unregister():
     #del bpy.types.Scene.ringSpacing
     #del bpy.types.Scene.stemRingResolution
     #del bpy.types.Scene.resampleNr
-    #del bpy.types.Scene.noiseAmplitudeLower
-    #del bpy.types.Scene.noiseAmplitudeUpper
-    #del bpy.types.Scene.noiseAmplitudeLowerUpperExponent
+    #del bpy.types.Scene.noiseAmplitudeStart
+    #del bpy.types.Scene.noiseAmplitudeEnd
+    #del bpy.types.Scene.noiseAmplitudeStartUpperExponent
     #del bpy.types.Scene.noiseScale
     #del bpy.types.Scene.splitCurvature
     #del bpy.types.Scene.shyBranchesIterations
