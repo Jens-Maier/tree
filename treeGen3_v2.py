@@ -268,22 +268,33 @@ class node():
         noiseAmplitudeEnd, 
         noiseAmplitudeExponent,
         noiseScale, 
-        prevPoint):
+        prevPoint, 
+        treeHeight):
         
         noiseX = noise_generator.coherent_noise(x=self.point.x / noiseScale, y=self.point.y / noiseScale, z=self.point.z / noiseScale)
         noiseY = noise_generator.coherent_noise(x=self.point.x / noiseScale + 1000.0, y=self.point.y / noiseScale + 1000.0, z=self.point.z / noiseScale + 1000.0)
         
         ####################################################################
         # TODO: control horizontal noise, vertical noise individually ...
-        # TODO: noise octave settings ...  !!!
+        
+        ##############
+        # ----->>>> TODO: noise octave settings ...  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ##############
+        
+        
         # TODO: individual noise offset for each branch ...
         
-        # !!! link noiseScale with node distance !!!
+        # ((!!! link noiseScale with node distance !!!))
         # (( apply noise at vertex level? ))
         ####################################################################
         
         if self.clusterIndex == -1:
-            noiseAmplitude = pow(lerp(noiseAmplitudeStart, noiseAmplitudeEnd, self.tValGlobal), noiseAmplitudeExponent) #TODO
+            #noiseAmplitude = pow(lerp(noiseAmplitudeStart, noiseAmplitudeEnd, self.tValGlobal), noiseAmplitudeExponent)
+            #TODO
+            if self.tValGlobal * treeHeight < noiseAmplitudeEnd:
+                noiseAmplitude = pow(lerp(noiseAmplitudeStart, noiseAmplitudeEnd, (self.tValGlobal * treeHeight) / noiseAmplitudeEnd), noiseAmplitudeExponent)
+            else:
+                noiseAmplitude = pow(noiseAmplitudeEnd, noiseAmplitudeExponent)
         else:
             noiseAmplitude = pow(lerp(noiseAmplitudeStart, noiseAmplitudeEnd, self.tValBranch), noiseAmplitudeExponent) #TODO
         
@@ -296,12 +307,15 @@ class node():
         right = self.tangent[0].cross(Vector((0.0,0.0,1.0)))
         if right.length > 0.001:
             right = right.normalized()
-            drawArrow(self.point, self.point + right)
+            drawArrow(self.point, self.point + noiseAmplitude * right)
+            drawArrow(self.point, self.point + noiseX * noiseAmplitude * right)
         else:
             #vertical
             right = Vector((1.0,0.0,0.0)) #TODO
         
-        self.point += noiseX * noiseAmplitude * right
+        self.point += noiseX * noiseAmplitude * right + noiseY * noiseAmplitude * right.cross(self.tangent[0].normalized())
+        
+        treeGen.report({'INFO'}, f"self.point: {self.point}, self.cotangent: {self.cotangent}, noiseX: {noiseX}")
         
         #if len(self.next) > 0:
         #    nextNoiseX = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale, y=self.next[0].point.y / noiseScale, z=self.next[0].point.z / noiseScale)
@@ -325,7 +339,7 @@ class node():
             
         #drawArrow(self.point, self.point - noiseX * self.tangent[0].cross(self.cotangent))
         #drawArrow(self.point - noiseX * noiseAmplitude * self.cotangent + noiseY * noiseAmplitude * self.tangent[0].cross(self.cotangent), self.point) # ??? length of cotangent ???
-        treeGen.report({'INFO'}, f"self.point: {self.point}, self.cotangent: {self.cotangent}, noiseY: {noiseY}")
+        
         
         for n in self.next:
             n.applyNoise(
@@ -335,7 +349,8 @@ class node():
                     noiseAmplitudeEnd, 
                     noiseAmplitudeExponent, 
                     noiseScale, 
-                    self.point)
+                    self.point, 
+                    treeHeight)
         
     
     def applyCurvature(
@@ -736,7 +751,8 @@ class generateTree(bpy.types.Operator):
                                 context.scene.noiseAmplitudeEnd, 
                                 context.scene.noiseAmplitudeStartUpperExponent, 
                                 context.scene.noiseScale, 
-                                nodes[0].point - (nodes[0].next[0].point - nodes[0].point))
+                                nodes[0].point - (nodes[0].next[0].point - nodes[0].point), 
+                                context.scene.treeHeight)
       
             
             if context.scene.treeGrowDir == Vector((0.0,0.0,1.0)):
@@ -2098,7 +2114,8 @@ noiseGenerator):
                                       context.scene.noiseAmplitudeBranchEndList[clusterIndex].value, 
                                       context.scene.noiseAmplitudeBranchExponentList[clusterIndex].value, 
                                       context.scene.noiseScaleList[clusterIndex].value, 
-                                      branchNode.point - (branchNode.next[0].point - branchNode.point)) 
+                                      branchNode.point - (branchNode.next[0].point - branchNode.point), 
+                                      branchLength)
                                       
                                           
         else: #hangingBranchesList[clusterIndex].value == True:
@@ -2150,7 +2167,8 @@ noiseGenerator):
                                       context.scene.noiseAmplitudeBranchEndList[clusterIndex].value, 
                                       context.scene.noiseAmplitudeExponentList[clusterIndex].value, 
                                       context.scene.noiseScaleList[clusterIndex].value, 
-                                      branchNode.point - (branchNode.next[0].point - branchNode.point))
+                                      branchNode.point - (branchNode.next[0].point - branchNode.point), 
+                                      branchLength)
                                       
                 #def splitBranches(self, 
                   # rootNode, 
@@ -2853,9 +2871,28 @@ class SimplexNoiseGenerator():
         # Reset A at the start of each noise calculation
         self.A = [0, 0, 0]
 
-        hi = 0 if self.u >= self.w else 1 if self.u >= self.v else 2
-        lo = 0 if self.u < self.w else 1 if self.u < self.v else 2
-
+        if self.u >= self.w:
+            if self.u >= self.v:
+                hi = 0
+            else:
+                hi = 1
+        else:
+            if self.v >= self.w:
+                hi = 1
+            else:
+                hi = 2
+                
+        if self.u < self.w:
+            if self.u < self.v:
+                lo = 0
+            else:
+                lo = 1
+        else:
+            if self.v < self.w:
+                lo = 1
+            else:
+                lo = 2
+        
         return self.kay(hi) + self.kay(3 - hi - lo) + self.kay(lo) + self.kay(0)
 
     def kay(self, a):
