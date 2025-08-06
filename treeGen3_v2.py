@@ -312,30 +312,52 @@ class node():
         else:
             #vertical
             right = Vector((1.0,0.0,0.0)) #TODO
+            treeGen.report({'INFO'}, f"right = (1,0,0), self.point: {self.point}, self.tangent[0]: {self.tangent[0]}")
         
         self.point += noiseX * noiseAmplitude * right + noiseY * noiseAmplitude * right.cross(self.tangent[0].normalized())
         
         treeGen.report({'INFO'}, f"self.point: {self.point}, self.cotangent: {self.cotangent}, noiseX: {noiseX}")
         
-        #if len(self.next) > 0:
-        #    nextNoiseX = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale, y=self.next[0].point.y / noiseScale, z=self.next[0].point.z / noiseScale)
-        #    nextNoiseY = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale + 1000.0, y=self.next[0].point.y / noiseScale + 1000.0, z=self.next[0].point.z / noiseScale + 1000.0)
+        if len(self.next) > 0:        
+            nextNoiseX = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale, y=self.next[0].point.y / noiseScale, z=self.next[0].point.z / noiseScale)
+            nextNoiseY = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale + 1000.0, y=self.next[0].point.y / noiseScale + 1000.0, z=self.next[0].point.z / noiseScale + 1000.0)
+            
+            if self.clusterIndex == -1:
+                if self.tValGlobal * treeHeight < noiseAmplitudeEnd:
+                    nextNoiseAmplitude = pow(lerp(noiseAmplitudeStart, noiseAmplitudeEnd, (self.next[0].tValGlobal * treeHeight) / noiseAmplitudeEnd), noiseAmplitudeExponent)
+                else:
+                    nextNoiseAmplitude = pow(noiseAmplitudeEnd, noiseAmplitudeExponent)
+            else:
+                nextNoiseAmplitude = pow(lerp(noiseAmplitudeStart, noiseAmplitudeEnd, self.next[0].tValBranch), noiseAmplitudeExponent) #TODO
+                
+            nextRight = self.next[0].tangent[0].cross(Vector((0.0,0.0,1.0)))
+            if nextRight.length > 0.001:
+                nextRight = nextRight.normalized()
+                drawArrow(self.next[0].point, self.next[0].point + nextNoiseAmplitude * nextRight)
+                drawArrow(self.next[0].point, self.next[0].point + nextNoiseX * nextNoiseAmplitude * nextRight)
+            else:
+                #vertical
+                nextRight = Vector((1.0,0.0,0.0)) #TODO
+                treeGen.report({'INFO'}, f"nextRight = (1,0,0), self.next[0].point: {self.next[0].point}, self.next[0].tangent[0]: {self.next[0].tangent[0]}")
         
-        #    nextPoint = self.next[0].point + nextNoiseX * noiseAmplitude * self.next[0].cotangent.normalized() + nextNoiseY * noiseAmplitude * self.next[0].tangent[0].normalized().cross(self.next[0].cotangent.normalized())
+            nextPoint = self.next[0].point + nextNoiseX * nextNoiseAmplitude * nextRight + nextNoiseY * nextNoiseAmplitude * nextRight.cross(self.next[0].tangent[0].normalized())
+            
+            #TODO: len(self.next > 1) ....
+            
         #    if len(self.next) > 1:
         #        nextPointB = self.next[1].point + nextNoiseX * noiseAmplitude * self.next[1].cotangent.normalized() + nextNoiseY * noiseAmplitude * self.next[1].tangent[0].normalized().cross(self.next[1].cotangent.normalized())
         #        
         #    #nextPoint = self.next[0].point + nextNoiseX * noiseAmplitude * self.next[0].cotangent.normalized() + nextNoiseY * noiseAmplitude * self.next[0].tangent[0].normalized().cross(self.next[0].cotangent.normalized())
         #    
         #    
-        #    if len(self.next) > 1:
-        #        self.tangent[0] = (nextPoint + nextPointB) / 2.0 - self.point #self.point - prevPoint
-        #        self.tangent[1] = nextPoint - self.point
-        #        self.tangent[2] = nextPointB - self.point
-        #    else:
-        #        self.tangent[0] = (nextPoint - prevPoint) / 2.0
-        #    
-        #    drawArrow(self.point, self.point + (nextPoint - prevPoint) / 2.0)
+            if len(self.next) > 1:
+                self.tangent[0] = (nextPoint + nextPointB) / 2.0 - self.point #self.point - prevPoint
+                self.tangent[1] = nextPoint - self.point
+                self.tangent[2] = nextPointB - self.point
+            else:
+                self.tangent[0] = (nextPoint - prevPoint) / 2.0
+            
+            drawArrow(self.point, self.point + (nextPoint - prevPoint) / 2.0)
             
         #drawArrow(self.point, self.point - noiseX * self.tangent[0].cross(self.cotangent))
         #drawArrow(self.point - noiseX * noiseAmplitude * self.cotangent + noiseY * noiseAmplitude * self.tangent[0].cross(self.cotangent), self.point) # ??? length of cotangent ???
