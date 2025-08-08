@@ -349,27 +349,45 @@ class node():
         if len(self.next) > 0:        
             nextNoiseX = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale, y=self.next[0].point.y / noiseScale, z=self.next[0].point.z / noiseScale)
             nextNoiseY = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale + 1000.0, y=self.next[0].point.y / noiseScale + 1000.0, z=self.next[0].point.z / noiseScale + 1000.0)
+            if len(self.next) > 1:
+                nextNoiseYb = noise_generator.coherent_noise(x=self.next[1].point.x / noiseScale + 1000.0, y=self.next[1].point.y / noiseScale + 1000.0, z=self.next[1].point.z / noiseScale + 1000.0)
             
             if self.clusterIndex == -1:
                 if self.tValGlobal * treeHeight < noiseAmplitudeGradient:
                     nextNoiseAmplitudeH = pow(lerp(0.0, noiseAmplitudeHorizontal, (self.next[0].tValGlobal * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent)
+                    if len(self.next) > 1:
+                        nextNoiseAmplitudeHb = pow(lerp(0.0, noiseAmplitudeHorizontal, (self.next[1].tValGlobal * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent)
                 else:
                     nextNoiseAmplitudeH = pow(noiseAmplitudeHorizontal, noiseAmplitudeExponent)
+                    if len(self.next) > 1:
+                        nextNoiseAmplitudeHb = pow(noiseAmplitudeHorizontal, noiseAmplitudeExponent)
             else:
                 nextNoiseAmplitudeH = pow(lerp(0.0, noiseAmplitudeHorizontal, self.next[0].tValBranch), noiseAmplitudeExponent) #TODO
+                if len(self.next) > 1:
+                    nextNoiseAmplitudeHb = pow(lerp(0.0, noiseAmplitudeHorizontal, self.next[1].tValBranch), noiseAmplitudeExponent)
             
             if self.clusterIndex == -1:
                 if self.tValGlobal * treeHeight < noiseAmplitudeGradient:
                     nextNoiseAmplitudeV = pow(lerp(0.0, noiseAmplitudeVertical, (self.next[0].tValGlobal * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent)
+                    if len(self.next) > 1:
+                        nextNoiseAmplitudeVb = pow(lerp(0.0, noiseAmplitudeVertical, (self.next[1].tValGlobal * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent)
                 else:
                     nextNoiseAmplitudeV = pow(noiseAmplitudeVertical, noiseAmplitudeExponent)
+                    if len(self.next) > 1:
+                        nextNoiseAmplitudeVb = pow(noiseAmplitudeVertical, noiseAmplitudeExponent)
             else:
                 nextNoiseAmplitudeV = pow(lerp(0.0, noiseAmplitudeVertical, self.next[0].tValBranch), noiseAmplitudeExponent) #TODO
+                if len(self.next) > 1:
+                    nextNoiseAmplitudeVb = pow(lerp(0.0, noiseAmplitudeVertical, self.next[1].tValBranch), noiseAmplitudeExponent) #TODO
                
             if self.clusterIndex == -1:
                 nextRight = self.next[0].cotangent
+                if len(self.next) > 1:
+                    nextRightB = self.next[1].cotangent
             else:
                 nextRight = self.next[0].tangent[0].cross(Vector((0.0,0.0,1.0))) # ERROR HERE !!!
+                if len(self.next) > 1:
+                    nextRightB = self.next[1].tangent[0].cross(Vector((0.0,0.0,1.0)))
     
             if nextRight.length > 0.001:
                 nextRight = nextRight.normalized()
@@ -379,18 +397,21 @@ class node():
                 #vertical
                 nextRight = Vector((1.0,0.0,0.0)) #TODO
                 treeGen.report({'INFO'}, f"nextRight = (1,0,0), self.next[0].point: {self.next[0].point}, self.next[0].tangent[0]: {self.next[0].tangent[0]}")
-        
+            
+            if len(self.next) > 1:
+                if nextRightB.length > 0.001:
+                    nextRightB = nextRightB.normalized()
+                else:
+                    #vertical
+                    nextRightB = Vector((1.0,0.0,0.0)) #TODO
+                    
             nextPoint = self.next[0].point + nextNoiseX * nextNoiseAmplitudeH * nextRight + nextNoiseY * nextNoiseAmplitudeV * nextRight.cross(self.next[0].tangent[0].normalized())
             
             #TODO: len(self.next > 1) ....
             
-        #    if len(self.next) > 1:
-        #        nextPointB = self.next[1].point + nextNoiseX * noiseAmplitude * self.next[1].cotangent.normalized() + nextNoiseY * noiseAmplitude * self.next[1].tangent[0].normalized().cross(self.next[1].cotangent.normalized())
-        #        
-        #    #nextPoint = self.next[0].point + nextNoiseX * noiseAmplitude * self.next[0].cotangent.normalized() + nextNoiseY * noiseAmplitude * self.next[0].tangent[0].normalized().cross(self.next[0].cotangent.normalized())
-        #    
-        #    
             if len(self.next) > 1:
+                nextPointB = self.next[1].point + nextNoiseX * nextNoiseAmplitudeHb * nextRightB + nextNoiseYb * nextNoiseAmplitudeVb * nextRightB.cross(self.next[1].tangent[0].normalized())
+                                
                 self.tangent[0] = (nextPoint + nextPointB) / 2.0 - self.point #self.point - prevPoint
                 self.tangent[1] = nextPoint - self.point
                 self.tangent[2] = nextPointB - self.point
@@ -1590,7 +1611,7 @@ def addLeaves(self, treeGen, rootNode,        #     TODO: support multiple leaf 
                 data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, leafPos, treeGrowDir, rootNode, treeHeight, False)
                 
                 startPoint = data.startPoint
-                treeGen.report({'INFO'}, f"leafClusterIndex: {leafClusterIndex}, startPoint: {startPoint}")
+                #treeGen.report({'INFO'}, f"leafClusterIndex: {leafClusterIndex}, startPoint: {startPoint}")
                 
                 
                 startNodeNextIndex = data.startNodeNextIndex
