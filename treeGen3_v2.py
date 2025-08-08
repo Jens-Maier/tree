@@ -259,6 +259,8 @@ class node():
         self.curveStep(-curvature, axis.normalized(), self.point, true, 0, 100000000)
         for n in self.next:
             n.curveBranches(treeGen, curvature, axis)
+            
+    
     
     def applyNoise(
         self, 
@@ -272,169 +274,91 @@ class node():
         prevPoint, 
         treeHeight):
         
+        def computeAmplitude(position, amplitude, gradient, exponent):
+            """Helper to compute noise amplitude based on tVal and treeHeight."""
+            # For stem nodes, position = absolute height; 
+            # for branch nodes, position = normalized branch position
+            if position < gradient and gradient > 0:
+                return pow(lerp(0.0, amplitude, position / gradient), exponent)
+            else:
+                return pow(amplitude, exponent)
+                
+        if self.clusterIndex == -1:
+            noiseAmplitudeH = computeAmplitude(self.tValGlobal * treeHeight, noiseAmplitudeHorizontal, noiseAmplitudeGradient, noiseAmplitudeExponent)
+            noiseAmplitudeV = computeAmplitude(self.tValGlobal * treeHeight, noiseAmplitudeVertical, noiseAmplitudeGradient, noiseAmplitudeExponent)
+            right = self.cotangent
+        else:
+            treeGen.report({'INFO'}, f"tValBranch: {self.tValBranch}, treeHeight: {treeHeight}, noiseAmplitudeGradient: {noiseAmplitudeGradient}")
+            noiseAmplitudeH = computeAmplitude(self.tValBranch * treeHeight, noiseAmplitudeHorizontal, noiseAmplitudeGradient, noiseAmplitudeExponent)
+            noiseAmplitudeV = computeAmplitude(self.tValBranch * treeHeight, noiseAmplitudeVertical, noiseAmplitudeGradient, noiseAmplitudeExponent)
+            right = self.tangent[0].cross(Vector((0.0,0.0,1.0)))
+        
+        if right.length <= 0.001:
+            right = Vector((1.0,0.0,0.0))
+            treeGen.report({'INFO'}, f"right = (1,0,0), self.point: {self.point}, self.tangent[0]: {self.tangent[0]}")
+        else:
+            right = right.normalized()
+        
         noiseX = noise_generator.coherent_noise(x=self.point.x / noiseScale, y=self.point.y / noiseScale, z=self.point.z / noiseScale)
         noiseY = noise_generator.coherent_noise(x=self.point.x / noiseScale + 1000.0, y=self.point.y / noiseScale + 1000.0, z=self.point.z / noiseScale + 1000.0)
-        
-        ####################################################################
-        # TODO: control horizontal noise, vertical noise individually ...
-        
-        ##############
-        # ----->>>> TODO: noise octave settings ...  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        ##############
-        
-        
-        # TODO: individual noise offset for each branch ...
-        
-        # ((!!! link noiseScale with node distance !!!))
-        # (( apply noise at vertex level? ))
-        ####################################################################
-        
-        if self.clusterIndex == -1:
-            #noiseAmplitude = pow(lerp(noiseAmplitude, noiseAmplitudeGradient, self.tValGlobal), noiseAmplitudeExponent)
-            #TODO
-            if self.tValGlobal * treeHeight < noiseAmplitudeGradient:
-                noiseAmplitudeH = pow(lerp(0.0, noiseAmplitudeHorizontal, (self.tValGlobal * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent)
-            else:
-                noiseAmplitudeH = pow(noiseAmplitudeHorizontal, noiseAmplitudeExponent)
-        else:
-            treeGen.report({'INFO'}, f"tValBranch: {self.tValBranch}, treeHeight: {treeHeight}, noiseAmplitudeGradient: {noiseAmplitudeGradient}") # ERROR HERE: noiseAmplitudeGradient = 0 
-            if self.tValBranch * treeHeight < noiseAmplitudeGradient:
-                noiseAmplitudeH = pow(lerp(0.0, noiseAmplitudeHorizontal, (self.tValBranch * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent) #TODO fixed??
-                treeGen.report({'INFO'}, f"branch: noiseAmplitudeH: {noiseAmplitudeH}")
-            else:
-                noiseAmplitudeH = pow(noiseAmplitudeHorizontal, noiseAmplitudeExponent)
-                treeGen.report({'INFO'}, f"branch: noiseAmplitudeH WRONG!: {noiseAmplitudeH}")
-            
-        if self.clusterIndex == -1:
-            if self.tValGlobal * treeHeight < noiseAmplitudeGradient:
-                noiseAmplitudeV = pow(lerp(0.0, noiseAmplitudeVertical, (self.tValGlobal * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent)
-            else:
-                noiseAmplitudeV = pow(noiseAmplitudeVertical, noiseAmplitudeExponent)
-        else:
-            treeGen.report({'INFO'}, f"tValBranch: {self.tValBranch}")
-            if self.tValBranch * treeHeight < noiseAmplitudeGradient:
-                noiseAmplitudeV = pow(lerp(0.0, noiseAmplitudeVertical, (self.tValBranch * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent)
-            else:
-                noiseAmplitudeV = pow(noiseAmplitudeVertical, noiseAmplitudeExponent)
-            
-        treeGen.report({'INFO'}, f"noiseAmplitudeHorizontal: {noiseAmplitudeHorizontal}")
-        treeGen.report({'INFO'}, f"noiseAmplitudeVertical: {noiseAmplitudeVertical}")
-        
-        treeGen.report({'INFO'}, f"noiseAmplitudeH: {noiseAmplitudeH}")
-        treeGen.report({'INFO'}, f"noiseAmplitudeV: {noiseAmplitudeV}")
-        
-        #self.point += noiseX * noiseAmplitude * self.cotangent.normalized() + noiseY * noiseAmplitude * self.tangent[0].normalized().cross(self.cotangent.normalized())
-        
-        #horizontal = self.cotangent
-        
-        if self.clusterIndex == -1:
-            right = self.cotangent  # TEST
-            #drawArrow(self.point, self.point + right)
-        else:
-            right = self.tangent[0].cross(Vector((0.0,0.0,1.0))) 
-    
-        if right.length > 0.001:
-            right = right.normalized()
-            #drawArrow(self.point, self.point + noiseAmplitudeH * right)
-            #drawArrow(self.point, self.point + noiseX * noiseAmplitudeH * right)
-        else:
-            #vertical
-            right = Vector((1.0,0.0,0.0)) #TODO
-            treeGen.report({'INFO'}, f"right = (1,0,0), self.point: {self.point}, self.tangent[0]: {self.tangent[0]}")
-        
         self.point += noiseX * noiseAmplitudeH * right + noiseY * noiseAmplitudeV * right.cross(self.tangent[0].normalized())
-        
         treeGen.report({'INFO'}, f"self.point: {self.point}, self.cotangent: {self.cotangent}, noiseX: {noiseX}")
         
-        if len(self.next) > 0:        
+        # --- Next node noise logic remains the same, but also can be factored ---
+        if len(self.next) > 0:
+            
+            def nextAmplitude(node, amplitude, gradient, exponent):
+                if self.clusterIndex == -1:
+                    # For stem nodes, position = absolute height; for branch nodes, position = normalized branch position
+                    position = node.tValGlobal * treeHeight
+                    # nextNoiseAmplitudeH = pow(lerp(0.0, noiseAmplitudeHorizontal, (self.next[0].tValGlobal * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent)
+                else:
+                    position = node.tValBranch
+                return computeAmplitude(position, amplitude, gradient, exponent)
+    
             nextNoiseX = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale, y=self.next[0].point.y / noiseScale, z=self.next[0].point.z / noiseScale)
             nextNoiseY = noise_generator.coherent_noise(x=self.next[0].point.x / noiseScale + 1000.0, y=self.next[0].point.y / noiseScale + 1000.0, z=self.next[0].point.z / noiseScale + 1000.0)
-            if len(self.next) > 1:
-                nextNoiseYb = noise_generator.coherent_noise(x=self.next[1].point.x / noiseScale + 1000.0, y=self.next[1].point.y / noiseScale + 1000.0, z=self.next[1].point.z / noiseScale + 1000.0)
-            
-            if self.clusterIndex == -1:
-                if self.tValGlobal * treeHeight < noiseAmplitudeGradient:
-                    nextNoiseAmplitudeH = pow(lerp(0.0, noiseAmplitudeHorizontal, (self.next[0].tValGlobal * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent)
-                    if len(self.next) > 1:
-                        nextNoiseAmplitudeHb = pow(lerp(0.0, noiseAmplitudeHorizontal, (self.next[1].tValGlobal * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent)
-                else:
-                    nextNoiseAmplitudeH = pow(noiseAmplitudeHorizontal, noiseAmplitudeExponent)
-                    if len(self.next) > 1:
-                        nextNoiseAmplitudeHb = pow(noiseAmplitudeHorizontal, noiseAmplitudeExponent)
-            else:
-                nextNoiseAmplitudeH = pow(lerp(0.0, noiseAmplitudeHorizontal, self.next[0].tValBranch), noiseAmplitudeExponent) #TODO
-                if len(self.next) > 1:
-                    nextNoiseAmplitudeHb = pow(lerp(0.0, noiseAmplitudeHorizontal, self.next[1].tValBranch), noiseAmplitudeExponent)
-            
-            if self.clusterIndex == -1:
-                if self.tValGlobal * treeHeight < noiseAmplitudeGradient:
-                    nextNoiseAmplitudeV = pow(lerp(0.0, noiseAmplitudeVertical, (self.next[0].tValGlobal * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent)
-                    if len(self.next) > 1:
-                        nextNoiseAmplitudeVb = pow(lerp(0.0, noiseAmplitudeVertical, (self.next[1].tValGlobal * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent)
-                else:
-                    nextNoiseAmplitudeV = pow(noiseAmplitudeVertical, noiseAmplitudeExponent)
-                    if len(self.next) > 1:
-                        nextNoiseAmplitudeVb = pow(noiseAmplitudeVertical, noiseAmplitudeExponent)
-            else:
-                nextNoiseAmplitudeV = pow(lerp(0.0, noiseAmplitudeVertical, self.next[0].tValBranch), noiseAmplitudeExponent) #TODO
-                if len(self.next) > 1:
-                    nextNoiseAmplitudeVb = pow(lerp(0.0, noiseAmplitudeVertical, self.next[1].tValBranch), noiseAmplitudeExponent) #TODO
-               
-            if self.clusterIndex == -1:
-                nextRight = self.next[0].cotangent
-                if len(self.next) > 1:
-                    nextRightB = self.next[1].cotangent
-            else:
-                nextRight = self.next[0].tangent[0].cross(Vector((0.0,0.0,1.0))) # ERROR HERE !!!
-                if len(self.next) > 1:
-                    nextRightB = self.next[1].tangent[0].cross(Vector((0.0,0.0,1.0)))
-    
-            if nextRight.length > 0.001:
-                nextRight = nextRight.normalized()
-                #drawArrow(self.next[0].point, self.next[0].point + nextNoiseAmplitudeH * nextRight)
-                #drawArrow(self.next[0].point, self.next[0].point + nextNoiseX * nextNoiseAmplitudeH * nextRight)
-            else:
-                #vertical
-                nextRight = Vector((1.0,0.0,0.0)) #TODO
+        
+            nextNoiseAmplitudeH = nextAmplitude(self.next[0], noiseAmplitudeHorizontal, noiseAmplitudeGradient, noiseAmplitudeExponent)
+            nextNoiseAmplitudeV = nextAmplitude(self.next[0], noiseAmplitudeVertical, noiseAmplitudeGradient, noiseAmplitudeExponent)
+        
+            nextRight = self.next[0].cotangent if self.clusterIndex == -1 else self.next[0].tangent[0].cross(Vector((0.0,0.0,1.0)))
+            if nextRight.length <= 0.001:
+                nextRight = Vector((1.0,0.0,0.0))
                 treeGen.report({'INFO'}, f"nextRight = (1,0,0), self.next[0].point: {self.next[0].point}, self.next[0].tangent[0]: {self.next[0].tangent[0]}")
+            else:
+                nextRight = nextRight.normalized()
             
-            if len(self.next) > 1:
-                if nextRightB.length > 0.001:
-                    nextRightB = nextRightB.normalized()
-                else:
-                    #vertical
-                    nextRightB = Vector((1.0,0.0,0.0)) #TODO
-                    
             nextPoint = self.next[0].point + nextNoiseX * nextNoiseAmplitudeH * nextRight + nextNoiseY * nextNoiseAmplitudeV * nextRight.cross(self.next[0].tangent[0].normalized())
-            
-            #TODO: len(self.next > 1) ....
-            
+
             if len(self.next) > 1:
+                nextNoiseAmplitudeHb = nextAmplitude(self.next[1], noiseAmplitudeHorizontal, noiseAmplitudeGradient, noiseAmplitudeExponent)
+                nextNoiseAmplitudeVb = nextAmplitude(self.next[1], noiseAmplitudeVertical, noiseAmplitudeGradient,  noiseAmplitudeExponent)
+                nextNoiseYb = noise_generator.coherent_noise(x=self.next[1].point.x / noiseScale + 1000.0, y=self.next[1].point.y / noiseScale + 1000.0, z=self.next[1].point.z / noiseScale + 1000.0)
+                nextRightB = self.next[1].cotangent if self.clusterIndex == -1 else self.next[1].tangent[0].cross(Vector((0.0,0.0,1.0)))
+                if nextRightB.length <= 0.001:
+                    nextRightB = Vector((1.0,0.0,0.0))
+                else:
+                    nextRightB = nextRightB.normalized()
                 nextPointB = self.next[1].point + nextNoiseX * nextNoiseAmplitudeHb * nextRightB + nextNoiseYb * nextNoiseAmplitudeVb * nextRightB.cross(self.next[1].tangent[0].normalized())
-                                
-                self.tangent[0] = (nextPoint + nextPointB) / 2.0 - self.point #self.point - prevPoint
+                self.tangent[0] = (nextPoint + nextPointB) / 2.0 - self.point
                 self.tangent[1] = nextPoint - self.point
                 self.tangent[2] = nextPointB - self.point
             else:
                 self.tangent[0] = (nextPoint - prevPoint) / 2.0
-            
-            #drawArrow(self.point, self.point + (nextPoint - prevPoint) / 2.0)
-            
-        #drawArrow(self.point, self.point - noiseX * self.tangent[0].cross(self.cotangent))
-        #drawArrow(self.point - noiseX * noiseAmplitude * self.cotangent + noiseY * noiseAmplitude * self.tangent[0].cross(self.cotangent), self.point) # ??? length of cotangent ???
-        
-        
+
         for n in self.next:
             n.applyNoise(
-                    treeGen, 
-                    noise_generator, 
-                    noiseAmplitudeHorizontal,
-                    noiseAmplitudeVertical,  
-                    noiseAmplitudeGradient, 
-                    noiseAmplitudeExponent, 
-                    noiseScale, 
-                    self.point, 
-                    treeHeight)
+                treeGen, 
+                noise_generator, 
+                noiseAmplitudeHorizontal,
+                noiseAmplitudeVertical,  
+                noiseAmplitudeGradient, 
+                noiseAmplitudeExponent, 
+                noiseScale, 
+                self.point, 
+                treeHeight
+            )
                     
         #def applyNoise(
         # self, 
