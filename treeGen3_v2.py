@@ -297,17 +297,25 @@ class node():
             else:
                 noiseAmplitudeH = pow(noiseAmplitudeHorizontal, noiseAmplitudeExponent)
         else:
-            noiseAmplitudeH = pow(lerp(0.0, noiseAmplitudeHorizontal, self.tValBranch), noiseAmplitudeExponent) #TODO
+            treeGen.report({'INFO'}, f"tValBranch: {self.tValBranch}, treeHeight: {treeHeight}, noiseAmplitudeGradient: {noiseAmplitudeGradient}") # ERROR HERE: noiseAmplitudeGradient = 0 
+            if self.tValBranch * treeHeight < noiseAmplitudeGradient:
+                noiseAmplitudeH = pow(lerp(0.0, noiseAmplitudeHorizontal, (self.tValBranch * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent) #TODO fixed??
+                treeGen.report({'INFO'}, f"branch: noiseAmplitudeH: {noiseAmplitudeH}")
+            else:
+                noiseAmplitudeH = pow(noiseAmplitudeHorizontal, noiseAmplitudeExponent)
+                treeGen.report({'INFO'}, f"branch: noiseAmplitudeH WRONG!: {noiseAmplitudeH}")
             
         if self.clusterIndex == -1:
-            #noiseAmplitude = pow(lerp(noiseAmplitude, noiseAmplitudeGradient, self.tValGlobal), noiseAmplitudeExponent)
-            #TODO
             if self.tValGlobal * treeHeight < noiseAmplitudeGradient:
                 noiseAmplitudeV = pow(lerp(0.0, noiseAmplitudeVertical, (self.tValGlobal * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent)
             else:
                 noiseAmplitudeV = pow(noiseAmplitudeVertical, noiseAmplitudeExponent)
         else:
-            noiseAmplitudeV = pow(lerp(0.0, noiseAmplitudeVertical, self.tValBranch), noiseAmplitudeExponent) #TODO
+            treeGen.report({'INFO'}, f"tValBranch: {self.tValBranch}")
+            if self.tValBranch * treeHeight < noiseAmplitudeGradient:
+                noiseAmplitudeV = pow(lerp(0.0, noiseAmplitudeVertical, (self.tValBranch * treeHeight) / noiseAmplitudeGradient), noiseAmplitudeExponent)
+            else:
+                noiseAmplitudeV = pow(noiseAmplitudeVertical, noiseAmplitudeExponent)
             
         treeGen.report({'INFO'}, f"noiseAmplitudeHorizontal: {noiseAmplitudeHorizontal}")
         treeGen.report({'INFO'}, f"noiseAmplitudeVertical: {noiseAmplitudeVertical}")
@@ -327,8 +335,8 @@ class node():
     
         if right.length > 0.001:
             right = right.normalized()
-            drawArrow(self.point, self.point + noiseAmplitudeH * right)
-            drawArrow(self.point, self.point + noiseX * noiseAmplitudeH * right)
+            #drawArrow(self.point, self.point + noiseAmplitudeH * right)
+            #drawArrow(self.point, self.point + noiseX * noiseAmplitudeH * right)
         else:
             #vertical
             right = Vector((1.0,0.0,0.0)) #TODO
@@ -365,8 +373,8 @@ class node():
     
             if nextRight.length > 0.001:
                 nextRight = nextRight.normalized()
-                drawArrow(self.next[0].point, self.next[0].point + nextNoiseAmplitudeH * nextRight)
-                drawArrow(self.next[0].point, self.next[0].point + nextNoiseX * nextNoiseAmplitudeH * nextRight)
+                #drawArrow(self.next[0].point, self.next[0].point + nextNoiseAmplitudeH * nextRight)
+                #drawArrow(self.next[0].point, self.next[0].point + nextNoiseX * nextNoiseAmplitudeH * nextRight)
             else:
                 #vertical
                 nextRight = Vector((1.0,0.0,0.0)) #TODO
@@ -389,7 +397,7 @@ class node():
             else:
                 self.tangent[0] = (nextPoint - prevPoint) / 2.0
             
-            drawArrow(self.point, self.point + (nextPoint - prevPoint) / 2.0)
+            #drawArrow(self.point, self.point + (nextPoint - prevPoint) / 2.0)
             
         #drawArrow(self.point, self.point - noiseX * self.tangent[0].cross(self.cotangent))
         #drawArrow(self.point - noiseX * noiseAmplitude * self.cotangent + noiseY * noiseAmplitude * self.tangent[0].cross(self.cotangent), self.point) # ??? length of cotangent ???
@@ -406,6 +414,18 @@ class node():
                     noiseScale, 
                     self.point, 
                     treeHeight)
+                    
+        #def applyNoise(
+        # self, 
+        # treeGen, 
+        # noise_generator, 
+        # noiseAmplitudeHorizontal,
+        # noiseAmplitudeVertical, 
+        # noiseAmplitudeGradient, 
+        # noiseAmplitudeExponent,
+        # noiseScale, 
+        # prevPoint, 
+        # treeHeight):
         
     
     def applyCurvature(
@@ -809,6 +829,18 @@ class generateTree(bpy.types.Operator):
                                 context.scene.noiseScale, 
                                 nodes[0].point - (nodes[0].next[0].point - nodes[0].point), 
                                 context.scene.treeHeight)
+            
+            #def applyNoise(
+        # self, 
+        # treeGen, 
+        # noise_generator, 
+        # noiseAmplitudeHorizontal,
+        # noiseAmplitudeVertical, 
+        # noiseAmplitudeGradient, 
+        # noiseAmplitudeExponent,
+        # noiseScale, 
+        # prevPoint, 
+        # treeHeight):
       
             
             if context.scene.treeGrowDir == Vector((0.0,0.0,1.0)):
@@ -2166,13 +2198,25 @@ noiseGenerator):
                                           
                 branchNode.applyNoise(treeGen, 
                                       noiseGenerator,
-                                      context.scene.noiseAmplitudeBranchGradientList[clusterIndex].value, 
                                       context.scene.noiseAmplitudeHorizontalBranchList[clusterIndex].value, 
                                       context.scene.noiseAmplitudeVerticalBranchList[clusterIndex].value, 
+                                      context.scene.noiseAmplitudeBranchGradientList[clusterIndex].value, 
                                       context.scene.noiseAmplitudeBranchExponentList[clusterIndex].value, 
                                       context.scene.noiseScaleList[clusterIndex].value, 
                                       branchNode.point - (branchNode.next[0].point - branchNode.point), 
                                       branchLength)
+                                      
+    #def applyNoise(
+        # self, 
+        # treeGen, 
+        # noise_generator, 
+        # noiseAmplitudeHorizontal,
+        # noiseAmplitudeVertical, 
+        # noiseAmplitudeGradient, 
+        # noiseAmplitudeExponent,
+        # noiseScale, 
+        # prevPoint, 
+        # treeHeight):
                                       
                                           
         else: #hangingBranchesList[clusterIndex].value == True:
@@ -3410,12 +3454,12 @@ class addItem(bpy.types.Operator): # add branch cluster
         showNoiseSettings = context.scene.showNoiseSettings.add()
         showNoiseSettings.value = True
         
-        noiseAmplitude = context.scene.noiseAmplitudeBranchGradientList.add()
-        noiseAmplitude = 0.0
-        noiseAmplitudeGradient = context.scene.noiseAmplitudeHorizontalBranchList.add()
-        noiseAmplitudeGradient = 0.0
-        noiseAmplitudeGradient = context.scene.noiseAmplitudeVerticalBranchList.add()
-        noiseAmplitudeGradient = 0.0
+        noiseAmplitudeBranchGradient = context.scene.noiseAmplitudeBranchGradientList.add()
+        noiseAmplitudeBranchGradient = 1.0
+        noiseAmplitudeHorizontalBranch = context.scene.noiseAmplitudeHorizontalBranchList.add()
+        noiseAmplitudeHorizontalBranch = 0.0
+        noiseAmplitudeVerticalBranch = context.scene.noiseAmplitudeVerticalBranchList.add()
+        noiseAmplitudeVerticalBranch = 0.0
         noiseAmplitudeExponent = context.scene.noiseAmplitudeBranchExponentList.add()
         noiseAmplitudeExponent = 1.0
         noiseScale = context.scene.noiseScaleList.add()
@@ -4548,7 +4592,7 @@ def register():
     bpy.types.Scene.noiseAmplitudeVerticalBranchList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.noiseAmplitudeHorizontalBranchList = bpy.props.CollectionProperty(type=posFloatProp)
     bpy.types.Scene.noiseAmplitudeBranchExponentList = bpy.props.CollectionProperty(type=posFloatProp)
-    bpy.types.Scene.noiseScaleList = bpy.props.CollectionProperty(type=posFloatProp)
+    bpy.types.Scene.noiseScaleList = bpy.props.CollectionProperty(type=posFloatPropDefault1)
     bpy.types.Scene.verticalAngleCrownStartList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.verticalAngleCrownEndList = bpy.props.CollectionProperty(type=floatProp)
     bpy.types.Scene.verticalAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
