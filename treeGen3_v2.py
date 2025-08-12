@@ -900,31 +900,66 @@ class generateTree(bpy.types.Operator):
             if len(context.scene.stemSplitHeightInLevelList) > context.scene.maxSplitHeightUsed + 1:
                 for i in range(context.scene.maxSplitHeightUsed + 1, len(context.scene.stemSplitHeightInLevelList)):
                     context.scene.stemSplitHeightInLevelList.remove(len(context.scene.stemSplitHeightInLevelList) - 1)
+                    
+            if len(context.scene.stemSplitHeightInLevelList) < context.scene.maxSplitHeightUsed + 1:
+                for i in range(context.scene.maxSplitHeightUsed + 1, len(context.scene.stemSplitHeightInLevelList)):
+                    h = context.scene.stemSplitHeightInLevelList.add()
+                    
+            
             
             if len(context.scene.branchSplitHeightInLevelList_0) > context.scene.maxSplitHeightUsed + 1:
                 for i in range(context.scene.maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_0)):
                     context.scene.branchSplitHeightInLevelList_0.remove(len(context.scene.branchSplitHeightInLevelList_0) - 1)
+                    
+            if len(context.scene.branchSplitHeightInLevelList_0) < context.scene.maxSplitHeightUsed + 1:
+                for i in range(context.scene.maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_0)):
+                    h = context.scene.branchSplitHeightInLevelList_0.add()
+                  
+                  
             
             if len(context.scene.branchSplitHeightInLevelList_1) > context.scene.maxSplitHeightUsed + 1:
                 for i in range(context.scene.maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_1)):
                     context.scene.branchSplitHeightInLevelList_1.remove(len(context.scene.branchSplitHeightInLevelList_1) - 1)
             
+            if len(context.scene.branchSplitHeightInLevelList_1) < context.scene.maxSplitHeightUsed + 1:
+                for i in range(context.scene.maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_1)):
+                    h = context.scene.branchSplitHeightInLevelList_1.add()
+              
+            
             if len(context.scene.branchSplitHeightInLevelList_2) > context.scene.maxSplitHeightUsed + 1:
                 for i in range(context.scene.maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_2)):
                     context.scene.branchSplitHeightInLevelList_2.remove(len(context.scene.branchSplitHeightInLevelList_2) - 1)
             
+            if len(context.scene.branchSplitHeightInLevelList_2) < context.scene.maxSplitHeightUsed + 1:
+                for i in range(context.scene.maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_2)):
+                    h = context.scene.branchSplitHeightInLevelList_2.add()
+              
             if len(context.scene.branchSplitHeightInLevelList_3) > context.scene.maxSplitHeightUsed + 1:
                 for i in range(context.scene.maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_3)):
                     context.scene.branchSplitHeightInLevelList_3.remove(len(context.scene.branchSplitHeightInLevelList_3) - 1)
             
+            if len(context.scene.branchSplitHeightInLevelList_3) < context.scene.maxSplitHeightUsed + 1:
+                for i in range(context.scene.maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_3)):
+                    h = context.scene.branchSplitHeightInLevelList_3.add()
+              
+              
             if len(context.scene.branchSplitHeightInLevelList_4) > context.scene.maxSplitHeightUsed + 1:
                 for i in range(context.scene.maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_4)):
                     context.scene.branchSplitHeightInLevelList_4.remove(len(context.scene.branchSplitHeightInLevelList_4) - 1)
             
+            if len(context.scene.branchSplitHeightInLevelList_4) < context.scene.maxSplitHeightUsed + 1:
+                for i in range(context.scene.maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_4)):
+                    h = context.scene.branchSplitHeightInLevelList_4.add()
+              
+              
             if len(context.scene.branchSplitHeightInLevelList_5) > context.scene.maxSplitHeightUsed + 1:
                 for i in range(context.scene.maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_5)):
                     context.scene.branchSplitHeightInLevelList_5.remove(len(context.scene.branchSplitHeightInLevelList_5) - 1)
             
+            if len(context.scene.branchSplitHeightInLevelList_5) < context.scene.maxSplitHeightUsed + 1:
+                for i in range(context.scene.maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_5)):
+                    h = context.scene.branchSplitHeightInLevelList_5.add()
+              
             bpy.context.view_layer.objects.active = bpy.data.objects["tree"]
             bpy.ops.object.select_all(action='DESELECT')
         return {'FINISHED'}
@@ -1603,10 +1638,10 @@ def addLeaves(self, treeGen, rootNode,        #     TODO: support multiple leaf 
                         
                     drawDebugPoint(startPoint + offset * leafTangent, 0.01)
                     
-                    leafVertices.append(startPoint - leafCotangent *  leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangent * offset)
-                    leafVertices.append(startPoint - leafCotangent *  leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangent   * (leafSizeList[leafClusterIndex].value + offset))
-                    leafVertices.append(startPoint + leafCotangent *  leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangent   * (leafSizeList[leafClusterIndex].value + offset))
-                    leafVertices.append(startPoint + leafCotangent *  leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value + leafTangent * offset)
+                    leafVertices.append(startPoint - leafCotangent *  leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value / 2.0 + leafTangent * offset)
+                    leafVertices.append(startPoint - leafCotangent *  leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value / 2.0 + leafTangent   * (leafSizeList[leafClusterIndex].value + offset))
+                    leafVertices.append(startPoint + leafCotangent *  leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value / 2.0 + leafTangent   * (leafSizeList[leafClusterIndex].value + offset))
+                    leafVertices.append(startPoint + leafCotangent *  leafSizeList[leafClusterIndex].value * leafAspectRatioList[leafClusterIndex].value / 2.0 + leafTangent * offset)
                     leafFaces.append((4 * leafIndex, 4 * leafIndex + 1, 4 * leafIndex + 2, 4 * leafIndex + 3))
                     
                     leafUVs.append((0.0,0.0))
@@ -2425,258 +2460,19 @@ def splitBranches(treeGen,
                             treeGen.report({'INFO'}, "did not split!")
                         else:
                             treeGen.report({'INFO'}, f"index to remove: {indexToSplit}, len(nodeIndices): {len(nodeIndices)}, len(branchWeights): {len(branchWeights)}, level: {level}")
-                            maxSplitHeightInLevelUsed = level
+                            if maxSplitHeightInLevelUsed < level:
+                                maxSplitHeightInLevelUsed = level
                             
-                            #totalWeight -= branchWeights[indexToSplit]
-                            #lengthA = splitNode.next[0].lengthToTip()
-                            #lengthB = splitNode.next[1].lengthToTip()
-                            
-                            #del branchWeights[indexToSplit]
-                            #totalWeight += lengthA + lengthB
-                        
                             nodesInLevelNextIndex[level + 1].append((splitNode, 0))
                             nodesInLevelNextIndex[level + 1].append((splitNode, 1))
-                            #nodesInLevelNextIndex[level + 1].append(nodeInfo(splitNode, 0, nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].splitsPerBranch + 1))
-                            #nodesInLevelNextIndex[level + 1].append(nodeInfo(splitNode, 1, nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].splitsPerBranch + 1))
                             
                             del nodeIndices[indexToSplit]
                             
                             splitsInLevel += 1
-                            #totalSplitCounter += 1
                             
-    return 20 # TODO maxSplitHeightInLevelUsed
+    return maxSplitHeightInLevelUsed
     
-    #################################
-    
-    #splitProbabilityInLevel = [0.0 for i in range(nrBranchSplits)]
-    #expectedSplitsInLevel = [0 for i in range(nrBranchSplits)]
-    #
-    #meanLevelBranch = 0
-    #if nrBranchSplits > 0:
-    #    meanLevelBranch = max(0, math.floor(math.log2(nrBranchSplits / len(allBranchNodes))))
-#    
-#    treeGen.report({'INFO'}, f"in split Branches(): meanLevelBranch: {meanLevelBranch}, nrBranchSplits: {nrBranchSplits}, #len(allBranchNodes): {len(allBranchNodes)}")
-#    
-#    maxSplitHeightInLevelUsed = 0
-#    
-#    if meanLevelBranch >= 0 and nrBranchSplits > 0:
-#        if nrBranchSplits < len(allBranchNodes):
-#            expectedSplitsInLevel[0] = nrBranchSplits
-#            splitProbabilityInLevel[0] = 1.0
-#            for i in range(1, nrBranchSplits):
-#                expectedSplitsInLevel[i] = 0
-#        else:
-#            if nrBranchSplits > 0:
-#                splitProbabilityInLevel[0] = 1.0
-#                expectedSplitsInLevel[0] = len(allBranchNodes)
-#                treeGen.report({'INFO'}, f"setting expectedSplitsInLevel[0] = len(allBranchNodes) = {len(allBranchNodes)}")
-#            else:
-#                splitProbabilityInLevel[0] = 0.0
-#                expectedSplitsInLevel[0] = 0
-#            
-#            for i in range(1, math.floor(meanLevelBranch - variance * meanLevelBranch)):
-#                splitProbabilityInLevel[i] = 1.0
-#                expectedSplitsInLevel[i] = len(allBranchNodes) * math.floor(splitProbabilityInLevel[i] * 2.0 * #expectedSplitsInLevel[i - 1])
-#                if expectedSplitsInLevel[i] > 1024:
-#                    expectedSplitsInLevel[i] = 1024
-#            treeGen.report({'INFO'}, f"test1: expectedSplitsInLevel[0]: {expectedSplitsInLevel[0]}, variance: {variance}") # #ERROR HERE !!!
-#            
-#            treeGen.report({'INFO'}, f"meanLevelBranch: {meanLevelBranch}, variance: {variance}")
-#            for i in range(math.floor(meanLevelBranch - variance * meanLevelBranch), math.floor(meanLevelBranch + variance * #meanLevelBranch)):
-#                splitProbabilityInLevel[i] = 1.0 - (7.0/8.0) * (i - math.floor(meanLevelBranch - variance * #meanLevelBranch)) / math.floor(meanLevelBranch + variance * meanLevelBranch - math.floor(meanLevelBranch - variance * #meanLevelBranch))
-#                treeGen.report({'INFO'}, f"test2: expectedSplitsInLevel[0]: {expectedSplitsInLevel[0]}")
-#                treeGen.report({'INFO'}, f"splitProbabilityInLevel[{i}]: {splitProbabilityInLevel[i]}")
-#                
-#                expectedSplitsInLevel[i] = len(allBranchNodes) * math.floor(splitProbabilityInLevel[i] * 2.0 * #expectedSplitsInLevel[i - 1])
-#                if expectedSplitsInLevel[i] > 1024:
-#                    expectedSplitsInLevel[i] = 1024
-#                    
-#            treeGen.report({'INFO'}, f"test3: expectedSplitsInLevel[0]: {expectedSplitsInLevel[0]}")
-#            for i in range(math.floor(meanLevelBranch + variance * meanLevelBranch), nrBranchSplits):
-#                if i > 0:
-#                    splitProbabilityInLevel[i] = 1.0 / 8.0
-#                    expectedSplitsInLevel[i] = len(allBranchNodes) * math.floor(splitProbabilityInLevel[i] * 2.0 * #expectedSplitsInLevel[i - 1])
-#                    if expectedSplitsInLevel[i] > 1024:
-#                        expectedSplitsInLevel[i] = 1024
-#        for i in range(0, nrBranchSplits):
-#            if expectedSplitsInLevel[i] > 0:
-#                treeGen.report({'INFO'}, f"expectedSplitsInLevel[{i}]: {expectedSplitsInLevel[i]}")
-#        
-#        nodesInLevelNextIndexSplitsPerBranch = []
-#        for i in range(0, nrBranchSplits + 1):
-#            nodesInLevelNextIndexSplitsPerBranch.append([])
-#        treeGen.report({'INFO'}, f"test5: expectedSplitsInLevel[0]: {expectedSplitsInLevel[0]}")
-#        for branch in allBranchNodes:
-#            for n in range(0, len(branch.next)):
-#                nodesInLevelNextIndexSplitsPerBranch[0].append(nodeInfo(branch, n, 0))
-#        treeGen.report({'INFO'}, f"test6: expectedSplitsInLevel[0]: {expectedSplitsInLevel[0]}")
-#        
-#        totalSplitCounter = 0
-#        treeGen.report({'INFO'}, f"in split Branches(): nrBranchSplits: {nrBranchSplits}")
-#        for level in range(0, nrBranchSplits):
-#            maxSplitsPerBranch = math.floor(nrSplitsPerBranch + splitsPerBranchVariation)
-#            if maxSplitsPerBranch == 0:
-#                maxSplitsPerBranch = 1
-#            treeGen.report({'INFO'}, f"setting maxSplitsPerBranch: {maxSplitsPerBranch}, nrSplitsPerBranch: #{nrSplitsPerBranch}, splitsPerBranchVariation: {splitsPerBranchVariation}")
-#            
-#            branchLengths = []
-#            branchWeights = []
-#            totalWeight = 0.0
-#            
-#            #class nodeInfo():
-#            #    def __init__(self, NodeInLevel, NextIndex, SplitsPerBranch):
-#            #        self.nodeInLevel = NodeInLevel
-#            #        self.nextIndex = NextIndex
-#            #        self.splitsPerBranch = SplitsPerBranch
-##            length = len(nodesInLevelNextIndexSplitsPerBranch[level])
-#            
-#            treeGen.report({'INFO'}, f"in split Branches(): level: {level}: len(nodesInLevelNextIndexSplitsPerBranch): #{length}")
-#            
-#            
-#            for n in range(0, len(nodesInLevelNextIndexSplitsPerBranch[level])):
-#                N = nodesInLevelNextIndexSplitsPerBranch[level][n]
-#                #treeGen.report({'INFO'}, f"type: {type(N).__name__}") #FUNKT!
-#                nde = N.nodeInLevel
-#                #treeGen.report({'INFO'}, f"type: {type(nde).__name__}") #FUNKT!
-#                branchLength = nde.lengthToTip()
-#                
-#                treeGen.report({'INFO'}, f"level: {level}: branchLength: {branchLength}")
-#            
-#            for n in nodesInLevelNextIndexSplitsPerBranch[level]:
-#                N = n.nodeInLevel
-#                branchLength = N.lengthToTip()
-#                branchLengths.append(branchLength)
-#                #treeGen.report({'INFO'}, f"adding branchLength: {branchLength}")
-#                
-#                weight = pow(branchLength, 8.0)
-#                branchWeights.append(weight)
-#                totalWeight += weight
-#                #treeGen.report({'INFO'}, f"adding branchWeight: {weight}")
-#            
-#            for i in range(0, len(expectedSplitsInLevel)):
-#                if expectedSplitsInLevel[i] > 0 or i == 0:
-#                    treeGen.report({'INFO'}, f"expectedSplitsInLevel[{i}]: {expectedSplitsInLevel[i]}")
-#            if len(nodesInLevelNextIndexSplitsPerBranch[level]) > 0:
-#                treeGen.report({'INFO'}, f"totalWeight: {totalWeight}")
-#                for i in range(len(branchWeights)):
-#                    treeGen.report({'INFO'}, f"branchWeights[{i}]: {branchWeights[i]}")
-#            
-#            splitsInLevel = 0
-#            safetyCounter = 0
-#            
-#            nodeIndices = []
-#            for i in range(len(nodesInLevelNextIndexSplitsPerBranch)):
-#                nodeIndices.append(i)
-#            #treeGen.report({'INFO'}, f"len(nodeIndices): {len(nodeIndices)}")
-#            
-#            if len(nodeIndices) == 0:
-#                continue
-#            
-#            safetyCounter = 0
-#            while splitsInLevel < expectedSplitsInLevel[level]:
-#                safetyCounter += 1
-#                if len(nodeIndices) == 0:
-#                    #treeGen.report({'INFO'}, "len(nodeIndices) == 0 -> break!")
-#                    break
-#                if totalSplitCounter == nrBranchSplits:
-#                    #treeGen.report({'INFO'}, "totalSplitCounter == nrBranchSplits -> break!")
-#                    break
-#                if safetyCounter > 11474:
-#                    #treeGen.report({'INFO'}, f"ERROR: safetyCounter: {safetyCounter}")
-#                    break
-#                r = random.uniform(0.0, 1.0 - 1e-10)
-#                h = random.uniform(0.0, 1.0 - 1e-10) - 0.5
-#                if r < splitProbabilityInLevel[level]:
-#                    #split
-#                    treeGen.report({'INFO'}, "in split Branches(): split!")
-#                    randomValue = random.uniform(0.0, 1.0 - 1e-10) * totalWeight
-#                    cumulativeWeight = 0.0
-#                    indexToSplit = -1
-#                    
-#                    for i in range(len(branchWeights)):
-#                        cumulativeWeight += branchWeights[i]
-#                        if randomValue <= cumulativeWeight:
-#                            indexToSplit = i
-#                            break
-#                    treeGen.report({'INFO'}, f"in split Branches(): indexToSplit: {indexToSplit}")
-#                    #treeGen.report({'INFO'}, f"in split Branches(): len(nodeIndices): {len(nodeIndices)}")
-#                    #treeGen.report({'INFO'}, f"in split Branches(): splitsPerBranch: #{nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch}")
-#                    #treeGen.report({'INFO'}, f"in split Branches(): maxSplitsPerBranch: {maxSplitsPerBranch}")
-#                    
-#                    if indexToSplit != -1 and len(nodeIndices) > 0 and indexToSplit >= 0 and indexToSplit < len(nodeIndices) #and nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch < maxSplitsPerBranch:
-#                        # == branchSplitHeightInLevelList_0
-#                        branchSplitHeight = max(0.05, min(branchSplitHeightInLevel[level].value + h * #branchSplitHeightVariation * min(branchSplitHeightInLevel[level].value, 1.0 - branchSplitHeightInLevel[level].value), 0.95))
-#                        
-#                        #treeGen.report({'INFO'}, f"in split Branches(): branchSplitHeightInLevel[{level}]: #{branchSplitHeightInLevel[level].value}")
-#                        
-#                        #treeGen.report({'INFO'}, f"split Branches(): branchSplitRotateAngle {branchSplitRotateAngle}")
-#                        
-#                        splitNode = split(
-#                            nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel,
-#                            nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nextIndex, 
-#                            branchSplitHeight, 
-#                            branchSplitLengthVariation,
-#                            splitAngle,
-#                            splitPointAngle, 
-#                            level, 
-#                            branchSplitMode, 
-#                            branchSplitRotateAngle, 
-#                            branchSplitAxisVariation, 
-#                            stemRingResolution,
-#                            0.0, #curvOffsetStrength,
-#                            treeGen, 
-#                            rootNode)
-#                            
-#                        
-#                            
-#                        #treeGen.report({'INFO'}, f"in split Branches(): splitNode.tValBranch: {splitNode.tValBranch}") # #ERROR HERE !!!
-#                            
-#                        if splitNode == nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].nodeInLevel:
-#                            #did not split
-#                            totalWeight -= branchWeights[indexToSplit]
-#                            #treeGen.report({'INFO'}, f"did not split: indexToSplit: {indexToSplit}")
-#                            #for weight in branchWeights:
-#                            #    treeGen.report({'INFO'}, f"did not split: branchWeight: {weight}")
-#                            #for index in nodeIndices:
-#                            #    treeGen.report({'INFO'}, f"did not split: nodeIndex: {index}")
-#                            
-#                            del branchWeights[indexToSplit]
-#                            del nodeIndices[indexToSplit]
-#                            
-#                            #treeGen.report({'INFO'}, "did not split!")
-#                        else:
-#                            #treeGen.report({'INFO'}, f"index to remove: {indexToSplit}, len(nodeIndices): #{len(nodeIndices)}, level: {level}")
-#                            
-#                            #for index in nodeIndices:
-#                            #    treeGen.report({'INFO'}, f"in nodeIndices: {index}")
-#                            
-#                            maxSplitHeightInLevelUsed = level
-#                            
-#                            totalWeight -= branchWeights[indexToSplit]
-#                            lengthA = splitNode.next[0].lengthToTip()
-#                            lengthB = splitNode.next[1].lengthToTip()
-#                            
-#                            del branchWeights[indexToSplit]
-#                            totalWeight += lengthA + lengthB
-#                            
-#                            nodesInLevelNextIndexSplitsPerBranch[level + 1].append(nodeInfo(splitNode, 0, #nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch + 1))
-#                            nodesInLevelNextIndexSplitsPerBranch[level + 1].append(nodeInfo(splitNode, 1, #nodesInLevelNextIndexSplitsPerBranch[level][nodeIndices[indexToSplit]].splitsPerBranch + 1))
-#                            
-#                            del nodeIndices[indexToSplit]
-#                            
-#                            splitsInLevel += 1
-#                            totalSplitCounter += 1
-#                            
-#                        if hangingBranches == True:
-#                            splitNode.hangingBranches(treeGen, curvatureStartGlobal, curvatureEndGlobal)
-#                
-#                safetyCounter += 1
-#                if safetyCounter > 2147483647:
-#                    treeGen.report({'INFO'}, f"ERROR: safetyCounter: {safetyCounter}")
-#                    break
-#    #treeGen.report({'INFO'}, f"in splitBranches(): returning maxSplitHeightInLevelUsed: {maxSplitHeightInLevelUsed}")
-#    return maxSplitHeightInLevelUsed
-                                        
+                   
             
 def shapeRatio(self, context, tValGlobal, treeShape):
     if treeShape == "CONICAL":
@@ -3241,6 +3037,9 @@ class posFloatPropSoftMax1Default0(bpy.types.PropertyGroup):
 
 class floatProp01(bpy.types.PropertyGroup):
     value: bpy.props.FloatProperty(name = "floatValue01", default=0, min=0, max=1)
+    
+class floatProp01default0p5(bpy.types.PropertyGroup):
+    value: bpy.props.FloatProperty(name = "floatValue01", default=0.5, min=0, max=1)
     
 class floatListProp(bpy.types.PropertyGroup):
     value: bpy.props.CollectionProperty(name = "floatListProperty", type=floatProp)
@@ -3976,7 +3775,12 @@ def taperCurveData(taperCurve):
     if taperCurve not in taper_node_mapping:
         TaperNodeTree = taperNodeTree().new('ShaderNodeRGBCurve')
         taper_node_mapping[taperCurve] = TaperNodeTree.name
+        
+        #resetTaperCurve()
+        
     nodeTree = taperNodeTree()[taper_node_mapping[taperCurve]]
+    
+    
     return nodeTree
 
 class resetCurvesButton(bpy.types.Operator):
@@ -3990,16 +3794,32 @@ class resetCurvesButton(bpy.types.Operator):
         curveElement = nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves[3]
         
         #initialise values
-        curveElement.points[0].location = (0.0, 1.0)
-        curveElement.points[1].location = (1.0, 0.0)
-        curveElement.points[0].handle_type = "VECTOR"
-        curveElement.points[1].handle_type = "VECTOR"
-        if len(curveElement.points) > 2:
-            for i in range(2, len(curveElement.points)):
-                curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
-                #self.report({'INFO'}, "removing point")
-        nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.update()
+        resetTaperCurve()
         return {'FINISHED'}
+    
+def reset_taper_curve_deferred():
+    bpy.ops.scene.reset_curves()
+    return None
+    
+    
+def resetTaperCurve():
+    nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
+    if not nodeGroups:
+        return
+    curveNode = nodeGroups.nodes.get(taper_node_mapping.get('taperMapping'))
+    if not curveNode:
+        return
+    curveElement = curveNode.mapping.curves[3]
+    # Initialise values
+    curveElement.points[0].location = (0.0, 1.0)
+    curveElement.points[1].location = (1.0, 0.0)
+    curveElement.points[0].handle_type = "VECTOR"
+    curveElement.points[1].handle_type = "VECTOR"
+    if len(curveElement.points) > 2:
+        for i in range(2, len(curveElement.points)):
+            curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
+    curveNode.mapping.update()
+    
 
 class sampleCruvesButton(bpy.types.Operator):
     bl_idname = "scene.sample_curves"
@@ -4659,6 +4479,7 @@ def register():
     bpy.utils.register_class(posFloatProp)
     bpy.utils.register_class(posFloatPropDefault1)
     bpy.utils.register_class(floatProp01)
+    bpy.utils.register_class(floatProp01default0p5)
     bpy.utils.register_class(posFloatPropSoftMax1)
     bpy.utils.register_class(posFloatPropSoftMax1Default0)
     bpy.utils.register_class(posFloatPropSoftMax2)
@@ -4771,17 +4592,17 @@ def register():
     bpy.types.Scene.branchSplitLengthVariationList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.branchSplitHeightInLevelListList = bpy.props.CollectionProperty(type=floatListProp01)
     bpy.types.Scene.branchSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_0 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelList_0 = bpy.props.CollectionProperty(type=floatProp01default0p5)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_0 = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_1 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelList_1 = bpy.props.CollectionProperty(type=floatProp01default0p5)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_1 = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_2 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelList_2 = bpy.props.CollectionProperty(type=floatProp01default0p5)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_2 = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_3 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelList_3 = bpy.props.CollectionProperty(type=floatProp01default0p5)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_3 = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_4 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelList_4 = bpy.props.CollectionProperty(type=floatProp01default0p5)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_4 = bpy.props.IntProperty(default = 0)
-    bpy.types.Scene.branchSplitHeightInLevelList_5 = bpy.props.CollectionProperty(type=floatProp01)
+    bpy.types.Scene.branchSplitHeightInLevelList_5 = bpy.props.CollectionProperty(type=floatProp01default0p5)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_5 = bpy.props.IntProperty(default = 0)
     bpy.types.Scene.showBranchSplitHeights = bpy.props.CollectionProperty(type=boolProp)
     
@@ -5227,6 +5048,8 @@ def register():
         min = 0
     )
     
+    bpy.app.timers.register(reset_taper_curve_deferred, first_interval=0.1)
+    #bpy.ops.scene.reset_curves()
 
 
     #data = {
