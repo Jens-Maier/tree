@@ -5194,7 +5194,8 @@ def save_properties(filePath):
         "stemRingResolution": props.stemRingResolution,
         "resampleDistance": props.resampleDistance,
     
-        "noiseAmplitude": props.noiseAmplitude,
+        "noiseAmplitudeVertical": props.noiseAmplitudeVertical,
+        "noiseAmplitudeHorizontal": props.noiseAmplitudeHorizontal,
         "noiseAmplitudeGradient": props.noiseAmplitudeGradient,
         "noiseAmplitudeExponent": props.noiseAmplitudeExponent,
         "noiseScale": props.noiseScale,
@@ -5219,12 +5220,13 @@ def save_properties(filePath):
         "stemSplitPointAngle": props.stemSplitPointAngle,
     
         "branchClusters": props.branchClusters,
+        "showBranchClusterList": [props.branchClusterBoolListList[i].show_branch_cluster for i in range(props.branchClusters)],
+        "showParentClusterList": [props.parentClusterBoolListList[i].show_cluster for i in range(props.branchClusters)],
     
         #parentClusterBoolListList
         "parentClusterBoolListList": nestedBranchList,
         
         "nrBranchesList": [props.nrBranchesList[i].value for i in range(props.branchClusters)],
-        "branchVarianceList": [props.branchVarianceList[i].value for i in range(props.branchClusters)],
         "branchShapeList": [props.branchShapeList[i].value for i in range(props.branchClusters)],
         "relBranchLengthList": [props.relBranchLengthList[i].value for i in range(props.branchClusters)],
         "relBranchLengthVariationList": [props.relBranchLengthVariationList[i].value for i in range(props.branchClusters)],
@@ -5234,6 +5236,16 @@ def save_properties(filePath):
         "branchesEndHeightGlobalList": [props.branchesEndHeightGlobalList[i].value for i in range(props.branchClusters)],
         "branchesStartHeightClusterList": [props.branchesStartHeightClusterList[i].value for i in range(props.branchClusters)],
         "branchesEndHeightClusterList": [props.branchesEndHeightClusterList[i].value for i in range(props.branchClusters)],
+        
+        "showNoiseSettingsList": [props.showNoiseSettings[i].value for i in range(props.branchClusters)],
+        
+        "noiseAmplitudeHorizontalList": [props.noiseAmplitudeHorizontalBranchList[i].value for i in range(props.branchClusters)],
+        "noiseAmplitudeVerticalList": [props.noiseAmplitudeVerticalBranchList[i].value for i in range(props.branchClusters)],
+        "noiseAmplitudeGradientList": [props.noiseAmplitudeBranchGradientList[i].value for i in range(props.branchClusters)],
+        "noiseAmplitudeExponentList": [props.noiseAmplitudeBranchExponentList[i].value for i in range(props.branchClusters)],
+        "noiseScaleList": [props.noiseScaleList[i].value for i in range(props.branchClusters)],
+        
+        "showAngleSettingsList": [props.showAngleSettings[i].value for i in range(props.branchClusters)],
         
         "verticalAngleCrownStartList": [props.verticalAngleCrownStartList[i].value for i in range(props.branchClusters)],
         "verticalAngleCrownEndList": [props.verticalAngleCrownEndList[i].value for i in range(props.branchClusters)],
@@ -5256,6 +5268,8 @@ def save_properties(filePath):
         "branchCurvatureEndList": [props.branchCurvatureEndList[i].value for i in range(props.branchClusters)],
         "branchCurvatureOffsetStrengthList": [props.branchCurvatureOffsetStrengthList[i].value for i in     range(props.branchClusters)],
         
+        "showSplitSettingsList": [props.showSplitSettings[i].value for i in range(props.branchClusters)],
+        
         "nrSplitsPerBranchList": [props.nrSplitsPerBranchList[i].value for i in range(props.branchClusters)],
         "branchSplitModeList": [props.branchSplitModeList[i].value for i in range(props.branchClusters)],
         "branchSplitRotateAngleList": [props.branchSplitRotateAngleList[i].value for i in range(props.branchClusters)],
@@ -5265,9 +5279,12 @@ def save_properties(filePath):
         "branchSplitPointAngleList": [props.branchSplitPointAngleList[i].value for i in range(props.branchClusters)],
         
         "splitsPerBranchVariationList": [props.splitsPerBranchVariationList[i].value for i in range(props.branchClusters)],
+        "branchVarianceList": [props.branchVarianceList[i].value for i in range(props.branchClusters)],
         "branchSplitHeightVariationList": [props.branchSplitHeightVariationList[i].value for i in range(props.branchClusters)],
         "branchSplitLengthVariationList": [props.branchSplitLengthVariationList[i].value for i in range(props.branchClusters)],
         "hangingBranchesList": [props.hangingBranchesList[i].value for i in range(props.branchClusters)],
+        
+        "showBranchSplitHeights": [props.showBranchSplitHeights[i].value for i in range(props.branchClusters)],
         
         "branchSplitHeightInLevelListIndex": props.branchSplitHeightInLevelListIndex,
         
@@ -5289,6 +5306,8 @@ def save_properties(filePath):
         "branchSplitHeightInLevelList_5": [item.value for item in props.branchSplitHeightInLevelList_5],
         "branchSplitHeightInLevelListIndex_5": props.branchSplitHeightInLevelListIndex_5,
         
+        "showLeafSettings": [item.value for item in props.showLeafSettings],
+        
         "leavesDensityList": [item.value for item in props.leavesDensityList],
         "leafSizeList": [item.value for item in props.leafSizeList],
         "leafAspectRatioList": [item.value for item in props.leafAspectRatioList],
@@ -5306,6 +5325,7 @@ def save_properties(filePath):
         "leafTiltAngleBranchStartList": [item.value for item in props.leafTiltAngleBranchStartList],
         "leafTiltAngleBranchEndList": [item.value for item in props.leafTiltAngleBranchEndList],
         #TODO: parentClusterBoolListList
+        "showLeafCluaterList": [props.leafParentClusterBoolListList[i].show_leaf_cluster for  i in range(props.branchClusters)],
         "leafParentClusterBoolListList": nestedLeafList
     }
 
@@ -5352,19 +5372,28 @@ def load_properties(filepath, context):
         props.stemRingResolution = data.get("stemRingResolution", props.stemRingResolution)
         props.resampleDistance = data.get("resampleDistance", props.resampleDistance)
         
-        props.noiseAmplitude = data.get("noiseAmplitude", props.noiseAmplitude)
+        props.noiseAmplitudeVertical = data.get("noiseAmplitudeVertical", props.noiseAmplitudeVertical)
+        props.noiseAmplitudeHorizontal = data.get("noiseAmplitudeHorizontal", props.noiseAmplitudeHorizontal)
         props.noiseAmplitudeGradient = data.get("noiseAmplitudeGradient", props.noiseAmplitudeGradient)
         props.noiseAmplitudeExponent = data.get("noiseAmplitudeExponent", props.noiseAmplitudeExponent)
         props.noiseScale = data.get("noiseScale", props.noiseScale)
         props.seed = data.get("seed", props.seed)
         
-        props.nrSplits = data.get("nrSplits", props.nrSplits)
         props.curvatureStart = data.get("curvatureStart", props.curvatureStart)
         props.curvatureEnd = data.get("curvatureEnd", props.curvatureEnd)
+        props.maxCurveSteps = data.get("maxCurveSteps", props.maxCurveSteps)
+        
+        props.nrSplits = data.get("nrSplits", props.nrSplits)
         props.variance = data.get("variance", props.variance)
         props.stemSplitMode = data.get("stemSplitMode", props.stemSplitMode)
         props.stemSplitRotateAngle = data.get("stemSplitRotateAngle", props.stemSplitRotateAngle)
         props.curvOffsetStrength = data.get("curvOffsetStrength", props.curvOffsetStrength)
+        
+        for value in data.get("stemSplitHeightInLevelList", []):
+            item = props.stemSplitHeightInLevelList.add()
+            item.value = value
+        props.stemSplitHeightInLevelListIndex = data.get("stemSplitHeightInLevelListIndex", props.stemSplitHeightInLevelListIndex)
+                
         props.splitHeightVariation = data.get("splitHeightVariation", props.splitHeightVariation)
         props.splitLengthVariation = data.get("splitLengthVariation", props.splitLengthVariation)
         props.stemSplitAngle = data.get("stemSplitAngle", props.stemSplitAngle)
@@ -5376,17 +5405,109 @@ def load_properties(filepath, context):
             item = props.nrBranchesList.add()
             item.value = value
             
-        for value in data.get("branchVarianceList", []):
-            item = props.branchVarianceList.add()
+        for value in data.get("branchShapeList", []):
+            item = props.branchShapeList.add()
             item.value = value
             
-        for value in data.get("branchSplitRotateAngleList", []):
-            item = props.branchSplitRotateAngleList.add()
+        for value in data.get("relBranchLengthList", []):
+            item = props.relBranchLengthList.add()
             item.value = value
             
-        for value in data.get("branchSplitAxisVariationList", []):
-            item = props.branchSplitAxisVariationList.add()
+        for value in data.get("relBranchLengthVariationList", []):
+            item = props.relBranchLengthVariationList.add()
             item.value = value
+            
+        for value in data.get("taperFactorList", []):
+            item = props.taperFactorList.add()
+            item.value = value
+        
+        for value in data.get("ringResolutionList", []):
+            item = props.ringResolutionList.add()
+            item.value = value
+        
+        for value in data.get("branchesStartHeightGlobalList", []):
+            item = props.branchesStartHeightGlobalList.add()
+            item.value = value
+            
+        for value in data.get("branchesEndHeightGlobalList", []):
+            item = props.branchesEndHeightGlobalList.add()
+            item.value = value
+            
+        for value in data.get("branchesStartHeightClusterList", []):
+            item = props.branchesStartHeightClusterList.add()
+            item.value = value
+            
+        for value in data.get("branchesEndHeightClusterList", []):
+            item = props.branchesEndHeightClusterList.add()
+            item.value = value
+        
+        for value in data.get("noiseAmplitudeHorizontalBranchList", []):
+            item = props.noiseAmplitudeHorizontalBranchList.add()
+            item.value = value
+        
+        for value in data.get("noiseAmplitudeVerticalBranchList", []):
+            item = props.noiseAmplitudeVerticalBranchList.add()
+            item.value = value
+        
+        for value in data.get("noiseAmplitudeBranchGradientList", []):
+            item = props.noiseAmplitudeBranchGradientList.add()
+            item.value = value
+            
+        for value in data.get("noiseAmplitudeBranchExponentList", []):
+            item = props.noiseAmplitudBranchExponentList.add()
+            item.value = value
+            
+        for value in data.get("noiseScaleList", []):
+            item = props.noiseScaleList.add()
+            item.value = value
+            
+        
+        for value in data.get("verticalAngleCrownStartList", []):
+            item = props.verticalAngleCrownStartList.add()
+            item.value = value
+            
+        for value in data.get("verticalAngleCrownEndList", []):
+            item = props.verticalAngleCrownEndList.add()
+            item.value = value
+            
+        for value in data.get("verticalAngleBranchStartList", []):
+            item = props.verticalAngleBranchStartList.add()
+            item.value = value
+            
+        for value in data.get("verticalAngleBranchEndList", []):
+            item = props.verticalAngleBranchEndList.add()
+            item.value = value
+        
+        
+        for value in data.get("branchAngleModeList", []):
+            item = props.branchAngleModeList.add()
+            item.value = value
+            
+        # "useFibonacciAnglesList": [props.useFibonacciAnglesList[i].value for i in range(props.branchClusters)],
+        # "fibonacciNr": [props.fibonacciNrList[i].fibonacci_nr for i in range(props.branchClusters)],
+        # "rotateAngleRangeList": [props.fibonacciNrList[i].rotate_angle_range for i in range(props.branchClusters)],
+        # "rotateAngleOffsetList": [props.fibonacciNrList[i].rotate_angle_offset for i in range(props.branchClusters)],
+        
+        for value in data.get("useFibonacciAnglesList", []):
+            item = props.useFibonacciAnglesList.add()
+            item.value = value
+            
+        for value in data.get("fibonacciNr", []):
+            item = props.fibonacciNrList.add()
+            item.fibonacci_nr = value
+        
+        fibIndex = 0
+        for value in data.get("rotateAngleRangeList", []):
+            item = props.fibonacciNrList[fibIndex]
+            item.rotate_angle_range = value
+            fibIndex += 1
+            
+        fibIndex = 0
+        for value in data.get("rotateAngleOffsetList", []):
+            item = props.fibonacciNrList[fibIndex]
+            item.rotate_angle_offset = value
+            fibIndex += 1
+        
         
         for value in data.get("rotateAngleCrownStartList", []):
             item = props.rotateAngleCrownStartList.add()
@@ -5404,65 +5525,6 @@ def load_properties(filepath, context):
             item = props.rotateAngleBranchEndList.add()
             item.value = value
             
-            
-        
-            
-        for value in data.get("branchSplitPointAngleList", []):
-            item = props.branchSplitPointAngleList.add()
-            item.value = value
-            
-        for value in data.get("branchShapeList", []):
-            item = props.branchShapeList.add()
-            item.value = value
-            
-        for value in data.get("taperFactorList", []):
-            item = props.taperFactorList.add()
-            item.value = value
-        
-        for value in data.get("ringResolutionList", []):
-            item = props.ringResolutionList.add()
-            item.value = value
-        
-            
-        for value in data.get("verticalAngleCrownStartList", []):
-            item = props.verticalAngleCrownStartList.add()
-            item.value = value
-            
-        for value in data.get("verticalAngleCrownEndList", []):
-            item = props.verticalAngleCrownEndList.add()
-            item.value = value
-            
-        for value in data.get("verticalAngleBranchStartList", []):
-            item = props.verticalAngleBranchStartList.add()
-            item.value = value
-            
-        for value in data.get("verticalAngleBranchEndList", []):
-            item = props.verticalAngleBranchEndList.add()
-            item.value = value
-                        
-        for value in data.get("rotateAngleRangeList", []):
-            item = props.rotateAngleRangeList.add()
-            item.value = value
-            
-        for value in data.get("branchesStartHeightGlobalList", []):
-            item = props.branchesStartHeightGlobalList.add()
-            item.value = value
-            
-        for value in data.get("branchesEndHeightGlobalList", []):
-            item = props.branchesEndHeightGlobalList.add()
-            item.value = value
-            
-        for value in data.get("branchesStartHeightClusterList", []):
-            item = props.branchesStartHeightClusterList.add()
-            item.value = value
-            
-        for value in data.get("branchesEndHeightClusterList", []):
-            item = props.branchesEndHeightClusterList.add()
-            item.value = value
-            
-        for value in data.get("hangingBranchesList", []):
-            item = props.hangingBranchesList.add()
-            item.value = value
             
         for value in data.get("branchGlobalCurvatureStartList", []):
             item = props.branchGlobalCurvatureStartList.add()
@@ -5483,15 +5545,45 @@ def load_properties(filepath, context):
         for value in data.get("branchCurvatureOffsetStrengthList", []):
             item = props.branchCurvatureOffsetStrengthList.add()
             item.value = value
-            
+        
+        
+        
         for value in data.get("nrSplitsPerBranchList", []):
             item = props.nrSplitsPerBranchList.add()
             item.value = value
             
+        for value in data.get("branchSplitModeList", []):
+            item = props.branchSplitModeList.add()
+            item.value = value
+            
+        for value in data.get("branchSplitRotateAngleList", []):
+            item = props.branchSplitRotateAngleList.add()
+            item.value = value
+            
+        for value in data.get("branchSplitAxisVariationList", []):
+            item = props.branchSplitAxisVariationList.add()
+            item.value = value
+        
+        
+            
+            
+        for value in data.get("branchSplitAngleList", []):
+            item = props.branchSplitAngleList.add()
+            item.value = value
+            
+        for value in data.get("branchSplitPointAngleList", []):
+            item = props.branchSplitPointAngleList.add()
+            item.value = value
+                        
+        
         for value in data.get("splitsPerBranchVariationList", []):
             item = props.splitsPerBranchVariationList.add()
             item.value = value
             
+        for value in data.get("branchVarianceList", []):
+            item = props.branchVarianceList.add()
+            item.value = value
+        
         for value in data.get("branchSplitHeightVariationList", []):
             item = props.branchSplitHeightVariationList.add()
             item.value = value
@@ -5500,7 +5592,110 @@ def load_properties(filepath, context):
             item = props.branchSplitLengthVariationList.add()
             item.value = value
         
+        for value in data.get("hangingBranchesList", []):
+            item = props.hangingBranchesList.add()
+            item.value = value
             
+        props.branchSplitHeightInLevelListIndex = data.get("branchSplitHeightInLevelListIndex", props.branchSplitHeightInLevelListIndex)
+            
+        for value in data.get("branchSplitHeightInLevelList_0", []):
+            item = props.branchSplitHeightInLevelList_0.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_0 = data.get("branchSplitHeightInLevelListIndex_0", props.branchSplitHeightInLevelListIndex_0)
+        
+        for value in data.get("branchSplitHeightInLevelList_1", []):
+            item = props.branchSplitHeightInLevelList_1.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_1 = data.get("branchSplitHeightInLevelListIndex_1", props.branchSplitHeightInLevelListIndex_1)
+        
+        for value in data.get("branchSplitHeightInLevelList_2", []):
+            item = props.branchSplitHeightInLevelList_0.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_2 = data.get("branchSplitHeightInLevelListIndex_2", props.branchSplitHeightInLevelListIndex_2)
+        
+        for value in data.get("branchSplitHeightInLevelList_3", []):
+            item = props.branchSplitHeightInLevelList_3.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_3 = data.get("branchSplitHeightInLevelListIndex_3", props.branchSplitHeightInLevelListIndex_3)
+        
+        for value in data.get("branchSplitHeightInLevelList_4", []):
+            item = props.branchSplitHeightInLevelList_4.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_4 = data.get("branchSplitHeightInLevelListIndex_4", props.branchSplitHeightInLevelListIndex_4)
+        
+        for value in data.get("branchSplitHeightInLevelList_5", []):
+            item = props.branchSplitHeightInLevelList_5.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_5 = data.get("branchSplitHeightInLevelListIndex_5", props.branchSplitHeightInLevelListIndex_5)
+        
+        for value in data.get("leavesDensityList", []):
+            item = props.leavesDensityList.add()
+            item.value = value
+            
+        for value in data.get("leafSizeList", []):
+            item = props.leafSizeList.add()
+            item.value = value
+            
+        for value in data.get("leafAspectRatioList", []):
+            item = props.leafAspectRatioList.add()
+            item.value = value
+           
+        for value in data.get("leafStartHeightGlobalList", []):
+            item = props.leafStartHeightGlobalList.add()
+            item.value = value
+           
+        for value in data.get("leafEndHeightGlobalList", []):
+            item = props.leafEndHeightGlobalList.add()
+            item.value = value
+              
+        for value in data.get("leafStartHeightClusterList", []):
+            item = props.leafStartHeightClusterList.add()
+            item.value = value
+            
+        for value in data.get("leafEndHeightClusterList", []):
+            item = props.leafEndHeightClusterList.add()
+            item.value = value
+            
+        for value in data.get("leafTypeList", []):
+            item = props.leafTypeList.add()
+            item.value = value
+            
+        for value in data.get("leafAngleModeList", []):
+            item = props.leafAngleModeList.add()
+            item.value = value
+            
+        for value in data.get("leafVerticalAngleBranchStartList", []):
+            item = props.leafVerticalAngleBranchStartList.add()
+            item.value = value
+            
+        for value in data.get("leafVerticalAngleBranchEndList", []):
+            item = props.leafVerticalAngleBranchEndList.add()
+            item.value = value
+           
+        for value in data.get("leafRotateAngleBranchStartList", []):
+            item = props.leafRotateAngleBranchStartList.add()
+            item.value = value
+         
+        for value in data.get("leafRotateAngleBranchEndList", []):
+            item = props.leafRotateAngleBranchEndList.add()
+            item.value = value
+        
+        for value in data.get("leafTiltAngleBranchStartList", []):
+            item = props.leafTiltAngleBranchStartList.add()
+            item.value = value
+        
+        for value in data.get("leafTiltAngleBranchEndList", []):
+            item = props.leafTiltAngleBranchEndList.add()
+            item.value = value
+        
+        
+        
         #generateTree()
         #-----------------------
         #"nrBranchesList": [props.nrBranchesList[i].value for i in range(0, props.branchClusters)],
