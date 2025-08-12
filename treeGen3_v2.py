@@ -2299,7 +2299,8 @@ def splitBranches(treeGen,
         length = allBranchNodes[i].lengthToTip()
         branchLengths.append(length)
         totalLength += length
-        weight = pow(length, 8.0)
+        #weight = pow(length, 8.0)
+        weight = pow(length, 2.0)
         branchWeights.append(weight)
         totalWeight += weight
     treeGen.report({'INFO'}, f"len(allBranchNodes): {len(allBranchNodes)}")
@@ -2310,15 +2311,21 @@ def splitBranches(treeGen,
         treeGen.report({'INFO'}, f"splitsForBranch[{i}]: {splitsForBranch[i]}")
         
         #TODO: ~branch length...
-        if splitsForBranch[i] < 0:
-            splitsForBranch[i] = 0
+        if splitsForBranch[i] < 1:
+            splitsForBranch[i] = 1
         
-        splitProbabilityInLevel = [0.0 for i in range(splitsForBranch[i])]
-        expectedSplitsInLevel = [0 for i in range(splitsForBranch[i])]
+        splitProbabilityInLevel = [0.0 for j in range(splitsForBranch[i])]
+        expectedSplitsInLevel = [0 for j in range(splitsForBranch[i])]
         
-        meanLevel = int(math.log(splitsForBranch[i], 2))
-        if meanLevel == 0:
-            meanLevel = 1
+        if splitsForBranch[i] > 0:
+            meanLevel = int(math.log(splitsForBranch[i], 2))
+        else:
+            meanLevel = 0
+            
+        if meanLevel < 0:
+            meanLevel = 0
+        #if meanLevel == 0:
+        #    meanLevel = 1
         if splitsForBranch[i] > 0:
             splitProbabilityInLevel[0] = 1.0
             expectedSplitsInLevel[0] = 1
@@ -2348,7 +2355,7 @@ def splitBranches(treeGen,
         totalExpectedSplits = 0
         for j in range(splitsForBranch[i]):
             totalExpectedSplits += expectedSplitsInLevel[j]
-            if expectedSplitsInLevel[i] < maxPossibleSplits:
+            if expectedSplitsInLevel[j] < maxPossibleSplits:
                 addToLevel = j
                 treeGen.report({'INFO'}, f"addToLevel: {j} -> break!")
                 break
@@ -2364,6 +2371,7 @@ def splitBranches(treeGen,
             treeGen.report({'INFO'}, f"expected splits: {e}")
         
         nodesInLevelNextIndex = [[] for _ in range(splitsForBranch[i] + 1)]
+        
         for n in range(len(allBranchNodes[i].next)):
             nodesInLevelNextIndex[0].append((allBranchNodes[i], n))
             
@@ -2416,25 +2424,27 @@ def splitBranches(treeGen,
                             del nodeIndices[indexToSplit]
                             treeGen.report({'INFO'}, "did not split!")
                         else:
-                            treeGen.report({'INFO'}, f"index to remove: {indexToSplit}, len(nodeIndices): {len(nodeIndices)}, level: {level}")
+                            treeGen.report({'INFO'}, f"index to remove: {indexToSplit}, len(nodeIndices): {len(nodeIndices)}, len(branchWeights): {len(branchWeights)}, level: {level}")
                             maxSplitHeightInLevelUsed = level
                             
-                            totalWeight -= branchWeights[indexToSplit]
-                            lengthA = splitNode.next[0].lengthToTip()
-                            lengthB = splitNode.next[1].lengthToTip()
+                            #totalWeight -= branchWeights[indexToSplit]
+                            #lengthA = splitNode.next[0].lengthToTip()
+                            #lengthB = splitNode.next[1].lengthToTip()
                             
-                            del branchWeights[indexToSplit]
-                            totalWeight += lengthA + lengthB
-                            
-                            nodesInLevelNextIndex[level + 1].append(nodeInfo(splitNode, 0, nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].splitsPerBranch + 1))
-                            nodesInLevelNextIndex[level + 1].append(nodeInfo(splitNode, 1, nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].splitsPerBranch + 1))
+                            #del branchWeights[indexToSplit]
+                            #totalWeight += lengthA + lengthB
+                        
+                            nodesInLevelNextIndex[level + 1].append((splitNode, 0))
+                            nodesInLevelNextIndex[level + 1].append((splitNode, 1))
+                            #nodesInLevelNextIndex[level + 1].append(nodeInfo(splitNode, 0, nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].splitsPerBranch + 1))
+                            #nodesInLevelNextIndex[level + 1].append(nodeInfo(splitNode, 1, nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].splitsPerBranch + 1))
                             
                             del nodeIndices[indexToSplit]
                             
                             splitsInLevel += 1
-                            totalSplitCounter += 1
+                            #totalSplitCounter += 1
                             
-        return maxSplitHeightInLevelUsed
+    return 20 # TODO maxSplitHeightInLevelUsed
     
     #################################
     
