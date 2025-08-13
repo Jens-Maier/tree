@@ -796,6 +796,7 @@ class generateTree(bpy.types.Operator):
                 #self.report({'ERROR'}, "ERROR: when treeGrowDir == (0,0,1)")
                 self.report({'INFO'}, "treeGrowDir == (0,0,1)")
                 
+            self.report({'INFO'}, f"branch clusters: {context.scene.branchClusters}")
             # splitRecursive -> resampleSpline -> applyCurvature
             nodes[0].drawTangentArrows(self)
             
@@ -1955,9 +1956,10 @@ noiseGenerator):
                         
                         if rotateAngleRangeList[clusterIndex].value > 0:
                             angle = (windingAngle + 360.0) % 360.0
-                            # fibonacciNrList,
+                            treeGen.report({'INFO'}, f"useFibonacci = true: in add Branches: windingAngle: {windingAngle}, angle: {angle}")
                         else:
                             angle = 0.0
+                        right = startPointTangent.cross(Vector((1.0,0.0,0.0))).normalized() # -> most likely vertical
                     else:
                         #treeGen.report({'INFO'}, f"in add Branches: fibonacciNrList[clusterIndex].rotate_angle_range: {fibonacciNrList[clusterIndex].rotate_angle_range}")
                         #treeGen.report({'INFO'}, f"in add Branches: windingAngle: {windingAngle}")
@@ -1966,11 +1968,13 @@ noiseGenerator):
                         angle = windingAngle % fibonacciNrList[clusterIndex].rotate_angle_range + fibonacciNrList[clusterIndex].rotate_angle_offset - fibonacciNrList[clusterIndex].rotate_angle_range / 2.0
                         #treeGen.report({'INFO'}, f"in add Branches: angle: {angle}")
                         
-                    right = startPointTangent.cross(Vector((0.0,0.0,1.0))).normalized()
+                        right = startPointTangent.cross(Vector((0.0,0.0,1.0))).normalized()
+                        
+                    treeGen.report({'INFO'}, f"WINDING: right: {right}")
                     axis = right.cross(startPointTangent).normalized()
                     #axis = startPointTangent.cross(data.outwardDir)
                     branchDir = Quaternion(axis, math.radians(-verticalAngle)) @ startPointTangent
-                    #treeGen.report({'INFO'}, f"WINDING: verticalAngle: {verticalAngle}, axis: {axis}, branchDir: {branchDir}")
+                    treeGen.report({'INFO'}, f"WINDING: angle: {angle}, axis startPointTangent: {startPointTangent}, branchDir: {branchDir}")
                     branchDir = Quaternion(startPointTangent, math.radians(angle)) @ branchDir
                     
                 # if context.scene.useFibonacciAnglesList[clusterIndex].value == True:
@@ -2102,6 +2106,7 @@ noiseGenerator):
                 
                 if context.scene.useFibonacciAnglesList[clusterIndex].value == True:
                     windingAngle += context.scene.fibonacciNrList[clusterIndex].fibonacci_angle
+                    treeGen.report({'INFO'}, f"in addBranches: windingAngle += {context.scene.fibonacciNrList[clusterIndex].fibonacci_angle}")
                 else:
                     rotateAngle = (globalRotateAngle + branchRotateAngle) % fibonacciNrList[clusterIndex].rotate_angle_range #rotateAngleRangeList[clusterIndex].value
                     windingAngle += rotateAngle
@@ -2291,6 +2296,7 @@ def splitBranches(treeGen,
                   rootNode, 
                   branchCluster, 
                   nrBranchSplits, # = int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value)
+                                  # used because branchSplitHeightInLevel needs max possible nrBranchSplits!
                   
                   splitAngle, 
                   splitPointAngle, 
@@ -2341,6 +2347,10 @@ def splitBranches(treeGen,
     treeGen.report({'INFO'}, f"len(allBranchNodes): {len(allBranchNodes)}")
     for i in range(len(allBranchNodes)):
         treeGen.report({'INFO'}, f"start of loop: i: {i}, len(allBranchNodes): {len(allBranchNodes)}")
+        
+        treeGen.report({'INFO'}, f"floatSplitsForBranch[i]: {floatSplitsForBranch[i]}, splitsPerBranchVariation: {splitsPerBranchVariation}")
+        
+        # nrBranchSplits = int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value)
         
         splitsForBranch[i] = int(round(nrBranchSplits * branchWeights[i] / totalWeight + random.uniform(-splitsPerBranchVariation * floatSplitsForBranch[i], splitsPerBranchVariation * floatSplitsForBranch[i])))
         treeGen.report({'INFO'}, f"splitsForBranch[{i}]: {splitsForBranch[i]}")
@@ -3192,6 +3202,19 @@ class leafTypeEnumProp(bpy.types.PropertyGroup):
         ],
         default='SINGLE'
     )
+    
+class branchClusterSettings(bpy.types.PropertyGroup):
+    nrBranchesList: bpy.props.IntProperty(name = "nrBranchesList", default = 0, min = 0)
+    branchShapeList: bpy.props.PointerProperty(type=treeShapeEnumProp)
+    relBranchLengthList: bpy.props.FloatProperty(name = "relBranchLengthList", default = 1.0, min = 0.0, max = 1.0)
+    
+    #Yes, it’s possible to reuse properties (including EnumProperty values) across multiple PropertyGroup classes in Blender. You can define an EnumProperty or any other property in one PropertyGroup, and then use that property in multiple other PropertyGroup classes by referencing it.
+    #shared_enum: bpy.props.PointerProperty(type=SharedEnumPropertyGroup)
+    
+    
+    #value: bpy.props.CollectionProperty(name = "floatListProperty", type=floatProp)
+    #bpy.types.Scene.branchSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0)
+    #treeShapeEnumProp
         
 class UL_stemSplitLevelList(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
@@ -4380,7 +4403,7 @@ class leafSettings(bpy.types.Panel):
         row.operator("scene.remove_leaf_item", text="Remove").index = context.scene.leavesDensityListIndex
         row = layout.row()
         
-        for i, outer in enumerate(scene.leavesDensityList):
+        for i, outer in enumerate(scene.showLeafSettings):
             
             box = layout.box()
             box.prop(scene.showLeafSettings[i], "value", icon="TRIA_DOWN" if scene.showLeafSettings[i].value else "TRIA_RIGHT", emboss=False, text=f"Leaf cluster {i}", toggle=True)
@@ -4491,6 +4514,8 @@ def register():
     bpy.utils.register_class(leafParentClusterBoolListProp)
     bpy.utils.register_class(leafAngleModeEnumProp)
     bpy.utils.register_class(leafTypeEnumProp)
+    
+    bpy.utils.register_class(branchClusterSettings)
     
     #operators
     bpy.utils.register_class(addItem)
@@ -5325,7 +5350,7 @@ def save_properties(filePath):
         "leafTiltAngleBranchStartList": [item.value for item in props.leafTiltAngleBranchStartList],
         "leafTiltAngleBranchEndList": [item.value for item in props.leafTiltAngleBranchEndList],
         #TODO: parentClusterBoolListList
-        "showLeafCluaterList": [props.leafParentClusterBoolListList[i].show_leaf_cluster for  i in range(props.branchClusters)],
+        "showLeafClusterList": [props.leafParentClusterBoolListList[i].show_leaf_cluster for  i in range(len(props.leafParentClusterBoolListList))],
         "leafParentClusterBoolListList": nestedLeafList
     }
 
