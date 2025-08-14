@@ -816,11 +816,6 @@ class generateTree(bpy.types.Operator):
                 
                 context.scene.nrBranchesList, 
                 context.scene.parentClusterBoolListList, 
-                context.scene.branchesStartHeightGlobalList, 
-                
-                context.scene.branchesEndHeightGlobalList, 
-                context.scene.branchesStartHeightClusterList, 
-                context.scene.branchesEndHeightClusterList, 
                 
                 context.scene.treeGrowDir, 
                 context.scene.treeHeight, 
@@ -1760,11 +1755,6 @@ branchClusterSettingsList,
 
 nrBranchesList, 
 parentClusterBoolListList, 
-branchesStartHeightGlobalList, 
-
-branchesEndHeightGlobalList, 
-branchesStartHeightClusterList, 
-branchesEndHeightClusterList, 
 
 treeGrowDir, 
 treeHeight, 
@@ -1824,11 +1814,11 @@ noiseGenerator):
     #treeGen.report({'INFO'}, f"in add Branches(): len(nrBranchesList): {len(nrBranchesList)}, ")
     #if len(nrBranchesList) > 0 and len(branchesStartHeightGlobalList) > 0:
     for clusterIndex in range(0, branchClusters):
-        nrBranches = branchClusterSettingsList[clusterIndex].nrBranches #nrBranchesList[clusterIndex].value        
-        branchesStartHeightGlobal = branchesStartHeightGlobalList[clusterIndex].value
-        branchesEndHeightGlobal = branchesEndHeightGlobalList[clusterIndex].value
-        branchesStartHeightCluster = branchesStartHeightClusterList[clusterIndex].value
-        branchesEndHeightCluster = branchesEndHeightClusterList[clusterIndex].value
+        nrBranches = branchClusterSettingsList[clusterIndex].nrBranches      
+        branchesStartHeightGlobal = branchClusterSettingsList[clusterIndex].branchesStartHeightGlobal
+        branchesEndHeightGlobal = branchClusterSettingsList[clusterIndex].branchesEndHeightGlobal
+        branchesStartHeightCluster = branchClusterSettingsList[clusterIndex].branchesStartHeightCluster
+        branchesEndHeightCluster = branchClusterSettingsList[clusterIndex].branchesEndHeightCluster
         
         #treeGen.report({'INFO'}, f"in add Branches() clusterIndex: {clusterIndex}")
         
@@ -1841,7 +1831,7 @@ noiseGenerator):
         else:
             c = clusterIndex
             
-        for i in range(0, nrBranchesList[c].value):
+        for i in range(0, branchClusterSettingsList[clusterIndex].nrBranches):
             branchNodesNextIndexStartTvalEndTval.append([])
         
         treeGen.report({'INFO'}, f"calling rootNode.getAllStartNodes(), clusterIndex: {clusterIndex}")
@@ -1902,8 +1892,8 @@ noiseGenerator):
             #treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, totalLength: {totalLength}") 
             
             windingAngle = 0.0
-            for branchIndex in range(0, nrBranchesList[clusterIndex].value):
-                branchPos = branchIndex * totalLength / nrBranchesList[clusterIndex].value
+            for branchIndex in range(0, nrBranches):
+                branchPos = branchIndex * totalLength / nrBranches
                 #treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, branchPos: {branchPos}") 
                 
                 data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, False)
@@ -1939,8 +1929,9 @@ noiseGenerator):
                 #treeGen.report({'INFO'}, f"in add Branches: clusterIndex: {clusterIndex}, rotateAngleBranchStart: {rotateAngleBranchStartList[clusterIndex].value}, rotateAngleBranchEnd: {rotateAngleBranchEndList[clusterIndex].value}, tValBranch: {data.startNode.tValBranch}, branchRotateAngle: {branchRotateAngle}, globalRotateAngle: {globalRotateAngle}")
                 
                 #treeGen.report({'INFO'}, f"in add Branches: rotateAngleRange: {rotateAngleRangeList[clusterIndex].value}")
-                if rotateAngleRangeList[clusterIndex].value == 0.0:
-                    rotateAngleRangeList[clusterIndex].value = 180.0
+                
+                if branchClusterSettingsList[clusterIndex].rotateAngleRange == 0.0:
+                    branchClusterSettingsList[clusterIndex].rotateAngleRange = 180.0
                 
                 
                 
@@ -1949,7 +1940,7 @@ noiseGenerator):
                 #treeGen.report({'INFO'}, f"in add Branches: angleMode: {branchAngleModeList[0].value}")
                 
                 #treeGen.report({'INFO'}, f"in add Branches: clusterIndex: {clusterIndex}, branchClusters: {branchClusters}")
-                if branchAngleModeList[clusterIndex].value == "WINDING":
+                if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "WINDING":
                     
                     centerDir = data.outwardDir # for symmetric!
                     #drawArrow(startPoint, startPoint + data.outwardDir)
@@ -1957,21 +1948,21 @@ noiseGenerator):
                 
                     #drawArrow(startPoint, startPoint + centerDir * 2.5) #???
                 
-                    if useFibonacciAnglesList[clusterIndex].value == True:
+                    if branchClusterSettingsList[clusterIndex].useFibonacciAngles == True:
                 
                         
-                        if rotateAngleRangeList[clusterIndex].value > 0:
-                            angle = (windingAngle + 360.0) % 360.0
-                            treeGen.report({'INFO'}, f"useFibonacci = true: in add Branches: windingAngle: {windingAngle}, angle: {angle}")
-                        else:
-                            angle = 0.0
+                        #if rotateAngleRangeList[clusterIndex].value > 0:
+                        angle = (windingAngle + 360.0) % 360.0
+                        treeGen.report({'INFO'}, f"useFibonacci = true: in add Branches: windingAngle: {windingAngle}, angle: {angle}")
+                        #else:
+                        #    angle = 0.0
                         right = startPointTangent.cross(Vector((1.0,0.0,0.0))).normalized() # -> most likely vertical
                     else:
                         #treeGen.report({'INFO'}, f"in add Branches: fibonacciNrList[clusterIndex].rotate_angle_range: {fibonacciNrList[clusterIndex].rotate_angle_range}")
                         #treeGen.report({'INFO'}, f"in add Branches: windingAngle: {windingAngle}")
-                        if fibonacciNrList[clusterIndex].rotate_angle_range <= 0.0:
-                            fibonacciNrList[clusterIndex].rotate_angle_range = 180.0
-                        angle = windingAngle % fibonacciNrList[clusterIndex].rotate_angle_range + fibonacciNrList[clusterIndex].rotate_angle_offset - fibonacciNrList[clusterIndex].rotate_angle_range / 2.0
+                        if branchClusterSettingsList[clusterIndex].rotateAngleRange <= 0.0:
+                            branchClusterSettingsList[clusterIndex].rotateAngleRange = 180.0
+                        angle = windingAngle % branchClusterSettingsList[clusterIndex].rotateAngleRange + branchClusterSettingsList[clusterIndex].rotateAngleOffset - branchClusterSettingsList[clusterIndex].rotateAngleRange / 2.0
                         #treeGen.report({'INFO'}, f"in add Branches: angle: {angle}")
                         
                         right = startPointTangent.cross(Vector((0.0,0.0,1.0))).normalized()
@@ -4185,23 +4176,19 @@ class branchSettings(bpy.types.Panel):
                     box1 = box.box()
                     split = box1.split(factor=0.6)
                     split.label(text="Vertical angle crown start")
-                    if i < len(scene.verticalAngleCrownStartList):
-                        split.prop(scene.verticalAngleCrownStartList[i], "value", text="")
+                    split.prop(scene.branchClusterSettingsList[i], "verticalAngleCrownStart", text="")
                         
                     split = box1.split(factor=0.6)
                     split.label(text="Vertical angle crown end")
-                    if i < len(scene.verticalAngleCrownEndList):
-                        split.prop(scene.verticalAngleCrownEndList[i], "value", text="")
+                    split.prop(scene.branchClusterSettingsList[i], "verticalAngleCrownEnd", text="")
                 
                     split = box1.split(factor=0.6)
                     split.label(text="Vertical angle branch start")
-                    if i < len(scene.verticalAngleBranchStartList):
-                        split.prop(scene.verticalAngleBranchStartList[i], "value", text="")
+                    split.prop(scene.branchClusterSettingsList[i], "verticalAngleBranchStart", text="")
                     
                     split = box1.split(factor=0.6)
                     split.label(text="Vertical angle branch end")
-                    if i < len(scene.verticalAngleBranchEndList):
-                        split.prop(scene.verticalAngleBranchEndList[i], "value", text="")
+                    split.prop(scene.branchClusterSettingsList[i], "verticalAngleBranchEnd", text="")
                 
                     split = box1.split(factor=0.6)
                     split.label(text="Branch angle mode")
@@ -4224,7 +4211,7 @@ class branchSettings(bpy.types.Panel):
                             
                                 split = box2.split(factor=0.6)
                                 split.label(text="Fibonacci number")
-                                split.prop(scene.branchClusterSettingsList[i], "fibonacciNr.fibonacci_nr", text="")
+                                split.prop(scene.branchClusterSettingsList[i].fibonacciNr, "fibonacci_nr", text="")
                                 #split.prop(scene.fibonacciNrList[i], "fibonacci_nr", text="")
                                 
                                 # in branchClusterSettings: 
@@ -4244,19 +4231,19 @@ class branchSettings(bpy.types.Panel):
                                 
                                 split1 = box2.split(factor=0.6)
                                 split1.label(text="Angle:")
-                                split1.label(text=f"{scene.fibonacciNrList[i].fibonacci_angle:.2f}°")
+                                split1.label(text=f"{scene.branchClusterSettingsList[i].fibonacciNr.fibonacci_angle:.2f}°")
                             
-                        if scene.useFibonacciAnglesList[i].value == False or scene.branchAngleModeList[i].value == 'SYMMETRIC':
+                        if scene.branchClusterSettingsList[i].useFibonacciAngles == False or scene.branchClusterSettingsList[i].branchAngleMode.value == 'SYMMETRIC':
                             split = box2.split(factor=0.6)
                             split.label(text="Rotate angle range")
                             split.prop(scene.branchClusterSettingsList[i], "rotateAngleRange", text="")
                             
-                        if scene.useFibonacciAnglesList[i].value == False and scene.branchAngleModeList[i].value == 'WINDING':
+                        if scene.branchClusterSettingsList[i].useFibonacciAngles == False and scene.branchClusterSettingsList[i].branchAngleMode.value == 'WINDING':
                             split = box2.split(factor=0.6)
                             split.label(text="Rotate angle offset")
                             split.prop(scene.branchClusterSettingsList[i], "rotateAngleOffset", text="")
                         
-                        if scene.useFibonacciAnglesList[i].value == False or scene.branchAngleModeList[i].value == 'SYMMETRIC':
+                        if scene.branchClusterSettingsList[i].useFibonacciAngles == False or scene.branchClusterSettingsList[i].branchAngleMode.value == 'SYMMETRIC':
                             split = box2.split(factor=0.6)
                             split.label(text="Rotate angle crown start")
                             split.prop(scene.branchClusterSettingsList[i], "rotateAngleCrownStart", text="")
