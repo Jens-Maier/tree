@@ -800,6 +800,8 @@ class generateTree(bpy.types.Operator):
             # splitRecursive -> resampleSpline -> applyCurvature
             nodes[0].drawTangentArrows(self)
             
+            #context.scene.branchClusterSettingsList
+            
             if context.scene.branchClusters > 0:
                 addBranches(
                 self, 
@@ -2031,7 +2033,7 @@ noiseGenerator):
                               1.0, 
                               branchCotangent, 
                               clusterIndex, 
-                              ringResolutionList[clusterIndex].value, 
+                              ringResolutionList[clusterIndex].value, # -> branchClusterSettingsList[clusterIndex].ringResolution
                               taper * taperFactorList[clusterIndex].value, 
                               startTvalGlobal, #tValGlobal
                               0.0, 
@@ -3004,8 +3006,8 @@ class fibonacciProps(bpy.types.PropertyGroup):
     use_fibonacci: bpy.props.BoolProperty(name = "useFibonacci", default=False,
         update = lambda self, context:update_fibonacci_numbers(self)) ##########  -> both in one propertyGroup!
         
-    rotate_angle_range: bpy.props.FloatProperty(name="", default=0.0, min=0.0)
-    rotate_angle_offset: bpy.props.FloatProperty(name="", default=0.0)
+    #rotate_angle_range: bpy.props.FloatProperty(name="", default=0.0, min=0.0)
+    #rotate_angle_offset: bpy.props.FloatProperty(name="", default=0.0)
         
 
     
@@ -3204,9 +3206,132 @@ class leafTypeEnumProp(bpy.types.PropertyGroup):
     )
     
 class branchClusterSettings(bpy.types.PropertyGroup):
-    nrBranchesList: bpy.props.IntProperty(name = "nrBranchesList", default = 0, min = 0)
-    branchShapeList: bpy.props.PointerProperty(type=treeShapeEnumProp)
-    relBranchLengthList: bpy.props.FloatProperty(name = "relBranchLengthList", default = 1.0, min = 0.0, max = 1.0)
+    branchClusterBoolList: bpy.props.CollectionProperty(type=branchClusterBoolListProp)
+    nrBranches: bpy.props.IntProperty(name = "Number of branches", default = 0, min = 0)
+    nrBranchesIndex: bpy.props.IntProperty(name = "nrBranchesListIndex", default=0)
+    branchShape: bpy.props.PointerProperty(type = treeShapeEnumProp)
+    relBranchLength: bpy.props.FloatProperty(name = "Relative branch length", default = 1.0, min = 0.0, max = 1.0)
+    relBranchLengthVariation: bpy.props.FloatProperty(name = "Relative branch length variation", default = 0.0, min = 0.0, soft_max = 1.0)
+    taperFactor: bpy.props.FloatProperty(name = "Taper factor", default = 1.0, min = 0.0, soft_max = 1.0)
+    ringResolution: bpy.props.IntProperty(name = "Ring resolution", default = 6, min = 3)
+    branchesStartHeightGlobal: bpy.props.FloatProperty(name = "Branches start height global", default = 0.0, min = 0.0, max = 1.0)
+    branchesEndHeightGlobal: bpy.props.FloatProperty(name = "Branches end height global", default = 0.0, min = 0.0, max = 1.0)
+    branchesStartHeightCluster: bpy.props.FloatProperty(name = "Branches start height cluster", default = 0.0, min = 0.0, max = 1.0)
+    branchesEndHeightCluster: bpy.props.FloatProperty(name = "Branches end height cluster", default = 0.0, min = 0.0, max = 1.0)
+    
+    #bpy.types.Scene.branchClusterBoolListList = bpy.props.CollectionProperty(type=branchClusterBoolListProp)
+    #bpy.types.Scene.nrBranchesList = bpy.props.CollectionProperty(type=intProp)
+    #bpy.types.Scene.nrBranchesListIndex = bpy.props.IntProperty(default=0)
+    #bpy.types.Scene.branchShapeList = bpy.props.CollectionProperty(type=treeShapeEnumProp)
+    #bpy.types.Scene.relBranchLengthList = bpy.props.CollectionProperty(type=posFloatPropSoftMax1)
+    #bpy.types.Scene.relBranchLengthVariationList = bpy.props.CollectionProperty(type=posFloatPropSoftMax1Default0)
+    #bpy.types.Scene.taperFactorList = bpy.props.CollectionProperty(type=posFloatPropSoftMax1)
+    #bpy.types.Scene.ringResolutionList = bpy.props.CollectionProperty(type=posIntProp3)
+    #bpy.types.Scene.branchesStartHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
+    #bpy.types.Scene.branchesEndHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
+    #bpy.types.Scene.branchesStartHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
+    #bpy.types.Scene.branchesEndHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
+    
+    noiseAmplitudeHorizontalBranch: bpy.props.FloatProperty(name = "Noise amplitude horizontal", default = 0.0, min = 0.0)
+    noiseAmplitudeVerticalBranch: bpy.props.FloatProperty(name = "Noise amplitude vertical", default = 0.0, min = 0.0)
+    noiseAmplitudeBranchGradient: bpy.props.FloatProperty(name = "Noise amplitude gradient", default = 0.0, min = 0.0)
+    noiseAmplitudeBranchExponent: bpy.props.FloatProperty(name = "Noise amplitude exponent", default = 1.0, min = 0.0)
+    noiseScale: bpy.props.FloatProperty(name = "Noise scale", default = 1.0, min = 0.0)
+    
+    #bpy.types.Scene.noiseAmplitudeHorizontalBranchList = bpy.props.CollectionProperty(type=posFloatProp)
+    #bpy.types.Scene.noiseAmplitudeVerticalBranchList = bpy.props.CollectionProperty(type=posFloatProp)
+    #bpy.types.Scene.noiseAmplitudeBranchGradientList = bpy.props.CollectionProperty(type=posFloatProp)    
+    #bpy.types.Scene.noiseAmplitudeBranchExponentList = bpy.props.CollectionProperty(type=posFloatPropDefault1)
+    #bpy.types.Scene.noiseScaleList = bpy.props.CollectionProperty(type=posFloatPropDefault1)
+    
+    verticalAngleCrownStart: bpy.props.FloatProperty(name = "Vertical angle crown start")
+    verticalAngleCrownEnd: bpy.props.FloatProperty(name = "Vertical angle crown end")
+    verticalAngleBranchStart: bpy.props.FloatProperty(name = "Vertical angle branch start")
+    verticalAngleBranchEnd: bpy.props.FloatProperty(name = "Vertical angle branch end")
+    branchAngleMode: bpy.props.PointerProperty(type = angleModeEnumProp)
+    useFibonacciAngles: bpy.props.BoolProperty(name = "Use Fibonacci angles")
+    fibonacciNr: bpy.props.PointerProperty(type = fibonacciProps)
+    rotateAngleRange: bpy.props.FloatProperty(name = "Rotate angle range") # -> no longer in fibonacciProps!
+    rotateAngleOffset: bpy.props.FloatProperty(name = "Rotate angle offset") # -> no longer in fibonacciProps!
+    
+    rotateAngleCrownStart: bpy.props.FloatProperty(name = "Rotate angle crown start")
+    rotateAngleCrownEnd: bpy.props.FloatProperty(name = "Rotate angle crown end")
+    rotateAngleBranchStart: bpy.props.FloatProperty(name = "Rotate angle branch start")
+    rotateAngleBranchEnd: bpy.props.FloatProperty(name = "Rotate angle branch end")
+    
+    hangingBranches: bpy.props.BoolProperty(name = "Hanging branches")
+    branchGlobalCurvatureStart: bpy.props.FloatProperty(name = "Branch global curvature start")
+    branchGlobalCurvatureEnd: bpy.props.FloatProperty(name = "Branch global curvature end")
+    branchCurvatureStart: bpy.props.FloatProperty(name = "Branch curvature start")
+    branchCurvatureEnd: bpy.props.FloatProperty(name = "Branch curvature end")
+    branchCurvatureOffsetStrength: bpy.props.FloatProperty(name = "Branch curvature offset", min = 0.0)
+    
+    #bpy.types.Scene.verticalAngleCrownStartList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.verticalAngleCrownEndList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.verticalAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.verticalAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.branchAngleModeList = bpy.props.CollectionProperty(type=angleModeEnumProp)
+    #bpy.types.Scene.useFibonacciAnglesList = bpy.props.CollectionProperty(type=boolProp)
+    #bpy.types.Scene.fibonacciNrList = bpy.props.CollectionProperty(type=fibonacciProps)
+    #bpy.types.Scene.rotateAngleRangeList = bpy.props.CollectionProperty(type=floatProp)
+    
+    #bpy.types.Scene.rotateAngleCrownStartList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.rotateAngleCrownEndList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.rotateAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.rotateAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
+    
+    #bpy.types.Scene.hangingBranchesList = bpy.props.CollectionProperty(type=boolProp)
+    #bpy.types.Scene.branchGlobalCurvatureStartList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.branchGlobalCurvatureEndList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.branchCurvatureStartList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.branchCurvatureEndList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.branchCurvatureOffsetStrengthList = bpy.props.CollectionProperty(type=posFloatProp)
+    
+    nrSplitsPerBranch: bpy.props.FloatProperty(name = "Nr splits per branch", default = 0.0, min = 0.0)
+    branchSplitMode: bpy.props.PointerProperty(type=splitModeEnumProp)
+    branchSplitRotateAngle: bpy.props.FloatProperty(name = "Branch split rotate angle")
+    branchSplitAxisVariation: bpy.props.FloatProperty(name = "Branch split axis variation", min = 0.0)
+    
+    branchSplitAngle: bpy.props.FloatProperty(name = "Branch split angle", min = 0.0)
+    branchSplitPointAngle: bpy.props.FloatProperty(name = "Branch split point angle", min = 0.0)
+    
+    splitsPerBranchVariation: bpy.props.FloatProperty(name = "Splits per branch variation", min = 0.0, max = 1.0)
+    branchVariance: bpy.props.FloatProperty(name = "Branch varianace", default = 0.0, min = 0.0, max = 1.0)
+    branchSplitHeightVariation: bpy.props.FloatProperty(name = "Branch split height variation", default = 0.0, min = 0.0, max = 1.0)
+    branchSplitLengthVariation: bpy.props.FloatProperty(name = "Branch split length variation", default = 0.0, min = 0.0, max = 1.0)
+    
+    #bpy.types.Scene.branchSplitModeList = bpy.props.CollectionProperty(type=splitModeEnumProp)
+    #bpy.types.Scene.branchVarianceList = bpy.props.CollectionProperty(type=floatProp01)
+    #bpy.types.Scene.branchSplitRotateAngleList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.branchSplitAxisVariationList = bpy.props.CollectionProperty(type=posFloatProp)
+    
+    #bpy.types.Scene.branchSplitAngleList = bpy.props.CollectionProperty(type=posFloatProp)
+    #bpy.types.Scene.branchSplitPointAngleList = bpy.props.CollectionProperty(type=posFloatProp)
+    
+    #bpy.types.Scene.nrSplitsPerBranchList = bpy.props.CollectionProperty(type=posFloatProp)
+    #bpy.types.Scene.splitsPerBranchVariationList = bpy.props.CollectionProperty(type=floatProp01)
+    #bpy.types.Scene.branchSplitHeightVariationList = bpy.props.CollectionProperty(type=floatProp01)
+    #bpy.types.Scene.branchSplitLengthVariationList = bpy.props.CollectionProperty(type=floatProp01)
+    
+    branchSplitHeightInLevelListList: bpy.props.PointerProperty(type=floatListProp01)
+    branchSplitHeightInLevelListIndex: bpy.props.IntProperty(default = 0)
+    showBranchSplitHeights: bpy.props.BoolProperty(name = "Show / hide split levels", default = True)
+    
+    #bpy.types.Scene.branchSplitHeightInLevelListList = bpy.props.CollectionProperty(type=floatListProp01)
+    #bpy.types.Scene.branchSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0)
+    #bpy.types.Scene.branchSplitHeightInLevelList_0 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    #bpy.types.Scene.branchSplitHeightInLevelListIndex_0 = bpy.props.IntProperty(default = 0)
+    #bpy.types.Scene.branchSplitHeightInLevelList_1 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    #bpy.types.Scene.branchSplitHeightInLevelListIndex_1 = bpy.props.IntProperty(default = 0)
+    #bpy.types.Scene.branchSplitHeightInLevelList_2 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    #bpy.types.Scene.branchSplitHeightInLevelListIndex_2 = bpy.props.IntProperty(default = 0)
+    #bpy.types.Scene.branchSplitHeightInLevelList_3 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    #bpy.types.Scene.branchSplitHeightInLevelListIndex_3 = bpy.props.IntProperty(default = 0)
+    #bpy.types.Scene.branchSplitHeightInLevelList_4 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    #bpy.types.Scene.branchSplitHeightInLevelListIndex_4 = bpy.props.IntProperty(default = 0)
+    #bpy.types.Scene.branchSplitHeightInLevelList_5 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    #bpy.types.Scene.branchSplitHeightInLevelListIndex_5 = bpy.props.IntProperty(default = 0)
+    #bpy.types.Scene.showBranchSplitHeights = bpy.props.CollectionProperty(type=boolProp)
     
     #Yes, it’s possible to reuse properties (including EnumProperty values) across multiple PropertyGroup classes in Blender. You can define an EnumProperty or any other property in one PropertyGroup, and then use that property in multiple other PropertyGroup classes by referencing it.
     #shared_enum: bpy.props.PointerProperty(type=SharedEnumPropertyGroup)
@@ -3365,6 +3490,10 @@ class addItem(bpy.types.Operator): # add branch cluster
     bl_label = "Add Item"
     def execute(self, context):
         context.scene.branchClusters += 1
+        
+        branchSettings = context.scene.branchClusterSettingsList.add()
+        branchSettings.nrBranches = 2
+        # ...
         
         nrBranches = context.scene.nrBranchesList.add()
         nrBranches.value = 2       # default for nrBranches!
@@ -3959,29 +4088,31 @@ class branchSettings(bpy.types.Panel):
                 if outer.show_cluster:
                     if i < len(context.scene.nrBranchesList):
                         
-                        #box1 = box.box()
-                        draw_parent_cluster_bools(box1, scene, i) #FUNKT!
+                        draw_parent_cluster_bools(box1, scene, i) 
                         
                         parentClusterBoolListList = context.scene.parentClusterBoolListList
                     
-            
-            
-                if i < len(scene.nrBranchesList):
+                if i < len(scene.branchClusterSettingsList):
                     split = box.split(factor=0.6)
                     split.label(text="Number of branches")
-                    split.prop(scene.nrBranchesList[i], "value", text="")#, slider=True)
+                    split.prop(scene.branchClusterSettingsList[i], "nrBranches", text="")
+            
+            #    if i < len(scene.nrBranchesList):
+            #        split = box.split(factor=0.6)
+            #        split.label(text="Number of branches")
+            #        split.prop(scene.nrBranchesList[i], "value", text="")#, slider=True)
                     
                 
                 
                 if i < len(scene.branchShapeList):
                     split = box.split(factor=0.6)
                     split.label(text="Branch shape")
-                    split.prop(scene.branchShapeList[i], "value", text="")
+                    split.prop(scene.branchClusterSettingsList[i], "branchShape", text="")
                 
                 split = box.split(factor=0.6)
                 split.label(text="Relative branch length")
                 if i < len(scene.relBranchLengthList):
-                    split.prop(scene.relBranchLengthList[i], "value", text="", slider=True)
+                    split.prop(scene.branchClusterSettingsList[i], "relBranchLength", text="", slider=True)
                     
                 split = box.split(factor=0.6)
                 split.label(text="Relative branch length variation")
@@ -4109,12 +4240,12 @@ class branchSettings(bpy.types.Panel):
                         if scene.useFibonacciAnglesList[i].value == False or scene.branchAngleModeList[i].value == 'SYMMETRIC':
                             split = box2.split(factor=0.6)
                             split.label(text="Rotate angle range")
-                            split.prop(scene.fibonacciNrList[i], "rotate_angle_range", text="")
+                            split.prop(scene.branchClusterSettingsList[i], "rotateAngleRange", text="")
                             
                         if scene.useFibonacciAnglesList[i].value == False and scene.branchAngleModeList[i].value == 'WINDING':
                             split = box2.split(factor=0.6)
                             split.label(text="Rotate angle offset")
-                            split.prop(scene.fibonacciNrList[i], "rotate_angle_offset", text="")
+                            split.prop(scene.branchClusterSettingsList[i], "rotateAngleOffset", text="")
                         
                         if scene.useFibonacciAnglesList[i].value == False or scene.branchAngleModeList[i].value == 'SYMMETRIC':
                             split = box2.split(factor=0.6)
@@ -4554,6 +4685,9 @@ def register():
     bpy.utils.register_class(UL_branchSplitLevelListLevel_5)
           
     #collections
+    
+    bpy.types.Scene.branchClusterSettingsList = bpy.props.CollectionProperty(type=branchClusterSettings)
+    
     bpy.types.Scene.stemSplitHeightInLevelList = bpy.props.CollectionProperty(type=floatProp01)
     bpy.types.Scene.showStemSplitHeights = bpy.props.BoolProperty(
         name = "Show/hide stem split heights",
