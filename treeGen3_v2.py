@@ -812,6 +812,8 @@ class generateTree(bpy.types.Operator):
                 nodes[0], 
                 context.scene.branchClusters,
                 
+                context.scene.branchClusterSettingsList,
+                
                 context.scene.nrBranchesList, 
                 context.scene.parentClusterBoolListList, 
                 context.scene.branchesStartHeightGlobalList, 
@@ -1754,6 +1756,8 @@ context, #ERROR: when treeGrowDir == (0,0,1) !!
 rootNode, 
 branchClusters,
 
+branchClusterSettingsList,
+
 nrBranchesList, 
 parentClusterBoolListList, 
 branchesStartHeightGlobalList, 
@@ -1820,7 +1824,7 @@ noiseGenerator):
     #treeGen.report({'INFO'}, f"in add Branches(): len(nrBranchesList): {len(nrBranchesList)}, ")
     #if len(nrBranchesList) > 0 and len(branchesStartHeightGlobalList) > 0:
     for clusterIndex in range(0, branchClusters):
-        nrBranches = nrBranchesList[clusterIndex].value        
+        nrBranches = branchClusterSettingsList[clusterIndex].nrBranches #nrBranchesList[clusterIndex].value        
         branchesStartHeightGlobal = branchesStartHeightGlobalList[clusterIndex].value
         branchesEndHeightGlobal = branchesEndHeightGlobalList[clusterIndex].value
         branchesStartHeightCluster = branchesStartHeightClusterList[clusterIndex].value
@@ -2110,7 +2114,8 @@ noiseGenerator):
                     windingAngle += context.scene.fibonacciNrList[clusterIndex].fibonacci_angle
                     treeGen.report({'INFO'}, f"in addBranches: windingAngle += {context.scene.fibonacciNrList[clusterIndex].fibonacci_angle}")
                 else:
-                    rotateAngle = (globalRotateAngle + branchRotateAngle) % fibonacciNrList[clusterIndex].rotate_angle_range #rotateAngleRangeList[clusterIndex].value
+                    rotateAngle = (globalRotateAngle + branchRotateAngle) % branchClusterSettingsList[clusterIndex].rotateAngleRange
+                    # fibonacciNrList[clusterIndex].rotate_angle_range # branchClusterSettingsList
                     windingAngle += rotateAngle
                 
         
@@ -4102,86 +4107,70 @@ class branchSettings(bpy.types.Panel):
             #        split.label(text="Number of branches")
             #        split.prop(scene.nrBranchesList[i], "value", text="")#, slider=True)
                     
-                
-                
-                if i < len(scene.branchShapeList):
                     split = box.split(factor=0.6)
                     split.label(text="Branch shape")
-                    split.prop(scene.branchClusterSettingsList[i], "branchShape", text="")
+                    split.prop(scene.branchClusterSettingsList[i].branchShape, "value", text="")
                 
-                split = box.split(factor=0.6)
-                split.label(text="Relative branch length")
-                if i < len(scene.relBranchLengthList):
+                    split = box.split(factor=0.6)
+                    split.label(text="Relative branch length")
                     split.prop(scene.branchClusterSettingsList[i], "relBranchLength", text="", slider=True)
                     
-                split = box.split(factor=0.6)
-                split.label(text="Relative branch length variation")
-                if i < len(scene.relBranchLengthVariationList):
-                    split.prop(scene.relBranchLengthVariationList[i], "value", text="", slider=True)
+                    split = box.split(factor=0.6)
+                    split.label(text="Relative branch length variation")
+                    split.prop(scene.branchClusterSettingsList[i], "relBranchLengthVariation", text="", slider=True)
                 
-                split = box.split(factor=0.6)
-                split.label(text="Taper factor")
-                if i < len(scene.taperFactorList):
-                    split.prop(scene.taperFactorList[i], "value", text="", slider=True)
+                    split = box.split(factor=0.6)
+                    split.label(text="Taper factor")
+                    split.prop(scene.branchClusterSettingsList[i], "taperFactor", text="", slider=True)
                 
-                split = box.split(factor=0.6)
-                split.label(text="Ring resolution")
-                if i < len(scene.ringResolutionList):
-                    split.prop(scene.ringResolutionList[i], "value", text="")
+                    split = box.split(factor=0.6)
+                    split.label(text="Ring resolution")
+                    split.prop(scene.branchClusterSettingsList[i], "ringResolution", text="")
                 
-                split = box.split(factor=0.6)
-                split.label(text="Branches start height global")
-                if i < len(scene.branchesStartHeightGlobalList):
-                    split.prop(scene.branchesStartHeightGlobalList[i], "value", text="", slider=True)
+                    split = box.split(factor=0.6)
+                    split.label(text="Branches start height global")
+                    split.prop(scene.branchClusterSettingsList[i], "branchesStartHeightGlobal", text="", slider=True)
             
-                split = box.split(factor=0.6)
-                split.label(text="Branches end height global")
-                if i < len(scene.branchesEndHeightGlobalList):
-                    split.prop(scene.branchesEndHeightGlobalList[i], "value", text="", slider=True)
+                    split = box.split(factor=0.6)
+                    split.label(text="Branches end height global")
+                    split.prop(scene.branchClusterSettingsList[i], "branchesEndHeightGlobal", text="", slider=True)
                 
-                split = box.split(factor=0.6)
-                split.label(text="Branches start height cluster")
-                if i < len(scene.branchesStartHeightClusterList):
-                    split.prop(scene.branchesStartHeightClusterList[i], "value", text="", slider=True)
+                    split = box.split(factor=0.6)
+                    split.label(text="Branches start height cluster")
+                    split.prop(scene.branchClusterSettingsList[i], "branchesStartHeightCluster", text="", slider=True)
             
-                split = box.split(factor=0.6)
-                split.label(text="Branches end height cluster")
-                if i < len(scene.branchesEndHeightClusterList):
-                    split.prop(scene.branchesEndHeightClusterList[i], "value", text="", slider=True)
+                    split = box.split(factor=0.6)
+                    split.label(text="Branches end height cluster")
+                    split.prop(scene.branchClusterSettingsList[i], "branchesEndHeightCluster", text="", slider=True)
             
             split = box.split(factor=0.6)
-            if len(scene.showNoiseSettings) <= i:
-                split.label(text=f"ERROR: len(showNoiseSettings): {len(scene.showNoiseSettings)}")
-            else:
-                split.prop(scene.showNoiseSettings[i], "value", icon="TRIA_DOWN" if scene.showNoiseSettings[i].value else "TRIA_RIGHT", emboss=False, text="Noise settings", toggle=True)
+            #if len(scene.showNoiseSettings) <= i:
+            #    split.label(text=f"ERROR: len(showNoiseSettings): {len(scene.showNoiseSettings)}")
+            #else:
+            split.prop(scene.showNoiseSettings[i], "value", icon="TRIA_DOWN" if scene.showNoiseSettings[i].value else "TRIA_RIGHT", emboss=False, text="Noise settings", toggle=True)
                 
-                if scene.showNoiseSettings[i].value:
-                    box1 = box.box()
+            if scene.showNoiseSettings[i].value:
+                box1 = box.box()
                     
-                    split = box1.split(factor=0.6)
-                    split.label(text="Noise Amplitude Horizontal")
-                    if i < len(scene.noiseAmplitudeHorizontalBranchList):
-                        split.prop(scene.noiseAmplitudeHorizontalBranchList[i], "value", text="")
-                    
-                    split = box1.split(factor=0.6)
-                    split.label(text="Noise Amplitude Vertical")
-                    if i < len(scene.noiseAmplitudeVerticalBranchList):
-                        split.prop(scene.noiseAmplitudeVerticalBranchList[i], "value", text="")
-                                        
-                    split = box1.split(factor=0.6)
-                    split.label(text="Noise Amplitude Gradient")
-                    if i < len(scene.noiseAmplitudeBranchGradientList):
-                        split.prop(scene.noiseAmplitudeBranchGradientList[i], "value", text="")
-                                        
-                    split = box1.split(factor=0.6)
-                    split.label(text="Noise Amplitude Exponent")
-                    if i < len(scene.noiseAmplitudeBranchExponentList):
-                        split.prop(scene.noiseAmplitudeBranchExponentList[i], "value", text="")
-                    
-                    split = box1.split(factor=0.6)
-                    split.label(text="Noise Scale")
-                    if i < len(scene.noiseScaleList):
-                        split.prop(scene.noiseScaleList[i], "value", text="")
+                split = box1.split(factor=0.6)
+                split.label(text="Noise Amplitude Horizontal")
+                split.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeHorizontalBranch", text="")
+                
+                split = box1.split(factor=0.6)
+                split.label(text="Noise Amplitude Vertical")
+                split.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeVerticalBranch", text="")
+                                    
+                split = box1.split(factor=0.6)
+                split.label(text="Noise Amplitude Gradient")
+                split.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeBranchGradient", text="")
+                                    
+                split = box1.split(factor=0.6)
+                split.label(text="Noise Amplitude Exponent")
+                split.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeBranchExponent", text="")
+                
+                split = box1.split(factor=0.6)
+                split.label(text="Noise Scale")
+                split.prop(scene.branchClusterSettingsList[i], "noiseScale", text="")
                             
                 
             split = box.split(factor=0.6)
@@ -4217,21 +4206,41 @@ class branchSettings(bpy.types.Panel):
                     split = box1.split(factor=0.6)
                     split.label(text="Branch angle mode")
                     if i < len(scene.branchAngleModeList):
-                        split.prop(scene.branchAngleModeList[i], "value", text="")
+                        split.prop(scene.branchClusterSettingsList[i].branchAngleMode, "value", text="")
+                        
+                        #split.prop(scene.branchClusterSettingsList[i].branchSplitMode, "value", text="")
+                        #mode = scene.branchClusterSettingsList[i].branchSplitMode
                     
                     box2 = box1.box()
                     split = box2.split(factor=0.6)
                     
+                    #split.prop(scene.branchClusterSettingsList[i].branchShape, "value", text="")
+                    
                     if i < len(scene.branchAngleModeList):
                         if scene.branchAngleModeList[i].value == 'WINDING':
                             split.label(text="Use Fibonacci angles")
-                            if i < len(scene.useFibonacciAnglesList):
-                                split.prop(scene.useFibonacciAnglesList[i], "value", text="")
-                            if scene.useFibonacciAnglesList[i].value == True:
+                            split.prop(scene.branchClusterSettingsList[i], "useFibonacciAngles", text="")
+                            if scene.branchClusterSettingsList[i].useFibonacciAngles == True:
                             
                                 split = box2.split(factor=0.6)
                                 split.label(text="Fibonacci number")
-                                split.prop(scene.fibonacciNrList[i], "fibonacci_nr", text="")
+                                split.prop(scene.branchClusterSettingsList[i], "fibonacciNr.fibonacci_nr", text="")
+                                #split.prop(scene.fibonacciNrList[i], "fibonacci_nr", text="")
+                                
+                                # in branchClusterSettings: 
+                                #   useFibonacciAngles: bpy.props.BoolProperty(name = "Use Fibonacci angles")
+                                #   fibonacciNr: bpy.props.PointerProperty(type = fibonacciProps)
+                                
+                                
+                                # class fibonacciProps(bpy.types.PropertyGroup):
+                                #   fibonacci_nr: bpy.props.IntProperty(name = "fibonacciNr", default=3, min=3, 
+                                #   update = lambda self, context:update_fibonacci_numbers(self))
+        
+                                #   fibonacci_angle: bpy.props.FloatProperty(name="", default=0.0, options={'HIDDEN'})
+    
+                                #   use_fibonacci: bpy.props.BoolProperty(name = "useFibonacci", default=False,
+                                #   update = lambda self, context:update_fibonacci_numbers(self)) ##########  -> both in one propertyGroup!
+       
                                 
                                 split1 = box2.split(factor=0.6)
                                 split1.label(text="Angle:")
@@ -4250,23 +4259,19 @@ class branchSettings(bpy.types.Panel):
                         if scene.useFibonacciAnglesList[i].value == False or scene.branchAngleModeList[i].value == 'SYMMETRIC':
                             split = box2.split(factor=0.6)
                             split.label(text="Rotate angle crown start")
-                            if i < len(scene.rotateAngleCrownStartList):
-                                split.prop(scene.rotateAngleCrownStartList[i], "value", text="")
+                            split.prop(scene.branchClusterSettingsList[i], "rotateAngleCrownStart", text="")
                                 
                             split = box2.split(factor=0.6)
                             split.label(text="Rotate angle crown end")
-                            if i < len(scene.rotateAngleCrownEndList):
-                                split.prop(scene.rotateAngleCrownEndList[i], "value", text="")
+                            split.prop(scene.branchClusterSettingsList[i], "rotateAngleCrownEnd", text="")
                                 
                             split = box2.split(factor=0.6)
                             split.label(text="Rotate angle branch start")
-                            if i < len(scene.rotateAngleBranchStartList):
-                                split.prop(scene.rotateAngleBranchStartList[i], "value", text="")
+                            split.prop(scene.branchClusterSettingsList[i], "rotateAngleBranchStart", text="")
                                 
                             split = box2.split(factor=0.6)
                             split.label(text="Rotate angle branch end")
-                            if i < len(scene.rotateAngleBranchEndList):
-                                split.prop(scene.rotateAngleBranchEndList[i], "value", text="")
+                            split.prop(scene.branchClusterSettingsList[i], "rotateAngleBranchEnd", text="")
                         
                         box3 = box1.box()
                         #split = box3.split(factor=0.6)
@@ -4277,38 +4282,31 @@ class branchSettings(bpy.types.Panel):
                         if scene.hangingBranchesList[i].value == True:
                             split = box3.split(factor=0.6)
                             split.label(text="Branch global curvature start")
-                            if i < len(scene.branchGlobalCurvatureStartList):
-                                split.prop(scene.branchGlobalCurvatureStartList[i], "value", text="")
+                            split.prop(scene.branchClusterSettingsList[i], "branchGlobalCurvatureStart", text="")
                             
                             split = box3.split(factor=0.6)
                             split.label(text="Branch global curvature end")
-                            if i < len(scene.branchGlobalCurvatureEndList):
-                                split.prop(scene.branchGlobalCurvatureEndList[i], "value", text="")
+                            split.prop(scene.branchClusterSettingsList[i], "branchGlobalCurvatureEnd", text="")
                         else:
                             split = box3.split(factor=0.6)
                             split.label(text="Branch global curvature start")
-                            if i < len(scene.branchGlobalCurvatureStartList):
-                                split.prop(scene.branchGlobalCurvatureStartList[i], "value", text="")
+                            split.prop(scene.branchClusterSettingsList[i], "branchGlobalCurvatureStart", text="")
                             
                             split = box3.split(factor=0.6)
                             split.label(text="Branch global curvature end")
-                            if i < len(scene.branchGlobalCurvatureEndList):
-                                split.prop(scene.branchGlobalCurvatureEndList[i], "value", text="")
+                            split.prop(scene.branchClusterSettingsList[i], "branchGlobalCurvatureEnd", text="")
                             
                             split = box3.split(factor=0.6)
                             split.label(text="Branch curvature start")
-                            if i < len(scene.branchCurvatureStartList):
-                                split.prop(scene.branchCurvatureStartList[i], "value", text="")
+                            split.prop(scene.branchClusterSettingsList[i], "branchCurvatureStart", text="")
                                 
                             split = box3.split(factor=0.6)
                             split.label(text="Branch curvature end")
-                            if i < len(scene.branchCurvatureEndList):
-                                split.prop(scene.branchCurvatureEndList[i], "value", text="")
+                            split.prop(scene.branchClusterSettingsList[i], "branchCurvatureEnd", text="")
                         
                             split = box3.split(factor=0.6)
                             split.label(text="Branch curvature offset")
-                            if i < len(scene.branchCurvatureOffsetStrengthList):
-                                split.prop(scene.branchCurvatureOffsetStrengthList[i], "value", text="")
+                            split.prop(scene.branchClusterSettingsList[i], "branchCurvatureOffsetStrength", text="")
                         
                 
                 split = box.split(factor=0.6)
@@ -4319,65 +4317,57 @@ class branchSettings(bpy.types.Panel):
                     
                     split = box2.split(factor=0.6)
                     split.label(text="Nr splits per branch")
-                    if i < len(scene.nrSplitsPerBranchList):
-                        split.prop(scene.nrSplitsPerBranchList[i], "value", text="")
+                    split.prop(scene.branchClusterSettingsList[i], "nrSplitsPerBranch", text="")
+                    
+                    #split.prop(scene.branchClusterSettingsList[i].branchShape, "value", text="")
                 
                     box3 = box2.box()
                     split = box3.split(factor=0.6)
-                    if i < len(scene.branchSplitModeList):
-                        split.label(text="Branch split mode")
-                        split.prop(scene.branchSplitModeList[i], "value", text="")
-                        mode = scene.branchSplitModeList[i].value
-                        if mode == "ROTATE_ANGLE":
-                            split = box3.split(factor=0.6)
-                            split.label(text="Branch split rotate angle")
-                            if i < len(scene.branchSplitRotateAngleList):
-                                split.prop(scene.branchSplitRotateAngleList[i], "value", text="")
-                                
-                        if mode == "HORIZONTAL":
-                            split = box3.split(factor=0.6)
-                            split.label(text="Branch split axis variation")
-                            if i < len(scene.branchSplitAxisVariationList):
-                                split.prop(scene.branchSplitAxisVariationList[i], "value", text="")
+                    split.label(text="Branch split mode")
+                    split.prop(scene.branchClusterSettingsList[i].branchSplitMode, "value", text="")
+                    mode = scene.branchClusterSettingsList[i].branchSplitMode.value
+                    if mode == "ROTATE_ANGLE":
+                        split = box3.split(factor=0.6)
+                        split.label(text="Branch split rotate angle")
+                        split.prop(scene.branchClusterSettingsList[i], "branchSplitRotateAngle", text="")
+                            
+                    if mode == "HORIZONTAL":
+                        split = box3.split(factor=0.6)
+                        split.label(text="Branch split axis variation")
+                        split.prop(scene.branchClusterSettingsList[i], "branchSplitAxisVariation", text="")
                     
-                    if i < len(scene.branchSplitAngleList):
-                        split = box2.split(factor=0.6)
-                        split.label(text="Branch split angle")
-                        split.prop(scene.branchSplitAngleList[i], "value", text="")
+                    split = box2.split(factor=0.6)
+                    split.label(text="Branch split angle")
+                    split.prop(scene.branchClusterSettingsList[i], "branchSplitAngle", text="")
                     
-                    if i < len(scene.branchSplitPointAngleList):
-                        split = box2.split(factor=0.6)
-                        split.label(text="Branch split point angle")
-                        split.prop(scene.branchSplitPointAngleList[i], "value", text="")
+                    split = box2.split(factor=0.6)
+                    split.label(text="Branch split point angle")
+                    split.prop(scene.branchClusterSettingsList[i], "branchSplitPointAngle", text="")
                         
                     split = box2.split(factor=0.6)
                     split.label(text="Splits per branch variation")
-                    if i < len(scene.splitsPerBranchVariationList):
-                        split.prop(scene.splitsPerBranchVariationList[i], "value", text="")
+                    split.prop(scene.branchClusterSettingsList[i], "splitsPerBranchVariation", text="")
                     
                     split = box2.split(factor=0.6)
                     split.label(text="Branch variance")
-                    if i < len(scene.branchVarianceList):
-                        split.prop(scene.branchVarianceList[i], "value", text="", slider=True)
+                    split.prop(scene.branchClusterSettingsList[i], "branchVariance", text="", slider=True)
                 
                     split = box2.split(factor=0.6)
                     split.label(text="Branch split height variation")
-                    if i < len(scene.branchSplitHeightVariationList):
-                        split.prop(scene.branchSplitHeightVariationList[i], "value", text="", slider=True)
+                    split.prop(scene.branchClusterSettingsList[i], "branchSplitHeightVariation", text="", slider=True)
                     
                     split = box2.split(factor=0.6)
                     split.label(text="Branch split length variation")
-                    if i < len(scene.branchSplitLengthVariationList):
-                        split.prop(scene.branchSplitLengthVariationList[i], "value", text="", slider=True)
+                    split.prop(scene.branchClusterSettingsList[i], "branchSplitLengthVariation", text="", slider=True)
                     
                     row = box2.row()
                     
-                    row.prop(scene.showBranchSplitHeights[i], "value", icon="TRIA_DOWN" if scene.showBranchSplitHeights[i].value else "TRIA_RIGHT", text="", toggle=True)
+                    row.prop(scene.branchClusterSettingsList[i], "showBranchSplitHeights", icon="TRIA_DOWN" if scene.branchClusterSettingsList[i].showBranchSplitHeights else "TRIA_RIGHT", text="", toggle=True)
             
                     row.operator("scene.add_branch_split_level", text="Add split level").level = i
                     row.operator("scene.remove_branch_split_level", text="Remove").level = i
                   
-                    if context.scene.showBranchSplitHeights[i].value == True:
+                    if context.scene.branchClusterSettingsList[i].showBranchSplitHeights == True:
                         row = box2.row()
                         if i == 0:
                             row.template_list("UL_branchSplitLevelListLevel_0", "", scene, "branchSplitHeightInLevelList_0", scene, "branchSplitHeightInLevelListIndex_0")
@@ -4393,7 +4383,7 @@ class branchSettings(bpy.types.Panel):
                             row.template_list("UL_branchSplitLevelListLevel_5", "", scene, "branchSplitHeightInLevelList_5", scene, "branchSplitHeightInLevelListIndex_5")
                         if i > 5:
                             j = 0
-                            for splitLevel in context.scene.branchSplitHeightInLevelListList[i].value:
+                            for splitLevel in context.scene.branchClusterSettingsList[i].branchSplitHeightInLevelList:
                                 box2.prop(splitLevel, "value", text=f"Split height level {j}", slider=True)
                                 j += 1
 
