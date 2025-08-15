@@ -814,39 +814,39 @@ class generateTree(bpy.types.Operator):
                 
                 context.scene.branchClusterSettingsList,
                 
-                context.scene.nrBranchesList, 
+                #context.scene.nrBranchesList, 
                 context.scene.parentClusterBoolListList, 
                 
                 context.scene.treeGrowDir, 
                 context.scene.treeHeight, 
-                context.scene.verticalAngleCrownStartList,
-                 
-                context.scene.verticalAngleCrownEndList, 
-                context.scene.verticalAngleBranchStartList,
-                context.scene.verticalAngleBranchEndList,
-                context.scene.branchAngleModeList,  
+                #context.scene.verticalAngleCrownStartList,
+                # 
+                #context.scene.verticalAngleCrownEndList, 
+                #context.scene.verticalAngleBranchStartList,
+                #context.scene.verticalAngleBranchEndList,
+                #context.scene.branchAngleModeList,  
                 
-                context.scene.rotateAngleCrownStartList,
-                context.scene.rotateAngleCrownEndList,
-                context.scene.rotateAngleBranchStartList,
-                context.scene.rotateAngleBranchEndList,
+                #context.scene.rotateAngleCrownStartList,
+                #context.scene.rotateAngleCrownEndList,
+                #context.scene.rotateAngleBranchStartList,
+                #context.scene.rotateAngleBranchEndList,
                 
-                context.scene.rotateAngleRangeList, # -> use fibonacci rotateAngleRange!
-                context.scene.useFibonacciAnglesList,
-                context.scene.fibonacciNrList,
+                #context.scene.rotateAngleRangeList,
+                #context.scene.useFibonacciAnglesList,
+                #context.scene.fibonacciNrList,
                 
                 context.scene.taper, 
-                context.scene.taperFactorList, 
-                context.scene.ringResolutionList,
-                context.scene.relBranchLengthList, 
-                context.scene.relBranchLengthVariationList,
+                #context.scene.taperFactorList, 
+                #context.scene.ringResolutionList,
+                #context.scene.relBranchLengthList, 
+                #context.scene.relBranchLengthVariationList,
                 
-                context.scene.branchShapeList, 
-                context.scene.nrSplitsPerBranchList, 
-                context.scene.splitsPerBranchVariationList,
+                #context.scene.branchShapeList, 
+                #context.scene.nrSplitsPerBranchList, 
+                #context.scene.splitsPerBranchVariationList,
                 
-                context.scene.branchSplitAngleList, 
-                context.scene.branchSplitPointAngleList, 
+                #context.scene.branchSplitAngleList, 
+                #context.scene.branchSplitPointAngleList, 
                 context.scene.branchSplitHeightInLevelList_0, 
                 context.scene.branchSplitHeightInLevelList_1, 
                 context.scene.branchSplitHeightInLevelList_2, 
@@ -855,18 +855,18 @@ class generateTree(bpy.types.Operator):
                 context.scene.branchSplitHeightInLevelList_5, 
                 
                 
-                context.scene.branchSplitHeightVariationList,
-                context.scene.branchSplitLengthVariationList,
-                context.scene.branchSplitModeList,
-                context.scene.branchSplitRotateAngleList,
-                context.scene.branchSplitAxisVariationList,
+                #context.scene.branchSplitHeightVariationList,
+                #context.scene.branchSplitLengthVariationList,
+                #context.scene.branchSplitModeList,
+                #context.scene.branchSplitRotateAngleList,
+                #context.scene.branchSplitAxisVariationList,
                 
-                context.scene.branchCurvatureOffsetStrengthList[0],
-                context.scene.branchVarianceList, 
+                #context.scene.branchCurvatureOffsetStrengthList[0],
+                #context.scene.branchVarianceList, 
                 
                 context.scene.hangingBranchesList, 
-                context.scene.branchGlobalCurvatureStartList, 
-                context.scene.branchGlobalCurvatureEndList, 
+                #context.scene.branchGlobalCurvatureStartList, 
+                #context.scene.branchGlobalCurvatureEndList, 
                 noise_generator)
               
             calculateRadius(self, nodes[0], 100.0, context.scene.branchTipRadius)
@@ -1753,40 +1753,40 @@ branchClusters,
 
 branchClusterSettingsList,
 
-nrBranchesList, 
+#nrBranchesList, 
 parentClusterBoolListList, 
 
 treeGrowDir, 
 treeHeight, 
-verticalAngleCrownStart, 
+#verticalAngleCrownStart, 
+#
+#verticalAngleCrownEnd, 
+#verticalAngleBranchStart,
+#verticalAngleBranchEnd,
+#
+#branchAngleModeList, 
 
-verticalAngleCrownEnd, 
-verticalAngleBranchStart,
-verticalAngleBranchEnd,
-
-branchAngleModeList, 
-
-rotateAngleCrownStartList,
-rotateAngleCrownEndList,
-rotateAngleBranchStartList,
-rotateAngleBranchEndList,
+#rotateAngleCrownStartList,
+#rotateAngleCrownEndList,
+#rotateAngleBranchStartList,
+#rotateAngleBranchEndList,
                 
-rotateAngleRangeList, 
-useFibonacciAnglesList,
-fibonacciNrList,
+#rotateAngleRangeList, 
+#useFibonacciAnglesList,
+#fibonacciNrList,
 taper, 
 
-taperFactorList, 
-ringResolutionList, # ...TODO... -> use ringResolution! (init with resolution of stem /previous cluster!!!)
-relBranchLengthList,
-relBranchLengthVariationList,
-branchShapeList, 
+#taperFactorList, 
+#ringResolutionList, # ...TODO... -> use ringResolution! (init with resolution of stem /previous cluster!!!)
+#relBranchLengthList,
+#relBranchLengthVariationList,
+#branchShapeList, 
 
-nrSplitsPerBranch, 
-splitsPerBranchVariation,
-branchSplitAngle, 
+#nrSplitsPerBranch, 
+#splitsPerBranchVariation,
+#branchSplitAngle, 
 
-branchSplitPointAngle, 
+#branchSplitPointAngle, 
 branchSplitHeightInLevel, #==branchSplitHeightInLevelList_0
 branchSplitHeightInLevelList_1,
 branchSplitHeightInLevelList_2,
@@ -1794,18 +1794,18 @@ branchSplitHeightInLevelList_3,
 branchSplitHeightInLevelList_4,
 branchSplitHeightInLevelList_5, 
                 
-branchSplitHeightVariation,
-branchSplitLengthVariation,
+#branchSplitHeightVariation,
+#branchSplitLengthVariation,
 
-branchSplitMode,
-branchSplitRotateAngle,
-branchSplitAxisVariationList,
-branchCurvOffsetStrength,
-branchVariance, 
+#branchSplitMode,
+#branchSplitRotateAngle,
+#branchSplitAxisVariationList,
+#branchCurvOffsetStrength,
+#branchVariance, 
 
 hangingBranchesList, 
-curvatureStartGlobalList, 
-curvatureEndGlobalList, 
+#curvatureStartGlobalList, 
+#curvatureEndGlobalList, 
 
 noiseGenerator):
     
@@ -1911,17 +1911,17 @@ noiseGenerator):
                                                          
                 branchStartTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
                 
-                globalVerticalAngle = lerp(verticalAngleCrownStart[clusterIndex].value, verticalAngleCrownEnd[clusterIndex].value, data.startNode.tValGlobal)
+                globalVerticalAngle = lerp(branchClusterSettingsList[clusterIndex].verticalAngleCrownStart, branchClusterSettingsList[clusterIndex].verticalAngleCrownEnd, data.startNode.tValGlobal)
                 
-                branchVerticalAngle = lerp(verticalAngleBranchStart[clusterIndex].value, verticalAngleBranchEnd[clusterIndex].value, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
+                branchVerticalAngle = lerp(branchClusterSettingsList[clusterIndex].verticalAngleBranchStart, branchClusterSettingsList[clusterIndex].verticalAngleBranchEnd, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
                 
                 verticalAngle = globalVerticalAngle + branchVerticalAngle
                 #treeGen.report({'INFO'}, f"in add Branches: branchStartTvalGlobal: {branchStartTvalGlobal}, globalVerticalAngle: {globalVerticalAngle}, verticalAngle: {verticalAngle}")
                 
-                globalRotateAngle = lerp(rotateAngleCrownStartList[clusterIndex].value, rotateAngleCrownEndList[clusterIndex].value, branchStartTvalGlobal)
+                globalRotateAngle = lerp(branchClusterSettingsList[clusterIndex].rotateAngleCrownStart, branchClusterSettingsList[clusterIndex].rotateAngleCrownEnd, branchStartTvalGlobal)
                 
                 
-                branchRotateAngle = lerp(rotateAngleBranchStartList[clusterIndex].value, rotateAngleBranchEndList[clusterIndex].value, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t)) # tValBranch == 0 !!!
+                branchRotateAngle = lerp(branchClusterSettingsList[clusterIndex].rotateAngleBranchStart, branchClusterSettingsList[clusterIndex].rotateAngleBranchEnd, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t)) # tValBranch == 0 !!!
                 
                 #treeGen.report({'INFO'}, f"in add Branches: rotateAngleBranchStartList: {rotateAngleBranchStartList[clusterIndex].value:.3f}, rotateAngleBranchEndList: {rotateAngleBranchEndList[clusterIndex].value:.3f}")
                 #treeGen.report({'INFO'}, f"in add Branches: branchRotateAngle: {branchRotateAngle}, data.t: {data.t:.3f}, data.startNode.tValBranch: {data.startNode.tValBranch:.3f}, data.startNode.next[data.startNodeNextIndex].tValBranch: {data.startNode.next[data.startNodeNextIndex].tValBranch:.3f}")
@@ -1979,7 +1979,7 @@ noiseGenerator):
                 # else:
                 #     windingAngle += rotateAngle
                    
-                if branchAngleModeList[clusterIndex].value == "SYMMETRIC":
+                if branchClusterSettingsList[clusterIndex].branchAngleMode == "SYMMETRIC":
                     centerDir = Quaternion(startPointTangent.cross(data.outwardDir), math.radians(-verticalAngle)) @ data.outwardDir # for symmetric!
                     axis = startPointTangent.cross(centerDir).normalized()
                     
@@ -2013,8 +2013,8 @@ noiseGenerator):
                         branchCotangent = Vector((branchDir.z, 0.0, -branchDir.y))
     
                 startTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
-                shapeRatioValue = shapeRatio(self, context, startTvalGlobal, branchShapeList[clusterIndex].value)
-                branchLength = treeHeight * (relBranchLengthList[clusterIndex].value + relBranchLengthVariationList[clusterIndex].value * random.uniform(-1.0, 1.0)) * shapeRatioValue
+                shapeRatioValue = shapeRatio(self, context, startTvalGlobal, branchClusterSettingsList[clusterIndex].branchShape.value)
+                branchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * random.uniform(-1.0, 1.0)) * shapeRatioValue
                 
                 #class node():
                 #   def __init__(self, Point, Radius, Cotangent, RingResolution, Taper, TvalGlobal, TvalBranch):
@@ -2028,8 +2028,8 @@ noiseGenerator):
                               1.0, 
                               branchCotangent, 
                               clusterIndex, 
-                              ringResolutionList[clusterIndex].value, # -> branchClusterSettingsList[clusterIndex].ringResolution
-                              taper * taperFactorList[clusterIndex].value, 
+                              branchClusterSettingsList[clusterIndex].ringResolution, # -> branchClusterSettingsList[clusterIndex].ringResolution
+                              taper * branchClusterSettingsList[clusterIndex].taperFactor, 
                               startTvalGlobal, #tValGlobal
                               0.0, 
                               branchLength)
@@ -2084,7 +2084,8 @@ noiseGenerator):
                                   1.0, 
                                   branchCotangent, 
                                   clusterIndex, 
-                                  ringResolutionList[clusterIndex].value, taper * taperFactorList[clusterIndex].value, 
+                                  branchClusterSettingsList[clusterIndex].ringResolution, 
+                                  taper * branchClusterSettingsList[clusterIndex].taperFactor, 
                                   data.startNode.tValGlobal, 
                                   0.0, 
                                   branchLength)
@@ -2101,9 +2102,9 @@ noiseGenerator):
                 data.startNode.branches[startNodeNextIndex].append(branch)
                 branchNodes.append(branch)
                 
-                if context.scene.useFibonacciAnglesList[clusterIndex].value == True:
-                    windingAngle += context.scene.fibonacciNrList[clusterIndex].fibonacci_angle
-                    treeGen.report({'INFO'}, f"in addBranches: windingAngle += {context.scene.fibonacciNrList[clusterIndex].fibonacci_angle}")
+                if branchClusterSettingsList[clusterIndex].useFibonacciAngles == True:
+                    windingAngle += branchClusterSettingsList[clusterIndex].fibonacciNr.fibonacci_angle
+                    treeGen.report({'INFO'}, f"in addBranches: windingAngle += {branchClusterSettingsList[clusterIndex].fibonacciNr.fibonacci_angle}")
                 else:
                     rotateAngle = (globalRotateAngle + branchRotateAngle) % branchClusterSettingsList[clusterIndex].rotateAngleRange
                     # fibonacciNrList[clusterIndex].rotate_angle_range # branchClusterSettingsList
@@ -2111,59 +2112,85 @@ noiseGenerator):
                 
         
         if hangingBranchesList[clusterIndex].value == False:
-            if nrSplitsPerBranch != None:
-                if len(nrSplitsPerBranch) > 0: # > clusterIndex:
-                    if nrSplitsPerBranch[clusterIndex].value > 0.0: # [clusterIndex]
-                        
-                        splitHeightInLevelList = branchSplitHeightInLevel  # == branchSplitHeightInLevelList_0
-                        if clusterIndex == 1:
-                            splitHeightInLevelList = branchSplitHeightInLevelList_1
-                        if clusterIndex == 2:
-                            splitHeightInLevelList = branchSplitHeightInLevelList_2
-                        if clusterIndex == 3:
-                            splitHeightInLevelList = branchSplitHeightInLevelList_3
-                        if clusterIndex == 4:
-                            splitHeightInLevelList = branchSplitHeightInLevelList_4
-                        if clusterIndex == 5:
-                            splitHeightInLevelList = branchSplitHeightInLevelList_5
-                        
-                        nrSplits = int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value)
-                        
-                        treeGen.report({'INFO'}, f"in add Branches: nrSplits: {nrSplits}")
-                        length = len(splitHeightInLevelList)
-                        if length < int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value):
-                            for i in range(length, nrSplits):
-                                newHeight = splitHeightInLevelList.add()
-                                newHeight = 0.5
-                        
-                        maxSplitHeightUsed = splitBranches(treeGen,
+            if branchClusterSettingsList[clusterIndex].nrSplitsPerBranch > 0.0: # [clusterIndex]
+                
+                splitHeightInLevelList = branchSplitHeightInLevel  # == branchSplitHeightInLevelList_0
+                if clusterIndex == 1:
+                    splitHeightInLevelList = branchSplitHeightInLevelList_1
+                if clusterIndex == 2:
+                    splitHeightInLevelList = branchSplitHeightInLevelList_2
+                if clusterIndex == 3:
+                    splitHeightInLevelList = branchSplitHeightInLevelList_3
+                if clusterIndex == 4:
+                    splitHeightInLevelList = branchSplitHeightInLevelList_4
+                if clusterIndex == 5:
+                    splitHeightInLevelList = branchSplitHeightInLevelList_5
+                
+                nrSplits = int(branchClusterSettingsList[clusterIndex].nrSplitsPerBranch * branchClusterSettingsList[clusterIndex].nrBranches)
+                
+                treeGen.report({'INFO'}, f"in add Branches: nrSplits: {nrSplits}")
+                length = len(splitHeightInLevelList)
+                if length < int(branchClusterSettingsList[clusterIndex].nrSplitsPerBranch * branchClusterSettingsList[clusterIndex].nrBranches):
+                    for i in range(length, nrSplits):
+                        newHeight = splitHeightInLevelList.add()
+                        newHeight = 0.5
+                
+            maxSplitHeightUsed = splitBranches(treeGen,
                                                 rootNode, 
                                                 clusterIndex, 
                                                 nrSplits, 
                                                  
-                                                branchSplitAngle[clusterIndex].value, 
-                                                branchSplitPointAngle[clusterIndex].value, 
-                                                nrSplitsPerBranch[clusterIndex].value, 
+                                                branchClusterSettingsList[clusterIndex].branchSplitAngle, 
+                                                branchClusterSettingsList[clusterIndex].branchSplitPointAngle, 
+                                                branchClusterSettingsList[clusterIndex].nrSplitsPerBranch, 
                                                 
-                                                splitsPerBranchVariation[clusterIndex].value, 
+                                                branchClusterSettingsList[clusterIndex].splitsPerBranchVariation, 
                                                 splitHeightInLevelList,
-                                                branchSplitHeightVariation[clusterIndex].value, 
-                                                branchSplitLengthVariation[clusterIndex].value,
+                                                branchClusterSettingsList[clusterIndex].branchSplitHeightVariation, 
+                                                branchClusterSettingsList[clusterIndex].branchSplitLengthVariation,
                                                 
-                                                branchSplitMode[clusterIndex].value, 
-                                                branchSplitRotateAngle[clusterIndex].value,
+                                                branchClusterSettingsList[clusterIndex].branchSplitMode, 
+                                                branchClusterSettingsList[clusterIndex].branchSplitRotateAngle,
                                                 
-                                                ringResolutionList[clusterIndex].value, 
+                                                branchClusterSettingsList[clusterIndex].ringResolution, 
                                                 0.0,#branchCurvOffsetStrength[0], #TODO: variable for each branch cluster... 
-                                                branchVariance[clusterIndex].value, 
+                                                branchClusterSettingsList[clusterIndex].branchVariance, 
                                                 
-                                                branchSplitAxisVariationList[clusterIndex].value, 
+                                                branchClusterSettingsList[clusterIndex].branchSplitAxisVariation, 
                                                 False, 
                                       
-                                                curvatureStartGlobalList[clusterIndex].value, 
-                                                curvatureEndGlobalList[clusterIndex].value)
+                                                branchClusterSettingsList[clusterIndex].branchGlobalCurvatureStart, 
+                                                branchClusterSettingsList[clusterIndex].branchGlobalCurvatureEnd)
+                                                
+                  #      def splitBranches(treeGen, 
+                  # rootNode, 
+                  # branchCluster, 
+                  # nrBranchSplits, # = int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value)
+                  #                 # used because branchSplitHeightInLevel needs max possible nrBranchSplits!
+                  # 
+                  # splitAngle, 
+                  # splitPointAngle, 
+                  # nrSplitsPerBranch, 
+                  # 
+                  # splitsPerBranchVariation, 
+                  # branchSplitHeightInLevel, # == branchSplitHeightInLevelList_0
+                  # branchSplitHeightVariation, 
+                  # branchSplitLengthVariation, 
+                  # 
+                  # branchSplitMode, 
+                  # branchSplitRotateAngle, 
+                  # 
+                  # stemRingResolution, 
+                  # curvOffsetStrength, 
+                  # variance, 
+                  # 
+                  # branchSplitAxisVariation, 
+                  # hangingBranches,
+                  # 
+                  # curvatureStartGlobal, 
+                  # curvatureEndGlobal):
                                       
-                        context.scene.maxSplitHeightUsed = max(context.scene.maxSplitHeightUsed, maxSplitHeightUsed)       
+            context.scene.maxSplitHeightUsed = max(context.scene.maxSplitHeightUsed, maxSplitHeightUsed)       
                 
             for branchNode in branchNodes:
                 
@@ -2173,23 +2200,38 @@ noiseGenerator):
                                           rootNode, 
                                           treeGrowDir, 
                                           treeHeight, 
-                                          context.scene.branchGlobalCurvatureStartList[clusterIndex].value, 
-                                          context.scene.branchCurvatureStartList[clusterIndex].value, 
-                                          context.scene.branchGlobalCurvatureEndList[clusterIndex].value, 
-                                          context.scene.branchCurvatureEndList[clusterIndex].value, 
+                                          branchClusterSettingsList[clusterIndex].branchGlobalCurvatureStart, 
+                                          branchClusterSettingsList[clusterIndex].branchCurvatureStart, 
+                                          branchClusterSettingsList[clusterIndex].branchGlobalCurvatureEnd, 
+                                          branchClusterSettingsList[clusterIndex].branchCurvatureEnd, 
                                           clusterIndex, 
                                           branchNode.point, 
                                           0, 
                                           context.scene.maxCurveSteps)
+                                          
+                #def applyCurvature(
+        # self, 
+        # treeGen, 
+        # rootNode, 
+        # treeGrowDir, 
+        # treeHeight, 
+        # curvatureStartGlobal,
+        # curvatureStartBranch,
+        # curvatureEndGlobal, 
+        # curvatureEndBranch,
+        # clusterIndex, 
+        # branchStartPoint, 
+        # curveStep,
+        # maxCurveSteps):
                 
-                if context.scene.noiseAmplitudeHorizontalBranchList[clusterIndex].value > 0.0 or context.scene.noiseAmplitudeVerticalBranchList[clusterIndex].value > 0.0:
+                if branchClusterSettingsList[clusterIndex].noiseAmplitudeHorizontalBranch > 0.0 or branchClusterSettingsList[clusterIndex].noiseAmplitudeVerticalBranch > 0.0:
                     branchNode.applyNoise(treeGen, 
                                           noiseGenerator,
-                                          context.scene.noiseAmplitudeHorizontalBranchList[clusterIndex].value, 
-                                          context.scene.noiseAmplitudeVerticalBranchList[clusterIndex].value, 
-                                          context.scene.noiseAmplitudeBranchGradientList[clusterIndex].value, 
-                                          context.scene.noiseAmplitudeBranchExponentList[clusterIndex].value, 
-                                          context.scene.noiseScaleList[clusterIndex].value, 
+                                          branchClusterSettingsList[clusterIndex].noiseAmplitudeHorizontalBranch, 
+                                          branchClusterSettingsList[clusterIndex].noiseAmplitudeVerticalBranch, 
+                                          branchClusterSettingsList[clusterIndex].noiseAmplitudeBranchGradient, 
+                                          branchClusterSettingsList[clusterIndex].noiseAmplitudeBranchExponent, 
+                                          branchClusterSettingsList[clusterIndex].noiseScale, 
                                           branchNode.point - (branchNode.next[0].point - branchNode.point), 
                                           branchLength)
                                       
@@ -2212,81 +2254,81 @@ noiseGenerator):
                 #branchNode.resampleSpline(rootNode, treeGen, resampleDistance)
                 
                 branchNode.hangingBranches(treeGen, 
-                                           context.scene.branchGlobalCurvatureStartList[clusterIndex].value, 
-                                           context.scene.branchGlobalCurvatureEndList[clusterIndex].value)
+                                           branchClusterSettingsList[clusterIndex].branchGlobalCurvatureStart, 
+                                           branchClusterSettingsList[clusterIndex].branchGlobalCurvatureEnd)
             
                 # TODO -> split() -> splitNode.hangingBranches() after each split!
                 if nrSplitsPerBranch != None:
                     if len(nrSplitsPerBranch) > 0: # > clusterIndex:
-                        if nrSplitsPerBranch[clusterIndex].value > 0.0: # [clusterIndex]
+                        if branchClusterSettingsList[clusterIndex].nrSplitsPerBranch > 0.0: # [clusterIndex]
                             
                             maxSplitHeightUsed = splitBranches(treeGen,
                                           rootNode, 
                                           clusterIndex, 
-                                          int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value), 
+                                          int(branchClusterSettingsList[clusterIndex].nrSplitsPerBranch * branchClusterSettingsList[clusterIndex].nrBranches), 
                                           
-                                          branchSplitAngle[clusterIndex].value, 
-                                          branchSplitPointAngle[clusterIndex].value, 
-                                          nrSplitsPerBranch[clusterIndex].value, 
+                                          branchClusterSettingsList[clusterIndex].branchSplitAngle, 
+                                          branchClusterSettingsList[clusterIndex].branchSplitPointAngle, 
+                                          branchClusterSettingsList[clusterIndex].nrSplitsPerBranch, 
                                           
-                                          splitsPerBranchVariation[clusterIndex].value, 
+                                          branchClusterSettingsList[clusterIndex].splitsPerBranchVariation, 
                                           branchSplitHeightInLevel, # == branchSplitHeightInLevelList_0
-                                          branchSplitHeightVariation[clusterIndex].value, 
-                                          branchSplitLengthVariation[clusterIndex].value,
+                                          branchClusterSettingsList[clusterIndex].branchSplitHeightVariation, 
+                                          branchClusterSettingsList[clusterIndex].branchSplitLengthVariation,
                                           
-                                          branchSplitMode[clusterIndex].value, 
-                                          branchSplitRotateAngle[clusterIndex].value,
+                                          branchClusterSettingsList[clusterIndex].branchSplitMode.value, 
+                                          branchClusterSettingsList[clusterIndex].branchSplitRotateAngle,
                                           
-                                          ringResolutionList[clusterIndex].value, 
+                                          branchClusterSettingsList[clusterIndex].ringResolution, 
                                           0.0,#branchCurvOffsetStrength[0], #TODO: variable for each branch cluster... 
-                                          branchVariance[clusterIndex].value, 
+                                          branchClusterSettingsList[clusterIndex].branchVariance, 
                                           
-                                          branchSplitAxisVariationList[clusterIndex].value, 
+                                          branchClusterSettingsList[clusterIndex].branchSplitAxisVariation, 
                                           True, 
                                           
-                                          context.scene.branchGlobalCurvatureStartList[clusterIndex].value, 
-                                          context.scene.branchGlobalCurvatureEndList[clusterIndex].value)
+                                          branchClusterSettingsList[clusterIndex].branchGlobalCurvatureStart, 
+                                          branchClusterSettingsList[clusterIndex].branchGlobalCurvatureEnd)
                                           
                             contexe.scene.maxSplitHeightUsed = max(context.scene.maxSplitHeightUsed, maxSplitHeightUsed)
                 
-                if context.scene.noiseAmplitudeHorizontalBranchList[clusterIndex].value > 0.0 or context.scene.noiseAmplitudeVerticalBranchList[clusterIndex].value > 0.0:
+                if branchClusterSettingsList[clusterIndex].noiseAmplitudeHorizontalBranch > 0.0 or branchClusterSettingsList[clusterIndex].noiseAmplitudeVerticalBranch > 0.0:
                     branchNode.applyNoise(treeGen, 
                                           noiseGenerator,
-                                          context.scene.noiseAmplitudeBranchGradientList[clusterIndex].value, 
-                                          context.scene.noiseAmplitudeHorizontalBranchList[clusterIndex].value, 
-                                          context.scene.noiseAmplitudeVerticalBranchList[clusterIndex].value, 
-                                          context.scene.noiseAmplitudeExponentList[clusterIndex].value, 
-                                          context.scene.noiseScaleList[clusterIndex].value, 
+                                          branchClusterSettingsList[clusterIndex].noiseAmplitudeBranchGradient, 
+                                          branchClusterSettingsList[clusterIndex].noiseAmplitudeHorizontalBranch, 
+                                          branchClusterSettingsList[clusterIndex].noiseAmplitudeVerticalBranch, 
+                                          branchClusterSettingsList[clusterIndex].noiseAmplitudeBranchExponent, 
+                                          branchClusterSettingsList[clusterIndex].noiseScale, 
                                           branchNode.point - (branchNode.next[0].point - branchNode.point), 
                                           branchLength)
                                       
-                #def splitBranches(self, 
-                  # rootNode, 
-                  # branchCluster, 
-                  # nrBranchSplits, 
-                  #
-                  # splitAngle, 
-                  # splitPointAngle, 
-                  # nrSplitsPerBranch, 
-                  # 
-                  # splitsPerBranchVariation, 
-                  # branchSplitHeightInLevel, # == branchSplitHeightInLevelList_0
-                  # branchSplitHeightVariation, 
-                  # branchSplitLengthVariation, 
-                  # 
-                  # branchSplitMode, 
-                  # branchSplitRotateAngle, 
-                  
-                  # stemRingResolution, 
-                  # curvOffsetStrength, 
-                  # variance, 
-                  # 
-                  # branchSplitAxisVariation, 
-                  # hangingBranches, 
-                  # treeGen, 
-                  # 
-                  # curvatureStartGlobal, 
-                  # curvatureEndGlobal):
+                #def splitBranches(treeGen, 
+                #  rootNode, 
+                #  branchCluster, 
+                #  nrBranchSplits, # = int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value)
+                #                  # used because branchSplitHeightInLevel needs max possible nrBranchSplits!
+                #  
+                #  splitAngle, 
+                #  splitPointAngle, 
+                #  nrSplitsPerBranch, 
+                #  
+                #  splitsPerBranchVariation, 
+                #  branchSplitHeightInLevel, # == branchSplitHeightInLevelList_0
+                #  branchSplitHeightVariation, 
+                #  branchSplitLengthVariation, 
+                #  
+                #  branchSplitMode, 
+                #  branchSplitRotateAngle, 
+                #  
+                #  stemRingResolution, 
+                #  curvOffsetStrength, 
+                #  variance, 
+                #  
+                #  branchSplitAxisVariation, 
+                #  hangingBranches,
+                #  
+                #  curvatureStartGlobal, 
+                #  curvatureEndGlobal):
                       
                       
             
