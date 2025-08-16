@@ -669,7 +669,7 @@ class exportProperties(bpy.types.Operator):
         props = context.scene  
         filename = props.file_name + ".json"  # Automatically append .json  
         filepath = bpy.path.abspath(f"//{filename}")  # Save to the specified filename  
-        save_properties(filepath)
+        save_properties(filepath, self)
         self.report({'INFO'}, f'Saved properties to {filepath}')
         return {'FINISHED'}
 
@@ -1864,7 +1864,7 @@ noiseGenerator):
         #    for startNode in startNodesNextIndexStartTvalEndTval:
         #        drawDebugPoint(startNode.startNode.point, 0.1)
             
-        #treeGen.report({'INFO'}, f"in addBranches(): clusterIndex: {clusterIndex}, len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}, len(branchNodes): {len(branchNodesNextIndexStartTvalEndTval)}")
+        treeGen.report({'INFO'}, f"in addBranches(): clusterIndex: {clusterIndex}, len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}, len(branchNodes): {len(branchNodesNextIndexStartTvalEndTval)}")
         
         #for info in startNodesNextIndexStartTvalEndTval:
             #treeGen.report({'INFO'}, f"startNode.point: {info.startNode.point}, startTval: {info.startTval}, endTval: {info.endTval}")
@@ -1916,7 +1916,7 @@ noiseGenerator):
                 branchVerticalAngle = lerp(branchClusterSettingsList[clusterIndex].verticalAngleBranchStart, branchClusterSettingsList[clusterIndex].verticalAngleBranchEnd, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
                 
                 verticalAngle = globalVerticalAngle + branchVerticalAngle
-                #treeGen.report({'INFO'}, f"in add Branches: branchStartTvalGlobal: {branchStartTvalGlobal}, globalVerticalAngle: {globalVerticalAngle}, verticalAngle: {verticalAngle}")
+                treeGen.report({'INFO'}, f"in add Branches: branchStartTvalGlobal: {branchStartTvalGlobal}, globalVerticalAngle: {globalVerticalAngle}, verticalAngle: {verticalAngle}")
                 
                 globalRotateAngle = lerp(branchClusterSettingsList[clusterIndex].rotateAngleCrownStart, branchClusterSettingsList[clusterIndex].rotateAngleCrownEnd, branchStartTvalGlobal)
                 
@@ -1940,6 +1940,8 @@ noiseGenerator):
                 #treeGen.report({'INFO'}, f"in add Branches: angleMode: {branchAngleModeList[0].value}")
                 
                 #treeGen.report({'INFO'}, f"in add Branches: clusterIndex: {clusterIndex}, branchClusters: {branchClusters}")
+                treeGen.report({'INFO'}, f"in add Branches: angleMode: {branchClusterSettingsList[clusterIndex].branchAngleMode.value}")
+                
                 if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "WINDING":
                     
                     centerDir = data.outwardDir # for symmetric!
@@ -1979,7 +1981,8 @@ noiseGenerator):
                 # else:
                 #     windingAngle += rotateAngle
                    
-                if branchClusterSettingsList[clusterIndex].branchAngleMode == "SYMMETRIC":
+                if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "SYMMETRIC":
+                    treeGen.report({'INFO'}, f"in addBranches(): symmetric")
                     centerDir = Quaternion(startPointTangent.cross(data.outwardDir), math.radians(-verticalAngle)) @ data.outwardDir # for symmetric!
                     axis = startPointTangent.cross(centerDir).normalized()
                     
@@ -1992,6 +1995,7 @@ noiseGenerator):
                         branchDir = Quaternion(axis, math.radians(-verticalAngle)) @ startPointTangent
                         #drawArrow(startPoint, startPoint + startPointTangent * 2.0)
                         branchDir = Quaternion(startPointTangent, math.radians(-rotateAngle)) @ branchDir
+                        treeGen.report({'INFO'}, f"in addBranches(): branchDir: {branchDir}")
                     else:
                         #drawArrow(startPoint, startPoint + startPointTangent)
                         right = startPointTangent.cross(Vector((0.0,0.0,1.0))).normalized()
@@ -2000,7 +2004,9 @@ noiseGenerator):
                         branchDir = Quaternion(axis, math.radians(verticalAngle)) @ startPointTangent
                         #drawArrow(startPoint, startPoint + startPointTangent * 2.0)
                         branchDir = Quaternion(startPointTangent, math.radians(rotateAngle)) @ branchDir
+                        treeGen.report({'INFO'}, f"in addBranches(): branchDir: {branchDir}")
                         
+                
                 branchCotangent = Vector((0.0, 0.0, 0.0))            
                 #There is no single continuous function that can generate a vector in R3 that is orthogonal to a given one for all vector inputs. https://en.wikipedia.org/wiki/Hairy_ball_theorem
              
@@ -5334,7 +5340,7 @@ def register():
     #    
     #}
     
-def save_properties(filePath):
+def save_properties(filePath, treeGen):
     props = bpy.context.scene
     
     controlPts = []
@@ -5358,6 +5364,52 @@ def save_properties(filePath):
         for boolProp in cluster.value:
             innerLeafList.append(boolProp.value)
         nestedLeafList.append(innerLeafList)
+    
+    treeGen.report({'INFO'}, f"max split height used: {bpy.context.scene.maxSplitHeightUsed}")
+    storeSplitHeights_0 = []
+    if bpy.context.scene.maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_0):
+        storeSplitHeights_0 = [props.branchSplitHeightInLevelList_0[i].value for i in range(0, bpy.context.scene.maxSplitHeightUsed + 1)]
+    else:
+        if len(props.branchClusterSettingsList) > 0:
+            storeSplitHeights_0 = props.branchSplitHeightInLevelList_0
+        
+    storeSplitHeights_1 = []
+    if bpy.context.scene.maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_1):
+        storeSplitHeights_1 = [props.branchSplitHeightInLevelList_1[i].value for i in range(0, bpy.context.scene.maxSplitHeightUsed + 1)]
+        treeGen.report({'INFO'}, "store splitHeights_1 max")
+    else:
+        if len(props.branchClusterSettingsList) > 1:
+            storeSplitHeights_1 = props.branchSplitHeightInLevelList_1
+            treeGen.report({'INFO'}, "store splitHeights_1")
+            
+    storeSplitHeights_2 = []
+    if bpy.context.scene.maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_2):
+        storeSplitHeights_2 = [props.branchSplitHeightInLevelList_2[i].value for i in range(0, bpy.context.scene.maxSplitHeightUsed + 1)]
+    else:
+        if len(props.branchClusterSettingsList) > 2:
+            storeSplitHeights_2 = props.branchSplitHeightInLevelList_2
+        
+    storeSplitHeights_3 = []
+    if bpy.context.scene.maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_3):
+        storeSplitHeights_3 = [props.branchSplitHeightInLevelList_3[i].value for i in range(0, bpy.context.scene.maxSplitHeightUsed + 1)]
+    else:
+        if len(props.branchClusterSettingsList) > 3:
+            storeSplitHeights_3 = props.branchSplitHeightInLevelList_3
+        
+    storeSplitHeights_4 = []
+    if bpy.context.scene.maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_4):
+        storeSplitHeights_4 = [props.branchSplitHeightInLevelList_4[i].value for i in range(0, bpy.context.scene.maxSplitHeightUsed + 1)]
+    else:
+        if len(props.branchClusterSettingsList) > 4:
+            storeSplitHeights_4 = props.branchSplitHeightInLevelList_4
+        
+    storeSplitHeights_5 = []
+    if bpy.context.scene.maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_5):
+        storeSplitHeights_5 = [props.branchSplitHeightInLevelList_5[i].value for i in range(0, bpy.context.scene.maxSplitHeightUsed + 1)]
+    else:
+        if len(props.branchClusterSettingsList) > 5:
+            storeSplitHeights_5 = props.branchSplitHeightInLevelList_5
+    
     
     
     data = {
@@ -5402,91 +5454,90 @@ def save_properties(filePath):
         "showBranchClusterList": [props.branchClusterBoolListList[i].show_branch_cluster for i in range(props.branchClusters)],
         "showParentClusterList": [props.parentClusterBoolListList[i].show_cluster for i in range(props.branchClusters)],
     
-        #parentClusterBoolListList
-        "parentClusterBoolListList": nestedBranchList,
+        #"parentClusterBoolListList": nestedBranchList,
         
-        "nrBranchesList": [props.nrBranchesList[i].value for i in range(props.branchClusters)],
-        "branchShapeList": [props.branchShapeList[i].value for i in range(props.branchClusters)],
-        "relBranchLengthList": [props.relBranchLengthList[i].value for i in range(props.branchClusters)],
-        "relBranchLengthVariationList": [props.relBranchLengthVariationList[i].value for i in range(props.branchClusters)],
-        "taperFactorList": [props.taperFactorList[i].value for i in range(props.branchClusters)],
-        "ringResolutionList": [props.ringResolutionList[i].value for i in range(props.branchClusters)],
-        "branchesStartHeightGlobalList": [props.branchesStartHeightGlobalList[i].value for i in range(props.branchClusters)],
-        "branchesEndHeightGlobalList": [props.branchesEndHeightGlobalList[i].value for i in range(props.branchClusters)],
-        "branchesStartHeightClusterList": [props.branchesStartHeightClusterList[i].value for i in range(props.branchClusters)],
-        "branchesEndHeightClusterList": [props.branchesEndHeightClusterList[i].value for i in range(props.branchClusters)],
+        "nrBranchesList": [props.branchClusterSettingsList[i].nrBranches for i in range(props.branchClusters)],
+        "branchShapeList": [props.branchClusterSettingsList[i].branchShape.value for i in range(props.branchClusters)],
+        "relBranchLengthList": [props.branchClusterSettingsList[i].relBranchLength for i in range(props.branchClusters)],
+        "relBranchLengthVariationList": [props.branchClusterSettingsList[i].relBranchLengthVariation for i in range(props.branchClusters)],
+        "taperFactorList": [props.branchClusterSettingsList[i].taperFactor for i in range(props.branchClusters)],
+        "ringResolutionList": [props.branchClusterSettingsList[i].ringResolution for i in range(props.branchClusters)],
+        "branchesStartHeightGlobalList": [props.branchClusterSettingsList[i].branchesStartHeightGlobal for i in range(props.branchClusters)],
+        "branchesEndHeightGlobalList": [props.branchClusterSettingsList[i].branchesEndHeightGlobal for i in range(props.branchClusters)],
+        "branchesStartHeightClusterList": [props.branchClusterSettingsList[i].branchesStartHeightCluster for i in range(props.branchClusters)],
+        "branchesEndHeightClusterList": [props.branchClusterSettingsList[i].branchesEndHeightCluster for i in range(props.branchClusters)],
         
         "showNoiseSettingsList": [props.showNoiseSettings[i].value for i in range(props.branchClusters)],
         
-        "noiseAmplitudeHorizontalList": [props.noiseAmplitudeHorizontalBranchList[i].value for i in range(props.branchClusters)],
-        "noiseAmplitudeVerticalList": [props.noiseAmplitudeVerticalBranchList[i].value for i in range(props.branchClusters)],
-        "noiseAmplitudeGradientList": [props.noiseAmplitudeBranchGradientList[i].value for i in range(props.branchClusters)],
-        "noiseAmplitudeExponentList": [props.noiseAmplitudeBranchExponentList[i].value for i in range(props.branchClusters)],
-        "noiseScaleList": [props.noiseScaleList[i].value for i in range(props.branchClusters)],
+        "noiseAmplitudeHorizontalList": [props.branchClusterSettingsList[i].noiseAmplitudeHorizontalBranch for i in range(props.branchClusters)],
+        "noiseAmplitudeVerticalList": [props.branchClusterSettingsList[i].noiseAmplitudeVerticalBranch for i in range(props.branchClusters)],
+        "noiseAmplitudeGradientList": [props.branchClusterSettingsList[i].noiseAmplitudeBranchGradient for i in range(props.branchClusters)],
+        "noiseAmplitudeExponentList": [props.branchClusterSettingsList[i].noiseAmplitudeBranchExponent for i in range(props.branchClusters)],
+        "noiseScaleList": [props.branchClusterSettingsList[i].noiseScale for i in range(props.branchClusters)],
         
         "showAngleSettingsList": [props.showAngleSettings[i].value for i in range(props.branchClusters)],
         
-        "verticalAngleCrownStartList": [props.verticalAngleCrownStartList[i].value for i in range(props.branchClusters)],
-        "verticalAngleCrownEndList": [props.verticalAngleCrownEndList[i].value for i in range(props.branchClusters)],
-        "verticalAngleBranchStartList": [props.verticalAngleBranchStartList[i].value for i in range(props.branchClusters)],
-        "verticalAngleBranchEndList": [props.verticalAngleBranchEndList[i].value for i in range(props.branchClusters)],
-        "branchAngleModeList": [props.branchAngleModeList[i].value for i in range(props.branchClusters)],
-        "useFibonacciAnglesList": [props.useFibonacciAnglesList[i].value for i in range(props.branchClusters)],
-        "fibonacciNr": [props.fibonacciNrList[i].fibonacci_nr for i in range(props.branchClusters)],
-        "rotateAngleRangeList": [props.fibonacciNrList[i].rotate_angle_range for i in range(props.branchClusters)],
-        "rotateAngleOffsetList": [props.fibonacciNrList[i].rotate_angle_offset for i in range(props.branchClusters)],
+        "verticalAngleCrownStartList": [props.branchClusterSettingsList[i].verticalAngleCrownStart for i in range(props.branchClusters)],
+        "verticalAngleCrownEndList": [props.branchClusterSettingsList[i].verticalAngleCrownEnd for i in range(props.branchClusters)],
+        "verticalAngleBranchStartList": [props.branchClusterSettingsList[i].verticalAngleBranchStart for i in range(props.branchClusters)],
+        "verticalAngleBranchEndList": [props.branchClusterSettingsList[i].verticalAngleBranchEnd for i in range(props.branchClusters)],
+        "branchAngleModeList": [props.branchClusterSettingsList[i].branchAngleMode.value for i in range(props.branchClusters)],
+        "useFibonacciAnglesList": [props.branchClusterSettingsList[i].useFibonacciAngles for i in range(props.branchClusters)],
+        "fibonacciNr": [props.branchClusterSettingsList[i].fibonacciNr.fibonacci_nr for i in range(props.branchClusters)],
+        "rotateAngleRangeList": [props.branchClusterSettingsList[i].rotateAngleRange for i in range(props.branchClusters)],
+        "rotateAngleOffsetList": [props.branchClusterSettingsList[i].rotateAngleOffset for i in range(props.branchClusters)],
         
-        "rotateAngleCrownStartList": [props.rotateAngleCrownStartList[i].value for i in range(props.branchClusters)],
-        "rotateAngleCrownEndList": [props.rotateAngleCrownEndList[i].value for i in range(props.branchClusters)],
-        "rotateAngleBranchStartList": [props.rotateAngleBranchStartList[i].value for i in range(props.branchClusters)],
-        "rotateAngleBranchEndList": [props.rotateAngleBranchEndList[i].value for i in range(props.branchClusters)],
+        "rotateAngleCrownStartList": [props.branchClusterSettingsList[i].rotateAngleCrownStart for i in range(props.branchClusters)],
+        "rotateAngleCrownEndList": [props.branchClusterSettingsList[i].rotateAngleCrownEnd for i in range(props.branchClusters)],
+        "rotateAngleBranchStartList": [props.branchClusterSettingsList[i].rotateAngleBranchStart for i in range(props.branchClusters)],
+        "rotateAngleBranchEndList": [props.branchClusterSettingsList[i].rotateAngleBranchEnd for i in range(props.branchClusters)],
         
-        "branchGlobalCurvatureStartList": [props.branchGlobalCurvatureStartList[i].value for i in range(props.branchClusters)],
-        "branchGlobalCurvatureEndList": [props.branchGlobalCurvatureEndList[i].value for i in range(props.branchClusters)],
-        "branchCurvatureStartList": [props.branchCurvatureStartList[i].value for i in range(props.branchClusters)],
-        "branchCurvatureEndList": [props.branchCurvatureEndList[i].value for i in range(props.branchClusters)],
-        "branchCurvatureOffsetStrengthList": [props.branchCurvatureOffsetStrengthList[i].value for i in     range(props.branchClusters)],
+        "branchGlobalCurvatureStartList": [props.branchClusterSettingsList[i].branchGlobalCurvatureStart for i in range(props.branchClusters)],
+        "branchGlobalCurvatureEndList": [props.branchClusterSettingsList[i].branchGlobalCurvatureEnd for i in range(props.branchClusters)],
+        "branchCurvatureStartList": [props.branchClusterSettingsList[i].branchCurvatureStart for i in range(props.branchClusters)],
+        "branchCurvatureEndList": [props.branchClusterSettingsList[i].branchCurvatureEnd for i in range(props.branchClusters)],
+        "branchCurvatureOffsetStrengthList": [props.branchClusterSettingsList[i].branchCurvatureOffsetStrength for i in     range(props.branchClusters)],
         
         "showSplitSettingsList": [props.showSplitSettings[i].value for i in range(props.branchClusters)],
         
-        "nrSplitsPerBranchList": [props.nrSplitsPerBranchList[i].value for i in range(props.branchClusters)],
-        "branchSplitModeList": [props.branchSplitModeList[i].value for i in range(props.branchClusters)],
-        "branchSplitRotateAngleList": [props.branchSplitRotateAngleList[i].value for i in range(props.branchClusters)],
-        "branchSplitAxisVariationList": [props.branchSplitAxisVariationList[i].value for i in range(props.branchClusters)],
+        "nrSplitsPerBranchList": [props.branchClusterSettingsList[i].nrSplitsPerBranch for i in range(props.branchClusters)],
+        "branchSplitModeList": [props.branchClusterSettingsList[i].branchSplitMode.value for i in range(props.branchClusters)],
+        "branchSplitRotateAngleList": [props.branchClusterSettingsList[i].branchSplitRotateAngle for i in range(props.branchClusters)],
+        "branchSplitAxisVariationList": [props.branchClusterSettingsList[i].branchSplitAxisVariation for i in range(props.branchClusters)],
         
-        "branchSplitAngleList": [props.branchSplitAngleList[i].value for i in range(props.branchClusters)],
-        "branchSplitPointAngleList": [props.branchSplitPointAngleList[i].value for i in range(props.branchClusters)],
+        "branchSplitAngleList": [props.branchClusterSettingsList[i].branchSplitAngle for i in range(props.branchClusters)],
+        "branchSplitPointAngleList": [props.branchClusterSettingsList[i].branchSplitPointAngle for i in range(props.branchClusters)],
         
-        "splitsPerBranchVariationList": [props.splitsPerBranchVariationList[i].value for i in range(props.branchClusters)],
-        "branchVarianceList": [props.branchVarianceList[i].value for i in range(props.branchClusters)],
-        "branchSplitHeightVariationList": [props.branchSplitHeightVariationList[i].value for i in range(props.branchClusters)],
-        "branchSplitLengthVariationList": [props.branchSplitLengthVariationList[i].value for i in range(props.branchClusters)],
+        "splitsPerBranchVariationList": [props.branchClusterSettingsList[i].splitsPerBranchVariation for i in range(props.branchClusters)],
+        "branchVarianceList": [props.branchClusterSettingsList[i].branchVariance for i in range(props.branchClusters)],
+        "branchSplitHeightVariationList": [props.branchClusterSettingsList[i].branchSplitHeightVariation for i in range(props.branchClusters)],
+        "branchSplitLengthVariationList": [props.branchClusterSettingsList[i].branchSplitLengthVariation for i in range(props.branchClusters)],
         "hangingBranchesList": [props.hangingBranchesList[i].value for i in range(props.branchClusters)],
         
-        "showBranchSplitHeights": [props.showBranchSplitHeights[i].value for i in range(props.branchClusters)],
+        "showBranchSplitHeights": [props.branchClusterSettingsList[i].showBranchSplitHeights for i in range(props.branchClusters)],
         
         "branchSplitHeightInLevelListIndex": props.branchSplitHeightInLevelListIndex,
-        
-        "branchSplitHeightInLevelList_0": [props.branchSplitHeightInLevelList_0[i].value for i in range(0, bpy.context.scene.maxSplitHeightUsed)],
+        #------
+        "branchSplitHeightInLevelList_0": storeSplitHeights_0,
         "branchSplitHeightInLevelListIndex_0": props.branchSplitHeightInLevelListIndex_0,
-        
-        "branchSplitHeightInLevelList_1": [item.value for item in props.branchSplitHeightInLevelList_1],
-        "branchSplitHeightInLevelListIndex_1": props.branchSplitHeightInLevelListIndex_1,
-        
-        "branchSplitHeightInLevelList_2": [item.value for item in props.branchSplitHeightInLevelList_2],
-        "branchSplitHeightInLevelListIndex_2": props.branchSplitHeightInLevelListIndex_2,
-        
-        "branchSplitHeightInLevelList_3": [item.value for item in props.branchSplitHeightInLevelList_3],
-        "branchSplitHeightInLevelListIndex_3": props.branchSplitHeightInLevelListIndex_3,
-        
-        "branchSplitHeightInLevelList_4": [item.value for item in props.branchSplitHeightInLevelList_4],
-        "branchSplitHeightInLevelListIndex_4": props.branchSplitHeightInLevelListIndex_4,
-        
-        "branchSplitHeightInLevelList_5": [item.value for item in props.branchSplitHeightInLevelList_5],
-        "branchSplitHeightInLevelListIndex_5": props.branchSplitHeightInLevelListIndex_5,
-        
-        "showLeafSettings": [item.value for item in props.showLeafSettings],
-        
+        #
+        #"branchSplitHeightInLevelList_1": storeSplitHeights_1,
+        #"branchSplitHeightInLevelListIndex_1": props.branchSplitHeightInLevelListIndex_1,
+        #
+        #"branchSplitHeightInLevelList_2": storeSplitHeights_2,
+        #"branchSplitHeightInLevelListIndex_2": props.branchSplitHeightInLevelListIndex_2,
+        #
+        #"branchSplitHeightInLevelList_3": storeSplitHeights_3,
+        #"branchSplitHeightInLevelListIndex_3": props.branchSplitHeightInLevelListIndex_3,
+        #
+        #"branchSplitHeightInLevelList_4": storeSplitHeights_4,
+        #"branchSplitHeightInLevelListIndex_4": props.branchSplitHeightInLevelListIndex_4,
+        #
+        #"branchSplitHeightInLevelList_5": storeSplitHeights_5,
+        #"branchSplitHeightInLevelListIndex_5": props.branchSplitHeightInLevelListIndex_5,
+        #
+        #"showLeafSettings": [item.value for item in props.showLeafSettings],
+        #------------
         "leavesDensityList": [item.value for item in props.leavesDensityList],
         "leafSizeList": [item.value for item in props.leafSizeList],
         "leafAspectRatioList": [item.value for item in props.leafAspectRatioList],
@@ -5503,7 +5554,7 @@ def save_properties(filePath):
         "leafRotateAngleBranchEndList": [item.value for item in props.leafRotateAngleBranchEndList],
         "leafTiltAngleBranchStartList": [item.value for item in props.leafTiltAngleBranchStartList],
         "leafTiltAngleBranchEndList": [item.value for item in props.leafTiltAngleBranchEndList],
-        #TODO: parentClusterBoolListList
+        
         "showLeafClusterList": [props.leafParentClusterBoolListList[i].show_leaf_cluster for  i in range(len(props.leafParentClusterBoolListList))],
         "leafParentClusterBoolListList": nestedLeafList
     }
