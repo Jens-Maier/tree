@@ -89,12 +89,12 @@ class node():
         #for t in self.tangent:
         #    drawArrow(self.point, self.point + t / 2.0)
         #if self.clusterIndex == -1: 
-        #drawDebugPoint(self.point, 0.1)
+        drawDebugPoint(self.point, 0.1)
         
         for n, nextNode in enumerate(self.next):
             longestBranchLengthInCluster = 1.0
             
-            #treeGen.report({'INFO'}, f"in getAllSegments(): clusterIndex: {self.clusterIndex}, ringResolution: {self.ringResolution}")
+            treeGen.report({'INFO'}, f"in getAllSegments(): clusterIndex: {self.clusterIndex}, ringResolution: {self.ringResolution}")
             
             if len(self.next) > 1:
                 segments.append(segment(self.clusterIndex, self.point, nextNode.point, self.tangent[n + 1], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.tValGlobal, nextNode.tValGlobal, self.tValBranch, nextNode.tValBranch, self.ringResolution, False, self.branchLength, longestBranchLengthInCluster, self.taper, nextNode.taper))
@@ -1418,17 +1418,19 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariat
 
     # Initialize splitAxis
     splitAxis = Vector((0, 0, 0))
+    
+    self.report({'INFO'}, f"split mode: {sMode}")
 
-    if sMode == "HORIZONTAL":
+    if sMode.value == "HORIZONTAL":
         #splitAxis = splitNode.cotangent
         right = splitNode.tangent[0].cross(Vector((0.0, 0.0, 1.0)))
-        #drawDebugPoint(splitNode.point + right / 2.0, 0.1)
+        drawDebugPoint(splitNode.point + right / 2.0, 0.1)
         splitAxis = right.cross(splitNode.tangent[0]).normalized()
         
         splitAxis = Quaternion(splitNode.tangent[0], random.uniform(-branchSplitAxisVariation, branchSplitAxisVariation)) @ splitAxis
         #drawDebugPoint(splitNode.point + splitAxis / 2.0, 0.1)
 
-    elif sMode == "ROTATE_ANGLE":
+    elif sMode.value == "ROTATE_ANGLE":
         splitAxis = splitNode.cotangent.normalized()
         #self.report({'INFO'}, f"splitNode.tangent[0] {splitNode.tangent[0]}")
         ##self.report({'INFO'}, f"rotationAngle {rotationAngle}")
@@ -1438,7 +1440,7 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariat
         splitAxis = (Quaternion(splitNode.tangent[0], math.radians(rotationAngle) * level) @ splitAxis).normalized()
 
     else:
-        self.report({'INFO'}, f"ERROR: invalid splitMode: {sMode}")
+        self.report({'INFO'}, f"ERROR: invalid splitMode: {sMode.value}")
         splitAxis = splitNode.cotangent.normalized()
         if level % 2 == 1:
             splitAxis = (Quaternion(splitNode.tangent[0], math.radians(90)) @ splitAxis).normalized()
@@ -2109,22 +2111,25 @@ noiseGenerator):
                     rotateAngle = (globalRotateAngle + branchRotateAngle) % branchClusterSettingsList[clusterIndex].rotateAngleRange
                     # fibonacciNrList[clusterIndex].rotate_angle_range # branchClusterSettingsList
                     windingAngle += rotateAngle
+        
+        splitHeightInLevelList = branchSplitHeightInLevel  # == branchSplitHeightInLevelList_0
+        if clusterIndex == 1:
+            splitHeightInLevelList = branchSplitHeightInLevelList_1
+        if clusterIndex == 2:
+            splitHeightInLevelList = branchSplitHeightInLevelList_2
+        if clusterIndex == 3:
+            splitHeightInLevelList = branchSplitHeightInLevelList_3
+        if clusterIndex == 4:
+            splitHeightInLevelList = branchSplitHeightInLevelList_4
+        if clusterIndex == 5:
+            splitHeightInLevelList = branchSplitHeightInLevelList_5
                 
         
         if hangingBranchesList[clusterIndex].value == False:
+            nrSplits = 0
             if branchClusterSettingsList[clusterIndex].nrSplitsPerBranch > 0.0: # [clusterIndex]
                 
-                splitHeightInLevelList = branchSplitHeightInLevel  # == branchSplitHeightInLevelList_0
-                if clusterIndex == 1:
-                    splitHeightInLevelList = branchSplitHeightInLevelList_1
-                if clusterIndex == 2:
-                    splitHeightInLevelList = branchSplitHeightInLevelList_2
-                if clusterIndex == 3:
-                    splitHeightInLevelList = branchSplitHeightInLevelList_3
-                if clusterIndex == 4:
-                    splitHeightInLevelList = branchSplitHeightInLevelList_4
-                if clusterIndex == 5:
-                    splitHeightInLevelList = branchSplitHeightInLevelList_5
+                
                 
                 nrSplits = int(branchClusterSettingsList[clusterIndex].nrSplitsPerBranch * branchClusterSettingsList[clusterIndex].nrBranches)
                 
@@ -2752,6 +2757,7 @@ def generateVerticesAndTriangles(self, treeGen, context, segments, dir, taper, r
     
     for s in range(0, len(segments)):
         segmentLength = (segments[s].end - segments[s].start).length
+        self.report({'INFO'}, f"in generateVerticesAndTriangles: segmentLength: {segmentLength}")
         if segmentLength > 0:
             sections = round(segmentLength / ringSpacing)
             if sections <= 0:
@@ -2762,13 +2768,20 @@ def generateVerticesAndTriangles(self, treeGen, context, segments, dir, taper, r
                 if segments[s].connectedToPrevious == True and segments[s - 1].connectedToPrevious == False: # only on first segment 
                     #-> later connected segments: dont subtract stemRingRes again!
                     startSection = 1
-                    offset -= stemRingRes
-                    self.report({'INFO'}, f"in generateVerticesAndTriangles: connectedToPrevious == True, offset: {offset}") 
+                    offset -= stemRingRes # ERROR HERE (???)
+                    self.report({'INFO'}, f"in generateVerticesAndTriangles: connectedToPrevious == True, offset: {offset}, startSection = 1") 
+                    if segments[s - 1].connectedToPrevious == True:
+                        self.report({'INFO'}, f"in generateVerticesAndTriangles: connectedToPrevious == True, offset: {offset}")
+                if segments[s].connectedToPrevious == True and segments[s - 1].connectedToPrevious == True:
+                    self.report({'INFO'}, f"in generateVerticesAndTriangles: connectedToPrevious == True, previous.connectedToPrevious == True, offset: {offset}")
+                    startSection = 1
                 
                 if segments[s].connectedToPrevious == False:
                     startSection = 0
                     offset = len(vertices)
-                    self.report({'INFO'}, f"in generateVerticesAndTriangles: connectedToPrevious == False, offset: {offset}")
+                    self.report({'INFO'}, f"in generateVerticesAndTriangles: connectedToPrevious == False, offset: {offset}, startSections = 0")
+            else:
+                self.report({'INFO'}, f"in generateVerticesAndTriangles: offset: {offset}")
                 
             controlPt1 = segments[s].start + segments[s].startTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0
             controlPt2 = segments[s].end - segments[s].endTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0
