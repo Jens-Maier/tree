@@ -141,6 +141,8 @@ class node():
         #if self.clusterIndex == 1:
         #    drawDebugPoint(self.point, 0.1)
         
+        treeGen.report({'INFO'}, f"in getAllStartNodes(): len(parentClusterBoolListList: {len(parentClusterBoolListList)}, newClusterIndex: {newClusterIndex}")
+        
         if self.clusterIndex == -1:
             #stem
             if parentClusterBoolListList[newClusterIndex].value[0].value == True:
@@ -1534,17 +1536,18 @@ def addLeaves(self, treeGen, rootNode,        #     TODO: support multiple leaf 
         startNodesNextIndexStartTvalEndTval = []
         branchNodesNextIndexStartTvalEndTval = []
         
-        rootNode.getAllStartNodes(
-            self, 
-            startNodesNextIndexStartTvalEndTval, 
-            branchNodesNextIndexStartTvalEndTval,
-            -1, 
-            leafStartHeightGlobalList[leafClusterIndex].value, # StartHeightGlobal, 
-            leafEndHeightGlobalList[leafClusterIndex].value, # EndHeightGlobal, 
-            leafStartHeightClusterList[leafClusterIndex].value, # StartHeightCluster, 
-            leafEndHeightClusterList[leafClusterIndex].value, # EndHeightCluster, 
-            leafParentClusterBoolListList, 
-            leafClusterIndex)
+        if len(leafParentClusterBoolListList) > 0:
+            rootNode.getAllStartNodes(
+                self, 
+                startNodesNextIndexStartTvalEndTval, 
+                branchNodesNextIndexStartTvalEndTval,
+                -1, 
+                leafStartHeightGlobalList[leafClusterIndex].value, # StartHeightGlobal, 
+                leafEndHeightGlobalList[leafClusterIndex].value, # EndHeightGlobal, 
+                leafStartHeightClusterList[leafClusterIndex].value, # StartHeightCluster, 
+                leafEndHeightClusterList[leafClusterIndex].value, # EndHeightCluster, 
+                leafParentClusterBoolListList, 
+                leafClusterIndex)
             
         #for startNode in startNodesNextIndexStartTvalEndTval:
         #    drawDebugPoint(startNode.startNode.point, 0.1)
@@ -1835,17 +1838,18 @@ noiseGenerator):
             branchNodesNextIndexStartTvalEndTval.append([])
         
         treeGen.report({'INFO'}, f"calling rootNode.getAllStartNodes(), clusterIndex: {clusterIndex}")
-        rootNode.getAllStartNodes(
-            self, 
-            startNodesNextIndexStartTvalEndTval, 
-            branchNodesNextIndexStartTvalEndTval,
-            -1, 
-            branchesStartHeightGlobal, 
-            branchesEndHeightGlobal, 
-            branchesStartHeightCluster, 
-            branchesEndHeightCluster, 
-            parentClusterBoolListList, 
-            clusterIndex)
+        if len(parentClusterBoolListList) > 0:
+            rootNode.getAllStartNodes(
+                self, 
+                startNodesNextIndexStartTvalEndTval, 
+                branchNodesNextIndexStartTvalEndTval,
+                -1, 
+                branchesStartHeightGlobal, 
+                branchesEndHeightGlobal, 
+                branchesStartHeightCluster, 
+                branchesEndHeightCluster, 
+                parentClusterBoolListList, 
+                clusterIndex)
             
        #     def getAllStartNodes(
        # self, 
@@ -5631,203 +5635,208 @@ def load_properties(filepath, context):
         
         props.branchClusters = data.get("branchClusters", props.branchClusters)
         
+        
+        for n in range(0, props.branchClusters):
+            props.branchClusterSettingsList.add()
+            props.branchClusters += 1
+            
+        i = 0
         for value in data.get("nrBranchesList", []):
-            item = props.nrBranchesList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].nrBranches = value
+            i += 1
+        i = 0
         for value in data.get("branchShapeList", []):
-            item = props.branchShapeList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].branchShape.value = value
+            i += 1
+        i = 0
         for value in data.get("relBranchLengthList", []):
-            item = props.relBranchLengthList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].relBranchLength = value
+            i += 1
+        i = 0
         for value in data.get("relBranchLengthVariationList", []):
-            item = props.relBranchLengthVariationList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].relBranchLengthVariation = value
+            i += 1
+        i = 0
         for value in data.get("taperFactorList", []):
-            item = props.taperFactorList.add()
-            item.value = value
-        
+            props.branchClusterSettingsList[i].taperFactor = value
+            i += 1
+        i = 0
         for value in data.get("ringResolutionList", []):
-            item = props.ringResolutionList.add()
-            item.value = value
-        
+            props.branchClusterSettingsList[i].ringResolution = value
+            i += 1
+        i = 0        
         for value in data.get("branchesStartHeightGlobalList", []):
-            item = props.branchesStartHeightGlobalList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].branchesStartHeightGlobal = value
+            i += 1
+        i = 0            
         for value in data.get("branchesEndHeightGlobalList", []):
-            item = props.branchesEndHeightGlobalList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].branchesEndHeightGlobal = value
+            i += 1
+        i = 0            
         for value in data.get("branchesStartHeightClusterList", []):
-            item = props.branchesStartHeightClusterList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].branchesStartHeightCluster = value
+            i += 1
+        i = 0            
         for value in data.get("branchesEndHeightClusterList", []):
-            item = props.branchesEndHeightClusterList.add()
-            item.value = value
-        
+            props.branchClusterSettingsList[i].branchesEndHeightCluster = value
+            i += 1
+        i = 0                    
         for value in data.get("noiseAmplitudeHorizontalBranchList", []):
-            item = props.noiseAmplitudeHorizontalBranchList.add()
-            item.value = value
-        
+            props.branchClusterSettingsList[i].noiseAmplitudeHorizontalBranch = value
+            i += 1
+        i = 0
         for value in data.get("noiseAmplitudeVerticalBranchList", []):
-            item = props.noiseAmplitudeVerticalBranchList.add()
-            item.value = value
-        
+            props.branchClusterSettingsList[i].noiseAmplitudeVerticalBranch = value
+            i += 1
+        i = 0
         for value in data.get("noiseAmplitudeBranchGradientList", []):
-            item = props.noiseAmplitudeBranchGradientList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].noiseAmplitudeBranchGradient = value
+            i += 1
+        i = 0
         for value in data.get("noiseAmplitudeBranchExponentList", []):
-            item = props.noiseAmplitudBranchExponentList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].noiseAmplitudBranchExponent = value
+            i += 1
+        i = 0
         for value in data.get("noiseScaleList", []):
-            item = props.noiseScaleList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].noiseScale = value
+            i += 1
         
+        i = 0
         for value in data.get("verticalAngleCrownStartList", []):
-            item = props.verticalAngleCrownStartList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].verticalAngleCrownStart = value
+            i += 1
+        i = 0
         for value in data.get("verticalAngleCrownEndList", []):
-            item = props.verticalAngleCrownEndList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].verticalAngleCrownEnd = value
+            i += 1
+        i = 0
         for value in data.get("verticalAngleBranchStartList", []):
-            item = props.verticalAngleBranchStartList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].verticalAngleBranchStart = value
+            i += 1
+        i = 0
         for value in data.get("verticalAngleBranchEndList", []):
-            item = props.verticalAngleBranchEndList.add()
-            item.value = value
+            props.branchClusterSettingsList[i].verticalAngleBranchEnd = value
+            i += 1
         
-        
+        i = 0
         for value in data.get("branchAngleModeList", []):
-            item = props.branchAngleModeList.add()
-            item.value = value
+            props.branchClusterSettingsList[i].branchAngleMode.value = value
+            i += 1
             
         # "useFibonacciAnglesList": [props.useFibonacciAnglesList[i].value for i in range(props.branchClusters)],
         # "fibonacciNr": [props.fibonacciNrList[i].fibonacci_nr for i in range(props.branchClusters)],
         # "rotateAngleRangeList": [props.fibonacciNrList[i].rotate_angle_range for i in range(props.branchClusters)],
         # "rotateAngleOffsetList": [props.fibonacciNrList[i].rotate_angle_offset for i in range(props.branchClusters)],
         
+        i = 0
         for value in data.get("useFibonacciAnglesList", []):
-            item = props.useFibonacciAnglesList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].useFibonacciAngles = value
+            i += 1
+        i = 0
         for value in data.get("fibonacciNr", []):
-            item = props.fibonacciNrList.add()
+            props.branchClusterSettingsList[i].fibonacciNr.fibonacci_nr = value
             item.fibonacci_nr = value
         
         fibIndex = 0
         for value in data.get("rotateAngleRangeList", []):
-            item = props.fibonacciNrList[fibIndex]
-            item.rotate_angle_range = value
+            props.branchClusterSettingsList[fibIndex].rotateAngleRange = value
             fibIndex += 1
+            
             
         fibIndex = 0
         for value in data.get("rotateAngleOffsetList", []):
-            item = props.fibonacciNrList[fibIndex]
-            item.rotate_angle_offset = value
+            props.branchClusterSettingsList[fibIndex].rotateAngleOffset = value
             fibIndex += 1
         
-        
+        i = 0
         for value in data.get("rotateAngleCrownStartList", []):
-            item = props.rotateAngleCrownStartList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].rotateAngleCrownStart = value
+            i += 1
+        i = 0
         for value in data.get("rotateAngleCrownEndList", []):
-            item = props.rotateAngleCrownEndList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].rotateAngleCrownEnd = value
+            i += 1
+        i = 0
         for value in data.get("rotateAngleBranchStartList", []):
-            item = props.rotateAngleBranchStartList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].rotateAngleBranchStart = value
+            i += 1
+        i = 0
         for value in data.get("rotateAngleBranchEndList", []):
-            item = props.rotateAngleBranchEndList.add()
-            item.value = value
-            
-            
+            props.branchClusterSettingsList[i].rotateAngleBranchEnd = value
+            i += 1
+        
+        i = 0
         for value in data.get("branchGlobalCurvatureStartList", []):
-            item = props.branchGlobalCurvatureStartList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].branchGlobalCurvatureStart = value
+            i += 1
+        i = 0
         for value in data.get("branchGlobalCurvatureEndList", []):
-            item = props.branchGlobalCurvatureEndList.add()
-            item.value = value
-        
+            props.branchClusterSettingsList[i].branchGlobalCurvatureEnd = value
+            i += 1
+        i = 0
         for value in data.get("branchCurvatureStartList", []):
-            item = props.branchCurvatureStartList.add()
-            item.value = value
-           
+            props.branchClusterSettingsList[i].branchCurvatureStart = value
+            i += 1
+        i = 0
         for value in data.get("branchCurvatureEndList", []):
-            item = props.branchCurvatureEndList.add()
-            item.value = value
-        
+            props.branchClusterSettingsList[i].branchCurvatureEnd = value
+            i += 1
+        i = 0
         for value in data.get("branchCurvatureOffsetStrengthList", []):
-            item = props.branchCurvatureOffsetStrengthList.add()
-            item.value = value
+            props.branchClusterSettingsList[i].branchCurvatureOffsetStrength = value
+            i += 1
         
         
-        
+        i = 0
         for value in data.get("nrSplitsPerBranchList", []):
-            item = props.nrSplitsPerBranchList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].nrSplitsPerBranch = value
+            i += 1
+        i = 0
         for value in data.get("branchSplitModeList", []):
-            item = props.branchSplitModeList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].branchSplitMode.value = value
+            i += 1
+        i = 0
         for value in data.get("branchSplitRotateAngleList", []):
-            item = props.branchSplitRotateAngleList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].branchSplitRotateAngle = value
+            i += 1
+        i = 0
         for value in data.get("branchSplitAxisVariationList", []):
-            item = props.branchSplitAxisVariationList.add()
-            item.value = value
+            props.branchClusterSettingsList[i].branchSplitAxisVariation = value
+            i += 1
         
         
             
-            
+        i = 0    
         for value in data.get("branchSplitAngleList", []):
-            item = props.branchSplitAngleList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].branchSplitAngle = value
+            i += 1
+        i = 0
         for value in data.get("branchSplitPointAngleList", []):
-            item = props.branchSplitPointAngleList.add()
-            item.value = value
+            props.branchClusterSettingsList[i].branchSplitPointAngle = value
+            i += 1
                         
-        
+        i = 0
         for value in data.get("splitsPerBranchVariationList", []):
-            item = props.splitsPerBranchVariationList.add()
-            item.value = value
-            
+            props.branchClusterSettingsList[i].splitsPerBranchVariation = value
+            i += 1
+        i = 0
         for value in data.get("branchVarianceList", []):
-            item = props.branchVarianceList.add()
-            item.value = value
-        
+            props.branchClusterSettingsList[i].branchVariance = value
+            i += 1
+        i = 0
         for value in data.get("branchSplitHeightVariationList", []):
-            item = props.branchSplitHeightVariationList.add()
-            item.value = value
-        
+            props.branchClusterSettingsList[i].branchSplitHeightVariation = value
+            i += 1
+        i = 0
         for value in data.get("branchSplitLengthVariationList", []):
-            item = props.branchSplitLengthVariationList.add()
-            item.value = value
-        
+            props.branchClusterSettingsList[i].branchSplitLengthVariation = value
+            i += 1
+        i = 0
         for value in data.get("hangingBranchesList", []):
-            item = props.hangingBranchesList.add()
-            item.value = value
-            
-        props.branchSplitHeightInLevelListIndex = data.get("branchSplitHeightInLevelListIndex", props.branchSplitHeightInLevelListIndex)
-            
+            props.branchClusterSettingsList[i].hangingBranches = value
+            i += 1
+        
+        i = 0    
         for value in data.get("branchSplitHeightInLevelList_0", []):
             item = props.branchSplitHeightInLevelList_0.add()
             item.value = value
