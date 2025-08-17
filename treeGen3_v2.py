@@ -686,7 +686,7 @@ class importProperties(bpy.types.Operator):
         load_properties(filepath, context)
         self.report({'INFO'}, f'Loaded properties from {filepath}')
         
-        bpy.ops.object.generate_tree()
+        #bpy.ops.object.generate_tree()
         return {'FINISHED'}
         
 class generateTree(bpy.types.Operator):
@@ -4188,10 +4188,10 @@ class branchSettings(bpy.types.Panel):
                     split.prop(scene.branchClusterSettingsList[i], "branchesEndHeightCluster", text="", slider=True)
             
             split = box.split(factor=0.6)
-            #if len(scene.showNoiseSettings) <= i:
-            #    split.label(text=f"ERROR: len(showNoiseSettings): {len(scene.showNoiseSettings)}")
-            #else:
-            split.prop(scene.showNoiseSettings[i], "value", icon="TRIA_DOWN" if scene.showNoiseSettings[i].value else "TRIA_RIGHT", emboss=False, text="Noise settings", toggle=True)
+            if len(scene.showNoiseSettings) <= i:
+                split.label(text=f"ERROR: len(showNoiseSettings): {len(scene.showNoiseSettings)}")
+            else:
+                split.prop(scene.showNoiseSettings[i], "value", icon="TRIA_DOWN" if scene.showNoiseSettings[i].value else "TRIA_RIGHT", emboss=False, text="Noise settings", toggle=True)
                 
             if scene.showNoiseSettings[i].value:
                 box1 = box.box()
@@ -5458,7 +5458,7 @@ def save_properties(filePath, treeGen):
         "showBranchClusterList": [props.branchClusterBoolListList[i].show_branch_cluster for i in range(props.branchClusters)],
         "showParentClusterList": [props.parentClusterBoolListList[i].show_cluster for i in range(props.branchClusters)],
     
-        #"parentClusterBoolListList": nestedBranchList,
+        "parentClusterBoolListList": nestedBranchList,
         
         "nrBranchesList": [props.branchClusterSettingsList[i].nrBranches for i in range(props.branchClusters)],
         "branchShapeList": [props.branchClusterSettingsList[i].branchShape.value for i in range(props.branchClusters)],
@@ -5633,12 +5633,39 @@ def load_properties(filepath, context):
         props.stemSplitAngle = data.get("stemSplitAngle", props.stemSplitAngle)
         props.stemSplitPointAngle = data.get("stemSplitPointAngle", props.stemSplitPointAngle)
         
-        props.branchClusters = data.get("branchClusters", props.branchClusters)
         
+        props.branchClusterSettingsList.clear()
+        props.branchClusters = 0
+        branchClusters = data.get("branchClusters", props.branchClusters)
         
-        for n in range(0, props.branchClusters):
-            props.branchClusterSettingsList.add()
-            props.branchClusters += 1
+        while len(props.parentClusterBoolListList) > 0:
+            props.parentClusterBoolListList.remove(0)
+        
+        nestedList = []
+        nestedList = data.get("parentClusterBoolListList", nestedList)
+        for n in range(0, branchClusters):
+            innerList = nestedList[n]
+            item = props.parentClusterBoolListList.add()
+            for b in innerList:
+                item.value.add(b)
+            
+        #nestedBranchList = []
+        #for cluster in props.parentClusterBoolListList:
+        #    innerList = []
+        #    for boolProp in cluster.value:
+        #        innerList.append(boolProp.value)
+        #    nestedBranchList.append(innerList)
+        #
+        
+        while len(props.branchClusterSettingsList) > 0:
+            props.branchClusterSettingsList.remove(0)
+            
+        for n in range(0, branchClusters):
+            bpy.ops.scene.add_list_item()
+        
+        #for n in range(0, props.branchClusters):
+        #    props.branchClusterSettingsList.add()
+        #    props.branchClusters += 1
             
         i = 0
         for value in data.get("nrBranchesList", []):
@@ -5680,7 +5707,19 @@ def load_properties(filepath, context):
         for value in data.get("branchesEndHeightClusterList", []):
             props.branchClusterSettingsList[i].branchesEndHeightCluster = value
             i += 1
-        i = 0                    
+        
+        #"showNoiseSettingsList": [props.showNoiseSettings[i].value for i in range(props.branchClusters)],
+        while len(props.showNoiseSettings) > 0:
+            props.showNoiseSettings.remove(0)
+        noiseSettingsBools = data.get("showNoiseSettingsList")
+        for n in range(0, branchClusters):
+            item = props.showNoiseSettings.add()
+            item.value = noiseSettingsBools[n]
+        i = 0
+        #for value in data.get("showNoiseSettingsList", []):
+        #    props.showNoiseSettings[i].value = value
+        #    i += 1
+        #i = 0                    
         for value in data.get("noiseAmplitudeHorizontalBranchList", []):
             props.branchClusterSettingsList[i].noiseAmplitudeHorizontalBranch = value
             i += 1
@@ -5700,6 +5739,13 @@ def load_properties(filepath, context):
         for value in data.get("noiseScaleList", []):
             props.branchClusterSettingsList[i].noiseScale = value
             i += 1
+            
+        while len(props.showAngleSettings) > 0:
+            props.showAngleSettings.remove(0)
+        angleSettingsBools = data.get("showAngleSettingsList", [])
+        for n in range(0, branchClusters):
+            item = props.showAngleSettings.add()
+            item.value = angleSettingsBools[n]
         
         i = 0
         for value in data.get("verticalAngleCrownStartList", []):
@@ -5786,6 +5832,20 @@ def load_properties(filepath, context):
             props.branchClusterSettingsList[i].branchCurvatureOffsetStrength = value
             i += 1
         
+        while len(props.showSpliteSettings) > 0:
+            props.showSplitSettings.remove(0)
+        splitSettingsBools = data.get("showSplitSettingsList", [])
+        for n in range(0, branchClusters):
+            item = props.showSplitSettings.add()
+            item.value = splitSettingsBools[n]
+            
+            
+            #while len(props.showAngleSettings) > 0:
+        #        props.showAngleSettings.remove(0)
+        #    angleSettingsBools = data.get("showAngleSettingsList", [])
+        #    for n in range(0, branchClusters):
+        #    item = props.showAngleSettings.add()
+        #    item.value = angleSettingsBools[n]
         
         i = 0
         for value in data.get("nrSplitsPerBranchList", []):
