@@ -248,22 +248,11 @@ class branchClusterSettings(bpy.types.PropertyGroup):
     taperFactor: bpy.props.FloatProperty(name = "Taper factor", default = 1.0, min = 0.0, soft_max = 1.0)
     ringResolution: bpy.props.IntProperty(name = "Ring resolution", default = 6, min = 3)
     branchesStartHeightGlobal: bpy.props.FloatProperty(name = "Branches start height global", default = 0.0, min = 0.0, max = 1.0)
-    branchesEndHeightGlobal: bpy.props.FloatProperty(name = "Branches end height global", default = 0.0, min = 0.0, max = 1.0)
+    branchesEndHeightGlobal: bpy.props.FloatProperty(name = "Branches end height global", default = 1.0, min = 0.0, max = 1.0)
     branchesStartHeightCluster: bpy.props.FloatProperty(name = "Branches start height cluster", default = 0.0, min = 0.0, max = 1.0)
-    branchesEndHeightCluster: bpy.props.FloatProperty(name = "Branches end height cluster", default = 0.0, min = 0.0, max = 1.0)
+    branchesEndHeightCluster: bpy.props.FloatProperty(name = "Branches end height cluster", default = 1.0, min = 0.0, max = 1.0)
     
     #bpy.types.Scene.branchClusterBoolListList = bpy.props.CollectionProperty(type=branchClusterBoolListProp)
-    #bpy.types.Scene.nrBranchesList = bpy.props.CollectionProperty(type=intProp)
-    #bpy.types.Scene.nrBranchesListIndex = bpy.props.IntProperty(default=0)
-    #bpy.types.Scene.branchShapeList = bpy.props.CollectionProperty(type=treeShapeEnumProp)
-    #bpy.types.Scene.relBranchLengthList = bpy.props.CollectionProperty(type=posFloatPropSoftMax1)
-    #bpy.types.Scene.relBranchLengthVariationList = bpy.props.CollectionProperty(type=posFloatPropSoftMax1Default0)
-    #bpy.types.Scene.taperFactorList = bpy.props.CollectionProperty(type=posFloatPropSoftMax1)
-    #bpy.types.Scene.ringResolutionList = bpy.props.CollectionProperty(type=posIntProp3)
-    #bpy.types.Scene.branchesStartHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
-    #bpy.types.Scene.branchesEndHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
-    #bpy.types.Scene.branchesStartHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
-    #bpy.types.Scene.branchesEndHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
     
     showNoiseSettings: bpy.props.BoolProperty(name = "Show/hide noise settings", default=True)
         
@@ -272,13 +261,7 @@ class branchClusterSettings(bpy.types.PropertyGroup):
     noiseAmplitudeBranchGradient: bpy.props.FloatProperty(name = "Noise amplitude gradient", default = 0.0, min = 0.0)
     noiseAmplitudeBranchExponent: bpy.props.FloatProperty(name = "Noise amplitude exponent", default = 1.0, min = 0.0)
     noiseScale: bpy.props.FloatProperty(name = "Noise scale", default = 1.0, min = 0.0)
-    
-    #bpy.types.Scene.noiseAmplitudeHorizontalBranchList = bpy.props.CollectionProperty(type=posFloatProp)
-    #bpy.types.Scene.noiseAmplitudeVerticalBranchList = bpy.props.CollectionProperty(type=posFloatProp)
-    #bpy.types.Scene.noiseAmplitudeBranchGradientList = bpy.props.CollectionProperty(type=posFloatProp)    
-    #bpy.types.Scene.noiseAmplitudeBranchExponentList = bpy.props.CollectionProperty(type=posFloatPropDefault1)
-    #bpy.types.Scene.noiseScaleList = bpy.props.CollectionProperty(type=posFloatPropDefault1)
-    
+        
     showAngleSettings: bpy.props.BoolProperty(name = "Show/hide angle settings", default=True)
     
     verticalAngleCrownStart: bpy.props.FloatProperty(name = "Vertical angle crown start")
@@ -302,28 +285,7 @@ class branchClusterSettings(bpy.types.PropertyGroup):
     branchCurvatureStart: bpy.props.FloatProperty(name = "Branch curvature start")
     branchCurvatureEnd: bpy.props.FloatProperty(name = "Branch curvature end")
     branchCurvatureOffsetStrength: bpy.props.FloatProperty(name = "Branch curvature offset", min = 0.0)
-    
-    #bpy.types.Scene.verticalAngleCrownStartList = bpy.props.CollectionProperty(type=floatProp)
-    #bpy.types.Scene.verticalAngleCrownEndList = bpy.props.CollectionProperty(type=floatProp)
-    #bpy.types.Scene.verticalAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
-    #bpy.types.Scene.verticalAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
-    #bpy.types.Scene.branchAngleModeList = bpy.props.CollectionProperty(type=angleModeEnumProp)
-    #bpy.types.Scene.useFibonacciAnglesList = bpy.props.CollectionProperty(type=boolProp)
-    #bpy.types.Scene.fibonacciNrList = bpy.props.CollectionProperty(type=fibonacciProps)
-    #bpy.types.Scene.rotateAngleRangeList = bpy.props.CollectionProperty(type=floatProp)
-    
-    #bpy.types.Scene.rotateAngleCrownStartList = bpy.props.CollectionProperty(type=floatProp)
-    #bpy.types.Scene.rotateAngleCrownEndList = bpy.props.CollectionProperty(type=floatProp)
-    #bpy.types.Scene.rotateAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
-    #bpy.types.Scene.rotateAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
-    
-    #bpy.types.Scene.hangingBranchesList = bpy.props.CollectionProperty(type=boolProp)
-    #bpy.types.Scene.branchGlobalCurvatureStartList = bpy.props.CollectionProperty(type=floatProp)
-    #bpy.types.Scene.branchGlobalCurvatureEndList = bpy.props.CollectionProperty(type=floatProp)
-    #bpy.types.Scene.branchCurvatureStartList = bpy.props.CollectionProperty(type=floatProp)
-    #bpy.types.Scene.branchCurvatureEndList = bpy.props.CollectionProperty(type=floatProp)
-    #bpy.types.Scene.branchCurvatureOffsetStrengthList = bpy.props.CollectionProperty(type=posFloatProp)
-    
+            
     showSplitSettings: bpy.props.BoolProperty(name = "Show/hide split settings", default=True)
     
     nrSplitsPerBranch: bpy.props.FloatProperty(name = "Nr splits per branch", default = 0.0, min = 0.0)
@@ -338,39 +300,29 @@ class branchClusterSettings(bpy.types.PropertyGroup):
     branchVariance: bpy.props.FloatProperty(name = "Branch varianace", default = 0.0, min = 0.0, max = 1.0)
     branchSplitHeightVariation: bpy.props.FloatProperty(name = "Branch split height variation", default = 0.0, min = 0.0, max = 1.0)
     branchSplitLengthVariation: bpy.props.FloatProperty(name = "Branch split length variation", default = 0.0, min = 0.0, max = 1.0)
-    
-    #bpy.types.Scene.branchSplitModeList = bpy.props.CollectionProperty(type=splitModeEnumProp)
-    #bpy.types.Scene.branchVarianceList = bpy.props.CollectionProperty(type=floatProp01)
-    #bpy.types.Scene.branchSplitRotateAngleList = bpy.props.CollectionProperty(type=floatProp)
-    #bpy.types.Scene.branchSplitAxisVariationList = bpy.props.CollectionProperty(type=posFloatProp)
-    
-    #bpy.types.Scene.branchSplitAngleList = bpy.props.CollectionProperty(type=posFloatProp)
-    #bpy.types.Scene.branchSplitPointAngleList = bpy.props.CollectionProperty(type=posFloatProp)
-    
-    #bpy.types.Scene.nrSplitsPerBranchList = bpy.props.CollectionProperty(type=posFloatProp)
-    #bpy.types.Scene.splitsPerBranchVariationList = bpy.props.CollectionProperty(type=floatProp01)
-    #bpy.types.Scene.branchSplitHeightVariationList = bpy.props.CollectionProperty(type=floatProp01)
-    #bpy.types.Scene.branchSplitLengthVariationList = bpy.props.CollectionProperty(type=floatProp01)
-    
+        
     showBranchSplitHeights: bpy.props.BoolProperty(name = "Show/hide split heights", default=True)
     branchSplitHeightInLevelListList: bpy.props.PointerProperty(type=floatListProp01)
     branchSplitHeightInLevelListIndex: bpy.props.IntProperty(default = 0)
     
-    #bpy.types.Scene.branchSplitHeightInLevelListList = bpy.props.CollectionProperty(type=floatListProp01)
-    #bpy.types.Scene.branchSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0)
-    #bpy.types.Scene.branchSplitHeightInLevelList_0 = bpy.props.CollectionProperty(type=floatProp01default0p5)
-    #bpy.types.Scene.branchSplitHeightInLevelListIndex_0 = bpy.props.IntProperty(default = 0)
-    #bpy.types.Scene.branchSplitHeightInLevelList_1 = bpy.props.CollectionProperty(type=floatProp01default0p5)
-    #bpy.types.Scene.branchSplitHeightInLevelListIndex_1 = bpy.props.IntProperty(default = 0)
-    #bpy.types.Scene.branchSplitHeightInLevelList_2 = bpy.props.CollectionProperty(type=floatProp01default0p5)
-    #bpy.types.Scene.branchSplitHeightInLevelListIndex_2 = bpy.props.IntProperty(default = 0)
-    #bpy.types.Scene.branchSplitHeightInLevelList_3 = bpy.props.CollectionProperty(type=floatProp01default0p5)
-    #bpy.types.Scene.branchSplitHeightInLevelListIndex_3 = bpy.props.IntProperty(default = 0)
-    #bpy.types.Scene.branchSplitHeightInLevelList_4 = bpy.props.CollectionProperty(type=floatProp01default0p5)
-    #bpy.types.Scene.branchSplitHeightInLevelListIndex_4 = bpy.props.IntProperty(default = 0)
-    #bpy.types.Scene.branchSplitHeightInLevelList_5 = bpy.props.CollectionProperty(type=floatProp01default0p5)
-    #bpy.types.Scene.branchSplitHeightInLevelListIndex_5 = bpy.props.IntProperty(default = 0)
-    #bpy.types.Scene.showBranchSplitHeights = bpy.props.CollectionProperty(type=boolProp)
+class leafClusterSettings(bpy.types.PropertyGroup):
+    showLeafSettings: bpy.props.BoolProperty(name = "Show/hide leaf settings", default = True)
+    leavesDensity: bpy.props.FloatProperty(name = "Leaves density", default = 0.0, min = 0.0)
+    leafSize: bpy.props.FloatProperty(name = "Leaf size", default = 0.1, min = 0.0)
+    leafAspectRatio: bpy.props.FloatProperty(name = "Leaf aspect ratio", default = 1.0, min = 0.0, soft_max = 2.0)
+    leafAngleMode: bpy.props.PointerProperty(type = leafAngleModeEnumProp)
+    leafType: bpy.props.PointerProperty(type = leafTypeEnumProp)
+    leafStartHeightGlobal: bpy.props.FloatProperty(name = "Leaf start height global", default = 0.0, min = 0.0, max = 1.0)
+    leafEndHeightGlobal: bpy.props.FloatProperty(name = "Leaf end height global", default = 1.0, min = 0.0, max = 1.0)
+    leafStartHeightCluster: bpy.props.FloatProperty(name = "Leaf start height cluster", default = 0.0, min = 0.0, max = 1.0)
+    leafEndHeightCluster: bpy.props.FloatProperty(name = "Leaf end height global", default = 1.0, min = 0.0, max = 1.0)
+    leafVerticalAngleBranchStart: bpy.props.FloatProperty(name = "Leaf vertical angle branch start")
+    leafVerticalAngleBranchEnd: bpy.props.FloatProperty(name = "Leaf vertical angle branch end")
+    leafRotateAngleBranchStart: bpy.props.FloatProperty(name = "Leaf rotate angle branch start")
+    leafRotateAngleBranchEnd: bpy.props.FloatProperty(name = "Leaf rotate angle branch end")
+    leafTiltAngleBranchStart: bpy.props.FloatProperty(name = "Leaf tilt angle branch start")
+    leafTiltAngleBranchEnd: bpy.props.FloatProperty(name = "Leaf tilt angle branch end")
+    
     
 class UL_stemSplitLevelList(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
@@ -594,7 +546,7 @@ class removeBranchSplitLevel(bpy.types.Operator):
     level: bpy.props.IntProperty()
         
     def execute(self, context):
-        context.scene.showBranchSplitHeights[self.level].value = True
+        context.scene.branchClusterSettingsList[self.level].showBranchSplitHeights = True
         if self.level == 0:
             if len(context.scene.branchSplitHeightInLevelList_0) > 0:
                 context.scene.branchSplitHeightInLevelList_0.remove(context.scene.branchSplitHeightInLevelListIndex_0)
@@ -773,6 +725,365 @@ class importProperties(bpy.types.Operator):
         
         #bpy.ops.object.generate_tree()
         return {'FINISHED'}
+    
+def load_properties(filePath, context):
+    with open(filePath, 'r') as f:
+        data = json.load(f)
+        props = context.scene
+        
+        props.treeHeight = data.get("treeHeight", props.treeHeight)
+        treeGrowDir = data.get("treeGrowDir", props.treeGrowDir)
+        if isinstance(treeGrowDir, list) and len(treeGrowDir) == 3:
+            props.treeGrowDir = treeGrowDir
+        props.taper = data.get("taper", props.taper)
+        
+        controlPts = []
+        controlPts = data.get("taperCurvePoints", controlPts)
+        handleTypes = []
+        handleTypes = data.get("taperCurveHandleTypes", handleTypes)
+        nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
+        curveElement = nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves[3]
+        
+        if len(curveElement.points) > 2:
+            for i in range(2, len(curveElement.points)):
+                curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
+        curveElement.points[0].location = controlPts[0]
+        curveElement.points[0].handle_type = handleTypes[0]
+        curveElement.points[1].location = controlPts[1]
+        curveElement.points[1].handle_type = handleTypes[0]
+        if len(controlPts) > 2:
+            for i in range(2, len(controlPts)):
+                curveElement.points.new(curveElement.points[len(curveElement.points) - 1].location.x, curveElement.points[len(curveElement.points) - 1].location.y)
+                curveElement.points[len(curveElement.points) - 1].location.x = controlPts[i][0]
+                curveElement.points[len(curveElement.points) - 1].location.y = controlPts[i][1]
+                
+                curveElement.points[len(curveElement.points) - 1].handle_type = handleTypes[i]
+        nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.update()
+        
+        props.branchTipRadius = data.get("branchTipRadius", props.branchTipRadius)
+        props.ringSpacing = data.get("ringSpacing", props.ringSpacing)
+        props.stemRingResolution = data.get("stemRingResolution", props.stemRingResolution)
+        props.resampleDistance = data.get("resampleDistance", props.resampleDistance)
+        
+        props.noiseAmplitudeVertical = data.get("noiseAmplitudeVertical", props.noiseAmplitudeVertical)
+        props.noiseAmplitudeHorizontal = data.get("noiseAmplitudeHorizontal", props.noiseAmplitudeHorizontal)
+        props.noiseAmplitudeGradient = data.get("noiseAmplitudeGradient", props.noiseAmplitudeGradient)
+        props.noiseAmplitudeExponent = data.get("noiseAmplitudeExponent", props.noiseAmplitudeExponent)
+        props.noiseScale = data.get("noiseScale", props.noiseScale)
+        props.seed = data.get("seed", props.seed)
+        
+        props.curvatureStart = data.get("curvatureStart", props.curvatureStart)
+        props.curvatureEnd = data.get("curvatureEnd", props.curvatureEnd)
+        props.maxCurveSteps = data.get("maxCurveSteps", props.maxCurveSteps)
+        
+        props.nrSplits = data.get("nrSplits", props.nrSplits)
+        props.variance = data.get("variance", props.variance)
+        props.stemSplitMode = data.get("stemSplitMode", props.stemSplitMode)
+        props.stemSplitRotateAngle = data.get("stemSplitRotateAngle", props.stemSplitRotateAngle)
+        props.curvOffsetStrength = data.get("curvOffsetStrength", props.curvOffsetStrength)
+        
+        for value in data.get("stemSplitHeightInLevelList", []):
+            item = props.stemSplitHeightInLevelList.add()
+            item.value = value
+        props.stemSplitHeightInLevelListIndex = data.get("stemSplitHeightInLevelListIndex", props.stemSplitHeightInLevelListIndex)
+                
+        props.splitHeightVariation = data.get("splitHeightVariation", props.splitHeightVariation)
+        props.splitLengthVariation = data.get("splitLengthVariation", props.splitLengthVariation)
+        props.stemSplitAngle = data.get("stemSplitAngle", props.stemSplitAngle)
+        props.stemSplitPointAngle = data.get("stemSplitPointAngle", props.stemSplitPointAngle)
+        
+        
+        for outerList in props.parentClusterBoolListList:
+            while len(outerList.value) > 0:
+                outerList.value.clear()
+        
+        props.parentClusterBoolListList.clear()
+        
+        props.branchClusters = data.get("branchClusters", props.branchClusters)
+        
+        nestedList = []
+        nestedList = data.get("parentClusterBoolListList", nestedList)
+        for n in range(0, props.branchClusters):
+            innerList = nestedList[n]
+            item = props.parentClusterBoolListList.add()
+            for n in item.value:
+                item.remove(n)
+            for b in innerList:
+                i = item.value.add()
+                i.value = b
+                
+        for outerList in props.leafParentClusterBoolListList:
+            while len(outerList.value) > 0:
+                outerList.value.clear()
+        
+        props.leafParentClusterBoolListList.clear()
+        
+        nestedLeafList = []
+        nestedLeafList = data.get("leafParentClusterBoolListList", nestedLeafList)
+        for n in range(0, len(nestedLeafList)):
+            innerLeafList = nestedLeafList[n]
+            item = props.leafParentClusterBoolListList.add()
+            for n in item.value:
+                item.remove(n)
+            for b in innerLeafList:
+                i = item.value.add()
+                i.value = b
+        
+        
+        props.branchClusterSettingsList.clear()
+        
+        for i in range(0, props.branchClusters):
+            props.branchClusterSettingsList.add()
+        
+        for i, value in enumerate(data.get("nrBranchesList", [])):
+            props.branchClusterSettingsList[i].nrBranches = value
+            
+        for i, value in enumerate(data.get("branchShapeList", [])):
+            props.branchClusterSettingsList[i].branchShape.value = value
+            
+        for i, value in enumerate(data.get("relBranchLengthList", [])):
+            props.branchClusterSettingsList[i].relBranchLength = value
+            
+        for i, value in enumerate(data.get("relBranchLengthVariationList", [])):
+            props.branchClusterSettingsList[i].relBranchLengthVariation = value
+            
+        for i, value in enumerate(data.get("taperFactorList", [])):
+            props.branchClusterSettingsList[i].taperFactor = value
+        
+        for i, value in enumerate(data.get("ringResolutionList", [])):
+            props.branchClusterSettingsList[i].ringResolution = value
+        
+        for i, value in enumerate(data.get("branchesStartHeightGlobalList", [])):
+            props.branchClusterSettingsList[i].branchesStartHeightGlobal = value
+            
+        for i, value in enumerate(data.get("branchesEndHeightGlobalList", [])):
+            props.branchClusterSettingsList[i].branchesEndHeightGlobal = value
+            
+        for i, value in enumerate(data.get("branchesStartHeightClusterList", [])):
+            props.branchClusterSettingsList[i].branchesStartHeightCluster = value
+            
+        for i, value in enumerate(data.get("branchesEndHeightClusterList", [])):
+            props.branchClusterSettingsList[i].branchesEndHeightCluster = value
+        
+        for i, value in enumerate(data.get("noiseAmplitudeHorizontalBranchList", [])):
+            props.branchClusterSettingsList[i].noiseAmplitudeHorizontalBranch = value
+        
+        for i, value in enumerate(data.get("noiseAmplitudeVerticalBranchList", [])):
+            props.branchClusterSettingsList[i].noiseAmplitudeVerticalBranch = value
+        
+        for i, value in enumerate(data.get("noiseAmplitudeBranchGradientList", [])):
+            props.branchClusterSettingsList[i].noiseAmplitudeBranchGradient = value
+            
+        for i, value in enumerate(data.get("noiseAmplitudeBranchExponentList", [])):
+            props.branchClusterSettingsList[i].noiseAmplitudBranchExponent = value
+            
+        for i, value in enumerate(data.get("noiseScaleList", [])):
+            props.branchClusterSettingsList[i].noiseScale = value
+            
+        
+        for i, value in enumerate(data.get("verticalAngleCrownStartList", [])):
+            props.branchClusterSettingsList[i].verticalAngleCrownStart = value
+            
+        for i, value in enumerate(data.get("verticalAngleCrownEndList", [])):
+            props.branchClusterSettingsList[i].verticalAngleCrownEnd = value
+            
+        for i, value in enumerate(data.get("verticalAngleBranchStartList", [])):
+            props.branchClusterSettingsList[i].verticalAngleBranchStart = value
+            
+        for i, value in enumerate(data.get("verticalAngleBranchEndList", [])):
+            props.branchClusterSettingsList[i].verticalAngleBranchEnd = value
+        
+        
+        for i, value in enumerate(data.get("branchAngleModeList", [])):
+            props.branchClusterSettingsList[i].branchAngleMode.value = value
+            
+        # "useFibonacciAnglesList": [props.useFibonacciAnglesList[i].value for i in range(props.branchClusters)],
+        # "fibonacciNr": [props.fibonacciNrList[i].fibonacci_nr for i in range(props.branchClusters)],
+        # "rotateAngleRangeList": [props.fibonacciNrList[i].rotate_angle_range for i in range(props.branchClusters)],
+        # "rotateAngleOffsetList": [props.fibonacciNrList[i].rotate_angle_offset for i in range(props.branchClusters)],
+        
+        for i, value in enumerate(data.get("useFibonacciAnglesList", [])):
+            props.branchClusterSettingsList[i].useFibonacciAngles = value
+            
+        for i, value in enumerate(data.get("fibonacciNr", [])):
+            props.branchClusterSettingsList[i].fibonacciNr.fibonacci_nr = value
+        
+        for i, value in enumerate(data.get("rotateAngleRangeList", [])):
+            props.branchClusterSettingsList[i].rotateAngleRange = value
+            
+        for i, value in enumerate(data.get("rotateAngleOffsetList", [])):
+            props.branchClusterSettingsList[i].rotateAngleOffset = value
+        
+        
+        for i, value in enumerate(data.get("rotateAngleCrownStartList", [])):
+            props.branchClusterSettingsList[i].rotateAngleCrownStart = value
+            
+        for i, value in enumerate(data.get("rotateAngleCrownEndList", [])):
+            props.branchClusterSettingsList[i].rotateAngleCrownEnd = value
+            
+        for i, value in enumerate(data.get("rotateAngleBranchStartList", [])):
+            props.branchClusterSettingsList[i].rotateAngleBranchStart = value
+            
+        for i, value in enumerate(data.get("rotateAngleBranchEndList", [])):
+            props.branchClusterSettingsList[i].rotateAngleBranchEnd = value
+            
+            
+        for i, value in enumerate(data.get("branchGlobalCurvatureStartList", [])):
+            props.branchClusterSettingsList[i].branchGlobalCurvatureStart = value
+            
+        for i, value in enumerate(data.get("branchGlobalCurvatureEndList", [])):
+            props.branchClusterSettingsList[i].branchGlobalCurvatureEnd = value
+        
+        for i, value in enumerate(data.get("branchCurvatureStartList", [])):
+            props.branchClusterSettingsList[i].branchCurvatureStart = value
+           
+        for i, value in enumerate(data.get("branchCurvatureEndList", [])):
+            props.branchClusterSettingsList[i].branchCurvatureEnd = value
+        
+        for i, value in enumerate(data.get("branchCurvatureOffsetStrengthList", [])):
+            props.branchClusterSettingsList[i].branchCurvatureOffsetStrength = value
+        
+        
+        
+        for i, value in enumerate(data.get("nrSplitsPerBranchList", [])):
+            props.branchClusterSettingsList[i].nrSplitsPerBranch = value
+            
+        for i, value in enumerate(data.get("branchSplitModeList", [])):
+            props.branchClusterSettingsList[i].branchSplitMode.value = value
+            
+        for i, value in enumerate(data.get("branchSplitRotateAngleList", [])):
+            props.branchClusterSettingsList[i].branchSplitRotateAngle = value
+            
+        for i, value in enumerate(data.get("branchSplitAxisVariationList", [])):
+            props.branchClusterSettingsList[i].branchSplitAxisVariation = value
+        
+        
+            
+            
+        for i, value in enumerate(data.get("branchSplitAngleList", [])):
+            props.branchClusterSettingsList[i].branchSplitAngle = value
+            
+        for i, value in enumerate(data.get("branchSplitPointAngleList", [])):
+            props.branchClusterSettingsList[i].branchSplitPointAngle = value
+                        
+        
+        for i, value in enumerate(data.get("splitsPerBranchVariationList", [])):
+            props.branchClusterSettingsList[i].splitsPerBranchVariation = value
+            
+        for i, value in enumerate(data.get("branchVarianceList", [])):
+            props.branchClusterSettingsList[i].branchVariance = value
+        
+        for i, value in enumerate(data.get("branchSplitHeightVariationList", [])):
+            props.branchClusterSettingsList[i].branchSplitHeightVariation = value
+        
+        for i, value in enumerate(data.get("branchSplitLengthVariationList", [])):
+            props.branchClusterSettingsList[i].branchSplitLengthVariation = value
+        
+        #for i, value in enumerate(data.get("hangingBranchesList", [])):
+        #    props.branchClusterSettingsList[i].hangingBranchesList.add()
+        #    item.value = value
+            
+        props.branchSplitHeightInLevelListIndex = data.get("branchSplitHeightInLevelListIndex", props.branchSplitHeightInLevelListIndex)
+            
+        for value in data.get("branchSplitHeightInLevelList_0", []):
+            item = props.branchSplitHeightInLevelList_0.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_0 = data.get("branchSplitHeightInLevelListIndex_0", props.branchSplitHeightInLevelListIndex_0)
+        
+        for value in data.get("branchSplitHeightInLevelList_1", []):
+            item = props.branchSplitHeightInLevelList_1.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_1 = data.get("branchSplitHeightInLevelListIndex_1", props.branchSplitHeightInLevelListIndex_1)
+        
+        for value in data.get("branchSplitHeightInLevelList_2", []):
+            item = props.branchSplitHeightInLevelList_2.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_2 = data.get("branchSplitHeightInLevelListIndex_2", props.branchSplitHeightInLevelListIndex_2)
+        
+        for value in data.get("branchSplitHeightInLevelList_3", []):
+            item = props.branchSplitHeightInLevelList_3.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_3 = data.get("branchSplitHeightInLevelListIndex_3", props.branchSplitHeightInLevelListIndex_3)
+        
+        for value in data.get("branchSplitHeightInLevelList_4", []):
+            item = props.branchSplitHeightInLevelList_4.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_4 = data.get("branchSplitHeightInLevelListIndex_4", props.branchSplitHeightInLevelListIndex_4)
+        
+        for value in data.get("branchSplitHeightInLevelList_5", []):
+            item = props.branchSplitHeightInLevelList_5.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_5 = data.get("branchSplitHeightInLevelListIndex_5", props.branchSplitHeightInLevelListIndex_5)
+        
+        props.leafClusterSettingsList.clear()
+        
+        for value in data.get("leavesDensityList", []):
+            item = props.leafClusterSettingsList.add()
+            item.leavesDensity = value
+        
+        i = 0
+        for value in data.get("leafSizeList", []):
+            props.leafClusterSettingsList[i].leafSize = value
+            i += 1
+        i = 0
+        for value in data.get("leafAspectRatioList", []):
+            props.leafClusterSettingsList[i].leafAspectRatio = value
+            i += 1
+        i = 0
+        for value in data.get("leafStartHeightGlobalList", []):
+            props.leafClusterSettingsList[i].leafStartHeightGlobal = value
+            i += 1
+        i = 0
+        for value in data.get("leafEndHeightGlobalList", []):
+            props.leafClusterSettingsList[i].leafEndHeightGlobal = value
+            i += 1
+        i = 0
+        for value in data.get("leafStartHeightClusterList", []):
+            props.leafClusterSettingsList[i].leafStartHeightCluster = value
+            i += 1
+        i = 0
+        for value in data.get("leafEndHeightClusterList", []):
+            props.leafClusterSettingsList[i].leafEndHeightCluster = value
+            i += 1
+        i = 0
+        for value in data.get("leafTypeList", []):
+            props.leafClusterSettingsList[i].leafType.value = value
+            i += 1
+        i = 0
+        for value in data.get("leafAngleModeList", []):
+            props.leafClusterSettingsList[i].leafAngleMode.value = value
+            i += 1
+        i = 0
+        for value in data.get("leafVerticalAngleBranchStartList", []):
+            props.leafClusterSettingsList[i].leafVerticalAngleBranchStart = value
+            i += 1
+        i = 0
+        for value in data.get("leafVerticalAngleBranchEndList", []):
+            props.leafClusterSettingsList[i].leafVerticalAngleBranchEnd = value
+            i += 1
+        i = 0
+        for value in data.get("leafRotateAngleBranchStartList", []):
+            props.leafClusterSettingsList[i].leafRotateAngleBranchStart = value
+            i += 1
+        i = 0
+        for value in data.get("leafRotateAngleBranchEndList", []):
+            props.leafClusterSettingsList[i].leafRotateAngleBranchEnd = value
+            i += 1
+        i = 0
+        for value in data.get("leafTiltAngleBranchStartList", []):
+            props.leafClusterSettingsList[i].leafTiltAngleBranchStart = value
+            i += 1
+        i = 0
+        for value in data.get("leafTiltAngleBranchEndList", []):
+            props.leafClusterSettingsList[i].leafTiltAngleBranchEnd = value
+            i += 1
+            
     
 def save_properties(filePath, treeGen):
     props = bpy.context.scene
@@ -976,27 +1287,27 @@ def save_properties(filePath, treeGen):
         "branchSplitHeightInLevelList_5": storeSplitHeights_5,
         "branchSplitHeightInLevelListIndex_5": props.branchSplitHeightInLevelListIndex_5,
         
-        #"showLeafSettings": [item.value for item in props.showLeafSettings],
+        "showLeafSettings": [props.leafClusterSettingsList[i].showLeafSettings for i in range(props.leafClusters)],
         #------------
-        #"leavesDensityList": [item.value for item in props.leavesDensityList],
-        #"leafSizeList": [item.value for item in props.leafSizeList],
-        #"leafAspectRatioList": [item.value for item in props.leafAspectRatioList],
-        #"leafStartHeightGlobalList": [item.value for item in props.leafStartHeightGlobalList],
-        #"leafEndHeightGlobalList": [item.value for item in props.leafEndHeightGlobalList],
-        #"leafStartHeightClusterList": [item.value for item in props.leafStartHeightClusterList],
-        #"leafEndHeightClusterList": [item.value for item in props.leafEndHeightClusterList],
-        #"leafTypeList": [item.value for item in props.leafTypeList],
-        #"leafAngleModeList": [item.value for item in props.leafAngleModeList],
-        #
-        #"leafVerticalAngleBranchStartList": [item.value for item in props.leafVerticalAngleBranchStartList],
-        #"leafVerticalAngleBranchEndList": [item.value for item in props.leafVerticalAngleBranchEndList],
-        #"leafRotateAngleBranchStartList": [item.value for item in props.leafRotateAngleBranchStartList],
-        #"leafRotateAngleBranchEndList": [item.value for item in props.leafRotateAngleBranchEndList],
-        #"leafTiltAngleBranchStartList": [item.value for item in props.leafTiltAngleBranchStartList],
-        #"leafTiltAngleBranchEndList": [item.value for item in props.leafTiltAngleBranchEndList],
-        #
-        #"showLeafClusterList": [props.leafParentClusterBoolListList[i].show_leaf_cluster for  i in range(len(props.leafParentClusterBoolListList))],
-        #"leafParentClusterBoolListList": nestedLeafList
+        "leavesDensityList": [props.leafClusterSettingsList[i].leavesDensity for i in range(props.leafClusters)],
+        "leafSizeList": [props.leafClusterSettingsList[i].leafSize for i in range(props.leafClusters)],
+        "leafAspectRatioList": [props.leafClusterSettingsList[i].leafAspectRatio for i in range(props.leafClusters)],
+        "leafStartHeightGlobalList": [props.leafClusterSettingsList[i].leafStartHeightGlobal for i in range(props.leafClusters)],
+        "leafEndHeightGlobalList": [props.leafClusterSettingsList[i].leafEndHeightGlobal for i in range(props.leafClusters)],
+        "leafStartHeightClusterList": [props.leafClusterSettingsList[i].leafStartHeightCluster for i in range(props.leafClusters)],
+        "leafEndHeightClusterList": [props.leafClusterSettingsList[i].leafEndHeightCluster for i in range(props.leafClusters)],
+        "leafTypeList": [props.leafClusterSettingsList[i].leafType.value for i in range(props.leafClusters)],
+        "leafAngleModeList": [props.leafClusterSettingsList[i].leafAngleMode.value for i in range(props.leafClusters)],
+        
+        "leafVerticalAngleBranchStartList": [props.leafClusterSettingsList[i].leafVerticalAngleBranchStart for i in range(props.leafClusters)],
+        "leafVerticalAngleBranchEndList": [props.leafClusterSettingsList[i].leafVerticalAngleBranchEnd for i in range(props.leafClusters)],
+        "leafRotateAngleBranchStartList": [props.leafClusterSettingsList[i].leafRotateAngleBranchStart for i in range(props.leafClusters)],
+        "leafRotateAngleBranchEndList": [props.leafClusterSettingsList[i].leafRotateAngleBranchEnd for i in range(props.leafClusters)],
+        "leafTiltAngleBranchStartList": [props.leafClusterSettingsList[i].leafTiltAngleBranchStart for i in range(props.leafClusters)],
+        "leafTiltAngleBranchEndList": [props.leafClusterSettingsList[i].leafTiltAngleBranchEnd for i in range(props.leafClusters)],
+        
+        "showLeafClusterList": [props.leafParentClusterBoolListList[i].show_leaf_cluster for  i in range(len(props.leafParentClusterBoolListList))],
+        "leafParentClusterBoolListList": nestedLeafList
     }
 
     with open(filePath, 'w') as f:
@@ -1099,6 +1410,9 @@ class addItem(bpy.types.Operator): # add branch cluster
         context.scene.branchSplitHeightInLevelListList.add()
         context.scene.showBranchSplitHeights.add()
         
+        for leafParentClusterList in context.scene.leafParentClusterBoolListList:
+            leafParentClusterList.value.add()
+        
         return {'FINISHED'}
     
 class removeItem(bpy.types.Operator):
@@ -1122,6 +1436,17 @@ class removeItem(bpy.types.Operator):
             
         if len(context.scene.showBranchSplitHeights) > 0:
             context.scene.showBranchSplitHeights.remove(len(context.scene.showBranchSplitHeights) - 1)
+            
+        for leafParentClusterList in context.scene.leafParentClusterBoolListList:
+            if len(leafParentClusterList.value) > 1:
+                leafParentClusterList.value.remove(len(leafParentClusterList.value) - 1)
+                
+                allFalse = True
+                for b in leafParentClusterList.value:
+                    if b.value == True:
+                        allFalse = False
+                if allFalse == True:
+                    leafParentClusterList.value[0].value = True
             
         return {'FINISHED'}
         
@@ -1398,6 +1723,127 @@ class branchSettings(bpy.types.Panel):
                             for splitLevel in context.scene.branchClusterSettingsList[i].branchSplitHeightInLevelList:
                                 box2.prop(splitLevel, "value", text=f"Split height level {j}", slider=True)
                                 j += 1
+
+
+class addLeafItem(bpy.types.Operator):
+    bl_idname = "scene.add_leaf_item"
+    bl_label = "Add Item"
+    def execute(self, context):
+        context.scene.leafClusters += 1
+        context.scene.leafClusterSettingsList.add()
+        
+        leafParentClusterBoolListList = context.scene.leafParentClusterBoolListList.add()
+        stemBool = context.scene.leafParentClusterBoolListList[len(context.scene.leafParentClusterBoolListList) - 1].value.add()
+        stemBool = True
+                
+        for b in range(0, len(context.scene.branchClusterSettingsList)):
+            self.report({'INFO'}, f"adding leaf cluster")
+            context.scene.leafParentClusterBoolListList[len(context.scene.leafParentClusterBoolListList) - 1].value.add()
+            self.report({'INFO'}, f"len(leafParentClusterBoolListList): {len(context.scene.leafParentClusterBoolListList)}")
+        
+        leafParentClusterBoolListList.value[0].value = True
+        return {'FINISHED'}
+        
+class removeLeafItem(bpy.types.Operator):
+    bl_idname = "scene.remove_leaf_item"
+    bl_label = "Remove Item"
+    index: bpy.props.IntProperty()
+    def execute(self, context):
+        if context.scene.leafClusters > 0:
+            context.scene.leafClusters -= 1
+        if len(context.scene.leafClusterSettingsList) > 0:
+            context.scene.leafClusterSettingsList.remove(len(context.scene.leafClusterSettingsList) - 1)
+        if len(context.scene.leafParentClusterBoolListList) > 0:
+            context.scene.leafParentClusterBoolListList.remove(len(context.scene.leafParentClusterBoolListList) - 1)
+       
+        return {'FINISHED'}
+
+class leafSettings(bpy.types.Panel):
+    bl_label = "Leaf Settings"
+    bl_idname = "PT_LeafSettings"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'treeGen'
+    
+    def draw(self, context):
+        layout = self.layout
+        obj = context.object
+        scene = context.scene
+        bl_parent_id = 'PT_TreeGen'
+        bl_optione = {'DEFAULT_CLOSED'}
+        
+        row = layout.row(align = True)
+        row.operator("scene.add_leaf_item", text="Add")
+        row.operator("scene.remove_leaf_item", text="Remove").index = context.scene.leavesDensityListIndex
+        row = layout.row()
+        
+        for i, leaves in enumerate(scene.leafClusterSettingsList):
+            box = layout.box()
+            box.prop(leaves, "showLeafSettings", icon="TRIA_DOWN" if leaves.showLeafSettings else "TRIA_RIGHT", emboss=False, text=f"Leaf cluster {i}", toggle=True)
+            
+            if leaves.showLeafSettings:
+                split = box.split(factor=0.6)
+                split.label(text="Leaf density")
+                split.prop(scene.leafClusterSettingsList[i], "leavesDensity", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Leaf size")
+                split.prop(scene.leafClusterSettingsList[i], "leafSize", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Leaf aspect ratio")
+                split.prop(scene.leafClusterSettingsList[i], "leafAspectRatio", text="", slider=True)
+                
+                split = box.split(factor=0.6)
+                split.label(text="Leaf start height global")
+                split.prop(scene.leafClusterSettingsList[i], "leafStartHeightGlobal", text="", slider=True)
+                
+                split = box.split(factor=0.6)
+                split.label(text="Leaf end height global")
+                split.prop(scene.leafClusterSettingsList[i], "leafEndHeightGlobal", text="", slider=True)
+                
+                split = box.split(factor=0.6)
+                split.label(text="Leaf start height cluster")
+                split.prop(scene.leafClusterSettingsList[i], "leafStartHeightCluster", text="", slider=True)
+                
+                split = box.split(factor=0.6)
+                split.label(text="Leaf end height cluster")
+                split.prop(scene.leafClusterSettingsList[i], "leafEndHeightCluster", text="", slider=True)
+                
+                split = box.split(factor=0.6)
+                split.label(text="Leaf type")
+                split.prop(scene.leafClusterSettingsList[i].leafType, "value", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Leaf angle mode")
+                split.prop(scene.leafClusterSettingsList[i].leafAngleMode, "value", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Vertical angle branch start")
+                split.prop(scene.leafClusterSettingsList[i], "leafVerticalAngleBranchStart", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Vertical angle branch end")
+                split.prop(scene.leafClusterSettingsList[i], "leafVerticalAngleBranchEnd", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Rotate angle branch start")
+                split.prop(scene.leafClusterSettingsList[i], "leafRotateAngleBranchStart", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Rotate angle branch end")
+                split.prop(scene.leafClusterSettingsList[i], "leafRotateAngleBranchEnd", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Tilt angle branch start")
+                split.prop(scene.leafClusterSettingsList[i], "leafTiltAngleBranchStart", text="")
+                
+                split = box.split(factor=0.6)
+                split.label(text="Tilt angle branch end")
+                split.prop(scene.leafClusterSettingsList[i], "leafTiltAngleBranchEnd", text="")
+                
+                box1 = box.box()
+                draw_leaf_cluster_bools(box1, scene, i, scene.leafParentClusterBoolListList[i])
         
 def register():
     #save and load
@@ -1436,6 +1882,7 @@ def register():
     bpy.utils.register_class(leafTypeEnumProp)
     
     bpy.utils.register_class(branchClusterSettings)
+    bpy.utils.register_class(leafClusterSettings)
     
     #operators
     bpy.utils.register_class(addItem)
@@ -1449,8 +1896,8 @@ def register():
     #bpy.utils.register_class(generateTree)
     bpy.utils.register_class(resetCurvesButton)
     #bpy.utils.register_class(sampleCruvesButton)
-    #bpy.utils.register_class(addLeafItem)
-    #bpy.utils.register_class(removeLeafItem)
+    bpy.utils.register_class(addLeafItem)
+    bpy.utils.register_class(removeLeafItem)
     
     
     #panels
@@ -1460,7 +1907,7 @@ def register():
     bpy.utils.register_class(angleSettings)
     bpy.utils.register_class(splitSettings)
     bpy.utils.register_class(branchSettings)
-    #bpy.utils.register_class(leafSettings)
+    bpy.utils.register_class(leafSettings)
     
     #bpy.utils.register_class(parentClusterPanel)
     
@@ -1550,22 +1997,24 @@ def register():
     bpy.types.Scene.branchSplitHeightInLevelList_5 = bpy.props.CollectionProperty(type=floatProp01default0p5)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_5 = bpy.props.IntProperty(default = 0)
     
-    bpy.types.Scene.leavesDensityList = bpy.props.CollectionProperty(type=posFloatProp)
-    bpy.types.Scene.leavesDensityListIndex = bpy.props.IntProperty(default=0)
-    bpy.types.Scene.leafSizeList = bpy.props.CollectionProperty(type=posFloatPropDefault1)
-    bpy.types.Scene.leafAspectRatioList = bpy.props.CollectionProperty(type=posFloatPropSoftMax2)
-    bpy.types.Scene.leafAngleModeList = bpy.props.CollectionProperty(type=leafAngleModeEnumProp)
-    bpy.types.Scene.leafTypeList = bpy.props.CollectionProperty(type=leafTypeEnumProp)
-    bpy.types.Scene.leafStartHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
-    bpy.types.Scene.leafEndHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
-    bpy.types.Scene.leafStartHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
-    bpy.types.Scene.leafEndHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
-    bpy.types.Scene.leafVerticalAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.leafVerticalAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.leafRotateAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.leafRotateAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.leafTiltAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
-    bpy.types.Scene.leafTiltAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
+    bpy.types.Scene.leafClusterSettingsList = bpy.props.CollectionProperty(type=leafClusterSettings)
+    
+    #bpy.types.Scene.leavesDensityList = bpy.props.CollectionProperty(type=posFloatProp)
+    #bpy.types.Scene.leavesDensityListIndex = bpy.props.IntProperty(default=0)
+    #bpy.types.Scene.leafSizeList = bpy.props.CollectionProperty(type=posFloatPropDefault1)
+    #bpy.types.Scene.leafAspectRatioList = bpy.props.CollectionProperty(type=posFloatPropSoftMax2)
+    #bpy.types.Scene.leafAngleModeList = bpy.props.CollectionProperty(type=leafAngleModeEnumProp)
+    #bpy.types.Scene.leafTypeList = bpy.props.CollectionProperty(type=leafTypeEnumProp)
+    #bpy.types.Scene.leafStartHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
+    #bpy.types.Scene.leafEndHeightGlobalList = bpy.props.CollectionProperty(type=floatProp01)
+    #bpy.types.Scene.leafStartHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
+    #bpy.types.Scene.leafEndHeightClusterList = bpy.props.CollectionProperty(type=floatProp01)
+    #bpy.types.Scene.leafVerticalAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.leafVerticalAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.leafRotateAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.leafRotateAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.leafTiltAngleBranchStartList = bpy.props.CollectionProperty(type=floatProp)
+    #bpy.types.Scene.leafTiltAngleBranchEndList = bpy.props.CollectionProperty(type=floatProp)
     
     bpy.types.Scene.bark_material = bpy.props.PointerProperty(type=bpy.types.Material)
     bpy.types.Scene.leaf_material = bpy.props.PointerProperty(type=bpy.types.Material)
