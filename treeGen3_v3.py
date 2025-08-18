@@ -521,10 +521,11 @@ class node():
             rotationSteps[len(rotationSteps) - 1].isLast = False
         rotationSteps.append(rotationStep(self.point, curvature, curveAxis, True))
         
-        for step in rotationSteps:
-            treeGen.report({'INFO'}, f"rotationStep: point: {step.rotationPoint}, curvature: {step.curvature}, axis: {step.curveAxis}")
-            
+        #for step in rotationSteps:
+        #    treeGen.report({'INFO'}, f"rotationStep: point: {step.rotationPoint}, curvature: {step.curvature}, axis: {step.curveAxis}")
+        
         for n in self.next:
+            treeGen.report({'INFO'}, f"n.applyCurvature2() in point: {self.point}")
             n.applyCurvature2(
                 treeGen,
                 rootNode,
@@ -538,7 +539,7 @@ class node():
                 branchStartPoint,
                 curveStep,
                 maxCurveSteps,
-                rotationSteps, 
+                rotationSteps.copy(), 
                 self.point) 
         
         tanCount = len(self.tangent)
