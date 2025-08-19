@@ -95,7 +95,7 @@ class node():
         #for t in self.tangent:
             #drawArrow(self.point, self.point + t / 2.0)
         #if self.clusterIndex == -1: 
-        drawDebugPoint(self.point, 0.1)
+        #drawDebugPoint(self.point, 0.1)
         
         for n, nextNode in enumerate(self.next):
             longestBranchLengthInCluster = 1.0
@@ -464,16 +464,16 @@ class node():
         curvatureEndBranch,
         clusterIndex,
         branchStartPoint,
-        curveStep,
-        maxCurveSteps,
+        #curveStep,
+        #maxCurveSteps,
         rotationSteps=None, 
         prevPoint = None
     ):
-        
+                
         if rotationSteps is None:
             rotationSteps = []
         
-        treeGen.report({'INFO'}, "in applyCurvature2()")
+        #treeGen.report({'INFO'}, "in applyCurvature2()")
         
         if clusterIndex == -1:
             nextTangent = (treeGrowDir.normalized() * treeHeight - (rootNode.point + rootNode.tangent[0] * (treeGrowDir.normalized() * treeHeight - rootNode.point).length * (1.5 / 3.0))).normalized()
@@ -484,7 +484,7 @@ class node():
         
         outwardDir = self.point - centerPoint
     
-        right = self.tangent[0].cross(Vector((0.0,0.0,0.1)))
+        right = self.tangent[0].cross(Vector((0.0,0.0,1.0)))
         if right.length < 0.01:
             #near vertical branch
             if outwardDir.length < 0.001:
@@ -498,13 +498,9 @@ class node():
         branchCurvature = lerp(curvatureStartBranch, curvatureEndBranch, self.tValBranch)
         
         curvature = globalCurvature + branchCurvature
-        #treeGen.report({'INFO'}, f"in applyCurvature2(): curvatureStartGlobal: {curvatureStartGlobal}")
-        #treeGen.report({'INFO'}, f"in applyCurvature2(): curvatureEndGlobal: {curvatureEndGlobal}")
-        #treeGen.report({'INFO'}, f"in applyCurvature2(): curvatureStartBranch: {curvatureStartBranch}")
-        #treeGen.report({'INFO'}, f"in applyCurvature2(): curvatureEndBranch: {curvatureEndBranch}")
-        treeGen.report({'INFO'}, f"in applyCurvature2(): tValBranch: {self.tValBranch}")
+        #treeGen.report({'INFO'}, f"in applyCurvature2(): tValBranch: {self.tValBranch}")
         
-        treeGen.report({'INFO'}, f"in applyCurvature2(): curvature: {curvature}")
+        #treeGen.report({'INFO'}, f"in applyCurvature2(): curvature: {curvature}")
         
         for step in rotationSteps:
             self.point = step.rotationPoint + Quaternion(step.curveAxis, math.radians(step.curvature)) @ (self.point - step.rotationPoint)
@@ -519,13 +515,29 @@ class node():
             
         if len(rotationSteps) > 0:
             rotationSteps[len(rotationSteps) - 1].isLast = False
+            
+        
         rotationSteps.append(rotationStep(self.point, curvature, curveAxis, True))
+        
+        # -> second pass -> hangingBranches2() after applyCurvature2()!
+        #
+        #    prevDir = self.point - prevPoint
+        #    prevDir = prevDir / prevDir.length
+        #    branchDir = self.next[0].point - self.point
+        #    branchDir = branchDir / branchDir.length
+        #    
+        #    
+        #    if Vector((prevDir.x, prevDir.y, 0.0)).dot(Vector((branchDir.x, branchDir.y, 0.0))) < 0.0 and prevDir.z < 0.0:
+        #        angle = math.acos(branchDir.dot(Vector((0.0,0.0,-1.0))))
+        #        axis = prevDir.cross(Vector((0.0,0.0,-1.0))).normalized()
+                
+            
         
         #for step in rotationSteps:
         #    treeGen.report({'INFO'}, f"rotationStep: point: {step.rotationPoint}, curvature: {step.curvature}, axis: {step.curveAxis}")
         
         for n in self.next:
-            treeGen.report({'INFO'}, f"n.applyCurvature2() in point: {self.point}")
+            #treeGen.report({'INFO'}, f"in applyCurvature2() in point: {self.point}")
             n.applyCurvature2(
                 treeGen,
                 rootNode,
@@ -537,10 +549,28 @@ class node():
                 curvatureEndBranch,
                 clusterIndex,
                 branchStartPoint,
-                curveStep,
-                maxCurveSteps,
+                #curveStep,
+                #maxCurveSteps,
                 rotationSteps.copy(), 
                 self.point) 
+                
+                #def applyCurvature2(
+ #       self,
+ #       treeGen,
+ #       rootNode,
+ #       treeGrowDir,
+ #       treeHeight,
+ #       curvatureStartGlobal,
+ #       curvatureStartBranch,
+ #       curvatureEndGlobal,
+ #       curvatureEndBranch,
+ #       clusterIndex,
+ #       branchStartPoint,
+ ##       #curveStep,
+  #      #maxCurveSteps,
+  #      rotationSteps=None, 
+#        prevPoint = None
+#    ):
         
         tanCount = len(self.tangent)
         if prevPoint != None:
@@ -550,65 +580,56 @@ class node():
                 self.tangent[0] = ((self.next[0].point + self.next[1].point) / 2.0 - prevPoint).normalized()
                 self.tangent[1] = (self.next[0].point - self.point).normalized()
                 self.tangent[2] = (self.next[1].point - self.point).normalized()
-                
-        #def applyCurvature2(
-    #    self,
-    #    treeGen,
-    #    rootNode,
-    #    treeGrowDir,
-    #    treeHeight,
-    #    curvatureStartGlobal,
-    #    curvatureStartBranch,
-    #    curvatureEndGlobal,
-    #    curvatureEndBranch,
-    #    clusterIndex,
-    #    branchStartPoint,
-    #    curveStep,
-    #    maxCurveSteps,
-    #    rotationSteps=None
-    #):
-                
+    
+    
+      
+    def hangingBranches2(
+        self,
+        treeGen
+    ):
+        treeGen.report({'INFO'}, f"in hangingBranches2() in point: {self.point}")
         
-        #class rotationStep():
-        #    def __init__(self, RotationPoint, Curvature)
-        #       self.rotationPoint = RotationPoint
-        #       self.curvature = Curvature
+        if len(self.next) > 1:
+            for n in range(0, len(self.next)):
+                if Vector((self.tangent[0].x, self.tangent[0].y, 0.0)).dot(Vector((self.next[n].tangent[0].x, self.next[n].tangent[0].y, 0.0))) < 0.0:
+                    treeGen.report({'INFO'}, f"in hangingBranches2() -> split vertical")
+                    #vertical -> rotate back...
+                    drawDebugPoint(self.point, 0.1)
+                    axis = self.cotangent # TEST
+                    
+                    self.next[n].rotateBack(self.point, axis, treeGen)
+                else:
+                    treeGen.report({'INFO'}, f"in hangingBranches2() -> next")
+                    self.next[n].hangingBranches2(treeGen)
+        else:
+            if len(self.next) > 0:
+                if Vector((self.tangent[0].x, self.tangent[0].y, 0.0)).dot(Vector((self.next[0].tangent[0].x, self.next[0].tangent[0].y, 0.0))) < 0.0:
+                    treeGen.report({'INFO'}, f"in hangingBranches2() -> vertical")
+                    # vertical -> rotate back...
+                    drawDebugPoint(self.point, 0.05)
+                    axis = self.cotangent # TEST
+                    
+                    self.next[0].rotateBack(self.point, axis, treeGen)
+                else:
+                    treeGen.report({'INFO'}, f"in hangingBranches2() -> next")
+                    self.next[0].hangingBranches2(treeGen)
+    
+    def rotateBack(self, rotationPoint, axis, treeGen):
+        delta = self.point - rotationPoint
+        drawArrow(rotationPoint, rotationPoint + delta)
         
+        angle = math.acos(delta.normalized().dot(Vector((0.0,0.0,-1.0))))
         
-    #def alignVerticalStep(self, treeGen, angle, axis, rotationPoint, previousPoint, firstNode, previousCurvature, transitionVal, isSplit, splitVector):
-    #    treeGen.report({'INFO'}, f"in alignVerticalStep, angle: {angle}, transitionVal: {transitionVal}")
-    #    
-    #    self.point = rotationPoint + Quaternion(axis, angle) @ (self.point - rotationPoint)
-    #    
-    #    if len(self.tangent) == 1:
-    #        self.tangent[0] = Quaternion(axis, angle) @ self.tangent[0] #TODO.............. (is this the solution?!?!?)
-    #    else:
-    #        for t in self.tangent:
-    #            t = Quaternion(axis, angle) @ t #TEST    
-    #    
-    #    
-    #    treeGen.report({'INFO'}, f"transitionVal: {transitionVal}")
-    #    
-    #    rotatedPoint = Vector((0.0,0.0,0.0))
-    #    
-    #    self.cotangent = Quaternion(axis, angle) @ self.cotangent
-    #    
-    #    for n in self.next:
-    #        if len(self.next) > 1:
-    #            n.alignVerticalStep(treeGen, angle, axis, self.point, self.point, False, previousCurvature, transitionVal, True, Vector((0.0,0.0,0.0))) # at split: self.point becomes new rotation point
-    #        else:
-    #            if transitionVal > 0.9:
-    #                n.alignVerticalStep(treeGen, angle, axis, rotationPoint, self.point, False, previousCurvature, transitionVal, False, Vector((0.0,0.0,0.0)))
-    #            else:
-    #                n.alignVerticalStep(treeGen, angle, axis, rotationPoint, self.point, False, previousCurvature, transitionVal, False, Vector((0.0,0.0,0.0)))
+        newDelta = Quaternion(axis.normalized(), -angle) @ delta
         
-    
-    
-    
-    
-    
-    
-    
+        drawArrow(rotationPoint, rotationPoint + axis)
+        drawArrow(rotationPoint, rotationPoint + newDelta)
+        
+        self.point = rotationPoint + newDelta
+        self.tangent[0] = Vector((0.0,0.0,-1.0))
+        
+        for n in self.next:
+            n.rotateBack(rotationPoint, axis, treeGen)
     
     
     
@@ -848,27 +869,31 @@ class generateTree(bpy.types.Operator):
                                     context.scene.curvatureEnd / context.scene.resampleDistance, 
                                     0.0, 
                                     -1, 
-                                    Vector((0.0,0.0,0.0)), 
-                                    None, 
-                                    context.scene.maxCurveSteps) 
+                                    Vector((0.0,0.0,0.0)))
+                                    #None, 
+                                    #context.scene.maxCurveSteps) 
                                     #0, 
                                     #context.scene.maxCurveSteps)
                                     
-       #     def applyCurvature2(
-       # self,
-       # treeGen,
-       # rootNode,
-       # treeGrowDir,
-       # treeHeight,
-       # curvatureStartGlobal,
-       # curvatureStartBranch,
-       # curvatureEndGlobal,
-       # curvatureEndBranch,
-       # clusterIndex,
-       # branchStartPoint,
-       # curveStep,
-       # maxCurveSteps,
-       # rotationSteps=None,
+    #        def applyCurvature2(
+    #    self,
+    #    treeGen,
+    #    rootNode,
+    #    treeGrowDir,
+    #    treeHeight,
+    #    curvatureStartGlobal,
+    #    curvatureStartBranch,
+    #    curvatureEndGlobal,
+    #    curvatureEndBranch,
+    #    clusterIndex,
+    #    branchStartPoint,
+    #    #curveStep,
+    #    #maxCurveSteps,
+    #    rotationSteps=None, 
+    #    prevPoint = None
+    #):
+                                    
+       
             
             if context.scene.noiseAmplitudeHorizontal > 0.0 or context.scene.noiseAmplitudeVertical > 0.0:
                 nodes[0].applyNoise(self, 
@@ -2412,11 +2437,13 @@ noiseGenerator):
                                       branchClusterSettingsList[clusterIndex].branchGlobalCurvatureEnd, 
                                       branchClusterSettingsList[clusterIndex].branchCurvatureEnd, 
                                       clusterIndex, 
-                                      branchNode.point,
-                                      0, 
-                                      context.scene.maxCurveSteps)
+                                      branchNode.point)
+                                      #0, 
+                                      #context.scene.maxCurveSteps)
                                       
-            #def applyCurvature2(
+            branchNode.hangingBranches2(treeGen)
+                                      
+    # def applyCurvature2(
     #    self,
     #    treeGen,
     #    rootNode,
@@ -2428,9 +2455,10 @@ noiseGenerator):
     #    curvatureEndBranch,
     #    clusterIndex,
     #    branchStartPoint,
-    #    curveStep,
-    #    maxCurveSteps,
-    #    rotationSteps=None
+    #    #curveStep,
+    #    #maxCurveSteps,
+    #    rotationSteps=None, 
+    #    prevPoint = None
     #):
                                    
             if branchClusterSettingsList[clusterIndex].noiseAmplitudeHorizontalBranch > 0.0 or branchClusterSettingsList[clusterIndex].noiseAmplitudeVerticalBranch > 0.0:
