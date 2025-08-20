@@ -63,6 +63,7 @@ class node():
         self.next = []
         self.branches = []
         self.branchLength = BranchLength
+        self.isLastRotated = False
         
     def drawDebugPoint(pos, size, name="debugPoint"):
         bpy.ops.object.empty_add(type='SPHERE', location=pos)
@@ -95,7 +96,7 @@ class node():
         #for t in self.tangent:
             #drawArrow(self.point, self.point + t / 2.0)
         #if self.clusterIndex == -1: 
-        #drawDebugPoint(self.point, 0.1)
+        drawDebugPoint(self.point, 0.005)
         
         for n, nextNode in enumerate(self.next):
             longestBranchLengthInCluster = 1.0
@@ -467,7 +468,9 @@ class node():
         #curveStep,
         #maxCurveSteps,
         rotationSteps=None, 
-        prevPoint = None
+        prevPoint = None,
+        prevNode = None, 
+        firstVertical = True
     ):
                 
         if rotationSteps is None:
@@ -517,9 +520,17 @@ class node():
             rotationSteps[len(rotationSteps) - 1].isLast = False
         
         if len(self.next) > 0:
-            if Vector((self.tangent[0].x, self.tangent[0].y, 0.0)).dot(Vector((self.next[0].tangent[0].x, self.next[0].tangent[0].y, 0.0))) > 0.0:
+            if Vector((self.tangent[0].x, self.tangent[0].y, 0.0)).dot(Vector((self.next[0].tangent[0].x, self.next[0].tangent[0].y, 0.0))) > 0:
                 rotationSteps.append(rotationStep(self.point, curvature, curveAxis, True))
                 #TODO: adjust last rotationStep to vertical
+            else:
+                if prevNode != None and firstVertical == True:
+                    firstVertical = False
+                    # mark prev node as last rotated node (-> prev node parameter!)
+                    prevNode.isLastRotated = True
+                    # -> second pass: align vertical! (use angle(self.tangent[0], (0,0,-1))
+                    treeGen.report({'INFO'}, "setting prevNode.isLastRotated = true")
+                    drawDebugPoint(self.point, 0.1)
                 
             #else:
             #    self.rotateBack(self.point, curveAxis, treeGen) # TEST
@@ -558,7 +569,9 @@ class node():
                 #curveStep,
                 #maxCurveSteps,
                 rotationSteps.copy(), 
-                self.point) 
+                self.point, 
+                self, 
+                firstVertical) 
                 
                 #def applyCurvature2(
  #       self,
