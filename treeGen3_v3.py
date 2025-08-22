@@ -465,6 +465,8 @@ class node():
         curvatureEndBranch,
         clusterIndex,
         branchStartPoint,
+        reducedCurveStepCutoff, 
+        reducedCurveStepFactor, 
         #curveStep,
         #maxCurveSteps,
         rotationSteps=None, 
@@ -476,7 +478,7 @@ class node():
         if rotationSteps is None:
             rotationSteps = []
         
-        treeGen.report({'INFO'}, "in applyCurvature2()")
+        #treeGen.report({'INFO'}, "in applyCurvature 2()")
         
         if clusterIndex == -1:
             nextTangent = (treeGrowDir.normalized() * treeHeight - (rootNode.point + rootNode.tangent[0] * (treeGrowDir.normalized() * treeHeight - rootNode.point).length * (1.5 / 3.0))).normalized()
@@ -501,9 +503,9 @@ class node():
         branchCurvature = lerp(curvatureStartBranch, curvatureEndBranch, self.tValBranch)
         
         curvature = globalCurvature + branchCurvature
-        #treeGen.report({'INFO'}, f"in applyCurvature2(): tValBranch: {self.tValBranch}")
+        #treeGen.report({'INFO'}, f"in applyCurvature 2(): tValBranch: {self.tValBranch}")
         
-        #treeGen.report({'INFO'}, f"in applyCurvature2(): curvature: {curvature}")
+        #treeGen.report({'INFO'}, f"in applyCurvature 2(): curvature: {curvature}")
         
         for step in rotationSteps:
             self.point = step.rotationPoint + Quaternion(step.curveAxis, math.radians(step.curvature)) @ (self.point - step.rotationPoint)
@@ -521,8 +523,15 @@ class node():
         
         if len(self.next) > 0:
             if Vector((self.tangent[0].x, self.tangent[0].y, 0.0)).dot(Vector((self.next[0].tangent[0].x, self.next[0].tangent[0].y, 0.0))) > 0:
-                rotationSteps.append(rotationStep(self.point, curvature, curveAxis, True))
-                #TODO: adjust last rotationStep to vertical
+                
+                if Vector((self.tangent[0].x, self.tangent[0].y, 0.0)).dot(Vector((self.next[0].tangent[0].x, self.next[0].tangent[0].y, 0.0))) < reducedCurveStepCutoff: # 0.2: ####  -> make parameter -> reduced curveStep cutoff [0..(1?)]
+                    # TODO: -> reduce curvature when close to vertical !!!!!!!!!!!!!!!!!!!!!!!!!!
+                    rotationSteps.append(rotationStep(self.point, curvature  * reducedCurveStepFactor, curveAxis, True))
+                    treeGen.report({'INFO'}, "reduced curve step")## -> make paremeter: reduced curveStep factor [0..1]
+                else:
+                    rotationSteps.append(rotationStep(self.point, curvature, curveAxis, True))
+                    treeGen.report({'INFO'}, "curve step")
+                    #TODO: adjust last rotationStep to vertical
             else:
                 if prevNode != None and firstVertical == True:
                     firstVertical = False
@@ -531,12 +540,34 @@ class node():
                     # -> second pass: align vertical! (use angle(self.tangent[0], (0,0,-1))
                     treeGen.report({'INFO'}, "setting prevNode.isLastRotated = true")
                     drawDebugPoint(self.point, 0.1)
-                
+                    
+                    rotateBackAngle = 0.0
+                    branchDir = self.tangent[0]
+                    branchDir = branchDir / branchDir.length
+                    rotateBackAngle = math.acos(branchDir.dot(Vector((0.0,0.0,-1.0))))
+                    treeGen.report({'INFO'}, f"rotateBachAngle: {rotateBackAngle}")
+                    rotateBackAxis = branchDir.cross(Vector((0.0,0.0,-1.0))).normalized()
+                    drawArrow(self.point, self.point + rotateBackAxis)
+                    drawArrow(self.point, self.point + branchDir)
+                    drawArrow(self.point, self.point + Vector((0.0,0.0,-1.0)))
+                    
             #else:
             #    self.rotateBack(self.point, curveAxis, treeGen) # TEST
             #    self.hangingBranches2(treeGen) # TEST
+            
+        # TODO: -> reduce curvature when close to vertical 
         
-        # -> second pass -> hangingBranches2() after applyCurvature2()!
+        
+        
+        #################################################################
+        #
+        # -> Parameter -> vertical attraction !!!  -> outward attraction !!!
+        #
+        #################################################################
+        
+        
+        
+        # (((-> second pass -> hangingBranches2() after applyCurvature 2()! )))
         #
         #    prevDir = self.point - prevPoint
         #    prevDir = prevDir / prevDir.length
@@ -553,9 +584,10 @@ class node():
         #for step in rotationSteps:
         #    treeGen.report({'INFO'}, f"rotationStep: point: {step.rotationPoint}, curvature: {step.curvature}, axis: {step.curveAxis}")
         
+        
         for n in self.next:
-            #treeGen.report({'INFO'}, f"in applyCurvature2() in point: {self.point}")
-            n.applyCurvature2(
+                #treeGen.report({'INFO'}, f"in applyCurvature 2() in point: {self.point}")
+                n.applyCurvature2(
                 treeGen,
                 rootNode,
                 treeGrowDir,
@@ -566,6 +598,8 @@ class node():
                 curvatureEndBranch,
                 clusterIndex,
                 branchStartPoint,
+                reducedCurveStepCutoff, 
+                reducedCurveStepFactor,
                 #curveStep,
                 #maxCurveSteps,
                 rotationSteps.copy(), 
@@ -573,7 +607,7 @@ class node():
                 self, 
                 firstVertical) 
                 
-                #def applyCurvature2(
+                #def applyCurvature 2(
  #       self,
  #       treeGen,
  #       rootNode,
@@ -602,10 +636,10 @@ class node():
     
     
       
-    def hangingBranches2( # TODO: use rotationSteps like in applyCurvature2 ... -> each step aligns tangents to prev node!
+    def hangingBranches2( # TODO: use rotationSteps like in applyCurvature 2 ... -> each step aligns tangents to prev node!
         self,
         treeGen, 
-        rotationSteps=None # TODO: reverse curvature applied in applyCurvature2() -> use same curvature parameters !!!!!!!!!!!!!!!!!!!!!!!!!
+        rotationSteps=None # TODO: reverse curvature applied in applyCurvature 2() -> use same curvature parameters !!!!!!!!!!!!!!!!!!!!!!!!!
         
         
         
@@ -909,13 +943,15 @@ class generateTree(bpy.types.Operator):
                                     context.scene.curvatureEnd / context.scene.resampleDistance, 
                                     0.0, 
                                     -1, 
-                                    Vector((0.0,0.0,0.0)))
+                                    Vector((0.0,0.0,0.0)),
+                                    0.0,
+                                    0.0)
                                     #None, 
                                     #context.scene.maxCurveSteps) 
                                     #0, 
                                     #context.scene.maxCurveSteps)
                                     
-    #        def applyCurvature2(
+    #        def applyCurvature 2(
     #    self,
     #    treeGen,
     #    rootNode,
@@ -2477,13 +2513,15 @@ noiseGenerator):
                                       branchClusterSettingsList[clusterIndex].branchGlobalCurvatureEnd, 
                                       branchClusterSettingsList[clusterIndex].branchCurvatureEnd, 
                                       clusterIndex, 
-                                      branchNode.point)
+                                      branchNode.point, 
+                                      branchClusterSettingsList[clusterIndex].reducedCurveStepCutoff, 
+                                      branchClusterSettingsList[clusterIndex].reducedCurveStepFactor)
                                       #0, 
                                       #context.scene.maxCurveSteps)
                                       
             # branchNode.hangingBranches2(treeGen)
                                       
-    # def applyCurvature2(
+    # def applyCurvature 2(
     #    self,
     #    treeGen,
     #    rootNode,
@@ -3350,6 +3388,8 @@ class branchClusterSettings(bpy.types.PropertyGroup):
     rotateAngleBranchEnd: bpy.props.FloatProperty(name = "Rotate angle branch end")
     
     hangingBranches: bpy.props.BoolProperty(name = "Hanging branches")
+    reducedCurveStepCutoff: bpy.props.FloatProperty(name = "Reduced curve step cutoff", min = 0.0, soft_max = 1.0)
+    reducedCurveStepFactor: bpy.props.FloatProperty(name = "Reduced curve step factor", min = 0.0, max = 1.0)
     branchGlobalCurvatureStart: bpy.props.FloatProperty(name = "Branch global curvature start")
     branchGlobalCurvatureEnd: bpy.props.FloatProperty(name = "Branch global curvature end")
     branchCurvatureStart: bpy.props.FloatProperty(name = "Branch curvature start")
@@ -4001,6 +4041,12 @@ def load_properties(filePath, context):
             props.branchClusterSettingsList[i].rotateAngleBranchEnd = value
             
             
+        for i, value in enumerate(data.get("reducedCurveStepCutoffList", [])):
+            props.branchClusterSettingsList[i].reducedCurveStepCutoff = value
+            
+        for i, value in enumerate(data.get("reducedCurveStepFactorList", [])):
+            props.branchClusterSettingsList[i].reducedCurveStepFactor = value
+        
         for i, value in enumerate(data.get("branchGlobalCurvatureStartList", [])):
             props.branchClusterSettingsList[i].branchGlobalCurvatureStart = value
             
@@ -4315,6 +4361,9 @@ def save_properties(filePath, treeGen):
         "rotateAngleCrownEndList": [props.branchClusterSettingsList[i].rotateAngleCrownEnd for i in range(props.branchClusters)],
         "rotateAngleBranchStartList": [props.branchClusterSettingsList[i].rotateAngleBranchStart for i in range(props.branchClusters)],
         "rotateAngleBranchEndList": [props.branchClusterSettingsList[i].rotateAngleBranchEnd for i in range(props.branchClusters)],
+        
+        "reducedCurveStepCutoffList": [props.branchClusterSettingsList[i].reducedCurveStepCutoff for i in range(props.branchClusters)],
+        "reducedCurveStepFactorList": [props.branchClusterSettingsList[i].reducedCurveStepFactor for i in range(props.branchClusters)],
         
         "branchGlobalCurvatureStartList": [props.branchClusterSettingsList[i].branchGlobalCurvatureStart for i in range(props.branchClusters)],
         "branchGlobalCurvatureEndList": [props.branchClusterSettingsList[i].branchGlobalCurvatureEnd for i in range(props.branchClusters)],
@@ -4706,6 +4755,19 @@ class branchSettings(bpy.types.Panel):
                     #    split.label(text="Branch global curvature end")
                     #    split.prop(scene.branchClusterSettingsList[i], "branchGlobalCurvatureEnd", text="")
                     #else:
+                    
+                    #reducedCurveStepCutoff: bpy.props.FloatProperty(name = "Reduced curve step cutoff", min = 0.0, soft_max = 1.0)
+                    #reducedCurveStepFactor: bpy.props.FloatProperty(name = "Reduced curve step factor", min = 0.0, max = 1.0)
+                    
+                    split = box3.split(factor=0.6)
+                    split.label(text="Reduced curve step cutoff")
+                    split.prop(scene.branchClusterSettingsList[i], "reducedCurveStepCutoff", text="")
+                    
+                    split = box3.split(factor=0.6)
+                    split.label(text="Reduced curve step factor")
+                    split.prop(scene.branchClusterSettingsList[i], "reducedCurveStepFactor", text="", slider=True)
+                    
+                    
                     split = box3.split(factor=0.6)
                     split.label(text="Branch global curvature start")
                     split.prop(scene.branchClusterSettingsList[i], "branchGlobalCurvatureStart", text="")
