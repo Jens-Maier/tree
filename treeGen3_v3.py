@@ -457,7 +457,9 @@ class node():
                        treeGen, 
                        outwardAttraction, 
                        outwardDir, 
-                       rotationSteps = None
+                       rotationSteps = None, 
+                       prevPoint = None,
+                       prevNode = None
     ):
         if rotationSteps is None:
             rotationSteps = []
@@ -468,20 +470,28 @@ class node():
         
         right = self.tangent[0].cross(Vector((0.0,0.0,1.0)))
         axis = right.cross(self.tangent[0]).normalized()
-        drawArrow(self.point, self.point + axis)
-        drawArrow(self.point, self.point + outwardDir)
-        drawArrow(self.point, self.point + self.tangent[0])
+        #drawArrow(self.point, self.point + axis)
+        #drawArrow(self.point, self.point + outwardDir)
+        #drawArrow(self.point, self.point + self.tangent[0])
         
-        angle = self.tangent[0].angle(outwardDir) * outwardAttraction
+        
+        if (self.tangent[0].cross(outwardDir)).dot(axis) > 0.0:
+            # right side
+            angle = self.tangent[0].angle(outwardDir) * outwardAttraction
+        else:
+            # left side
+            angle = -self.tangent[0].angle(outwardDir) * outwardAttraction
+        
+        angle = angle * (1.0 - self.tValBranch)
         
         treeGen.report({'INFO'}, f"attract outward: angle: {angle}")
         
         for step in rotationSteps:
-            treeGen.report({'INFO'}, f"attract outward: step: curvature: {step.curvature}")
+            #treeGen.report({'INFO'}, f"attract outward: step: curvature: {step.curvature}")
             self.point = step.rotationPoint + Quaternion(step.curveAxis, step.curvature) @ (self.point - step.rotationPoint)
             if step.isLast == False:
                 for tangentIndex in range(0, len(self.tangent)):
-                    self.tangent[tangentIndex] = Quaternion(step.curveAxis, math.radians(step.curvature)) @ self.tangent[tangentIndex]
+                    self.tangent[tangentIndex] = Quaternion(step.curveAxis, step.curvature) @ self.tangent[tangentIndex]
                 self.cotangent = Quaternion(step.curveAxis, step.curvature) @ self.cotangent
             else:
                 for tangentIndex in range(0, len(self.tangent)):
@@ -498,7 +508,19 @@ class node():
             n.attractOutward(treeGen, 
                              outwardAttraction, 
                              outwardDir, 
-                             rotationSteps)
+                             rotationSteps, 
+                             self.point,
+                             self)
+                             
+        tanCount = len(self.tangent)
+        if prevPoint != None:
+            if tanCount == 1 and len(self.next) == 1:
+                self.tangent[0] = (self.next[0].point - prevPoint).normalized()
+            if tanCount == 3 and len(self.next) == 2:
+                self.tangent[0] = ((self.next[0].point + self.next[1].point) / 2.0 - prevPoint).normalized()
+                self.tangent[1] = (self.next[0].point - self.point).normalized()
+                self.tangent[2] = (self.next[1].point - self.point).normalized()
+    
             
     
     def applyCurvature2(
