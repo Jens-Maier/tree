@@ -96,7 +96,7 @@ class node():
         #for t in self.tangent:
             #drawArrow(self.point, self.point + t / 2.0)
         #if self.clusterIndex == -1: 
-        drawDebugPoint(self.point, 0.005)
+        #drawDebugPoint(self.point, 0.005)
         
         for n, nextNode in enumerate(self.next):
             longestBranchLengthInCluster = 1.0
@@ -453,6 +453,54 @@ class node():
                                  curveStep + 1, 
                                  maxCurveSteps)
     
+    def attractOutward(self, # branchNode.attractOutward() (-> after splitBranches()! )
+                       treeGen, 
+                       outwardAttraction, 
+                       outwardDir, 
+                       rotationSteps = None
+    ):
+        if rotationSteps is None:
+            rotationSteps = []
+        #right = splitNode.tangent[0].cross(Vector((0.0, 0.0, 1.0)))
+        #splitAxis = right.cross(splitNode.tangent[0]).normalized()
+        #
+        #splitAxis = Quaternion(splitNode.tangent[0], random.uniform(-branchSplitAxisVariation, branchSplitAxisVariation)) @ splitAxis
+        
+        right = self.tangent[0].cross(Vector((0.0,0.0,1.0)))
+        axis = right.cross(self.tangent[0]).normalized()
+        drawArrow(self.point, self.point + axis)
+        drawArrow(self.point, self.point + outwardDir)
+        drawArrow(self.point, self.point + self.tangent[0])
+        
+        angle = self.tangent[0].angle(outwardDir) * outwardAttraction
+        
+        treeGen.report({'INFO'}, f"attract outward: angle: {angle}")
+        
+        for step in rotationSteps:
+            treeGen.report({'INFO'}, f"attract outward: step: curvature: {step.curvature}")
+            self.point = step.rotationPoint + Quaternion(step.curveAxis, step.curvature) @ (self.point - step.rotationPoint)
+            if step.isLast == False:
+                for tangentIndex in range(0, len(self.tangent)):
+                    self.tangent[tangentIndex] = Quaternion(step.curveAxis, math.radians(step.curvature)) @ self.tangent[tangentIndex]
+                self.cotangent = Quaternion(step.curveAxis, step.curvature) @ self.cotangent
+            else:
+                for tangentIndex in range(0, len(self.tangent)):
+                    self.tangent[tangentIndex] = Quaternion(step.curveAxis, step.curvature / 2.0) @ self.tangent[tangentIndex]
+                    self.cotangent = Quaternion(step.curveAxis, step.curvature / 2.0) @ self.cotangent
+        
+        if len(rotationSteps) > 0:
+            rotationSteps[len(rotationSteps) - 1].isLast = False
+        
+        if len(self.next) > 0:
+            rotationSteps.append(rotationStep(self.point, angle, axis, True))
+            
+        for n in self.next:
+            n.attractOutward(treeGen, 
+                             outwardAttraction, 
+                             outwardDir, 
+                             rotationSteps)
+            
+    
     def applyCurvature2(
         self,
         treeGen,
@@ -467,8 +515,7 @@ class node():
         branchStartPoint,
         reducedCurveStepCutoff, 
         reducedCurveStepFactor, 
-        #curveStep,
-        #maxCurveSteps,
+        
         rotationSteps=None, 
         prevPoint = None,
         prevNode = None, 
@@ -507,6 +554,16 @@ class node():
         
         #treeGen.report({'INFO'}, f"in applyCurvature 2(): curvature: {curvature}")
         
+        
+        # split axis horizontal: 
+        #
+        # right = splitNode.tangent[0].cross(Vector((0.0, 0.0, 1.0)))
+        # #drawDebugPoint(splitNode.point + right / 2.0, 0.1)
+        # splitAxis = right.cross(splitNode.tangent[0]).normalized()
+        # 
+        # splitAxis = Quaternion(splitNode.tangent[0], random.uniform(-branchSplitAxisVariation, branchSplitAxisVariation)) @ splitAxis
+        #
+        
         for step in rotationSteps:
             self.point = step.rotationPoint + Quaternion(step.curveAxis, math.radians(step.curvature)) @ (self.point - step.rotationPoint)
             if step.isLast == False:
@@ -539,7 +596,7 @@ class node():
                     prevNode.isLastRotated = True
                     # -> second pass: align vertical! (use angle(self.tangent[0], (0,0,-1))
                     treeGen.report({'INFO'}, "setting prevNode.isLastRotated = true")
-                    drawDebugPoint(self.point, 0.1)
+                    #drawDebugPoint(self.point, 0.1)
                     
                     rotateBackAngle = 0.0
                     branchDir = self.tangent[0]
@@ -598,7 +655,7 @@ class node():
                 curvatureEndBranch,
                 clusterIndex,
                 branchStartPoint,
-                reducedCurveStepCutoff, 
+                reducedCurveStepCutoff,
                 reducedCurveStepFactor,
                 #curveStep,
                 #maxCurveSteps,
@@ -607,22 +664,25 @@ class node():
                 self, 
                 firstVertical) 
                 
-                #def applyCurvature 2(
+                #def applyCurvature2(
  #       self,
- #       treeGen,
- #       rootNode,
- #       treeGrowDir,
- #       treeHeight,
- #       curvatureStartGlobal,
- #       curvatureStartBranch,
- #       curvatureEndGlobal,
- #       curvatureEndBranch,
- #       clusterIndex,
- #       branchStartPoint,
- ##       #curveStep,
-  #      #maxCurveSteps,
-  #      rotationSteps=None, 
-#        prevPoint = None
+#        treeGen,
+#        rootNode,
+#        treeGrowDir,
+#        treeHeight,
+#        curvatureStartGlobal,
+#        curvatureStartBranch,
+#        curvatureEndGlobal,
+#        curvatureEndBranch,
+#        clusterIndex,
+#        branchStartPoint,
+#        reducedCurveStepCutoff, 
+#        reducedCurveStepFactor, 
+#        
+#        rotationSteps=None, 
+#        prevPoint = None,
+#        prevNode = None, 
+#        firstVertical = True
 #    ):
         
         tanCount = len(self.tangent)
@@ -660,7 +720,7 @@ class node():
                 if Vector((self.tangent[0].x, self.tangent[0].y, 0.0)).dot(Vector((self.next[n].tangent[0].x, self.next[n].tangent[0].y, 0.0))) < 0.0:
                     treeGen.report({'INFO'}, f"in hangingBranches2() -> split vertical")
                     #vertical -> rotate back...
-                    drawDebugPoint(self.point, 0.1)
+                    #drawDebugPoint(self.point, 0.1)
                     axis = self.cotangent # TEST
                     delta = self.next[n].point - self.point
                     angle = delta.normalized().angle(Vector((0.0,0.0,-1.0))) # radians
@@ -676,7 +736,7 @@ class node():
                 if Vector((self.tangent[0].x, self.tangent[0].y, 0.0)).dot(Vector((self.next[0].tangent[0].x, self.next[0].tangent[0].y, 0.0))) < 0.0:
                     treeGen.report({'INFO'}, f"in hangingBranches2() -> vertical")
                     # vertical -> rotate back...
-                    drawDebugPoint(self.point, 0.05)
+                    #drawDebugPoint(self.point, 0.05)
                     axis = self.cotangent # TEST
                     delta = self.next[0].point - self.point
                     angle = delta.normalized().angle(Vector((0.0,0.0,-1.0))) # radians
@@ -951,7 +1011,7 @@ class generateTree(bpy.types.Operator):
                                     #0, 
                                     #context.scene.maxCurveSteps)
                                     
-    #        def applyCurvature 2(
+    #def applyCurvature2(
     #    self,
     #    treeGen,
     #    rootNode,
@@ -963,10 +1023,13 @@ class generateTree(bpy.types.Operator):
     #    curvatureEndBranch,
     #    clusterIndex,
     #    branchStartPoint,
-    #    #curveStep,
-    #    #maxCurveSteps,
+    #    reducedCurveStepCutoff, 
+    #    reducedCurveStepFactor, 
+    #    
     #    rotationSteps=None, 
-    #    prevPoint = None
+    #    prevPoint = None,
+    #    prevNode = None, 
+    #    firstVertical = True
     #):
                                     
        
@@ -2153,6 +2216,7 @@ noiseGenerator):
         startNodesNextIndexStartTvalEndTval = []
         branchNodesNextIndexStartTvalEndTval = []
         branchNodes = []
+        centerDirs = []
         c = 0
         if clusterIndex - 1 >= 0:
             c = clusterIndex - 1
@@ -2274,6 +2338,7 @@ noiseGenerator):
                 if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "WINDING":
                     
                     centerDir = data.outwardDir # for symmetric!
+                    centerDirs.append(centerDir)
                     #drawArrow(startPoint, startPoint + data.outwardDir)
                 
                 
@@ -2313,6 +2378,7 @@ noiseGenerator):
                 if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "SYMMETRIC":
                     #treeGen.report({'INFO'}, f"in addBranches(): symmetric")
                     centerDir = Quaternion(startPointTangent.cross(data.outwardDir), math.radians(-verticalAngle)) @ data.outwardDir # for symmetric!
+                    centerDirs.append(centerDir)
                     axis = startPointTangent.cross(centerDir).normalized()
                     
                     rotateAngle = (globalRotateAngle + branchRotateAngle)
@@ -2364,7 +2430,7 @@ noiseGenerator):
                               branchCotangent, 
                               clusterIndex, 
                               branchClusterSettingsList[clusterIndex].ringResolution, # -> branchClusterSettingsList[clusterIndex].ringResolution
-                              taper * taperFactorList[clusterIndex].value, 
+                              taper * taperFactorList[clusterIndex].taperFactor, 
                               startTvalGlobal, #tValGlobal
                               0.0, 
                               branchLength)
@@ -2420,7 +2486,7 @@ noiseGenerator):
                                   branchCotangent, 
                                   clusterIndex, 
                                   branchClusterSettingsList[clusterIndex].ringResolution, 
-                                  taper * taperFactorList[clusterIndex].value, 
+                                  taper * taperFactorList[clusterIndex].taperFactor, 
                                   data.startNode.tValGlobal, 
                                   0.0, 
                                   branchLength)
@@ -2489,7 +2555,7 @@ noiseGenerator):
                 branchClusterSettingsList[clusterIndex].branchSplitRotateAngle,
                 
                 branchClusterSettingsList[clusterIndex].ringResolution, 
-                0.0,#branchCurvOffsetStrength[0], #TODO: variable for each branch cluster... 
+                branchClusterSettingsList[clusterIndex].branchCurvatureOffsetStrength, # variable for each branch cluster
                 branchClusterSettingsList[clusterIndex].branchVariance, 
                 
                 branchClusterSettingsList[clusterIndex].branchSplitAxisVariation, 
@@ -2500,7 +2566,7 @@ noiseGenerator):
                                      
             
                 
-        for branchNode in branchNodes:
+        for i, branchNode in enumerate(branchNodes):
             
             branchNode.resampleSpline(rootNode, treeGen, resampleDistance)
             #treeGen.report({'INFO'}, f"in add Branches: calling applyCurvature")
@@ -2518,7 +2584,9 @@ noiseGenerator):
                                       branchClusterSettingsList[clusterIndex].reducedCurveStepFactor)
                                       #0, 
                                       #context.scene.maxCurveSteps)
-                                      
+             
+            branchNode.attractOutward(treeGen, branchClusterSettingsList[clusterIndex].outwardAttraction, centerDirs[i])
+            
             # branchNode.hangingBranches2(treeGen)
                                       
     # def applyCurvature 2(
@@ -2728,7 +2796,7 @@ def splitBranches(treeGen,
                             branchSplitRotateAngle, 
                             branchSplitAxisVariation, 
                             stemRingResolution,
-                            0.0, #curvOffsetStrength,
+                            curvOffsetStrength,
                             treeGen, 
                             rootNode)
                         
@@ -3048,7 +3116,7 @@ def generateVerticesAndTriangles(self, treeGen, context, segments, dir, taper, r
                     
                     linearRadius = lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing))
                     
-                    normalizedCurve = (1.0 - branchTipRadius) * tValBranch + sampleCurve(treeGen, tValBranch) * context.scene.taperFactorList[segments[s].clusterIndex].value
+                    normalizedCurve = (1.0 - branchTipRadius) * tValBranch + sampleCurve(treeGen, tValBranch) * context.scene.taperFactorList[segments[s].clusterIndex].taperFactor
                     
                     radius = linearRadius * normalizedCurve
                     
@@ -3182,7 +3250,10 @@ class posFloatPropSoftMax2(bpy.types.PropertyGroup):
     value: bpy.props.FloatProperty(name = "floatValue", default = 1.0, min = 0, soft_max=2.0)
     
 class posFloatPropSoftMax1(bpy.types.PropertyGroup):
-    value: bpy.props.FloatProperty(name = "floatValue", default=1, min=0, soft_max=1.0)
+    taperFactor: bpy.props.FloatProperty(name = "Taper factor", default=1, min=0, soft_max=1.0)
+    
+class posFloatPropSoftMax1taperFactor(bpy.types.PropertyGroup):
+    taperFactor: bpy.props.FloatProperty(name = "Taper factor", default=1, min=0, soft_max=1.0)
 
 class posFloatPropSoftMax1Default0(bpy.types.PropertyGroup):
     value: bpy.props.FloatProperty(name = "floatValue", default=0, min=0, soft_max=1.0)
@@ -3408,6 +3479,7 @@ class branchClusterSettings(bpy.types.PropertyGroup):
     
     splitsPerBranchVariation: bpy.props.FloatProperty(name = "Splits per branch variation", min = 0.0, max = 1.0)
     branchVariance: bpy.props.FloatProperty(name = "Branch varianace", default = 0.0, min = 0.0, max = 1.0)
+    outwardAttraction: bpy.props.FloatProperty(name = "Outward attraction", default = 0.0, min = 0.0, soft_max = 1.0)
     branchSplitHeightVariation: bpy.props.FloatProperty(name = "Branch split height variation", default = 0.0, min = 0.0, max = 1.0)
     branchSplitLengthVariation: bpy.props.FloatProperty(name = "Branch split length variation", default = 0.0, min = 0.0, max = 1.0)
         
@@ -4091,6 +4163,9 @@ def load_properties(filePath, context):
             
         for i, value in enumerate(data.get("branchVarianceList", [])):
             props.branchClusterSettingsList[i].branchVariance = value
+            
+        for i, value in enumerate(data.get("outwardAttractionList", [])):
+            props.branchClusterSettingsList[i].outwardAttraction = value
         
         for i, value in enumerate(data.get("branchSplitHeightVariationList", [])):
             props.branchClusterSettingsList[i].branchSplitHeightVariation = value
@@ -4330,7 +4405,7 @@ def save_properties(filePath, treeGen):
         "branchShapeList": [props.branchClusterSettingsList[i].branchShape.value for i in range(props.branchClusters)],
         "relBranchLengthList": [props.branchClusterSettingsList[i].relBranchLength for i in range(props.branchClusters)],
         "relBranchLengthVariationList": [props.branchClusterSettingsList[i].relBranchLengthVariation for i in range(props.branchClusters)],
-        "taperFactorList": [props.taperFactorList[i].value for i in range(props.branchClusters)],
+        "taperFactorList": [props.taperFactorList[i].taperFactor for i in range(props.branchClusters)],
         "ringResolutionList": [props.branchClusterSettingsList[i].ringResolution for i in range(props.branchClusters)],
         "branchesStartHeightGlobalList": [props.branchClusterSettingsList[i].branchesStartHeightGlobal for i in range(props.branchClusters)],
         "branchesEndHeightGlobalList": [props.branchClusterSettingsList[i].branchesEndHeightGlobal for i in range(props.branchClusters)],
@@ -4383,6 +4458,7 @@ def save_properties(filePath, treeGen):
         
         "splitsPerBranchVariationList": [props.branchClusterSettingsList[i].splitsPerBranchVariation for i in range(props.branchClusters)],
         "branchVarianceList": [props.branchClusterSettingsList[i].branchVariance for i in range(props.branchClusters)],
+        "outwardAttractionList": [props.branchClusterSettingsList[i].outwardAttraction for i in range(props.branchClusters)],
         "branchSplitHeightVariationList": [props.branchClusterSettingsList[i].branchSplitHeightVariation for i in range(props.branchClusters)],
         "branchSplitLengthVariationList": [props.branchClusterSettingsList[i].branchSplitLengthVariation for i in range(props.branchClusters)],
         #"hangingBranchesList": [props.hangingBranchesList[i].value for i in range(props.branchClusters)],
@@ -4618,42 +4694,58 @@ class branchSettings(bpy.types.Panel):
                     split.label(text="Number of branches")
                     split.prop(scene.branchClusterSettingsList[i], "nrBranches", text="")
                     
+                    #box.prop(scene.branchClusterSettingsList[i], "nrBranches")
+                    
+                    
                     split = box.split(factor=0.6)
                     split.label(text="Branch shape")
                     split.prop(scene.branchClusterSettingsList[i].branchShape, "value", text="")
+                    
+                    #box.prop(scene.branchClusterSettingsList[i].branchShape, "value")
                     
                     split = box.split(factor=0.6)
                     split.label(text="Relative branch length")
                     split.prop(scene.branchClusterSettingsList[i], "relBranchLength", text="", slider=True)
                     
+                    #box.prop(scene.branchClusterSettingsList[i], "relBranchLength")#, slider=True)
+                    
                     split = box.split(factor=0.6)
                     split.label(text="Relative branch length variation")
                     split.prop(scene.branchClusterSettingsList[i], "relBranchLengthVariation", text="", slider=True)
                     
+                    #box.prop(scene.branchClusterSettingsList[i], "relBranchLengthVariation")#, slider=True)
+                    
                     split = box.split(factor=0.6)
                     split.label(text="Taper factor")
-                    split.prop(scene.taperFactorList[i], "value", text="", slider=True)
+                    split.prop(scene.taperFactorList[i], "taperFactor", text="", slider=True)
+                    
+                    #box.prop(scene.taperFactorList[i], "taperFactor")#, slider=True)
                     
                     split = box.split(factor=0.6)
                     split.label(text="Ring resolution")
                     split.prop(scene.branchClusterSettingsList[i], "ringResolution", text="")
+                    #box.prop(scene.branchClusterSettingsList[i], "ringResolution")
                     
                     split = box.split(factor=0.6)
                     split.label(text="Branches start height global")
                     split.prop(scene.branchClusterSettingsList[i], "branchesStartHeightGlobal", text="", slider=True)
+                    #box.prop(scene.branchClusterSettingsList[i], "branchesStartHeightGlobal")#, slider=True)
                     
                     split = box.split(factor=0.6)
                     split.label(text="Branches end height global")
                     split.prop(scene.branchClusterSettingsList[i], "branchesEndHeightGlobal", text="", slider=True)
+                    #box.prop(scene.branchClusterSettingsList[i], "branchesEndHeightGlobal")#, slider=True)
                     
                     split = box.split(factor=0.6)
                     split.label(text="Branches start height cluster")
                     split.prop(scene.branchClusterSettingsList[i], "branchesStartHeightCluster", text="", slider=True)
+                    #box.prop(scene.branchClusterSettingsList[i], "branchesStartHeightCluster")#, slider=True)
                     
                     split = box.split(factor=0.6)
                     split.label(text="Branches end height cluster")
                     split.prop(scene.branchClusterSettingsList[i], "branchesEndHeightCluster", text="", slider=True)
-                
+                    #box.prop(scene.branchClusterSettingsList[i], "branchesEndHeightCluster")#, slider=True)
+                    
                 
                 split = box.split(factor=0.6)
                 split.prop(scene.branchClusterSettingsList[i], "showNoiseSettings", icon="TRIA_DOWN" if scene.branchClusterSettingsList[i].showNoiseSettings else "TRIA_RIGHT", emboss=False, text="Noise settings", toggle=True)
@@ -4662,22 +4754,27 @@ class branchSettings(bpy.types.Panel):
                     split = box1.split(factor=0.6)
                     split.label(text="Noise Amplitude Horizontal")
                     split.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeHorizontalBranch", text="")
+                    #box1.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeHorizontalBranch")
                     
                     split = box1.split(factor=0.6)
                     split.label(text="Noise Amplitude Vertical")
                     split.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeVerticalBranch", text="")
+                    #box1.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeVerticalBranch")
                                         
                     split = box1.split(factor=0.6)
                     split.label(text="Noise Amplitude Gradient")
                     split.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeBranchGradient", text="")
+                    #box1.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeBranchGradient")
                                         
                     split = box1.split(factor=0.6)
                     split.label(text="Noise Amplitude Exponent")
                     split.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeBranchExponent", text="")
+                    #box1.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeBranchExponent")
                     
                     split = box1.split(factor=0.6)
                     split.label(text="Noise Scale")
                     split.prop(scene.branchClusterSettingsList[i], "noiseScale", text="")
+                    #box1.prop(scene.branchClusterSettingsList[i], "noiseScale")
                     
                 split = box.split(factor=0.6)
                 split.prop(scene.branchClusterSettingsList[i], "showAngleSettings", icon="TRIA_DOWN" if scene.branchClusterSettingsList[i].showAngleSettings else "TRIA_RIGHT", emboss=False, text="Angle settings", toggle=True)
@@ -4828,6 +4925,10 @@ class branchSettings(bpy.types.Panel):
                     split = box2.split(factor=0.6)
                     split.label(text="Branch variance")
                     split.prop(scene.branchClusterSettingsList[i], "branchVariance", text="", slider=True)
+                    
+                    split = box2.split(factor=0.6)
+                    split.label(text="Outward attraction")
+                    split.prop(scene.branchClusterSettingsList[i], "outwardAttraction", text="", slider=True)
                 
                     split = box2.split(factor=0.6)
                     split.label(text="Branch split height variation")
