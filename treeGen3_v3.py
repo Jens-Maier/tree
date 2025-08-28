@@ -93,8 +93,8 @@ class node():
     
         
     def getAllSegments(self, treeGen, rootNode, segments, connectedToPrev):
-        #for t in self.tangent:
-            #drawArrow(self.point, self.point + t / 2.0)
+        for t in self.tangent:
+            drawArrow(self.point, self.point + t / 2.0)
         #if self.clusterIndex == -1: 
         #drawDebugPoint(self.point, 0.005)
         
@@ -468,6 +468,8 @@ class node():
         #
         #splitAxis = Quaternion(splitNode.tangent[0], random.uniform(-branchSplitAxisVariation, branchSplitAxisVariation)) @ splitAxis
         
+        
+        
         right = self.tangent[0].cross(Vector((0.0,0.0,1.0)))
         axis = right.cross(self.tangent[0]).normalized()
         #drawArrow(self.point, self.point + axis)
@@ -481,8 +483,27 @@ class node():
         else:
             # left side
             angle = -self.tangent[0].angle(outwardDir) * outwardAttraction
+            
+        if len(self.tangent) == 3:
+            if (self.tangent[1].cross(outwardDir)).dot(axis) > 0.0:
+                # right side
+                angleA = self.tangent[1].angle(outwardDir) * outwardAttraction
+            else:
+                #left side
+                angleA = -self.tangent[1].angle(outwardDir) * outwardAttraction
+            
+            if (self.tangent[2].cross(outwardDir)).dot(axis) > 0.0:
+                #right side
+                angleB = self.tangent[2].angle(outwardDir) * outwardAttraction
+            else:
+                #left side
+                angleB = self.tangent[2].angle(outwardDir) * outwardAttraction
+                
+            angleA = angleA * (1.0 - self.tValBranch)
+            angleB = angleB * (1.0 - self.tValBranch)
         
         angle = angle * (1.0 - self.tValBranch)
+        
         
         treeGen.report({'INFO'}, f"attract outward: angle: {angle}")
         
@@ -496,19 +517,30 @@ class node():
             else:
                 for tangentIndex in range(0, len(self.tangent)):
                     self.tangent[tangentIndex] = Quaternion(step.curveAxis, step.curvature / 2.0) @ self.tangent[tangentIndex]
-                    self.cotangent = Quaternion(step.curveAxis, step.curvature / 2.0) @ self.cotangent
+                self.cotangent = Quaternion(step.curveAxis, step.curvature / 2.0) @ self.cotangent
         
-        if len(rotationSteps) > 0:
-            rotationSteps[len(rotationSteps) - 1].isLast = False
         
-        if len(self.next) > 0:
-            rotationSteps.append(rotationStep(self.point, angle, axis, True))
             
         for n in self.next:
+            
+            nextRotationSteps = rotationSteps.copy()
+            
+            # -> move into for n in self.next...
+            if len(rotationSteps) > 0:
+                nextRotationSteps[len(rotationSteps) - 1].isLast = False
+            
+            if len(self.next) == 1:
+                nextRotationSteps.append(rotationStep(self.point, angle, axis, True))
+            if len(self.next) == 2 and n == 0:
+                nextRotationSteps.append(rotationStep(self.point, angleA, axis, True))
+            if len(self.next) == 2 and n == 1:
+                nextRotationSteps.append(rotationStep(self.point, angleB, axis, True))
+            # -> ...---
+            
             n.attractOutward(treeGen, 
                              outwardAttraction, 
                              outwardDir, 
-                             rotationSteps, 
+                             nextRotationSteps, 
                              self.point,
                              self)
                              
