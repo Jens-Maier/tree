@@ -93,8 +93,8 @@ class node():
     
         
     def getAllSegments(self, treeGen, rootNode, segments, connectedToPrev):
-        for t in self.tangent:
-            drawArrow(self.point, self.point + t / 2.0)
+        #for t in self.tangent:
+            #drawArrow(self.point, self.point + t / 2.0)
         #if self.clusterIndex == -1: 
         #drawDebugPoint(self.point, 0.005)
         
@@ -658,9 +658,9 @@ class node():
                     rotateBackAngle = math.acos(branchDir.dot(Vector((0.0,0.0,-1.0))))
                     treeGen.report({'INFO'}, f"rotateBachAngle: {rotateBackAngle}")
                     rotateBackAxis = branchDir.cross(Vector((0.0,0.0,-1.0))).normalized()
-                    drawArrow(self.point, self.point + rotateBackAxis)
-                    drawArrow(self.point, self.point + branchDir)
-                    drawArrow(self.point, self.point + Vector((0.0,0.0,-1.0)))
+                    #drawArrow(self.point, self.point + rotateBackAxis)
+                    #drawArrow(self.point, self.point + branchDir)
+                    #drawArrow(self.point, self.point + Vector((0.0,0.0,-1.0)))
                     
             #else:
             #    self.rotateBack(self.point, curveAxis, treeGen) # TEST
@@ -1017,11 +1017,11 @@ class generateTree(bpy.types.Operator):
         #    drawDebugPoint(v, 0.1)
         #    self.report({'INFO'}, f"noisePoint: {v}")
         
-        # test sampleCurve:
-        n = 50
-        for x in range(0, n - 1):
-            point = sampleCurve(self, x / n)
-            #drawDebugPoint((x, 0.0, 100.0 * point), 0.1)
+        ## test sampleCurve:
+        #n = 50
+        #for x in range(0, n - 1):
+        #    point = sampleCurve(self, x / n)
+        #    #drawDebugPoint((x, 0.0, 100.0 * point), 0.1)
         
         if context.active_object is None:
             self.report({'INFO'}, "active object is None!")
@@ -1289,7 +1289,7 @@ class generateTree(bpy.types.Operator):
 
 
 def lerp(self, a, b, t):
-        return (a + (b - 1) * t)    
+    return (a + (b - 1) * t)    
 def f0(t):
     return (-0.5*t*t*t + t*t - 0.5*t)
 def f1(t):
@@ -1999,10 +1999,10 @@ def addLeaves(self, treeGen, rootNode,        #     TODO: support multiple leaf 
             totalLength = calculateSegmentLengthsAndTotalLength(self, treeGen, 
                                                                 startNodesNextIndexStartTvalEndTval, 
                                                                 segmentLengths, 
-                                                                0.0, # StartHeightGlobal, 
-                                                                1.0, # EndHeightGlobal, 
-                                                                0.2, # StartHeightCluster, 
-                                                                1.0) # EndHeightCluster, 
+                                                                leafClusterSettingsList[leafClusterIndex].leafStartHeightGlobal, 
+                                                                leafClusterSettingsList[leafClusterIndex].leafEndHeightGlobal, 
+                                                                leafClusterSettingsList[leafClusterIndex].leafStartHeightCluster, 
+                                                                leafClusterSettingsList[leafClusterIndex].leafEndHeightCluster) 
             
             nrLeaves = totalLength * leafClusterSettingsList[leafClusterIndex].leavesDensity
             #treeGen.report({'INFO'}, f"leafCluster: {leafClusterIndex}: nrLeaves: {nrLeaves}, len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}")
@@ -2110,35 +2110,53 @@ def addLeaves(self, treeGen, rootNode,        #     TODO: support multiple leaf 
                     
                         #drawDebugPoint(startPoint + offset * leafTangentA, 0.01)
                     
-                        leafVertices.append(startPoint - leafCotangentA * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio + leafTangentA * offset)
-                        leafVertices.append(startPoint - leafCotangentA * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio + leafTangentA * (leafClusterSettingsList[leafClusterIndex].leafSize + offset))
-                        leafVertices.append(startPoint + leafCotangentA * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio + leafTangentA * (leafClusterSettingsList[leafClusterIndex].leafSize + offset))
-                        leafVertices.append(startPoint + leafCotangentA * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio + leafTangentA * offset)
-                        leafFaces.append((8 * leafIndex, 8 * leafIndex + 1, 8 * leafIndex + 2, 8 * leafIndex + 3))
                         
-                        
-                        
-                        leafVertices.append(startPoint + leafCotangentB * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio + leafTangentB * offset)
-                        leafVertices.append(startPoint + leafCotangentB * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio + leafTangentB * (leafClusterSettingsList[leafClusterIndex].leafSize + offset))
-                        leafVertices.append(startPoint - leafCotangentB * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio + leafTangentB * (leafClusterSettingsList[leafClusterIndex].leafSize + offset))
-                        leafVertices.append(startPoint - leafCotangentB * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio + leafTangentB * offset)
-                        
-                        
-                        leafFaces.append((8 * leafIndex + 4, 8 * leafIndex + 5, 8 * leafIndex + 6, 8 * leafIndex + 7))
-                        
-                        leafUVs.append((0.0,0.0))
-                        leafUVs.append((0.0,1.0))
-                        leafUVs.append((1.0,1.0))
-                        leafUVs.append((1.0,0.0))
-                         
-                        leafUVs.append((0.0,0.0))
-                        leafUVs.append((0.0,1.0))
-                        leafUVs.append((1.0,1.0))
-                        leafUVs.append((1.0,0.0))
                         
                     if leafClusterSettingsList[leafClusterIndex].leafAngleMode.value == "WINDING":
-                        pass
-                         
+                        axis = startPointTangent
+                        #drawArrow(startPoint, startPoint + axis)
+                        
+                        leafTangentA = Quaternion(axis, math.radians(windingAngle)) @ leafTangent
+                        leafCotangentA = Quaternion(axis, math.radians(windingAngle)) @ leafCotangent
+                        leafCotangentA = Quaternion(leafTangentA, math.radians(tiltAngle) * math.sin(math.radians(windingAngle))) @ leafCotangentA
+                        
+                        leafTangentB = Quaternion(axis, math.radians(180)) @ leafTangentA
+                        leafCotangentB = Quaternion(axis, math.radians(180)) @ leafCotangentA
+                        leafCotangentB = Quaternion(leafTangentB, math.radians(tiltAngle) * math.sin(math.radians(windingAngle + 180))) @ leafCotangentB
+                        
+                        #drawArrow(startPoint, startPoint + leafTangentA / 3.0)
+                        #drawArrow(startPoint, startPoint + leafTangentB / 3.0)
+                        #drawArrow(startPoint, startPoint + leafCotangentA / 3.0)
+                        #drawArrow(startPoint, startPoint + leafCotangentB / 3.0)
+                        
+                        
+                    leafVertices.append(startPoint - leafCotangentA * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + leafTangentA * offset)
+                    leafVertices.append(startPoint - leafCotangentA * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + leafTangentA * (leafClusterSettingsList[leafClusterIndex].leafSize + offset))
+                    leafVertices.append(startPoint + leafCotangentA * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + leafTangentA * (leafClusterSettingsList[leafClusterIndex].leafSize + offset))
+                    leafVertices.append(startPoint + leafCotangentA * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + leafTangentA * offset)
+                    leafFaces.append((8 * leafIndex, 8 * leafIndex + 1, 8 * leafIndex + 2, 8 * leafIndex + 3))
+                    
+                    
+                    
+                    leafVertices.append(startPoint + leafCotangentB * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + leafTangentB * offset)
+                    leafVertices.append(startPoint + leafCotangentB * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + leafTangentB * (leafClusterSettingsList[leafClusterIndex].leafSize + offset))
+                    leafVertices.append(startPoint - leafCotangentB * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + leafTangentB * (leafClusterSettingsList[leafClusterIndex].leafSize + offset))
+                    leafVertices.append(startPoint - leafCotangentB * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + leafTangentB * offset)
+                    
+                    
+                    leafFaces.append((8 * leafIndex + 4, 8 * leafIndex + 5, 8 * leafIndex + 6, 8 * leafIndex + 7))
+                    
+                    leafUVs.append((0.0,0.0))
+                    leafUVs.append((0.0,1.0))
+                    leafUVs.append((1.0,1.0))
+                    leafUVs.append((1.0,0.0))
+                     
+                    leafUVs.append((0.0,0.0))
+                    leafUVs.append((0.0,1.0))
+                    leafUVs.append((1.0,1.0))
+                    leafUVs.append((1.0,0.0))
+                    
+                    
                 
                 if leafClusterSettingsList[leafClusterIndex].leafType.value == "WHORLED":
                     pass
