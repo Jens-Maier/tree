@@ -2159,7 +2159,31 @@ def addLeaves(self, treeGen, rootNode,        #     TODO: support multiple leaf 
                     
                 
                 if leafClusterSettingsList[leafClusterIndex].leafType.value == "WHORLED":
-                    pass
+                    axis = startPointTangent
+                    whorlAngle = 360.0 / leafClusterSettingsList[leafClusterIndex].leafWhorlCount
+                    treeGen.report({'INFO'}, f"whorl angle: {whorlAngle}")
+                    
+                    for i in range(0, leafClusterSettingsList[leafClusterIndex].leafWhorlCount):
+                        whorledLeafTangent = Quaternion(axis, math.radians(windingAngle + i * whorlAngle)) @ leafTangent
+                        whorledLeafCotangent = Quaternion(axis, math.radians(windingAngle + i * whorlAngle)) @ leafCotangent
+                        whorledLeafCotangent = Quaternion(whorledLeafTangent, math.radians(tiltAngle) * math.sin(math.radians(windingAngle + i * whorlAngle))) @ whorledLeafCotangent
+                        
+                        leafVertices.append(startPoint - whorledLeafCotangent *  leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + whorledLeafTangent * offset)
+                        leafVertices.append(startPoint - whorledLeafCotangent * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + whorledLeafTangent * (leafClusterSettingsList[leafClusterIndex].leafSize + offset))
+                        leafVertices.append(startPoint + whorledLeafCotangent * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + whorledLeafTangent * (leafClusterSettingsList[leafClusterIndex].leafSize + offset))
+                        leafVertices.append(startPoint + whorledLeafCotangent * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + whorledLeafTangent * offset)
+                        
+                        leafFaces.append((4 * (leafIndex * leafClusterSettingsList[leafClusterIndex].leafWhorlCount + i), 
+                                          4 * (leafIndex * leafClusterSettingsList[leafClusterIndex].leafWhorlCount + i) + 1, 
+                                          4 * (leafIndex * leafClusterSettingsList[leafClusterIndex].leafWhorlCount + i) + 2, 
+                                          4 * (leafIndex * leafClusterSettingsList[leafClusterIndex].leafWhorlCount + i) + 3))
+                    
+                        leafUVs.append((0.0,0.0))
+                        leafUVs.append((0.0,1.0))
+                        leafUVs.append((1.0,1.0))
+                        leafUVs.append((1.0,0.0))
+                      
+                    
                 
                 
                 windingAngle += rotateAngle
@@ -3567,6 +3591,7 @@ class leafClusterSettings(bpy.types.PropertyGroup):
     leafAspectRatio: bpy.props.FloatProperty(name = "Leaf aspect ratio", default = 1.0, min = 0.0, soft_max = 2.0)
     leafAngleMode: bpy.props.PointerProperty(type = leafAngleModeEnumProp)
     leafType: bpy.props.PointerProperty(type = leafTypeEnumProp)
+    leafWhorlCount: bpy.props.IntProperty(name = "Whorl count", default = 3, min = 3)
     leafStartHeightGlobal: bpy.props.FloatProperty(name = "Leaf start height global", default = 0.0, min = 0.0, max = 1.0)
     leafEndHeightGlobal: bpy.props.FloatProperty(name = "Leaf end height global", default = 1.0, min = 0.0, max = 1.0)
     leafStartHeightCluster: bpy.props.FloatProperty(name = "Leaf start height cluster", default = 0.0, min = 0.0, max = 1.0)
@@ -4322,6 +4347,10 @@ def load_properties(filePath, context):
             props.leafClusterSettingsList[i].leafType.value = value
             i += 1
         i = 0
+        for value in data.get("leafWhorlCountList", []):
+            props.leafClusterSettingsList[i].leafWhorlCount = value
+            i += 1
+        i = 0
         for value in data.get("leafAngleModeList", []):
             props.leafClusterSettingsList[i].leafAngleMode.value = value
             i += 1
@@ -4567,6 +4596,7 @@ def save_properties(filePath, treeGen):
         "leafStartHeightClusterList": [props.leafClusterSettingsList[i].leafStartHeightCluster for i in range(props.leafClusters)],
         "leafEndHeightClusterList": [props.leafClusterSettingsList[i].leafEndHeightCluster for i in range(props.leafClusters)],
         "leafTypeList": [props.leafClusterSettingsList[i].leafType.value for i in range(props.leafClusters)],
+        "leafWhorlCountList": [props.leafClusterSettingsList[i].leafWhorlCount for i in range(props.leafClusters)],
         "leafAngleModeList": [props.leafClusterSettingsList[i].leafAngleMode.value for i in range(props.leafClusters)],
         
         "leafVerticalAngleBranchStartList": [props.leafClusterSettingsList[i].leafVerticalAngleBranchStart for i in range(props.leafClusters)],
@@ -5126,6 +5156,12 @@ class leafSettings(bpy.types.Panel):
                 split = box.split(factor=0.6)
                 split.label(text="Leaf type")
                 split.prop(scene.leafClusterSettingsList[i].leafType, "value", text="")
+                
+                if scene.leafClusterSettingsList[i].leafType.value == "WHORLED":
+                    box1 = box.box()
+                    split = box1.split(factor=0.6)
+                    split.label(text="Leaf whorl count")
+                    split.prop(scene.leafClusterSettingsList[i], "leafWhorlCount", text="")
                 
                 split = box.split(factor=0.6)
                 split.label(text="Leaf angle mode")
