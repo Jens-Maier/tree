@@ -1173,6 +1173,21 @@ class generateTree(bpy.types.Operator):
                 context.scene.branchSplitHeightInLevelList_3, 
                 context.scene.branchSplitHeightInLevelList_4, 
                 context.scene.branchSplitHeightInLevelList_5, 
+                context.scene.branchSplitHeightInLevelList_6, 
+                context.scene.branchSplitHeightInLevelList_7, 
+                context.scene.branchSplitHeightInLevelList_8, 
+                context.scene.branchSplitHeightInLevelList_9, 
+                context.scene.branchSplitHeightInLevelList_10, 
+                context.scene.branchSplitHeightInLevelList_11, 
+                context.scene.branchSplitHeightInLevelList_12, 
+                context.scene.branchSplitHeightInLevelList_13, 
+                context.scene.branchSplitHeightInLevelList_14, 
+                context.scene.branchSplitHeightInLevelList_15, 
+                context.scene.branchSplitHeightInLevelList_16, 
+                context.scene.branchSplitHeightInLevelList_17, 
+                context.scene.branchSplitHeightInLevelList_18, 
+                context.scene.branchSplitHeightInLevelList_19, 
+                
                 context.scene.branchSplitHeightInLevelListList,
                 
                 
@@ -1284,6 +1299,133 @@ class generateTree(bpy.types.Operator):
                 if len(context.scene.branchSplitHeightInLevelList_5) < context.scene.branchClusterSettingsList[5].maxSplitHeightUsed + 1:
                     for i in range(context.scene.branchClusterSettingsList[5].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_5)):
                         h = context.scene.branchSplitHeightInLevelList_5.add()
+            
+            if len(context.scene.branchClusterSettingsList) > 6:
+                if len(context.scene.branchSplitHeightInLevelList_6) > context.scene.branchClusterSettingsList[6].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[6].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_6)):
+                        context.scene.branchSplitHeightInLevelList_6.remove(len(context.scene.branchSplitHeightInLevelList_6) - 1)
+            
+                if len(context.scene.branchSplitHeightInLevelList_6) < context.scene.branchClusterSettingsList[6].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[6].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_6)):
+                        h = context.scene.branchSplitHeightInLevelList_6.add()
+            
+            if len(context.scene.branchClusterSettingsList) > 7:
+                if len(context.scene.branchSplitHeightInLevelList_7) > context.scene.branchClusterSettingsList[7].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[7].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_7)):
+                        context.scene.branchSplitHeightInLevelList_7.remove(len(context.scene.branchSplitHeightInLevelList_7) - 1)
+            
+                if len(context.scene.branchSplitHeightInLevelList_7) < context.scene.branchClusterSettingsList[7].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[7].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_7)):
+                        h = context.scene.branchSplitHeightInLevelList_7.add()
+            
+            if len(context.scene.branchClusterSettingsList) > 8:
+                if len(context.scene.branchSplitHeightInLevelList_8) > context.scene.branchClusterSettingsList[8].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[8].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_8)):
+                        context.scene.branchSplitHeightInLevelList_8.remove(len(context.scene.branchSplitHeightInLevelList_8) - 1)
+            
+                if len(context.scene.branchSplitHeightInLevelList_8) < context.scene.branchClusterSettingsList[8].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[8].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_8)):
+                        h = context.scene.branchSplitHeightInLevelList_8.add()
+            
+            if len(context.scene.branchClusterSettingsList) > 9:
+                if len(context.scene.branchSplitHeightInLevelList_9) > context.scene.branchClusterSettingsList[9].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[9].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_9)):
+                        context.scene.branchSplitHeightInLevelList_9.remove(len(context.scene.branchSplitHeightInLevelList_9) - 1)
+            
+                if len(context.scene.branchSplitHeightInLevelList_9) < context.scene.branchClusterSettingsList[9].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[9].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_9)):
+                        h = context.scene.branchSplitHeightInLevelList_9.add()
+            
+            if len(context.scene.branchClusterSettingsList) > 10:
+                if len(context.scene.branchSplitHeightInLevelList_10) > context.scene.branchClusterSettingsList[10].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[10].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_10)):
+                        context.scene.branchSplitHeightInLevelList_10.remove(len(context.scene.branchSplitHeightInLevelList_10) - 1)
+            
+                if len(context.scene.branchSplitHeightInLevelList_10) < context.scene.branchClusterSettingsList[10].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[10].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_10)):
+                        h = context.scene.branchSplitHeightInLevelList_10.add()
+            
+            if len(context.scene.branchClusterSettingsList) > 11:
+                if len(context.scene.branchSplitHeightInLevelList_11) > context.scene.branchClusterSettingsList[11].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[11].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_11)):
+                        context.scene.branchSplitHeightInLevelList_11.remove(len(context.scene.branchSplitHeightInLevelList_11) - 1)
+            
+                if len(context.scene.branchSplitHeightInLevelList_11) < context.scene.branchClusterSettingsList[11].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[11].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_11)):
+                        h = context.scene.branchSplitHeightInLevelList_11.add()
+            
+            if len(context.scene.branchClusterSettingsList) > 12:
+                if len(context.scene.branchSplitHeightInLevelList_12) > context.scene.branchClusterSettingsList[12].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[12].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_12)):
+                        context.scene.branchSplitHeightInLevelList_12.remove(len(context.scene.branchSplitHeightInLevelList_12) - 1)
+            
+                if len(context.scene.branchSplitHeightInLevelList_12) < context.scene.branchClusterSettingsList[12].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[12].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_12)):
+                        h = context.scene.branchSplitHeightInLevelList_12.add()
+            
+            if len(context.scene.branchClusterSettingsList) > 13:
+                if len(context.scene.branchSplitHeightInLevelList_13) > context.scene.branchClusterSettingsList[13].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[13].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_13)):
+                        context.scene.branchSplitHeightInLevelList_13.remove(len(context.scene.branchSplitHeightInLevelList_13) - 1)
+            
+                if len(context.scene.branchSplitHeightInLevelList_13) < context.scene.branchClusterSettingsList[13].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[13].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_13)):
+                        h = context.scene.branchSplitHeightInLevelList_13.add()
+            
+            if len(context.scene.branchClusterSettingsList) > 14:
+                if len(context.scene.branchSplitHeightInLevelList_14) > context.scene.branchClusterSettingsList[14].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[14].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_14)):
+                        context.scene.branchSplitHeightInLevelList_14.remove(len(context.scene.branchSplitHeightInLevelList_14) - 1)
+            
+                if len(context.scene.branchSplitHeightInLevelList_14) < context.scene.branchClusterSettingsList[14].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[14].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_14)):
+                        h = context.scene.branchSplitHeightInLevelList_14.add()
+            
+            if len(context.scene.branchClusterSettingsList) > 15:
+                if len(context.scene.branchSplitHeightInLevelList_15) > context.scene.branchClusterSettingsList[15].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[15].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_15)):
+                        context.scene.branchSplitHeightInLevelList_15.remove(len(context.scene.branchSplitHeightInLevelList_15) - 1)
+            
+                if len(context.scene.branchSplitHeightInLevelList_15) < context.scene.branchClusterSettingsList[15].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[15].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_15)):
+                        h = context.scene.branchSplitHeightInLevelList_15.add()
+            
+            if len(context.scene.branchClusterSettingsList) > 16:
+                if len(context.scene.branchSplitHeightInLevelList_16) > context.scene.branchClusterSettingsList[16].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[16].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_16)):
+                        context.scene.branchSplitHeightInLevelList_16.remove(len(context.scene.branchSplitHeightInLevelList_16) - 1)
+            
+                if len(context.scene.branchSplitHeightInLevelList_16) < context.scene.branchClusterSettingsList[16].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[16].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_16)):
+                        h = context.scene.branchSplitHeightInLevelList_16.add()
+            
+            if len(context.scene.branchClusterSettingsList) > 17:
+                if len(context.scene.branchSplitHeightInLevelList_17) > context.scene.branchClusterSettingsList[17].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[17].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_17)):
+                        context.scene.branchSplitHeightInLevelList_17.remove(len(context.scene.branchSplitHeightInLevelList_17) - 1)
+            
+                if len(context.scene.branchSplitHeightInLevelList_17) < context.scene.branchClusterSettingsList[17].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[17].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_17)):
+                        h = context.scene.branchSplitHeightInLevelList_17.add()
+            
+            if len(context.scene.branchClusterSettingsList) > 18:
+                if len(context.scene.branchSplitHeightInLevelList_18) > context.scene.branchClusterSettingsList[18].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[18].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_18)):
+                        context.scene.branchSplitHeightInLevelList_18.remove(len(context.scene.branchSplitHeightInLevelList_18) - 1)
+            
+                if len(context.scene.branchSplitHeightInLevelList_18) < context.scene.branchClusterSettingsList[18].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[18].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_18)):
+                        h = context.scene.branchSplitHeightInLevelList_18.add()
+            
+            if len(context.scene.branchClusterSettingsList) > 19:
+                if len(context.scene.branchSplitHeightInLevelList_19) > context.scene.branchClusterSettingsList[19].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[19].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_19)):
+                        context.scene.branchSplitHeightInLevelList_19.remove(len(context.scene.branchSplitHeightInLevelList_19) - 1)
+            
+                if len(context.scene.branchSplitHeightInLevelList_19) < context.scene.branchClusterSettingsList[19].maxSplitHeightUsed + 1:
+                    for i in range(context.scene.branchClusterSettingsList[19].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_19)):
+                        h = context.scene.branchSplitHeightInLevelList_19.add()
+            
             
 
             bpy.context.view_layer.objects.active = bpy.data.objects["tree"]
@@ -2283,6 +2425,21 @@ branchSplitHeightInLevelList_2,
 branchSplitHeightInLevelList_3,
 branchSplitHeightInLevelList_4,
 branchSplitHeightInLevelList_5, 
+branchSplitHeightInLevelList_6, 
+branchSplitHeightInLevelList_7, 
+branchSplitHeightInLevelList_8, 
+branchSplitHeightInLevelList_9, 
+branchSplitHeightInLevelList_10, 
+branchSplitHeightInLevelList_11, 
+branchSplitHeightInLevelList_12, 
+branchSplitHeightInLevelList_13, 
+branchSplitHeightInLevelList_14, 
+branchSplitHeightInLevelList_15, 
+branchSplitHeightInLevelList_16, 
+branchSplitHeightInLevelList_17, 
+branchSplitHeightInLevelList_18, 
+branchSplitHeightInLevelList_19, 
+
 branchSplitHeightInLevelListList,
                 
 #branchSplitHeightVariation,
@@ -2626,9 +2783,38 @@ noiseGenerator):
                 splitHeightInLevelList = branchSplitHeightInLevelList_4
             if clusterIndex == 5:
                 splitHeightInLevelList = branchSplitHeightInLevelList_5
-                
-            if clusterIndex > 5:
-                splitHeightInLevelList = branchSplitHeightInLevelListList[clusterIndex - 6].value
+            if clusterIndex == 6:
+                splitHeightInLevelList = branchSplitHeightInLevelList_6
+            if clusterIndex == 7:
+                splitHeightInLevelList = branchSplitHeightInLevelList_7
+            if clusterIndex == 8:
+                splitHeightInLevelList = branchSplitHeightInLevelList_8
+            if clusterIndex == 9:
+                splitHeightInLevelList = branchSplitHeightInLevelList_9
+            if clusterIndex == 10:
+                splitHeightInLevelList = branchSplitHeightInLevelList_10
+            if clusterIndex == 11:
+                splitHeightInLevelList = branchSplitHeightInLevelList_11
+            if clusterIndex == 12:
+                splitHeightInLevelList = branchSplitHeightInLevelList_12
+            if clusterIndex == 13:
+                splitHeightInLevelList = branchSplitHeightInLevelList_13
+            if clusterIndex == 14:
+                splitHeightInLevelList = branchSplitHeightInLevelList_14
+            if clusterIndex == 15:
+                splitHeightInLevelList = branchSplitHeightInLevelList_15
+            if clusterIndex == 16:
+                splitHeightInLevelList = branchSplitHeightInLevelList_16
+            if clusterIndex == 17:
+                splitHeightInLevelList = branchSplitHeightInLevelList_17
+            if clusterIndex == 18:
+                splitHeightInLevelList = branchSplitHeightInLevelList_18
+            if clusterIndex == 19:
+                splitHeightInLevelList = branchSplitHeightInLevelList_19
+            
+            
+            if clusterIndex > 19:
+                splitHeightInLevelList = branchSplitHeightInLevelListList[clusterIndex - 20].value
             
             nrSplits = int(branchClusterSettingsList[clusterIndex].nrSplitsPerBranch * branchClusterSettingsList[clusterIndex].nrBranches)
             
@@ -3652,7 +3838,92 @@ class UL_branchSplitLevelListLevel_5(bpy.types.UIList): #template for UIList
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
-        
+
+class UL_branchSplitLevelListLevel_6(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+
+class UL_branchSplitLevelListLevel_7(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+
+class UL_branchSplitLevelListLevel_8(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+
+class UL_branchSplitLevelListLevel_9(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+
+class UL_branchSplitLevelListLevel_10(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+
+class UL_branchSplitLevelListLevel_11(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+
+class UL_branchSplitLevelListLevel_12(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+
+class UL_branchSplitLevelListLevel_13(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+
+class UL_branchSplitLevelListLevel_14(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+
+class UL_branchSplitLevelListLevel_15(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+
+class UL_branchSplitLevelListLevel_16(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+
+class UL_branchSplitLevelListLevel_17(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+
+class UL_branchSplitLevelListLevel_18(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+
+class UL_branchSplitLevelListLevel_19(bpy.types.UIList): #template for UIList
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=f"Level {index}")
+        row = layout.row()
+        layout.prop(item, "value", text="", slider=True)
+
+
         
 class treeGenPanel(bpy.types.Panel):
     bl_label = "Tree Generator"
@@ -3816,12 +4087,54 @@ class addBranchSplitLevel(bpy.types.Operator):
         if self.level == 5:
             newSplitHeight = context.scene.branchSplitHeightInLevelList_5.add()
             newSplitHeight.value = 0.5
+        if self.level == 6:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_6.add()
+            newSplitHeight.value = 0.5
+        if self.level == 7:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_7.add()
+            newSplitHeight.value = 0.5
+        if self.level == 8:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_8.add()
+            newSplitHeight.value = 0.5
+        if self.level == 9:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_9.add()
+            newSplitHeight.value = 0.5
+        if self.level == 10:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_10.add()
+            newSplitHeight.value = 0.5
+        if self.level == 11:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_11.add()
+            newSplitHeight.value = 0.5
+        if self.level == 12:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_12.add()
+            newSplitHeight.value = 0.5
+        if self.level == 13:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_13.add()
+            newSplitHeight.value = 0.5
+        if self.level == 14:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_14.add()
+            newSplitHeight.value = 0.5
+        if self.level == 15:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_15.add()
+            newSplitHeight.value = 0.5
+        if self.level == 16:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_16.add()
+            newSplitHeight.value = 0.5
+        if self.level == 17:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_17.add()
+            newSplitHeight.value = 0.5
+        if self.level == 18:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_18.add()
+            newSplitHeight.value = 0.5
+        if self.level == 19:
+            newSplitHeight = context.scene.branchSplitHeightInLevelList_19.add()
+            newSplitHeight.value = 0.5
         
         
-        if self.level > 5:
+        if self.level > 19:
             #newSplitHeight = context.scene.branchSplitHeightInLevelListList[self.level].value.add()
             #newSplitHeight = 0.5
-            splitHeightList = context.scene.branchSplitHeightInLevelListList[self.level - 6].value
+            splitHeightList = context.scene.branchSplitHeightInLevelListList[self.level - 20].value
             newSplitHeight = splitHeightList.add()
             newSplitHeight.value = 0.5
             return {'FINISHED'}
@@ -3838,30 +4151,67 @@ class removeBranchSplitLevel(bpy.types.Operator):
         context.scene.branchClusterSettingsList[self.level].showBranchSplitHeights = True
         if self.level == 0:
             if len(context.scene.branchSplitHeightInLevelList_0) > 0:
-                context.scene.branchSplitHeightInLevelList_0.remove(context.scene.branchSplitHeightInLevelListIndex_0)
-                #context.scene.branchSplitHeightInLevelListIndex_0 -= 1
+                context.scene.branchSplitHeightInLevelList_0.remove(len(context.scene.branchSplitHeightInLevelList_0) - 1)
         if self.level == 1:
             if len(context.scene.branchSplitHeightInLevelList_1) > 0:
                 context.scene.branchSplitHeightInLevelList_1.remove(len(context.scene.branchSplitHeightInLevelList_1) - 1)
-                #context.scene.branchSplitHeightInLevelListIndex_1 -= 1
         if self.level == 2:
             if len(context.scene.branchSplitHeightInLevelList_2) > 0:
                 context.scene.branchSplitHeightInLevelList_2.remove(len(context.scene.branchSplitHeightInLevelList_2) - 1)
-                #context.scene.branchSplitHeightInLevelListIndex_2 -= 1
         if self.level == 3:
             if len(context.scene.branchSplitHeightInLevelList_3) > 0:
                 context.scene.branchSplitHeightInLevelList_3.remove(len(context.scene.branchSplitHeightInLevelList_3) - 1)
-                #context.scene.branchSplitHeightInLevelListIndex_3 -= 1
         if self.level == 4:
             if len(context.scene.branchSplitHeightInLevelList_4) > 0:
                 context.scene.branchSplitHeightInLevelList_4.remove(len(context.scene.branchSplitHeightInLevelList_4) - 1)
-                #context.scene.branchSplitHeightInLevelListIndex_4 -= 1
         if self.level == 5:
             if len(context.scene.branchSplitHeightInLevelList_5) > 0:
-                context.scene.branchSplitHeightInLevelList_5.remove(len(context.scene.branchSplitHeightInLevelList_4) - 1)
-                #context.scene.branchSplitHeightInLevelListIndex_5 -= 1
-        if self.level > 5:
-            context.scene.branchSplitHeightInLevelListList[self.level - 6].value.remove(len(context.scene.branchSplitHeightInLevelListList[self.level - 6].value) - 1)
+                context.scene.branchSplitHeightInLevelList_5.remove(len(context.scene.branchSplitHeightInLevelList_5) - 1)
+        if self.level == 6:
+            if len(context.scene.branchSplitHeightInLevelList_6) > 0:
+                context.scene.branchSplitHeightInLevelList_6.remove(len(context.scene.branchSplitHeightInLevelList_6) - 1)
+        if self.level == 7:
+            if len(context.scene.branchSplitHeightInLevelList_7) > 0:
+                context.scene.branchSplitHeightInLevelList_7.remove(len(context.scene.branchSplitHeightInLevelList_7) - 1)
+        if self.level == 8:
+            if len(context.scene.branchSplitHeightInLevelList_8) > 0:
+                context.scene.branchSplitHeightInLevelList_8.remove(len(context.scene.branchSplitHeightInLevelList_8) - 1)
+        if self.level == 9:
+            if len(context.scene.branchSplitHeightInLevelList_9) > 0:
+                context.scene.branchSplitHeightInLevelList_9.remove(len(context.scene.branchSplitHeightInLevelList_9) - 1)
+        if self.level == 10:
+            if len(context.scene.branchSplitHeightInLevelList_10) > 0:
+                context.scene.branchSplitHeightInLevelList_10.remove(len(context.scene.branchSplitHeightInLevelList_10) - 1)
+        if self.level == 11:
+            if len(context.scene.branchSplitHeightInLevelList_11) > 0:
+                context.scene.branchSplitHeightInLevelList_11.remove(len(context.scene.branchSplitHeightInLevelList_11) - 1)
+        if self.level == 12:
+            if len(context.scene.branchSplitHeightInLevelList_12) > 0:
+                context.scene.branchSplitHeightInLevelList_12.remove(len(context.scene.branchSplitHeightInLevelList_12) - 1)
+        if self.level == 13:
+            if len(context.scene.branchSplitHeightInLevelList_13) > 0:
+                context.scene.branchSplitHeightInLevelList_13.remove(len(context.scene.branchSplitHeightInLevelList_13) - 1)
+        if self.level == 14:
+            if len(context.scene.branchSplitHeightInLevelList_14) > 0:
+                context.scene.branchSplitHeightInLevelList_14.remove(len(context.scene.branchSplitHeightInLevelList_14) - 1)
+        if self.level == 15:
+            if len(context.scene.branchSplitHeightInLevelList_15) > 0:
+                context.scene.branchSplitHeightInLevelList_15.remove(len(context.scene.branchSplitHeightInLevelList_15) - 1)
+        if self.level == 16:
+            if len(context.scene.branchSplitHeightInLevelList_16) > 0:
+                context.scene.branchSplitHeightInLevelList_16.remove(len(context.scene.branchSplitHeightInLevelList_16) - 1)
+        if self.level == 17:
+            if len(context.scene.branchSplitHeightInLevelList_17) > 0:
+                context.scene.branchSplitHeightInLevelList_17.remove(len(context.scene.branchSplitHeightInLevelList_17) - 1)
+        if self.level == 18:
+            if len(context.scene.branchSplitHeightInLevelList_18) > 0:
+                context.scene.branchSplitHeightInLevelList_18.remove(len(context.scene.branchSplitHeightInLevelList_18) - 1)
+        if self.level == 19:
+            if len(context.scene.branchSplitHeightInLevelList_19) > 0:
+                context.scene.branchSplitHeightInLevelList_19.remove(len(context.scene.branchSplitHeightInLevelList_19) - 1)
+        
+        if self.level > 19:
+            context.scene.branchSplitHeightInLevelListList[self.level - 20].value.remove(len(context.scene.branchSplitHeightInLevelListList[self.level - 20].value) - 1)
             
                #context.scene.branchSplitModeList.remove(len(context.scene.branchSplitModeList) - 1)         
         #self.report({'INFO'}, f"remove split level")
@@ -4350,6 +4700,92 @@ def load_properties(filePath, context):
             
         props.branchSplitHeightInLevelListIndex_5 = data.get("branchSplitHeightInLevelListIndex_5", props.branchSplitHeightInLevelListIndex_5)
         
+        for value in data.get("branchSplitHeightInLevelList_6", []):
+            item = props.branchSplitHeightInLevelList_6.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_6 = data.get("branchSplitHeightInLevelListIndex_6", props.branchSplitHeightInLevelListIndex_6)
+        
+        for value in data.get("branchSplitHeightInLevelList_7", []):
+            item = props.branchSplitHeightInLevelList_7.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_7 = data.get("branchSplitHeightInLevelListIndex_7", props.branchSplitHeightInLevelListIndex_7)
+        
+        for value in data.get("branchSplitHeightInLevelList_8", []):
+            item = props.branchSplitHeightInLevelList_8.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_8 = data.get("branchSplitHeightInLevelListIndex_8", props.branchSplitHeightInLevelListIndex_8)
+        
+        for value in data.get("branchSplitHeightInLevelList_9", []):
+            item = props.branchSplitHeightInLevelList_9.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_9 = data.get("branchSplitHeightInLevelListIndex_9", props.branchSplitHeightInLevelListIndex_9)
+        
+        for value in data.get("branchSplitHeightInLevelList_10", []):
+            item = props.branchSplitHeightInLevelList_10.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_10 = data.get("branchSplitHeightInLevelListIndex_10", props.branchSplitHeightInLevelListIndex_10)
+        
+        for value in data.get("branchSplitHeightInLevelList_11", []):
+            item = props.branchSplitHeightInLevelList_11.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_11 = data.get("branchSplitHeightInLevelListIndex_11", props.branchSplitHeightInLevelListIndex_11)
+        
+        for value in data.get("branchSplitHeightInLevelList_12", []):
+            item = props.branchSplitHeightInLevelList_12.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_12 = data.get("branchSplitHeightInLevelListIndex_12", props.branchSplitHeightInLevelListIndex_12)
+        
+        for value in data.get("branchSplitHeightInLevelList_13", []):
+            item = props.branchSplitHeightInLevelList_13.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_13 = data.get("branchSplitHeightInLevelListIndex_13", props.branchSplitHeightInLevelListIndex_13)
+        
+        for value in data.get("branchSplitHeightInLevelList_14", []):
+            item = props.branchSplitHeightInLevelList_14.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_14 = data.get("branchSplitHeightInLevelListIndex_14", props.branchSplitHeightInLevelListIndex_14)
+        
+        for value in data.get("branchSplitHeightInLevelList_15", []):
+            item = props.branchSplitHeightInLevelList_15.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_15 = data.get("branchSplitHeightInLevelListIndex_15", props.branchSplitHeightInLevelListIndex_15)
+        
+        for value in data.get("branchSplitHeightInLevelList_16", []):
+            item = props.branchSplitHeightInLevelList_16.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_16 = data.get("branchSplitHeightInLevelListIndex_16", props.branchSplitHeightInLevelListIndex_16)
+        
+        for value in data.get("branchSplitHeightInLevelList_17", []):
+            item = props.branchSplitHeightInLevelList_17.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_17 = data.get("branchSplitHeightInLevelListIndex_17", props.branchSplitHeightInLevelListIndex_17)
+        
+        for value in data.get("branchSplitHeightInLevelList_18", []):
+            item = props.branchSplitHeightInLevelList_18.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_18 = data.get("branchSplitHeightInLevelListIndex_18", props.branchSplitHeightInLevelListIndex_18)
+        
+        for value in data.get("branchSplitHeightInLevelList_19", []):
+            item = props.branchSplitHeightInLevelList_19.add()
+            item.value = value
+            
+        props.branchSplitHeightInLevelListIndex_19 = data.get("branchSplitHeightInLevelListIndex_19", props.branchSplitHeightInLevelListIndex_19)
+        
+        
+        
         props.leafClusterSettingsList.clear()
         
         for value in data.get("leavesDensityList", []):
@@ -4501,6 +4937,118 @@ def save_properties(filePath, treeGen):
             if len(props.branchClusterSettingsList) > 5:
                 storeSplitHeights_5 = props.branchSplitHeightInLevelList_5
     
+    storeSplitHeights_6 = []
+    if len(bpy.context.scene.branchClusterSettingsList) > 6:
+        if bpy.context.scene.branchClusterSettingsList[6].maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_6):
+            storeSplitHeights_6 = [props.branchSplitHeightInLevelList_6[i].value for i in range(0, bpy.context.scene.branchClusterSettingsList[6].maxSplitHeightUsed + 1)]
+        else:
+            if len(props.branchClusterSettingsList) > 6:
+                storeSplitHeights_6 = props.branchSplitHeightInLevelList_6
+    
+    storeSplitHeights_7 = []
+    if len(bpy.context.scene.branchClusterSettingsList) > 7:
+        if bpy.context.scene.branchClusterSettingsList[7].maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_7):
+            storeSplitHeights_7 = [props.branchSplitHeightInLevelList_7[i].value for i in range(0, bpy.context.scene.branchClusterSettingsList[7].maxSplitHeightUsed + 1)]
+        else:
+            if len(props.branchClusterSettingsList) > 7:
+                storeSplitHeights_7 = props.branchSplitHeightInLevelList_7
+    
+    storeSplitHeights_8 = []
+    if len(bpy.context.scene.branchClusterSettingsList) > 8:
+        if bpy.context.scene.branchClusterSettingsList[8].maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_8):
+            storeSplitHeights_8 = [props.branchSplitHeightInLevelList_8[i].value for i in range(0, bpy.context.scene.branchClusterSettingsList[8].maxSplitHeightUsed + 1)]
+        else:
+            if len(props.branchClusterSettingsList) > 8:
+                storeSplitHeights_5 = props.branchSplitHeightInLevelList_8
+    
+    storeSplitHeights_9 = []
+    if len(bpy.context.scene.branchClusterSettingsList) > 9:
+        if bpy.context.scene.branchClusterSettingsList[9].maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_9):
+            storeSplitHeights_9 = [props.branchSplitHeightInLevelList_9[i].value for i in range(0, bpy.context.scene.branchClusterSettingsList[9].maxSplitHeightUsed + 1)]
+        else:
+            if len(props.branchClusterSettingsList) > 9:
+                storeSplitHeights_9 = props.branchSplitHeightInLevelList_9
+    
+    storeSplitHeights_10 = []
+    if len(bpy.context.scene.branchClusterSettingsList) > 10:
+        if bpy.context.scene.branchClusterSettingsList[10].maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_10):
+            storeSplitHeights_10 = [props.branchSplitHeightInLevelList_10[i].value for i in range(0, bpy.context.scene.branchClusterSettingsList[10].maxSplitHeightUsed + 1)]
+        else:
+            if len(props.branchClusterSettingsList) > 10:
+                storeSplitHeights_10 = props.branchSplitHeightInLevelList_10
+    
+    storeSplitHeights_11 = []
+    if len(bpy.context.scene.branchClusterSettingsList) > 11:
+        if bpy.context.scene.branchClusterSettingsList[11].maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_11):
+            storeSplitHeights_11 = [props.branchSplitHeightInLevelList_11[i].value for i in range(0, bpy.context.scene.branchClusterSettingsList[11].maxSplitHeightUsed + 1)]
+        else:
+            if len(props.branchClusterSettingsList) > 11:
+                storeSplitHeights_11 = props.branchSplitHeightInLevelList_11
+    
+    storeSplitHeights_12 = []
+    if len(bpy.context.scene.branchClusterSettingsList) > 12:
+        if bpy.context.scene.branchClusterSettingsList[12].maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_12):
+            storeSplitHeights_12 = [props.branchSplitHeightInLevelList_12[i].value for i in range(0, bpy.context.scene.branchClusterSettingsList[12].maxSplitHeightUsed + 1)]
+        else:
+            if len(props.branchClusterSettingsList) > 12:
+                storeSplitHeights_12 = props.branchSplitHeightInLevelList_12
+    
+    storeSplitHeights_13 = []
+    if len(bpy.context.scene.branchClusterSettingsList) > 13:
+        if bpy.context.scene.branchClusterSettingsList[13].maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_13):
+            storeSplitHeights_13 = [props.branchSplitHeightInLevelList_13[i].value for i in range(0, bpy.context.scene.branchClusterSettingsList[13].maxSplitHeightUsed + 1)]
+        else:
+            if len(props.branchClusterSettingsList) > 13:
+                storeSplitHeights_13 = props.branchSplitHeightInLevelList_13
+    
+    storeSplitHeights_14 = []
+    if len(bpy.context.scene.branchClusterSettingsList) > 14:
+        if bpy.context.scene.branchClusterSettingsList[14].maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_14):
+            storeSplitHeights_14 = [props.branchSplitHeightInLevelList_14[i].value for i in range(0, bpy.context.scene.branchClusterSettingsList[14].maxSplitHeightUsed + 1)]
+        else:
+            if len(props.branchClusterSettingsList) > 14:
+                storeSplitHeights_14 = props.branchSplitHeightInLevelList_14
+    
+    storeSplitHeights_15 = []
+    if len(bpy.context.scene.branchClusterSettingsList) > 15:
+        if bpy.context.scene.branchClusterSettingsList[15].maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_15):
+            storeSplitHeights_15 = [props.branchSplitHeightInLevelList_15[i].value for i in range(0, bpy.context.scene.branchClusterSettingsList[15].maxSplitHeightUsed + 1)]
+        else:
+            if len(props.branchClusterSettingsList) > 15:
+                storeSplitHeights_15 = props.branchSplitHeightInLevelList_15
+    
+    storeSplitHeights_16 = []
+    if len(bpy.context.scene.branchClusterSettingsList) > 16:
+        if bpy.context.scene.branchClusterSettingsList[16].maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_16):
+            storeSplitHeights_16 = [props.branchSplitHeightInLevelList_16[i].value for i in range(0, bpy.context.scene.branchClusterSettingsList[16].maxSplitHeightUsed + 1)]
+        else:
+            if len(props.branchClusterSettingsList) > 16:
+                storeSplitHeights_16 = props.branchSplitHeightInLevelList_16
+    
+    storeSplitHeights_17 = []
+    if len(bpy.context.scene.branchClusterSettingsList) > 17:
+        if bpy.context.scene.branchClusterSettingsList[17].maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_17):
+            storeSplitHeights_17 = [props.branchSplitHeightInLevelList_17[i].value for i in range(0, bpy.context.scene.branchClusterSettingsList[17].maxSplitHeightUsed + 1)]
+        else:
+            if len(props.branchClusterSettingsList) > 17:
+                storeSplitHeights_17 = props.branchSplitHeightInLevelList_17
+    
+    storeSplitHeights_18 = []
+    if len(bpy.context.scene.branchClusterSettingsList) > 18:
+        if bpy.context.scene.branchClusterSettingsList[18].maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_18):
+            storeSplitHeights_18 = [props.branchSplitHeightInLevelList_18[i].value for i in range(0, bpy.context.scene.branchClusterSettingsList[18].maxSplitHeightUsed + 1)]
+        else:
+            if len(props.branchClusterSettingsList) > 18:
+                storeSplitHeights_18 = props.branchSplitHeightInLevelList_18
+    
+    storeSplitHeights_19 = []
+    if len(bpy.context.scene.branchClusterSettingsList) > 19:
+        if bpy.context.scene.branchClusterSettingsList[19].maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_19):
+            storeSplitHeights_19 = [props.branchSplitHeightInLevelList_19[i].value for i in range(0, bpy.context.scene.branchClusterSettingsList[19].maxSplitHeightUsed + 1)]
+        else:
+            if len(props.branchClusterSettingsList) > 19:
+                storeSplitHeights_19 = props.branchSplitHeightInLevelList_19
+    
     
     
     data = {
@@ -4630,6 +5178,48 @@ def save_properties(filePath, treeGen):
         
         "branchSplitHeightInLevelList_5": storeSplitHeights_5,
         "branchSplitHeightInLevelListIndex_5": props.branchSplitHeightInLevelListIndex_5,
+        
+        "branchSplitHeightInLevelList_6": storeSplitHeights_6,
+        "branchSplitHeightInLevelListIndex_6": props.branchSplitHeightInLevelListIndex_6,
+        
+        "branchSplitHeightInLevelList_7": storeSplitHeights_7,
+        "branchSplitHeightInLevelListIndex_7": props.branchSplitHeightInLevelListIndex_7,
+        
+        "branchSplitHeightInLevelList_8": storeSplitHeights_8,
+        "branchSplitHeightInLevelListIndex_8": props.branchSplitHeightInLevelListIndex_8,
+        
+        "branchSplitHeightInLevelList_9": storeSplitHeights_5,
+        "branchSplitHeightInLevelListIndex_9": props.branchSplitHeightInLevelListIndex_9,
+        
+        "branchSplitHeightInLevelList_10": storeSplitHeights_10,
+        "branchSplitHeightInLevelListIndex_10": props.branchSplitHeightInLevelListIndex_10,
+        
+        "branchSplitHeightInLevelList_11": storeSplitHeights_11,
+        "branchSplitHeightInLevelListIndex_11": props.branchSplitHeightInLevelListIndex_11,
+        
+        "branchSplitHeightInLevelList_12": storeSplitHeights_12,
+        "branchSplitHeightInLevelListIndex_12": props.branchSplitHeightInLevelListIndex_12,
+        
+        "branchSplitHeightInLevelList_13": storeSplitHeights_13,
+        "branchSplitHeightInLevelListIndex_13": props.branchSplitHeightInLevelListIndex_13,
+        
+        "branchSplitHeightInLevelList_14": storeSplitHeights_14,
+        "branchSplitHeightInLevelListIndex_14": props.branchSplitHeightInLevelListIndex_14,
+        
+        "branchSplitHeightInLevelList_15": storeSplitHeights_15,
+        "branchSplitHeightInLevelListIndex_15": props.branchSplitHeightInLevelListIndex_15,
+        
+        "branchSplitHeightInLevelList_16": storeSplitHeights_16,
+        "branchSplitHeightInLevelListIndex_16": props.branchSplitHeightInLevelListIndex_16,
+        
+        "branchSplitHeightInLevelList_17": storeSplitHeights_17,
+        "branchSplitHeightInLevelListIndex_17": props.branchSplitHeightInLevelListIndex_17,
+        
+        "branchSplitHeightInLevelList_18": storeSplitHeights_18,
+        "branchSplitHeightInLevelListIndex_18": props.branchSplitHeightInLevelListIndex_18,
+        
+        "branchSplitHeightInLevelList_19": storeSplitHeights_19,
+        "branchSplitHeightInLevelListIndex_19": props.branchSplitHeightInLevelListIndex_19,
         
         "branchSplitHeightInLevelListList": nestedBranchSplitHeightInLevelList,
         
@@ -5114,7 +5704,35 @@ class branchSettings(bpy.types.Panel):
                             row.template_list("UL_branchSplitLevelListLevel_4", "", scene, "branchSplitHeightInLevelList_4", scene, "branchSplitHeightInLevelListIndex_4")
                         if i == 5:
                             row.template_list("UL_branchSplitLevelListLevel_5", "", scene, "branchSplitHeightInLevelList_5", scene, "branchSplitHeightInLevelListIndex_5")
-                        if i > 5:
+                        if i == 6:
+                            row.template_list("UL_branchSplitLevelListLevel_6", "", scene, "branchSplitHeightInLevelList_6", scene, "branchSplitHeightInLevelListIndex_6")
+                        if i == 7:
+                            row.template_list("UL_branchSplitLevelListLevel_7", "", scene, "branchSplitHeightInLevelList_7", scene, "branchSplitHeightInLevelListIndex_7")
+                        if i == 8:
+                            row.template_list("UL_branchSplitLevelListLevel_8", "", scene, "branchSplitHeightInLevelList_8", scene, "branchSplitHeightInLevelListIndex_8")
+                        if i == 9:
+                            row.template_list("UL_branchSplitLevelListLevel_9", "", scene, "branchSplitHeightInLevelList_9", scene, "branchSplitHeightInLevelListIndex_9")
+                        if i == 10:
+                            row.template_list("UL_branchSplitLevelListLevel_10", "", scene, "branchSplitHeightInLevelList_10", scene, "branchSplitHeightInLevelListIndex_10")
+                        if i == 11:
+                            row.template_list("UL_branchSplitLevelListLevel_11", "", scene, "branchSplitHeightInLevelList_11", scene, "branchSplitHeightInLevelListIndex_11")
+                        if i == 12:
+                            row.template_list("UL_branchSplitLevelListLevel_12", "", scene, "branchSplitHeightInLevelList_12", scene, "branchSplitHeightInLevelListIndex_12")
+                        if i == 13:
+                            row.template_list("UL_branchSplitLevelListLevel_13", "", scene, "branchSplitHeightInLevelList_13", scene, "branchSplitHeightInLevelListIndex_13")
+                        if i == 14:
+                            row.template_list("UL_branchSplitLevelListLevel_14", "", scene, "branchSplitHeightInLevelList_14", scene, "branchSplitHeightInLevelListIndex_14")
+                        if i == 15:
+                            row.template_list("UL_branchSplitLevelListLevel_15", "", scene, "branchSplitHeightInLevelList_15", scene, "branchSplitHeightInLevelListIndex_15")
+                        if i == 16:
+                            row.template_list("UL_branchSplitLevelListLevel_16", "", scene, "branchSplitHeightInLevelList_16", scene, "branchSplitHeightInLevelListIndex_16")
+                        if i == 17:
+                            row.template_list("UL_branchSplitLevelListLevel_17", "", scene, "branchSplitHeightInLevelList_17", scene, "branchSplitHeightInLevelListIndex_17")
+                        if i == 18:
+                            row.template_list("UL_branchSplitLevelListLevel_18", "", scene, "branchSplitHeightInLevelList_18", scene, "branchSplitHeightInLevelListIndex_18")
+                        if i == 19:
+                            row.template_list("UL_branchSplitLevelListLevel_19", "", scene, "branchSplitHeightInLevelList_19", scene, "branchSplitHeightInLevelListIndex_19")
+                        if i > 19:
                             j = 0
                             splitLevelList = scene.branchSplitHeightInLevelListList[i - 6].value
                             for splitLevel in splitLevelList:
@@ -5322,6 +5940,21 @@ def register():
     bpy.utils.register_class(UL_branchSplitLevelListLevel_3)
     bpy.utils.register_class(UL_branchSplitLevelListLevel_4)
     bpy.utils.register_class(UL_branchSplitLevelListLevel_5)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_6)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_7)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_8)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_9)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_10)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_11)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_12)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_13)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_14)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_15)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_16)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_17)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_18)
+    bpy.utils.register_class(UL_branchSplitLevelListLevel_19)
+    
           
     #collections
     
@@ -5399,6 +6032,34 @@ def register():
     bpy.types.Scene.branchSplitHeightInLevelListIndex_4 = bpy.props.IntProperty(default = 0)
     bpy.types.Scene.branchSplitHeightInLevelList_5 = bpy.props.CollectionProperty(type=floatProp01default0p5)
     bpy.types.Scene.branchSplitHeightInLevelListIndex_5 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_6 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_6 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_7 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_7 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_8 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_8 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_9 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_9 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_10 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_10 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_11 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_11 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_12 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_12 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_13 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_13 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_14 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_14 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_15 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_15 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_16 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_16 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_17 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_17 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_18 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_18 = bpy.props.IntProperty(default = 0)
+    bpy.types.Scene.branchSplitHeightInLevelList_19 = bpy.props.CollectionProperty(type=floatProp01default0p5)
+    bpy.types.Scene.branchSplitHeightInLevelListIndex_19 = bpy.props.IntProperty(default = 0)
     
     bpy.types.Scene.leafClusterSettingsList = bpy.props.CollectionProperty(type=leafClusterSettings)
     
