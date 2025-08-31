@@ -1,6 +1,6 @@
 bl_info = {
     "name" : "treeGen3",
-    "author" : "Jens", 
+    "author" : "Jens Maier", 
     "version" : (0,1),
     "blender" : (4,3,1),
     "description" : "Tree generator",
@@ -2161,7 +2161,7 @@ def addLeaves(self, treeGen, rootNode,        #     TODO: support multiple leaf 
                 if leafClusterSettingsList[leafClusterIndex].leafType.value == "WHORLED":
                     axis = startPointTangent
                     whorlAngle = 360.0 / leafClusterSettingsList[leafClusterIndex].leafWhorlCount
-                    treeGen.report({'INFO'}, f"whorl angle: {whorlAngle}")
+                    #treeGen.report({'INFO'}, f"whorl angle: {whorlAngle}")
                     
                     for i in range(0, leafClusterSettingsList[leafClusterIndex].leafWhorlCount):
                         whorledLeafTangent = Quaternion(axis, math.radians(windingAngle + i * whorlAngle)) @ leafTangent
@@ -4130,7 +4130,7 @@ def load_properties(filePath, context):
         props.taperFactorList.clear()
         for i, value in enumerate(data.get("taperFactorList", [])):
             item = props.taperFactorList.add()
-            item.value = value
+            item.taperFactor = value
         
         for i, value in enumerate(data.get("ringResolutionList", [])):
             props.branchClusterSettingsList[i].ringResolution = value
