@@ -1173,6 +1173,8 @@ class generateTree(bpy.types.Operator):
                 context.scene.branchSplitHeightInLevelList_3, 
                 context.scene.branchSplitHeightInLevelList_4, 
                 context.scene.branchSplitHeightInLevelList_5, 
+                context.scene.branchSplitHeightInLevelListList,
+                
                 
                 
                 #context.scene.branchSplitHeightVariationList,
@@ -1282,7 +1284,8 @@ class generateTree(bpy.types.Operator):
                 if len(context.scene.branchSplitHeightInLevelList_5) < context.scene.branchClusterSettingsList[5].maxSplitHeightUsed + 1:
                     for i in range(context.scene.branchClusterSettingsList[5].maxSplitHeightUsed + 1, len(context.scene.branchSplitHeightInLevelList_5)):
                         h = context.scene.branchSplitHeightInLevelList_5.add()
-              
+            
+
             bpy.context.view_layer.objects.active = bpy.data.objects["tree"]
             bpy.ops.object.select_all(action='DESELECT')
         return {'FINISHED'}
@@ -2280,6 +2283,7 @@ branchSplitHeightInLevelList_2,
 branchSplitHeightInLevelList_3,
 branchSplitHeightInLevelList_4,
 branchSplitHeightInLevelList_5, 
+branchSplitHeightInLevelListList,
                 
 #branchSplitHeightVariation,
 #branchSplitLengthVariation,
@@ -2622,6 +2626,9 @@ noiseGenerator):
                 splitHeightInLevelList = branchSplitHeightInLevelList_4
             if clusterIndex == 5:
                 splitHeightInLevelList = branchSplitHeightInLevelList_5
+                
+            if clusterIndex > 5:
+                splitHeightInLevelList = branchSplitHeightInLevelListList[clusterIndex - 6].value
             
             nrSplits = int(branchClusterSettingsList[clusterIndex].nrSplitsPerBranch * branchClusterSettingsList[clusterIndex].nrBranches)
             
@@ -3580,7 +3587,7 @@ class branchClusterSettings(bpy.types.PropertyGroup):
     branchSplitLengthVariation: bpy.props.FloatProperty(name = "Branch split length variation", default = 0.0, min = 0.0, max = 1.0)
         
     showBranchSplitHeights: bpy.props.BoolProperty(name = "Show/hide split heights", default=True)
-    branchSplitHeightInLevelListList: bpy.props.PointerProperty(type=floatListProp01)
+    branchSplitHeightInLevelList: bpy.props.PointerProperty(type=floatListProp01)
     branchSplitHeightInLevelListIndex: bpy.props.IntProperty(default = 0)
     maxSplitHeightUsed: bpy.props.IntProperty(default = 0)
     
@@ -3790,8 +3797,7 @@ class addBranchSplitLevel(bpy.types.Operator):
     def execute(self, context):
         context.scene.branchClusterSettingsList[self.level].showBranchSplitHeights = True
         
-        #newSplitHeight = context.scene.branchSplitHeightInLevelListList[self.level].value.add()
-        #newSplitHeight = 0.5
+        
         if self.level == 0:
             newSplitHeight = context.scene.branchSplitHeightInLevelList_0.add()
             newSplitHeight.value = 0.5
@@ -3813,8 +3819,11 @@ class addBranchSplitLevel(bpy.types.Operator):
         
         
         if self.level > 5:
-            newSplitHeight = context.scene.branchSplitHeightInLevelListList[self.level].value
-            newSplitHeight = 0.5
+            #newSplitHeight = context.scene.branchSplitHeightInLevelListList[self.level].value.add()
+            #newSplitHeight = 0.5
+            splitHeightList = context.scene.branchSplitHeightInLevelListList[self.level - 6].value
+            newSplitHeight = splitHeightList.add()
+            newSplitHeight.value = 0.5
             return {'FINISHED'}
         
         #context.scene.branchSplitHeightInLevelListIndex[len(context.scene.branchSplitHeightInLevelListIndex) - 1].value = 0
@@ -3852,7 +3861,7 @@ class removeBranchSplitLevel(bpy.types.Operator):
                 context.scene.branchSplitHeightInLevelList_5.remove(len(context.scene.branchSplitHeightInLevelList_4) - 1)
                 #context.scene.branchSplitHeightInLevelListIndex_5 -= 1
         if self.level > 5:
-            context.scene.branchSplitHeightInLevelListList[self.level].value.remove(len(context.scene.branchSplitHeightInLevelListList[self.level].value) - 1)
+            context.scene.branchSplitHeightInLevelListList[self.level - 6].value.remove(len(context.scene.branchSplitHeightInLevelListList[self.level - 6].value) - 1)
             
                #context.scene.branchSplitModeList.remove(len(context.scene.branchSplitModeList) - 1)         
         #self.report({'INFO'}, f"remove split level")
@@ -4273,6 +4282,35 @@ def load_properties(filePath, context):
         for i, value in enumerate(data.get("hangingBranchesList", [])):
             props.branchClusterSettingsList[i].hangingBranchesList.add()
             item.value = value
+        
+        #props.parentClusterBoolListList.clear()
+        #
+        #props.branchClusters = data.get("branchClusters", props.branchClusters)
+        #
+        #nestedList = []
+        #nestedList = data.get("parentClusterBoolListList", nestedList)
+        #for n in range(0, props.branchClusters):
+        #    innerList = nestedList[n]
+        #    item = props.parentClusterBoolListList.add()
+        #    for n in item.value:
+        #        item.remove(n)
+        #    for b in innerList:
+        #        i = item.value.add()
+        #        i.value = b
+        #
+        #"branchSplitHeightInLevelListList": nestedBranchSplitHeightInLevelList,
+        
+        props.branchSplitHeightInLevelListList.clear()
+        nestedBranchSplitHeightInLevelList = []
+        nestedBranchSplitHeightInLevelList = data.get("branchSplitHeightInLevelListList", nestedBranchSplitHeightInLevelList)
+        for n in range(0, len(nestedBranchSplitHeightInLevelList)):
+            innerList = nestedBranchSplitHeightInLevelList[n]
+            item = props.branchSplitHeightInLevelListList.add()
+            for n in item.value:
+                item.remove(n)
+            for h in innerList:
+                i = item.value.add()
+                i.value = h
             
         props.branchSplitHeightInLevelListIndex = data.get("branchSplitHeightInLevelListIndex", props.branchSplitHeightInLevelListIndex)
             
@@ -4404,6 +4442,13 @@ def save_properties(filePath, treeGen):
         for boolProp in cluster.value:
             innerLeafList.append(boolProp.value)
         nestedLeafList.append(innerLeafList)
+        
+    nestedBranchSplitHeightInLevelList = []
+    for item in props.branchSplitHeightInLevelListList:
+        innerHeightList = []
+        for height in item.value:
+            innerHeightList.append(height.value)
+        nestedBranchSplitHeightInLevelList.append(innerHeightList)
     
     #treeGen.report({'INFO'}, f"max split height used: {bpy.context.scene.maxSplitHeightUsed}")
     storeSplitHeights_0 = []
@@ -4435,7 +4480,7 @@ def save_properties(filePath, treeGen):
     storeSplitHeights_3 = []
     if len(bpy.context.scene.branchClusterSettingsList) > 3:
         if bpy.context.scene.branchClusterSettingsList[3].maxSplitHeightUsed <= len(props.branchSplitHeightInLevelList_3):
-            storeSplitHeights_3 = [props.branchSplitHeightInLevelList_3[i].value for i in range(0, bpy.context.branchClusterSettingsList[3].scene.maxSplitHeightUsed + 1)]
+            storeSplitHeights_3 = [props.branchSplitHeightInLevelList_3[i].value for i in range(0, bpy.context.scene.branchClusterSettingsList[3].maxSplitHeightUsed + 1)]
         else:
             if len(props.branchClusterSettingsList) > 3:
                 storeSplitHeights_3 = props.branchSplitHeightInLevelList_3
@@ -4586,6 +4631,8 @@ def save_properties(filePath, treeGen):
         "branchSplitHeightInLevelList_5": storeSplitHeights_5,
         "branchSplitHeightInLevelListIndex_5": props.branchSplitHeightInLevelListIndex_5,
         
+        "branchSplitHeightInLevelListList": nestedBranchSplitHeightInLevelList,
+        
         "showLeafSettings": [props.leafClusterSettingsList[i].showLeafSettings for i in range(props.leafClusters)],
         #------------
         "leavesDensityList": [props.leafClusterSettingsList[i].leavesDensity for i in range(props.leafClusters)],
@@ -4707,8 +4754,14 @@ class addItem(bpy.types.Operator): # add branch cluster
         
         branchClusterBoolListList = context.scene.branchClusterBoolListList.add()
         
-        context.scene.branchSplitHeightInLevelListList.add()
-        #context.scene.showBranchSplitHeights.add()
+        #if context.scene.branchClusters > 6:
+        #    context.scene.branchSplitHeightInLevelListList.add()
+        
+        while context.scene.branchClusters - 6 < len(context.scene.branchSplitHeightInLevelListList):
+            context.scene.branchSplitHeightInLevelListList.remove(len(context.scene.branchSplitHeightInLevelListList) - 1)
+        
+        while context.scene.branchClusters - 6 > len(context.scene.branchSplitHeightInLevelListList):
+            context.scene.branchSplitHeightInLevelListList.add()
         
         taperFactor = context.scene.taperFactorList.add()
         taperFactor = 1.0
@@ -4734,7 +4787,7 @@ class removeItem(bpy.types.Operator):
                 context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value.remove(len(context.scene.parentClusterBoolListList[i].value) - 1)
             context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
             
-        if len(context.scene.branchSplitHeightInLevelListList) > 0:
+        if len(context.scene.branchSplitHeightInLevelListList) > 0 and context.scene.branchClusters > 5:
             context.scene.branchSplitHeightInLevelListList.remove(len(context.scene.branchSplitHeightInLevelListList) - 1)
             
         if len(context.scene.taperFactorList) > 0:
@@ -5063,10 +5116,11 @@ class branchSettings(bpy.types.Panel):
                             row.template_list("UL_branchSplitLevelListLevel_5", "", scene, "branchSplitHeightInLevelList_5", scene, "branchSplitHeightInLevelListIndex_5")
                         if i > 5:
                             j = 0
-                            for splitLevel in context.scene.branchClusterSettingsList[i].branchSplitHeightInLevelList:
+                            splitLevelList = scene.branchSplitHeightInLevelListList[i - 6].value
+                            for splitLevel in splitLevelList:
                                 box2.prop(splitLevel, "value", text=f"Split height level {j}", slider=True)
                                 j += 1
-
+#context.scene.branchSplitHeightInLevelListList
 
 class addLeafItem(bpy.types.Operator):
     bl_idname = "scene.add_leaf_item"
