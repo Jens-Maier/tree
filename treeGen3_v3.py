@@ -2,7 +2,7 @@ bl_info = {
     "name" : "treeGen3",
     "author" : "Jens Maier", 
     "version" : (0,1),
-    "blender" : (4,3,1),
+    "blender" : (4,5,2),
     "description" : "Tree generator",
     "location" : "View3d > Sidebar",
     "warning" : "",
@@ -141,8 +141,8 @@ class node():
         newClusterIndex):
             
         #treeGen.report({'INFO'}, f"in getAllStartNodes() self.cluster: {self.clusterIndex}")
-        #if self.clusterIndex == -1:
-        #    drawDebugPoint(self.point, 0.8)
+        if self.clusterIndex == -1:
+            drawDebugPoint(self.point, 0.2)
         #if self.clusterIndex == 0:
         #    drawDebugPoint(self.point, 0.3)
         #if self.clusterIndex == 1:
@@ -505,7 +505,7 @@ class node():
         angle = angle * (1.0 - self.tValBranch)
         
         
-        treeGen.report({'INFO'}, f"attract outward: angle: {angle}")
+        #treeGen.report({'INFO'}, f"attract outward: angle: {angle}")
         
         for step in rotationSteps:
             #treeGen.report({'INFO'}, f"attract outward: step: curvature: {step.curvature}")
@@ -589,8 +589,27 @@ class node():
             centerPoint = branchStartPoint
         
         outwardDir = self.point - centerPoint
+        
+        ###################################################################
+        # TODO: / resampleDistance ! ...
+        ###################################################################
+        
+        #
+        # right = startPointTangent.cross(Vector((0.0,0.0,1.0))) 
+        #                
+        #                if right.length <= 0.001:
+        #                    d = data.startNode.next[data.startNodeNextIndex].point - data.startNode.point
+        #                    h = Vector((d.x, d.y, 0.0))
+        #                    if h.length > 0:
+        #                        right = h.cross(data.startNode.tangent[0])
+        #                    else:
+        #                        right = Vector((1.0,0.0,0.0))
+        #                else:
+        #                    right = right.normalized()
+        #
+        
     
-        right = self.tangent[0].cross(Vector((0.0,0.0,1.0)))
+        right = self.tangent[0].cross(Vector((0.0,0.0,1.0))) 
         if right.length < 0.01:
             #near vertical branch
             if outwardDir.length < 0.001:
@@ -606,8 +625,9 @@ class node():
         curvature = globalCurvature + branchCurvature
         #treeGen.report({'INFO'}, f"in applyCurvature 2(): tValBranch: {self.tValBranch}")
         
-        #treeGen.report({'INFO'}, f"in applyCurvature 2(): curvature: {curvature}")
+        treeGen.report({'INFO'}, f"in applyCurvature 2(): curvature: {curvature}, curvatureStartGlobal: {curvatureStartGlobal}, curvatureEndGlobal: {curvatureEndGlobal}, curvatureStartBranch: {curvatureStartBranch}, curvatureEndBranch: {curvatureEndBranch}, curveAxis: {curveAxis}, reducedCurveStepCutoff: {reducedCurveStepCutoff}, reducedCurveStepFactor: {reducedCurveStepFactor}")
         
+        drawArrow(self.point, self.point + curveAxis)
         
         # split axis horizontal: 
         #
@@ -626,41 +646,45 @@ class node():
                 self.cotangent = Quaternion(step.curveAxis, math.radians(step.curvature)) @ self.cotangent
             else:
                 for tangentIndex in range(0, len(self.tangent)):
-                    self.tangent[tangentIndex] = Quaternion(step.curveAxis, math.radians(step.curvature / 2.0)) @ self.tangent[tangentIndex]
-                    self.cotangent = Quaternion(step.curveAxis, math.radians(step.curvature / 2.0)) @ self.cotangent
+                    self.tangent[tangentIndex] = Quaternion(step.curveAxis, math.radians(step.curvature / 1.0)) @ self.tangent[tangentIndex]
+                    self.cotangent = Quaternion(step.curveAxis, math.radians(step.curvature / 1.0)) @ self.cotangent #???
             
         if len(rotationSteps) > 0:
             rotationSteps[len(rotationSteps) - 1].isLast = False
         
         if len(self.next) > 0:
-            if Vector((self.tangent[0].x, self.tangent[0].y, 0.0)).dot(Vector((self.next[0].tangent[0].x, self.next[0].tangent[0].y, 0.0))) > 0:
+            #if Vector((self.tangent[0].x, self.tangent[0].y, 0.0)).dot(Vector((self.next[0].tangent[0].x, self.next[0].tangent[0].y, 0.0))) > 0:  #TEST OFF -> using reduced curve step now...
+            
+            isLast = False
+            if len(self.next[0].next) == 0:
+                isLast = True
                 
-                if Vector((self.tangent[0].x, self.tangent[0].y, 0.0)).dot(Vector((self.next[0].tangent[0].x, self.next[0].tangent[0].y, 0.0))) < reducedCurveStepCutoff: # 0.2: ####  -> make parameter -> reduced curveStep cutoff [0..(1?)]
-                    # TODO: -> reduce curvature when close to vertical !!!!!!!!!!!!!!!!!!!!!!!!!!
-                    rotationSteps.append(rotationStep(self.point, curvature  * reducedCurveStepFactor, curveAxis, True))
-                    treeGen.report({'INFO'}, "reduced curve step")## -> make paremeter: reduced curveStep factor [0..1]
-                else:
-                    rotationSteps.append(rotationStep(self.point, curvature, curveAxis, True))
-                    treeGen.report({'INFO'}, "curve step")
-                    #TODO: adjust last rotationStep to vertical
+            if Vector((self.tangent[0].x, self.tangent[0].y, 0.0)).dot(Vector((self.next[0].tangent[0].x, self.next[0].tangent[0].y, 0.0))) < reducedCurveStepCutoff: # 0.2: ####  -> make parameter -> reduced curveStep cutoff [0..(1?)]
+                # TODO: -> reduce curvature when close to vertical !!!!!!!!!!!!!!!!!!!!!!!!!!
+                rotationSteps.append(rotationStep(self.point, curvature  * reducedCurveStepFactor, curveAxis, isLast))
+                treeGen.report({'INFO'}, "reduced curve step")## -> make paremeter: reduced curveStep factor [0..1]
             else:
-                if prevNode != None and firstVertical == True:
-                    firstVertical = False
-                    # mark prev node as last rotated node (-> prev node parameter!)
-                    prevNode.isLastRotated = True
-                    # -> second pass: align vertical! (use angle(self.tangent[0], (0,0,-1))
-                    treeGen.report({'INFO'}, "setting prevNode.isLastRotated = true")
-                    #drawDebugPoint(self.point, 0.1)
-                    
-                    rotateBackAngle = 0.0
-                    branchDir = self.tangent[0]
-                    branchDir = branchDir / branchDir.length
-                    rotateBackAngle = math.acos(branchDir.dot(Vector((0.0,0.0,-1.0))))
-                    treeGen.report({'INFO'}, f"rotateBachAngle: {rotateBackAngle}")
-                    rotateBackAxis = branchDir.cross(Vector((0.0,0.0,-1.0))).normalized()
-                    #drawArrow(self.point, self.point + rotateBackAxis)
-                    #drawArrow(self.point, self.point + branchDir)
-                    #drawArrow(self.point, self.point + Vector((0.0,0.0,-1.0)))
+                rotationSteps.append(rotationStep(self.point, curvature, curveAxis, isLast))
+                treeGen.report({'INFO'}, "curve step")
+                #TODO: adjust last rotationStep to vertical
+            #else:
+            #    if prevNode != None and firstVertical == True:
+            #        firstVertical = False
+            #        # mark prev node as last rotated node (-> prev node parameter!)
+            #        prevNode.isLastRotated = True
+            #        # -> second pass: align vertical! (use angle(self.tangent[0], (0,0,-1))
+            #        #treeGen.report({'INFO'}, "setting prevNode.isLastRotated = true")
+            #        #drawDebugPoint(self.point, 0.1)
+            #        
+            #        rotateBackAngle = 0.0
+            #        branchDir = self.tangent[0]
+            #        branchDir = branchDir / branchDir.length
+            #        rotateBackAngle = math.acos(branchDir.dot(Vector((0.0,0.0,-1.0))))
+            #        treeGen.report({'INFO'}, f"rotateBachAngle: {rotateBackAngle}")
+            #        rotateBackAxis = branchDir.cross(Vector((0.0,0.0,-1.0))).normalized()
+            #        #drawArrow(self.point, self.point + rotateBackAxis)
+            #        #drawArrow(self.point, self.point + branchDir)
+            #        #drawArrow(self.point, self.point + Vector((0.0,0.0,-1.0)))
                     
             #else:
             #    self.rotateBack(self.point, curveAxis, treeGen) # TEST
@@ -810,8 +834,8 @@ class node():
         #
         #newDelta = Quaternion(axis.normalized(), -angle) @ delta
     #
-    #    drawArrow(rotationPoint, rotationPoint + axis)
-    #    drawArrow(rotationPoint, rotationPoint + newDelta)
+    #    #drawArrow(rotationPoint, rotationPoint + axis)
+    #    #drawArrow(rotationPoint, rotationPoint + newDelta)
     #    
     #    self.point = rotationPoint + newDelta
     #    self.tangent[0] = Vector((0.0,0.0,-1.0))
@@ -2544,13 +2568,13 @@ noiseGenerator):
             windingAngle = 0.0
             for branchIndex in range(0, nrBranches):
                 branchPos = branchIndex * totalLength / nrBranches
-                #treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, branchPos: {branchPos}") 
+                treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, branchPos: {branchPos}") 
                 
                 data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, False)
                 
                 startPoint = data.startPoint
-                #treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, startPoint: {startPoint}")
-                #drawDebugPoint(startPoint, 0.04)
+                treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, startPoint: {startPoint}")
+                drawDebugPoint(startPoint, 0.04)
                 
                 startNodeNextIndex = data.startNodeNextIndex
                 startPointTangent = sampleSplineTangentT(data.startNode.point, 
@@ -2616,11 +2640,29 @@ noiseGenerator):
                         if branchClusterSettingsList[clusterIndex].rotateAngleRange <= 0.0:
                             branchClusterSettingsList[clusterIndex].rotateAngleRange = 180.0
                         angle = windingAngle % branchClusterSettingsList[clusterIndex].rotateAngleRange + branchClusterSettingsList[clusterIndex].rotateAngleOffset - branchClusterSettingsList[clusterIndex].rotateAngleRange / 2.0
-                        #treeGen.report({'INFO'}, f"in add Branches: angle: {angle}")
+                        treeGen.report({'INFO'}, f"in add Branches: angle: {angle}")
                         
-                        right = startPointTangent.cross(Vector((0.0,0.0,1.0))).normalized()
                         
-                    #treeGen.report({'INFO'}, f"WINDING: right: {right}")
+                        
+                        ################################################
+                        treeGen.report({'INFO'}, f"startPointTangent: {startPointTangent}")
+                        right = startPointTangent.cross(Vector((0.0,0.0,1.0)))
+                        
+                        if right.length <= 0.001:
+                            d = data.startNode.next[data.startNodeNextIndex].point - data.startNode.point
+                            h = Vector((d.x, d.y, 0.0))
+                            if h.length > 0:
+                                right = h.cross(data.startNode.tangent[0])
+                            else:
+                                right = Vector((1.0,0.0,0.0))
+                        else:
+                            right = right.normalized()
+                        ################################################
+                        
+                        
+                        
+                        
+                    treeGen.report({'INFO'}, f"WINDING: right: {right}") # ERROR HERE
                     axis = right.cross(startPointTangent).normalized()
                     #axis = startPointTangent.cross(data.outwardDir)
                     branchDir = Quaternion(axis, math.radians(-verticalAngle)) @ startPointTangent
@@ -2677,7 +2719,7 @@ noiseGenerator):
                 #class node():
                 #   def __init__(self, Point, Radius, Cotangent, RingResolution, Taper, TvalGlobal, TvalBranch):
                 
-                #treeGen.report({'INFO'}, f"in addBranches(): branch node.tValGlobal: {data.startNode.tValGlobal}")
+                treeGen.report({'INFO'}, f"in addBranches(): branchDir: {branchDir}")
                 # ERROR HERE !!  ->  should be start Height!  -> WRONG! do not use data.startNode.tValGlobal!
                 
                 
@@ -3498,7 +3540,7 @@ class fibonacciProps(bpy.types.PropertyGroup):
     fibonacci_nr: bpy.props.IntProperty(name = "fibonacciNr", default=3, min=3, 
         update = lambda self, context:update_fibonacci_numbers(self))
         
-    fibonacci_angle: bpy.props.FloatProperty(name="", default=0.0, options={'HIDDEN'})
+    fibonacci_angle: bpy.props.FloatProperty(name="", default=120.0, options={'HIDDEN'})
     
     use_fibonacci: bpy.props.BoolProperty(name = "useFibonacci", default=False,
         update = lambda self, context:update_fibonacci_numbers(self)) ##########  -> both in one propertyGroup!
@@ -3708,7 +3750,7 @@ class leafTypeEnumProp(bpy.types.PropertyGroup):
 
 class branchClusterSettings(bpy.types.PropertyGroup):
     branchClusterBoolList: bpy.props.CollectionProperty(type=branchClusterBoolListProp)
-    nrBranches: bpy.props.IntProperty(name = "Number of branches", default = 0, min = 0)
+    nrBranches: bpy.props.IntProperty(name = "Number of branches", default = 3, min = 0)
     nrBranchesIndex: bpy.props.IntProperty(name = "nrBranchesListIndex", default=0)
     branchShape: bpy.props.PointerProperty(type = treeShapeEnumProp)
     relBranchLength: bpy.props.FloatProperty(name = "Relative branch length", default = 1.0, min = 0.0, max = 1.0)
@@ -3732,8 +3774,8 @@ class branchClusterSettings(bpy.types.PropertyGroup):
         
     showAngleSettings: bpy.props.BoolProperty(name = "Show/hide angle settings", default=True)
     
-    verticalAngleCrownStart: bpy.props.FloatProperty(name = "Vertical angle crown start")
-    verticalAngleCrownEnd: bpy.props.FloatProperty(name = "Vertical angle crown end")
+    verticalAngleCrownStart: bpy.props.FloatProperty(name = "Vertical angle crown start", default = 45.0)
+    verticalAngleCrownEnd: bpy.props.FloatProperty(name = "Vertical angle crown end", default = 45.0)
     verticalAngleBranchStart: bpy.props.FloatProperty(name = "Vertical angle branch start")
     verticalAngleBranchEnd: bpy.props.FloatProperty(name = "Vertical angle branch end")
     branchAngleMode: bpy.props.PointerProperty(type = angleModeEnumProp)
@@ -5347,10 +5389,10 @@ class addItem(bpy.types.Operator): # add branch cluster
         #if context.scene.branchClusters > 6:
         #    context.scene.branchSplitHeightInLevelListList.add()
         
-        while context.scene.branchClusters - 6 < len(context.scene.branchSplitHeightInLevelListList):
+        while context.scene.branchClusters - 20 < len(context.scene.branchSplitHeightInLevelListList) and len(context.scene.branchSplitHeightInLevelListList) > 0:
             context.scene.branchSplitHeightInLevelListList.remove(len(context.scene.branchSplitHeightInLevelListList) - 1)
         
-        while context.scene.branchClusters - 6 > len(context.scene.branchSplitHeightInLevelListList):
+        while context.scene.branchClusters - 20 > len(context.scene.branchSplitHeightInLevelListList):
             context.scene.branchSplitHeightInLevelListList.add()
         
         taperFactor = context.scene.taperFactorList.add()
