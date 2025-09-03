@@ -625,7 +625,7 @@ class node():
         curvature = globalCurvature + branchCurvature
         #treeGen.report({'INFO'}, f"in applyCurvature 2(): tValBranch: {self.tValBranch}")
         
-        treeGen.report({'INFO'}, f"in applyCurvature 2(): curvature: {curvature}, curvatureStartGlobal: {curvatureStartGlobal}, curvatureEndGlobal: {curvatureEndGlobal}, curvatureStartBranch: {curvatureStartBranch}, curvatureEndBranch: {curvatureEndBranch}, curveAxis: {curveAxis}, reducedCurveStepCutoff: {reducedCurveStepCutoff}, reducedCurveStepFactor: {reducedCurveStepFactor}")
+        #treeGen.report({'INFO'}, f"in applyCurvature 2(): curvature: {curvature}, curvatureStartGlobal: {curvatureStartGlobal}, curvatureEndGlobal: {curvatureEndGlobal}, curvatureStartBranch: {curvatureStartBranch}, curvatureEndBranch: {curvatureEndBranch}, curveAxis: {curveAxis}, reducedCurveStepCutoff: {reducedCurveStepCutoff}, reducedCurveStepFactor: {reducedCurveStepFactor}")
         
         #drawArrow(self.point, self.point + curveAxis)
         
@@ -662,10 +662,10 @@ class node():
             if Vector((self.tangent[0].x, self.tangent[0].y, 0.0)).dot(Vector((self.next[0].tangent[0].x, self.next[0].tangent[0].y, 0.0))) < reducedCurveStepCutoff: # 0.2: ####  -> make parameter -> reduced curveStep cutoff [0..(1?)]
                 # TODO: -> reduce curvature when close to vertical !!!!!!!!!!!!!!!!!!!!!!!!!!
                 rotationSteps.append(rotationStep(self.point, curvature  * reducedCurveStepFactor, curveAxis, isLast))
-                treeGen.report({'INFO'}, "reduced curve step")## -> make paremeter: reduced curveStep factor [0..1]
+                #treeGen.report({'INFO'}, "reduced curve step")## -> make paremeter: reduced curveStep factor [0..1]
             else:
                 rotationSteps.append(rotationStep(self.point, curvature, curveAxis, isLast))
-                treeGen.report({'INFO'}, "curve step")
+                #treeGen.report({'INFO'}, "curve step")
                 #TODO: adjust last rotationStep to vertical
             #else:
             #    if prevNode != None and firstVertical == True:
@@ -2409,40 +2409,13 @@ branchClusters,
 
 branchClusterSettingsList,
 
-#nrBranchesList, 
 parentClusterBoolListList, 
 
 treeGrowDir, 
 treeHeight, 
-#verticalAngleCrownStart, 
-#
-#verticalAngleCrownEnd, 
-#verticalAngleBranchStart,
-#verticalAngleBranchEnd,
-#
-#branchAngleModeList, 
-
-#rotateAngleCrownStartList,
-#rotateAngleCrownEndList,
-#rotateAngleBranchStartList,
-#rotateAngleBranchEndList,
-                
-#rotateAngleRangeList, 
-#useFibonacciAnglesList,
-#fibonacciNrList,
 taper, 
-
 taperFactorList, 
-#ringResolutionList, # ...TODO... -> use ringResolution! (init with resolution of stem /previous cluster!!!)
-#relBranchLengthList,
-#relBranchLengthVariationList,
-#branchShapeList, 
 
-#nrSplitsPerBranch, 
-#splitsPerBranchVariation,
-#branchSplitAngle, 
-
-#branchSplitPointAngle, 
 branchSplitHeightInLevel, #==branchSplitHeightInLevelList_0
 branchSplitHeightInLevelList_1,
 branchSplitHeightInLevelList_2,
@@ -2465,34 +2438,18 @@ branchSplitHeightInLevelList_18,
 branchSplitHeightInLevelList_19, 
 
 branchSplitHeightInLevelListList,
-                
-#branchSplitHeightVariation,
-#branchSplitLengthVariation,
-
-#branchSplitMode,
-#branchSplitRotateAngle,
-#branchSplitAxisVariationList,
-#branchCurvOffsetStrength,
-#branchVariance, 
-
+            
 hangingBranchesList, 
-#curvatureStartGlobalList, 
-#curvatureEndGlobalList, 
 
 noiseGenerator):
     
-     
-    
-    #treeGen.report({'INFO'}, f"in add Branches(): len(nrBranchesList): {len(nrBranchesList)}, ")
-    #if len(nrBranchesList) > 0 and len(branchesStartHeightGlobalList) > 0:
     for clusterIndex in range(0, branchClusters):
         nrBranches = branchClusterSettingsList[clusterIndex].nrBranches      
         branchesStartHeightGlobal = branchClusterSettingsList[clusterIndex].branchesStartHeightGlobal
         branchesEndHeightGlobal = branchClusterSettingsList[clusterIndex].branchesEndHeightGlobal
         branchesStartHeightCluster = branchClusterSettingsList[clusterIndex].branchesStartHeightCluster
         branchesEndHeightCluster = branchClusterSettingsList[clusterIndex].branchesEndHeightCluster
-        
-        #treeGen.report({'INFO'}, f"in add Branches() clusterIndex: {clusterIndex}")
+        branchesStartPointVariation = branchClusterSettingsList[clusterIndex].branchesStartPointVariation
         
         startNodesNextIndexStartTvalEndTval = []
         branchNodesNextIndexStartTvalEndTval = []
@@ -2507,7 +2464,6 @@ noiseGenerator):
         for i in range(0, branchClusterSettingsList[clusterIndex].nrBranches):
             branchNodesNextIndexStartTvalEndTval.append([])
         
-        #treeGen.report({'INFO'}, f"calling rootNode.getAllStartNodes(), clusterIndex: {clusterIndex}")
         if len(parentClusterBoolListList) > 0:
             rootNode.getAllStartNodes(
                 self, 
@@ -2520,54 +2476,19 @@ noiseGenerator):
                 branchesEndHeightCluster, 
                 parentClusterBoolListList, 
                 clusterIndex)
-            
-       #     def getAllStartNodes(
-       # self, 
-       # treeGen, 
-       # startNodesNextIndexStartTvalEndTval, 
-       # branchNodesNextIndexStartTvalEndTval, 
-       # activeBranchIndex, 
-       # startHeightGlobal, 
-       # endHeightGlobal, 
-       # startHeightCluster, 
-       # endHeightCluster, 
-       # parentClusterBoolListList, 
-       # newClusterIndex):
-            
-        #if clusterIndex == 1:
-        #    for startNode in startNodesNextIndexStartTvalEndTval:
-        #        drawDebugPoint(startNode.startNode.point, 0.1)
-            
-        #treeGen.report({'INFO'}, f"in addBranches(): clusterIndex: {clusterIndex}, len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}, len(branchNodes): {len(branchNodesNextIndexStartTvalEndTval)}")
-        
-        #for info in startNodesNextIndexStartTvalEndTval:
-            #treeGen.report({'INFO'}, f"startNode.point: {info.startNode.point}, startTval: {info.startTval}, endTval: {info.endTval}")
-        
-        #           def getAllStartNodes(
-     #   self, 
-     #   treeGen, 
-     #   startNodesNextIndexStartTvalEndTval, 
-     #   branchNodesNextIndexStartTvalEndTval, 
-     #   activeBranchIndex, 
-     #   startHeightGlobal, 
-     #   endHeightGlobal, 
-     #   startHeightCluster, 
-     #   endHeightCluster, 
-     #   parentClusterBoolListList, 
-     #   newClusterIndex):
-        
+                 
         if len(startNodesNextIndexStartTvalEndTval) > 0:
             segmentLengths = []
-           # treeGen.report({'INFO'}, f"len(startNodesNextIndexStartTvalEndTval): {len(startNodesNextIndexStartTvalEndTval)}")
-            #for info in startNodesNextIndexStartTvalEndTval:
-                #treeGen.report({'INFO'}, f"startTval: {info.startTval}, endTval: {info.endTval}")
-            #treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex} -> calling calculateSegmentLenghsAndTotalLength(): len(segmentLengths): {len(segmentLengths)}")
+            
             totalLength = calculateSegmentLengthsAndTotalLength(self, treeGen, startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster)
-            #treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, totalLength: {totalLength}") 
             
             windingAngle = 0.0
             for branchIndex in range(0, nrBranches):
-                branchPos = branchIndex * totalLength / nrBranches
+                branchPos = branchIndex * totalLength / nrBranches + random.uniform(-branchesStartPointVariation, branchesStartPointVariation)
+                if branchPos < 0.0:
+                    branchPos = 0.0
+                if branchPos > totalLength:
+                    branchPos = totalLength
                 treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, branchPos: {branchPos}") 
                 
                 data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, False)
@@ -2597,42 +2518,16 @@ noiseGenerator):
                 
                 branchRotateAngle = lerp(branchClusterSettingsList[clusterIndex].rotateAngleBranchStart, branchClusterSettingsList[clusterIndex].rotateAngleBranchEnd, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t)) # tValBranch == 0 !!!
                 
-                #treeGen.report({'INFO'}, f"in add Branches: rotateAngleBranchStartList: {rotateAngleBranchStartList[clusterIndex].value:.3f}, rotateAngleBranchEndList: {rotateAngleBranchEndList[clusterIndex].value:.3f}")
-                #treeGen.report({'INFO'}, f"in add Branches: branchRotateAngle: {branchRotateAngle}, data.t: {data.t:.3f}, data.startNode.tValBranch: {data.startNode.tValBranch:.3f}, data.startNode.next[data.startNodeNextIndex].tValBranch: {data.startNode.next[data.startNodeNextIndex].tValBranch:.3f}")
-                
-                #treeGen.report({'INFO'}, f"in add Branches: clusterIndex: {clusterIndex}, rotateAngleBranchStart: {rotateAngleBranchStartList[clusterIndex].value}, rotateAngleBranchEnd: {rotateAngleBranchEndList[clusterIndex].value}, tValBranch: {data.startNode.tValBranch}, branchRotateAngle: {branchRotateAngle}, globalRotateAngle: {globalRotateAngle}")
-                
-                #treeGen.report({'INFO'}, f"in add Branches: rotateAngleRange: {rotateAngleRangeList[clusterIndex].value}")
-                
                 if branchClusterSettingsList[clusterIndex].rotateAngleRange == 0.0:
                     branchClusterSettingsList[clusterIndex].rotateAngleRange = 180.0
-                
-                
-                
-                #treeGen.report({'INFO'}, f"in add Branches: outwardDir: {data.outwardDir}")
-                #treeGen.report({'INFO'}, f"in add Branches: centerDir: {centerDir}")
-                #treeGen.report({'INFO'}, f"in add Branches: angleMode: {branchAngleModeList[0].value}")
-                
-                #treeGen.report({'INFO'}, f"in add Branches: clusterIndex: {clusterIndex}, branchClusters: {branchClusters}")
-                #treeGen.report({'INFO'}, f"in add Branches: angleMode: {branchClusterSettingsList[clusterIndex].branchAngleMode.value}")
                 
                 if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "WINDING":
                     
                     centerDir = data.outwardDir # for symmetric!
                     centerDirs.append(centerDir)
-                    #drawArrow(startPoint, startPoint + data.outwardDir)
-                
-                
-                    #drawArrow(startPoint, startPoint + centerDir * 2.5) #???
-                
+                    #drawArrow(startPoint, startPoint + data.outwardDir)                
                     if branchClusterSettingsList[clusterIndex].useFibonacciAngles == True:
-                
-                        
-                        #if rotateAngleRangeList[clusterIndex].value > 0:
                         angle = (windingAngle + 360.0) % 360.0
-                        #treeGen.report({'INFO'}, f"useFibonacci = true: in add Branches: windingAngle: {windingAngle}, angle: {angle}")
-                        #else:
-                        #    angle = 0.0
                         right = startPointTangent.cross(Vector((1.0,0.0,0.0))).normalized() # -> most likely vertical
                     else:
                         #treeGen.report({'INFO'}, f"in add Branches: fibonacciNrList[clusterIndex].rotate_angle_range: {fibonacciNrList[clusterIndex].rotate_angle_range}")
@@ -2641,8 +2536,6 @@ noiseGenerator):
                             branchClusterSettingsList[clusterIndex].rotateAngleRange = 180.0
                         angle = windingAngle % branchClusterSettingsList[clusterIndex].rotateAngleRange + branchClusterSettingsList[clusterIndex].rotateAngleOffset - branchClusterSettingsList[clusterIndex].rotateAngleRange / 2.0
                         treeGen.report({'INFO'}, f"in add Branches: angle: {angle}")
-                        
-                        
                         
                         ################################################
                         treeGen.report({'INFO'}, f"startPointTangent: {startPointTangent}")
@@ -2659,21 +2552,12 @@ noiseGenerator):
                             right = right.normalized()
                         ################################################
                         
-                        
-                        
-                        
                     treeGen.report({'INFO'}, f"WINDING: right: {right}") # ERROR HERE
                     axis = right.cross(startPointTangent).normalized()
-                    #axis = startPointTangent.cross(data.outwardDir)
                     branchDir = Quaternion(axis, math.radians(-verticalAngle)) @ startPointTangent
                     #treeGen.report({'INFO'}, f"WINDING: angle: {angle}, axis startPointTangent: {startPointTangent}, branchDir: {branchDir}")
                     branchDir = Quaternion(startPointTangent, math.radians(angle)) @ branchDir
                     
-                # if context.scene.useFibonacciAnglesList[clusterIndex].value == True:
-                #     windingAngle += context.scene.fibonacciNrList[clusterIndex].fibonacci_angle
-                # else:
-                #     windingAngle += rotateAngle
-                   
                 if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "SYMMETRIC":
                     #treeGen.report({'INFO'}, f"in addBranches(): symmetric")
                     centerDir = Quaternion(startPointTangent.cross(data.outwardDir), math.radians(-verticalAngle)) @ data.outwardDir # for symmetric!
@@ -2703,7 +2587,7 @@ noiseGenerator):
                 
                 branchCotangent = Vector((0.0, 0.0, 0.0))            
                 #There is no single continuous function that can generate a vector in R3 that is orthogonal to a given one for all vector inputs. https://en.wikipedia.org/wiki/Hairy_ball_theorem
-             
+                
                 if branchDir.x != 0.0:
                     branchCotangent = Vector((-branchDir.y, branchDir.x, 0.0))
                 else:
@@ -2711,23 +2595,17 @@ noiseGenerator):
                         branchCotangent = Vector((0.0, -branchDir.z, branchDir.y))
                     else:
                         branchCotangent = Vector((branchDir.z, 0.0, -branchDir.y))
-    
+        
                 startTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
                 startTvalBranch = lerp(data.startNode.tValBranch, data.startNode.next[startNodeNextIndex].tValBranch, data.t)
                 treeShapeRatioValue = shapeRatio(self, context, startTvalGlobal, branchClusterSettingsList[clusterIndex].treeShape.value)
-                
+                 
                 branchShapeRatioValue = shapeRatio(self, context, startTvalBranch, branchClusterSettingsList[clusterIndex].branchShape.value)
                 
                 branchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * random.uniform(-1.0, 1.0)) * treeShapeRatioValue * branchShapeRatioValue
                 
-                #class node():
-                #   def __init__(self, Point, Radius, Cotangent, RingResolution, Taper, TvalGlobal, TvalBranch):
-                
                 treeGen.report({'INFO'}, f"in addBranches(): branchDir: {branchDir}")
-                # ERROR HERE !!  ->  should be start Height!  -> WRONG! do not use data.startNode.tValGlobal!
-                
-                
-                
+                    
                 branch = node(data.startPoint, 
                               1.0, 
                               branchCotangent, 
@@ -2737,53 +2615,12 @@ noiseGenerator):
                               startTvalGlobal, #tValGlobal
                               0.0, 
                               branchLength)
-                
-                
-                #class node():
-                #   def __init__(self, 
-                #                Point, 
-                #                Radius, 
-                #                Cotangent, 
-                #                ClusterIndex, 
-                #                RingResolution, 
-                #                Taper, 
-                #                TvalGlobal, 
-                #                TvalBranch, 
-                #                BranchLength):
-                #       self.point = Point
-                #       self.radius = Radius
-                #       self.tangent = []
-                #       self.cotangent = Cotangent
-                #       self.clusterIndex = ClusterIndex
-                #       self.ringResolution = RingResolution
-                #       self.taper = Taper
-                #       self.tValGlobal = TvalGlobal
-                #       self.tValBranch = TvalBranch
-                #       self.next = []
-                #       self.branches = []
-                #       self.branchLength = BranchLength
-                
+                    
                 branch.tangent.append(branchDir)
                 branch.tValBranch = 0.0
             
-                #branchLength = 0.0
                 nextIndex = startNodesNextIndexStartTvalEndTval[data.startNodeIndex].nextIndex
-                
-                
-                
-                #treeGen.report({'INFO'}, f"in add Branches: branchLength: {branchLength}, shapeRatio: {shapeRatioValue}")
-                
-                
-                # TODO
-                #lengthToTip = data.startNode.lengthToTip()
-                #lengthToTop -= data.t * (data.startNode.next[data.startNodeNextIndex].point - data.startNode.point).length
-                #if branchLength > lengthToTip:
-                #    branchLength = lengthToTip 
             
-                #branch = node(data.startPoint, 1.0, branchCotangent, ringResolution, taper, data.startNode.tValGlobal, 0.0)
-                
-                #treeGen.report({'INFO'}, f"in addBranches(): data.startNode.tValGlobal: {data.startNode.tValGlobal}")
-                
                 branchNext = node(data.startPoint + branchDir * branchLength, 
                                   1.0, 
                                   branchCotangent, 
@@ -2797,8 +2634,6 @@ noiseGenerator):
                 branchNext.tValBranch = 1.0
                 branch.next.append(branchNext)
                 
-                #drawDebugPoint(data.startPoint + branchDir * branchLength, 0.1)
-                
                 if len(data.startNode.branches) < startNodeNextIndex + 1:
                     for m in range(len(data.startNode.next)):
                         data.startNode.branches.append([])
@@ -2808,14 +2643,64 @@ noiseGenerator):
                 
                 if branchClusterSettingsList[clusterIndex].useFibonacciAngles == True:
                     windingAngle += branchClusterSettingsList[clusterIndex].fibonacciNr.fibonacci_angle
-                    #treeGen.report({'INFO'}, f"in addBranches: windingAngle += {branchClusterSettingsList[clusterIndex].fibonacciNr.fibonacci_angle}")
                 else:
                     rotateAngle = (globalRotateAngle + branchRotateAngle) % branchClusterSettingsList[clusterIndex].rotateAngleRange
-                    # fibonacciNrList[clusterIndex].rotate_angle_range # branchClusterSettingsList
                     windingAngle += rotateAngle
                 
+                if branchClusterSettingsList[clusterIndex].branchType.value == "OPPOSITE":
+                    centerDirs.append(centerDirs[len(centerDirs) - 1])
+                    oppositeBranchDir = Quaternion(startPointTangent, math.radians(180.0)) @ branchDir
+                    oppositeBranchCotangent = Quaternion(branchCotangent, math.radians(180.0)) @ branchCotangent
+                    
+                    #branchDir = Quaternion(startPointTangent, math.radians(-rotateAngle)) @ branchDir
+                    if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "SYMMETRIC":
+                        if branchIndex % 2 == 0:
+                            oppositeBranchDir = Quaternion(startPointTangent, 2.0 * math.radians(rotateAngle)) @ oppositeBranchDir
+                        else:
+                            oppositeBranchDir = Quaternion(startPointTangent, -2.0 * math.radians(rotateAngle)) @ oppositeBranchDir
+                    
+                    treeGen.report({'INFO'}, f"in addBranches(): oppositeBranchDir: {oppositeBranchDir}")
+                         
+                    oppositeBranch = node(data.startPoint, 
+                                          1.0, 
+                                          oppositeBranchCotangent, 
+                                          clusterIndex, 
+                                          branchClusterSettingsList[clusterIndex].ringResolution, # -> branchClusterSettingsList[clusterIndex].ringResolution
+                                          taper * taperFactorList[clusterIndex].taperFactor, 
+                                          startTvalGlobal, #tValGlobal
+                                          0.0, 
+                                          branchLength)
+                                          
+                    oppositeBranch.tangent.append(oppositeBranchDir)
+                    oppositeBranch.tValBranch = 0.0
+                    
+                    oppositeBranchNext = node(data.startPoint + oppositeBranchDir * branchLength, 
+                                              1.0,
+                                              oppositeBranchCotangent,
+                                              clusterIndex,
+                                              branchClusterSettingsList[clusterIndex].ringResolution,
+                                              taper * taperFactorList[clusterIndex].taperFactor,
+                                              data.startNode.tValGlobal,
+                                              0.0,
+                                              branchLength)
+                    oppositeBranchNext.tangent.append(oppositeBranchDir)
+                    oppositeBranchNext.tValBranch = 1.0
+                    oppositeBranch.next.append(oppositeBranchNext)
+                    
+                    if len(data.startNode.branches) < startNodeNextIndex + 1:
+                        for m in range(len(data.startNode.next)):
+                            data.startNode.branches.append([])
+                    
+                    data.startNode.branches[startNodeNextIndex].append(oppositeBranch)
+                    branchNodes.append(oppositeBranch)
+                    
+                
+                if branchClusterSettingsList[clusterIndex].branchType.value == "WHORLED":
+                    pass
+                
+        #-----------------------------------------------------------------
+        # for each branch cluster:        
         maxSplitHeightUsed = 0
-        #if hangingBranchesList[clusterIndex].value == False:
         if branchClusterSettingsList[clusterIndex].nrSplitsPerBranch > 0.0: # [clusterIndex]
             
             splitHeightInLevelList = branchSplitHeightInLevel  # == branchSplitHeightInLevelList_0
@@ -2857,21 +2742,17 @@ noiseGenerator):
                 splitHeightInLevelList = branchSplitHeightInLevelList_18
             if clusterIndex == 19:
                 splitHeightInLevelList = branchSplitHeightInLevelList_19
-            
-            
             if clusterIndex > 19:
                 splitHeightInLevelList = branchSplitHeightInLevelListList[clusterIndex - 20].value
             
             nrSplits = int(branchClusterSettingsList[clusterIndex].nrSplitsPerBranch * branchClusterSettingsList[clusterIndex].nrBranches)
             
-            #treeGen.report({'INFO'}, f"in add Branches: nrSplits: {nrSplits}")
             length = len(splitHeightInLevelList)
             if length < int(branchClusterSettingsList[clusterIndex].nrSplitsPerBranch * branchClusterSettingsList[clusterIndex].nrBranches):
                 for i in range(length, nrSplits):
                     newHeight = splitHeightInLevelList.add()
                     newHeight = 0.5
                     
-            
             branchClusterSettingsList[clusterIndex].maxSplitHeightUsed = splitBranches(treeGen,
                 rootNode, 
                 clusterIndex, 
@@ -2898,13 +2779,10 @@ noiseGenerator):
                 
                 branchClusterSettingsList[clusterIndex].branchGlobalCurvatureStart, 
                 branchClusterSettingsList[clusterIndex].branchGlobalCurvatureEnd)
-                                     
-            
-                
+        
         for i, branchNode in enumerate(branchNodes):
             
             branchNode.resampleSpline(rootNode, treeGen, resampleDistance)
-            #treeGen.report({'INFO'}, f"in add Branches: calling applyCurvature")
             branchNode.applyCurvature2(treeGen, 
                                       rootNode, 
                                       treeGrowDir, 
@@ -2917,31 +2795,9 @@ noiseGenerator):
                                       branchNode.point, 
                                       branchClusterSettingsList[clusterIndex].reducedCurveStepCutoff, 
                                       branchClusterSettingsList[clusterIndex].reducedCurveStepFactor)
-                                      #0, 
-                                      #context.scene.maxCurveSteps)
              
             branchNode.attractOutward(treeGen, branchClusterSettingsList[clusterIndex].outwardAttraction, centerDirs[i])
-            
-            # branchNode.hangingBranches2(treeGen)
-                                      
-    # def applyCurvature 2(
-    #    self,
-    #    treeGen,
-    #    rootNode,
-    #    treeGrowDir,
-    #    treeHeight,
-    #    curvatureStartGlobal,
-    #    curvatureStartBranch,
-    #    curvatureEndGlobal,
-    #    curvatureEndBranch,
-    #    clusterIndex,
-    #    branchStartPoint,
-    #    #curveStep,
-    #    #maxCurveSteps,
-    #    rotationSteps=None, 
-    #    prevPoint = None
-    #):
-                                   
+                                               
             if branchClusterSettingsList[clusterIndex].noiseAmplitudeHorizontalBranch > 0.0 or branchClusterSettingsList[clusterIndex].noiseAmplitudeVerticalBranch > 0.0:
                 branchNode.applyNoise(treeGen, 
                                       noiseGenerator,
@@ -2953,17 +2809,7 @@ noiseGenerator):
                                       branchNode.point - (branchNode.next[0].point - branchNode.point), 
                                       branchLength)
                                       
-    #def applyNoise(
-        # self, 
-        # treeGen, 
-        # noise_generator, 
-        # noiseAmplitudeHorizontal,
-        # noiseAmplitudeVertical, 
-        # noiseAmplitudeGradient, 
-        # noiseAmplitudeExponent,
-        # noiseScale, 
-        # prevPoint, 
-        # treeHeight):
+ 
                                     
 def splitBranches(treeGen, 
                   rootNode, 
@@ -3697,6 +3543,17 @@ class angleModeEnumProp(bpy.types.PropertyGroup):
         default='WINDING'
     )
     
+class branchTypeEnumProp(bpy.types.PropertyGroup):
+    value: bpy.props.EnumProperty(
+        name = "branchType",
+        items=[
+            ('SINGLE', "Single", "single branch"),
+            ('OPPOSITE', "Opposite", "opposite branches"),
+            ('WHORLED', "Whorled", "whorled branches")
+        ],
+        default='SINGLE'
+    )
+    
 class toggleBool(bpy.types.Operator):
     bl_idname = "scene.toggle_bool"
     bl_label = "Toggle Bool"
@@ -3761,6 +3618,7 @@ class branchClusterSettings(bpy.types.PropertyGroup):
     nrBranchesIndex: bpy.props.IntProperty(name = "nrBranchesListIndex", default=0)
     treeShape: bpy.props.PointerProperty(type = treeShapeEnumProp)
     branchShape: bpy.props.PointerProperty(type = treeShapeEnumProp)
+    branchType: bpy.props.PointerProperty(type = branchTypeEnumProp)
     relBranchLength: bpy.props.FloatProperty(name = "Relative branch length", default = 1.0, min = 0.0, max = 1.0)
     relBranchLengthVariation: bpy.props.FloatProperty(name = "Relative branch length variation", default = 0.0, min = 0.0, soft_max = 1.0)
     #taperFactor: bpy.props.FloatProperty(name = "Taper factor", default = 1.0, min = 0.0, soft_max = 1.0) # -> own variable
@@ -3769,6 +3627,7 @@ class branchClusterSettings(bpy.types.PropertyGroup):
     branchesEndHeightGlobal: bpy.props.FloatProperty(name = "Branches end height global", default = 1.0, min = 0.0, max = 1.0)
     branchesStartHeightCluster: bpy.props.FloatProperty(name = "Branches start height cluster", default = 0.0, min = 0.0, max = 1.0)
     branchesEndHeightCluster: bpy.props.FloatProperty(name = "Branches end height cluster", default = 1.0, min = 0.0, max = 1.0)
+    branchesStartPointVariation: bpy.props.FloatProperty(name = "Branches start point variation", default = 0.0, min = 0.0, soft_max = 1.0)
     
     #bpy.types.Scene.branchClusterBoolListList = bpy.props.CollectionProperty(type=branchClusterBoolListProp)
     
@@ -4533,6 +4392,9 @@ def load_properties(filePath, context):
         for i, value in enumerate(data.get("branchShapeList", [])):
             props.branchClusterSettingsList[i].branchShape.value = value
             
+        for i, value in enumerate(data.get("branchTypeList", [])):
+            props.branchClusterSettingsList[i].branchType.value = value
+            
         for i, value in enumerate(data.get("relBranchLengthList", [])):
             props.branchClusterSettingsList[i].relBranchLength = value
             
@@ -4559,6 +4421,9 @@ def load_properties(filePath, context):
             
         for i, value in enumerate(data.get("branchesEndHeightClusterList", [])):
             props.branchClusterSettingsList[i].branchesEndHeightCluster = value
+            
+        for i, value in exumerate(data.get("branchesStartPointVariationList", [])):
+            props.branchClusterSettingsList[i].branchesStartPointVariation = value
         
         for i, value in enumerate(data.get("noiseAmplitudeHorizontalBranchList", [])):
             props.branchClusterSettingsList[i].noiseAmplitudeHorizontalBranch = value
@@ -5152,6 +5017,7 @@ def save_properties(filePath, treeGen):
         "nrBranchesList": [props.branchClusterSettingsList[i].nrBranches for i in range(props.branchClusters)],
         "treeShapeList": [props.branchClusterSettingsList[i].treeShape.value for i in range(props.branchClusters)],
         "branchShapeList": [props.branchClusterSettingsList[i].branchShape.value for i in range(props.branchClusters)],
+        "branchTypeList": [props.branchClusterSettingsList[i].branchType.value for i in range(props.branchClusters)],
         "relBranchLengthList": [props.branchClusterSettingsList[i].relBranchLength for i in range(props.branchClusters)],
         "relBranchLengthVariationList": [props.branchClusterSettingsList[i].relBranchLengthVariation for i in range(props.branchClusters)],
         "taperFactorList": [props.taperFactorList[i].taperFactor for i in range(props.branchClusters)],
@@ -5160,6 +5026,7 @@ def save_properties(filePath, treeGen):
         "branchesEndHeightGlobalList": [props.branchClusterSettingsList[i].branchesEndHeightGlobal for i in range(props.branchClusters)],
         "branchesStartHeightClusterList": [props.branchClusterSettingsList[i].branchesStartHeightCluster for i in range(props.branchClusters)],
         "branchesEndHeightClusterList": [props.branchClusterSettingsList[i].branchesEndHeightCluster for i in range(props.branchClusters)],
+        "branchesStartPointVariationList": [props.branchClusterSettingsList[i].branchesStartPointVariation for i in range(props.branchClusters)],
         
         "showNoiseSettingsList": [props.branchClusterSettingsList[i].showNoiseSettings for i in range(props.branchClusters)],
         
@@ -5504,6 +5371,10 @@ class branchSettings(bpy.types.Panel):
                     split.label(text="Branch shape")
                     split.prop(scene.branchClusterSettingsList[i].branchShape, "value", text="")
                     
+                    split = box.split(factor=0.6)
+                    split.label(text="Branch type")
+                    split.prop(scene.branchClusterSettingsList[i].branchType, "value", text="")
+                    
                     #box.prop(scene.branchClusterSettingsList[i].branchShape, "value")
                     
                     split = box.split(factor=0.6)
@@ -5550,6 +5421,9 @@ class branchSettings(bpy.types.Panel):
                     split.prop(scene.branchClusterSettingsList[i], "branchesEndHeightCluster", text="", slider=True)
                     #box.prop(scene.branchClusterSettingsList[i], "branchesEndHeightCluster")#, slider=True)
                     
+                    split = box.split(factor=0.6)
+                    split.label(text="Branches start point variation")
+                    split.prop(scene.branchClusterSettingsList[i], "branchesStartPointVariation", text="", slider=True)
                 
                 split = box.split(factor=0.6)
                 split.prop(scene.branchClusterSettingsList[i], "showNoiseSettings", icon="TRIA_DOWN" if scene.branchClusterSettingsList[i].showNoiseSettings else "TRIA_RIGHT", emboss=False, text="Noise settings", toggle=True)
@@ -5940,6 +5814,7 @@ def register():
     bpy.utils.register_class(treeShapeEnumProp)
     bpy.utils.register_class(splitModeEnumProp)
     bpy.utils.register_class(angleModeEnumProp)
+    bpy.utils.register_class(branchTypeEnumProp)
     bpy.utils.register_class(intProp)
     bpy.utils.register_class(intPropL)
     bpy.utils.register_class(posIntProp3)
