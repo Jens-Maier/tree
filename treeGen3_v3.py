@@ -2696,7 +2696,49 @@ noiseGenerator):
                     
                 
                 if branchClusterSettingsList[clusterIndex].branchType.value == "WHORLED":
-                    pass
+                    #centerDirs.append(centerDirs[len(centerDirs) - 1])
+                    #oppositeBranchDir = Quaternion(startPointTangent, math.radians(180.0)) @ branchDir
+                    #oppositeBranchCotangent = Quaternion(branchCotangent, math.radians(180.0)) @ branchCotangent
+                    
+                    for n in range(1, branchClusterSettingsList[clusterIndex].branchWhorlCount):
+                        centerDirs.append(centerDirs[len(centerDirs) - 1])
+                        whorlDir = Quaternion(startPointTangent, math.radians(n * 360.0 / branchClusterSettingsList[clusterIndex].branchWhorlCount)) @ branchDir
+                        whorlCotangent = Quaternion(branchCotangent, math.radians(n * 360.0 / branchClusterSettingsList[clusterIndex].branchWhorlCount)) @ branchCotangent
+                        
+                        #---
+                        whorlBranch = node(data.startPoint, 
+                                           1.0, 
+                                           whorlCotangent, 
+                                           clusterIndex, 
+                                           branchClusterSettingsList[clusterIndex].ringResolution, # -> branchClusterSettingsList[clusterIndex].ringResolution
+                                           taper * taperFactorList[clusterIndex].taperFactor, 
+                                           startTvalGlobal, #tValGlobal
+                                           0.0, 
+                                           branchLength)
+                                          
+                        whorlBranch.tangent.append(whorlDir)
+                        whorlBranch.tValBranch = 0.0
+                        
+                        whorlBranchNext = node(data.startPoint + whorlDir * branchLength, 
+                                               1.0,
+                                               whorlCotangent,
+                                               clusterIndex,
+                                               branchClusterSettingsList[clusterIndex].ringResolution,
+                                               taper * taperFactorList[clusterIndex].taperFactor,
+                                               data.startNode.tValGlobal,
+                                               0.0,
+                                               branchLength)
+                        whorlBranchNext.tangent.append(whorlDir)
+                        whorlBranchNext.tValBranch = 1.0
+                        whorlBranch.next.append(whorlBranchNext)
+                        
+                        if len(data.startNode.branches) < startNodeNextIndex + 1:
+                            for m in range(len(data.startNode.next)):
+                                data.startNode.branches.append([])
+                        
+                        data.startNode.branches[startNodeNextIndex].append(whorlBranch)
+                        branchNodes.append(whorlBranch)
+                    
                 
         #-----------------------------------------------------------------
         # for each branch cluster:        
@@ -3619,6 +3661,7 @@ class branchClusterSettings(bpy.types.PropertyGroup):
     treeShape: bpy.props.PointerProperty(type = treeShapeEnumProp)
     branchShape: bpy.props.PointerProperty(type = treeShapeEnumProp)
     branchType: bpy.props.PointerProperty(type = branchTypeEnumProp)
+    branchWhorlCount: bpy.props.IntProperty(name = "Whorl count", default = 3, min = 3)
     relBranchLength: bpy.props.FloatProperty(name = "Relative branch length", default = 1.0, min = 0.0, max = 1.0)
     relBranchLengthVariation: bpy.props.FloatProperty(name = "Relative branch length variation", default = 0.0, min = 0.0, soft_max = 1.0)
     #taperFactor: bpy.props.FloatProperty(name = "Taper factor", default = 1.0, min = 0.0, soft_max = 1.0) # -> own variable
@@ -4395,6 +4438,9 @@ def load_properties(filePath, context):
         for i, value in enumerate(data.get("branchTypeList", [])):
             props.branchClusterSettingsList[i].branchType.value = value
             
+        for i, value in enumerate(data.get("branchWhorlCountList", [])):
+            props.branchClusterSettingsList[i].branchWhorlCount = value
+            
         for i, value in enumerate(data.get("relBranchLengthList", [])):
             props.branchClusterSettingsList[i].relBranchLength = value
             
@@ -5018,6 +5064,7 @@ def save_properties(filePath, treeGen):
         "treeShapeList": [props.branchClusterSettingsList[i].treeShape.value for i in range(props.branchClusters)],
         "branchShapeList": [props.branchClusterSettingsList[i].branchShape.value for i in range(props.branchClusters)],
         "branchTypeList": [props.branchClusterSettingsList[i].branchType.value for i in range(props.branchClusters)],
+        "branchWhorlCountList": [props.branchClusterSettingsList[i].branchWhorlCount for i in range(props.branchClusters)],
         "relBranchLengthList": [props.branchClusterSettingsList[i].relBranchLength for i in range(props.branchClusters)],
         "relBranchLengthVariationList": [props.branchClusterSettingsList[i].relBranchLengthVariation for i in range(props.branchClusters)],
         "taperFactorList": [props.taperFactorList[i].taperFactor for i in range(props.branchClusters)],
@@ -5371,9 +5418,15 @@ class branchSettings(bpy.types.Panel):
                     split.label(text="Branch shape")
                     split.prop(scene.branchClusterSettingsList[i].branchShape, "value", text="")
                     
-                    split = box.split(factor=0.6)
+                    box2 = box.box()
+                    split = box2.split(factor=0.6)
                     split.label(text="Branch type")
                     split.prop(scene.branchClusterSettingsList[i].branchType, "value", text="")
+                    
+                    if scene.branchClusterSettingsList[i].branchType.value == 'WHORLED':
+                        split = box2.split(factor=0.6)
+                        split.label(text="Branch whorl count")
+                        split.prop(scene.branchClusterSettingsList[i], "branchWhorlCount", text="")
                     
                     #box.prop(scene.branchClusterSettingsList[i].branchShape, "value")
                     
