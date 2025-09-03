@@ -93,8 +93,8 @@ class node():
     
         
     def getAllSegments(self, treeGen, rootNode, segments, connectedToPrev):
-        #for t in self.tangent:
-            #drawArrow(self.point, self.point + t / 2.0)
+        for t in self.tangent:
+            drawArrow(self.point, self.point + t / 2.0)
         #if self.clusterIndex == -1: 
         #drawDebugPoint(self.point, 0.005)
         
@@ -627,7 +627,7 @@ class node():
         
         treeGen.report({'INFO'}, f"in applyCurvature 2(): curvature: {curvature}, curvatureStartGlobal: {curvatureStartGlobal}, curvatureEndGlobal: {curvatureEndGlobal}, curvatureStartBranch: {curvatureStartBranch}, curvatureEndBranch: {curvatureEndBranch}, curveAxis: {curveAxis}, reducedCurveStepCutoff: {reducedCurveStepCutoff}, reducedCurveStepFactor: {reducedCurveStepFactor}")
         
-        drawArrow(self.point, self.point + curveAxis)
+        #drawArrow(self.point, self.point + curveAxis)
         
         # split axis horizontal: 
         #
@@ -2713,8 +2713,12 @@ noiseGenerator):
                         branchCotangent = Vector((branchDir.z, 0.0, -branchDir.y))
     
                 startTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
-                shapeRatioValue = shapeRatio(self, context, startTvalGlobal, branchClusterSettingsList[clusterIndex].branchShape.value)
-                branchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * random.uniform(-1.0, 1.0)) * shapeRatioValue
+                startTvalBranch = lerp(data.startNode.tValBranch, data.startNode.next[startNodeNextIndex].tValBranch, data.t)
+                treeShapeRatioValue = shapeRatio(self, context, startTvalGlobal, branchClusterSettingsList[clusterIndex].treeShape.value)
+                
+                branchShapeRatioValue = shapeRatio(self, context, startTvalBranch, branchClusterSettingsList[clusterIndex].branchShape.value)
+                
+                branchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * random.uniform(-1.0, 1.0)) * treeShapeRatioValue * branchShapeRatioValue
                 
                 #class node():
                 #   def __init__(self, Point, Radius, Cotangent, RingResolution, Taper, TvalGlobal, TvalBranch):
@@ -2997,7 +3001,7 @@ def splitBranches(treeGen,
     #treeGen.report({'INFO'}, f"in split Branches(): branchCluster: {branchCluster}, nrSplits: {nrBranchSplits}, len(allBranchNodes): {len(allBranchNodes)}, hangingBranches: {hangingBranches}, branchVariance: {variance}")
     
     #################################
-    floatSplitsForBranch = [nrSplitsPerBranch for i in range(len(allBranchNodes))]
+    #floatSplitsForBranch = [nrSplitsPerBranch for i in range(len(allBranchNodes))]
     splitsForBranch = [0 for i in range(len(allBranchNodes))]
     # -> splitsPerBranchVariation..
     
@@ -3021,7 +3025,10 @@ def splitBranches(treeGen,
         
         # nrBranchSplits = int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value)
         
-        splitsForBranch[i] = int(round(nrBranchSplits * branchWeights[i] / totalWeight + random.uniform(-splitsPerBranchVariation * floatSplitsForBranch[i], splitsPerBranchVariation * floatSplitsForBranch[i])))
+        #splitsForBranch[i] = int(round(nrBranchSplits * branchWeights[i] / totalWeight + random.uniform(-splitsPerBranchVariation * floatSplitsForBranch[i], splitsPerBranchVariation * floatSplitsForBranch[i])))
+        splitsForBranch[i] = int(round(nrBranchSplits * branchWeights[i] / totalWeight + random.uniform(-splitsPerBranchVariation * nrSplitsPerBranch, splitsPerBranchVariation * nrSplitsPerBranch)))
+        
+        
         #treeGen.report({'INFO'}, f"splitsForBranch[{i}]: {splitsForBranch[i]}")
         
         #TODO: ~branch length...
@@ -3752,6 +3759,7 @@ class branchClusterSettings(bpy.types.PropertyGroup):
     branchClusterBoolList: bpy.props.CollectionProperty(type=branchClusterBoolListProp)
     nrBranches: bpy.props.IntProperty(name = "Number of branches", default = 3, min = 0)
     nrBranchesIndex: bpy.props.IntProperty(name = "nrBranchesListIndex", default=0)
+    treeShape: bpy.props.PointerProperty(type = treeShapeEnumProp)
     branchShape: bpy.props.PointerProperty(type = treeShapeEnumProp)
     relBranchLength: bpy.props.FloatProperty(name = "Relative branch length", default = 1.0, min = 0.0, max = 1.0)
     relBranchLengthVariation: bpy.props.FloatProperty(name = "Relative branch length variation", default = 0.0, min = 0.0, soft_max = 1.0)
@@ -4518,7 +4526,10 @@ def load_properties(filePath, context):
         
         for i, value in enumerate(data.get("nrBranchesList", [])):
             props.branchClusterSettingsList[i].nrBranches = value
-            
+        
+        for i, value in enumerate(data.get("treeShapeList", [])):
+            props.branchClusterSettingsList[i].treeShape.value = value
+        
         for i, value in enumerate(data.get("branchShapeList", [])):
             props.branchClusterSettingsList[i].branchShape.value = value
             
@@ -4529,9 +4540,10 @@ def load_properties(filePath, context):
             props.branchClusterSettingsList[i].relBranchLengthVariation = value
         
         props.taperFactorList.clear()
+        while len(props.taperFactorList) < props.branchClusters:
+            props.taperFactorList.add()
         for i, value in enumerate(data.get("taperFactorList", [])):
-            item = props.taperFactorList.add()
-            item.taperFactor = value
+            props.taperFactorList[i].taperFactor = value
         
         for i, value in enumerate(data.get("ringResolutionList", [])):
             props.branchClusterSettingsList[i].ringResolution = value
@@ -5138,6 +5150,7 @@ def save_properties(filePath, treeGen):
         "parentClusterBoolListList": nestedBranchList,
         
         "nrBranchesList": [props.branchClusterSettingsList[i].nrBranches for i in range(props.branchClusters)],
+        "treeShapeList": [props.branchClusterSettingsList[i].treeShape.value for i in range(props.branchClusters)],
         "branchShapeList": [props.branchClusterSettingsList[i].branchShape.value for i in range(props.branchClusters)],
         "relBranchLengthList": [props.branchClusterSettingsList[i].relBranchLength for i in range(props.branchClusters)],
         "relBranchLengthVariationList": [props.branchClusterSettingsList[i].relBranchLengthVariation for i in range(props.branchClusters)],
@@ -5395,8 +5408,8 @@ class addItem(bpy.types.Operator): # add branch cluster
         while context.scene.branchClusters - 20 > len(context.scene.branchSplitHeightInLevelListList):
             context.scene.branchSplitHeightInLevelListList.add()
         
-        taperFactor = context.scene.taperFactorList.add()
-        taperFactor = 1.0
+        taperFactorItem = context.scene.taperFactorList.add()
+        taperFactorItem.taperFactor = 1.0
         
         for leafParentClusterList in context.scene.leafParentClusterBoolListList:
             leafParentClusterList.value.add()
@@ -5483,6 +5496,9 @@ class branchSettings(bpy.types.Panel):
                     
                     #box.prop(scene.branchClusterSettingsList[i], "nrBranches")
                     
+                    split = box.split(factor=0.6)
+                    split.label(text="Tree shape")
+                    split.prop(scene.branchClusterSettingsList[i].treeShape, "value", text="")
                     
                     split = box.split(factor=0.6)
                     split.label(text="Branch shape")
@@ -5504,7 +5520,8 @@ class branchSettings(bpy.types.Panel):
                     
                     split = box.split(factor=0.6)
                     split.label(text="Taper factor")
-                    split.prop(scene.taperFactorList[i], "taperFactor", text="", slider=True)
+                    if i < len(scene.taperFactorList):
+                        split.prop(scene.taperFactorList[i], "taperFactor", text="", slider=True)
                     
                     #box.prop(scene.taperFactorList[i], "taperFactor")#, slider=True)
                     
