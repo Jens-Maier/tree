@@ -64,6 +64,8 @@ class node():
         self.branches = []
         self.branchLength = BranchLength
         self.isLastRotated = False
+        self.outwardDir = []
+        self.rotateAngleRange = []
         
     def drawDebugPoint(pos, size, name="debugPoint"):
         bpy.ops.object.empty_add(type='SPHERE', location=pos)
@@ -93,8 +95,8 @@ class node():
     
         
     def getAllSegments(self, treeGen, rootNode, segments, connectedToPrev):
-        for t in self.tangent:
-            drawArrow(self.point, self.point + t / 2.0)
+        #for t in self.tangent:
+            #drawArrow(self.point, self.point + t / 2.0)
         #if self.clusterIndex == -1: 
         #drawDebugPoint(self.point, 0.005)
         
@@ -141,8 +143,8 @@ class node():
         newClusterIndex):
             
         #treeGen.report({'INFO'}, f"in getAllStartNodes() self.cluster: {self.clusterIndex}")
-        if self.clusterIndex == -1:
-            drawDebugPoint(self.point, 0.2)
+        #if self.clusterIndex == -1:
+            #drawDebugPoint(self.point, 0.2)
         #if self.clusterIndex == 0:
         #    drawDebugPoint(self.point, 0.3)
         #if self.clusterIndex == 1:
@@ -1063,6 +1065,10 @@ class generateTree(bpy.types.Operator):
             nodes[1].tangent.append(Vector((0.0,0.0,1.0)))
             nodes[1].cotangent = Vector((1.0,0.0,0.0))
             nodes[0].next.append(nodes[1])
+            nodes[0].outwardDir.append(nodes[0].cotangent)
+            nodes[0].rotateAngleRange.append(180.0)
+            nodes[1].outwardDir.append(nodes[0].cotangent)
+            nodes[1].rotateAngleRange.append(180.0)
             
             
             if context.scene.nrSplits > 0:
@@ -1677,6 +1683,9 @@ def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
         return branchTipRadius
 
 def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, splitHeightInLevel, splitHeightVariation, splitLengthVariation, stemSplitMode, stemSplitRotateAngle, root_node, stemRingResolution, curvOffsetStrength, self, rootNode):
+    
+    #TODO: store in node: outwardDir, rotateAngleRange
+    
     #self.report({'INFO'}, f"splitRecursive! nrSplits: {nrSplits}")
     while len(splitHeightInLevel) < nrSplits:
         newHeight = splitHeightInLevel.add()
@@ -1727,8 +1736,8 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
             break
         maxPossibleSplits *= 2
     addAmount = nrSplits - totalExpectedSplits
-    #self.report({'INFO'}, f"addAmount: {addAmount}, addToLevel: {addToLevel}, maxPossibleSplits: {maxPossibleSplits}")
-    if addAmount > 0: # and expectedSplitsInLevel[addToLevel]: + addAmount <= maxPossibleSplits:
+    
+    if addAmount > 0: 
         expectedSplitsInLevel[addToLevel] += min(addAmount, maxPossibleSplits - expectedSplitsInLevel[addToLevel])
 
     splitProbabilityInLevel[addToLevel] = float(expectedSplitsInLevel[addToLevel]) / float(maxPossibleSplits)
@@ -1737,9 +1746,6 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
     for n in range(len(startNode.next)):
         nodesInLevelNextIndex[0].append((startNode, n))
         
-   # for i in range(nrSplits):
-   #     self.report({'INFO'}, f"expectedSplitsInLevel[{i}]: {expectedSplitsInLevel[i]}") # ERROR HERE !!!
-    
     maxSplitHeightUsed = 0
 
     totalSplitCounter = 0
@@ -1764,19 +1770,13 @@ def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, s
                         splitHeight = max(splitHeight + h * splitHeightVariation, 0.05)
                     else:
                         splitHeight = min(splitHeight + h * splitHeightVariation, 0.95)
-                    #if splitHeight < 0.0 or splitHeight > 1.0:
-                        #self.report({'ERROR'}, f"splitHeight out of bounds! splitHeight: {splitHeight}")
-                    #self.report({'INFO'}, f"splitRecursive: splitHeight: {splitHeight}")
-                    #self.report({'INFO'}, f"splitRecursive(): stemSplitRotateAngle {stemSplitRotateAngle}")
+                    
                     maxSplitHeightUsed = max(maxSplitHeightUsed, level)
                     splitNode = split(
                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0],
                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][1],
                         splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, stemSplitMode, stemSplitRotateAngle, 0.0, stemRingResolution, curvOffsetStrength, self, rootNode)
-                    #if splitNode == nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0]:
-                    #    nodeIndices.pop(indexToSplit) # error here !!! -> split at startNode possible!
-                         #self.report({'INFO'}, f"in splitRecursive: splitNode == startNode")
-                    #else: TEST!
+                    
                     nodeIndices.pop(indexToSplit)
                     nodesInLevelNextIndex[level + 1].append((splitNode, 0))
                     nodesInLevelNextIndex[level + 1].append((splitNode, 1))
@@ -1819,18 +1819,15 @@ def split(startNode,
                         nextIndex = 0
                     else:
                         splitNode = splitNode.next[0]
+                        
+                
                 
                 if splitNode != startNode:
-                    calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
+                    calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, splitNode.outwardDir)
                 else:
                     # TODO -> split at new node!!!
                     return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, mode, rotationAngle, branchSplitAxisVariation, stemRingResolution, curvOffsetStrength, self, rootNode)
-                    #return startNode
-                   # self.report({'INFO'}, f"splitNode == startNode")
-                #    if splitNode == rootNode:
-                #        calculateSplitData(splitNode, splitAngle, splitPointAngle, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
-               # self.report({'INFO'}, f"split at existing node")
-                #return splitNode
+                    
             else:
                 return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, mode, rotationAngle, branchSplitAxisVariation, stemRingResolution, curvOffsetStrength, self, rootNode) # clusterIndex???
                 
@@ -1888,15 +1885,18 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
     newNode.next.append(splitAfterNode.next[nextIndex])
     splitAfterNode.next[nextIndex] = newNode
     
-    # TODO: splitNode = newNode ???
+    #TODO: store in node: outwardDir, rotateAngleRange
+    #TODO: outwardDir, centerPoint
     
-    # ERROR: when splitHeightVariation is large !!!
+    newNode.outwardDir = splitAfterNode.outwardDir #(?) # TODO ...
+    self.report({'INFO'}, f"newNode.outwardDir: {newNode.outwardDir}")
     
-    calculateSplitData(newNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self)
+    
+    calculateSplitData(newNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, newNode.outwardDir)
   #  self.report({'INFO'}, f"did split at new node!")
     return newNode
 
-def calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, sMode, rotationAngle, stemRingResolution, curvOffsetStrength, self):
+def calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, sMode, rotationAngle, stemRingResolution, curvOffsetStrength, self, outwardDir):
     
     n = splitNode
     nodesAfterSplitNode = 0
@@ -1943,10 +1943,15 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariat
     previousNodeA = splitNode
     previousNodeB = splitNode
     curv_offset = splitNode.tangent[0].normalized() * (s.next[0].point - s.point).length * (splitAngle / 360.0) * curvOffsetStrength
+    s.outwardDir = outwardDir #TODO
+    self.report({'INFO'}, f"outwardDir: {outwardDir}")
+    drawArrow(s.point, s.point + outwardDir[0]) # ??? why [0] ???
 
     for i in range(nodesAfterSplitNode):
         s = s.next[0]
         rel_pos = s.point - splitNode.point
+        s.outwardDir = outwardDir #TODO
+        drawArrow(s.point, s.point + outwardDir[0])
 
         tangent_a = (Quaternion(splitAxis, math.radians(splitAngle)) @ s.tangent[0]).normalized()
         tangent_b = (Quaternion(splitAxis, -math.radians(splitAngle)) @ s.tangent[0]).normalized()
@@ -2495,7 +2500,7 @@ noiseGenerator):
                 
                 startPoint = data.startPoint
                 treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, startPoint: {startPoint}")
-                drawDebugPoint(startPoint, 0.04)
+                #drawDebugPoint(startPoint, 0.04)
                 
                 startNodeNextIndex = data.startNodeNextIndex
                 startPointTangent = sampleSplineTangentT(data.startNode.point, 
@@ -2525,7 +2530,8 @@ noiseGenerator):
                     
                     centerDir = data.outwardDir # for symmetric!
                     centerDirs.append(centerDir)
-                    #drawArrow(startPoint, startPoint + data.outwardDir)                
+                    #drawArrow(startPoint, startPoint + data.outwardDir) 
+                    treeGen.report({'INFO'}, f"in add Branches: outwardDir: {data.outwardDir}")              
                     if branchClusterSettingsList[clusterIndex].useFibonacciAngles == True:
                         angle = (windingAngle + 360.0) % 360.0
                         right = startPointTangent.cross(Vector((1.0,0.0,0.0))).normalized() # -> most likely vertical
@@ -2539,7 +2545,8 @@ noiseGenerator):
                         
                         ################################################
                         treeGen.report({'INFO'}, f"startPointTangent: {startPointTangent}")
-                        right = startPointTangent.cross(Vector((0.0,0.0,1.0)))
+                        #right = startPointTangent.cross(Vector((0.0,0.0,1.0))) # ERROR HERE !!!
+                        right = data.outwardDir.cross(startPointTangent)
                         
                         if right.length <= 0.001:
                             d = data.startNode.next[data.startNodeNextIndex].point - data.startNode.point
@@ -2548,8 +2555,11 @@ noiseGenerator):
                                 right = h.cross(data.startNode.tangent[0])
                             else:
                                 right = Vector((1.0,0.0,0.0))
+                            drawArrow(startPoint, startPoint + right / 2.0) 
                         else:
-                            right = right.normalized()
+                            right = right.normalized() # ERROR HERE
+                            
+                            drawArrow(startPoint, startPoint + data.outwardDir) 
                         ################################################
                         
                     treeGen.report({'INFO'}, f"WINDING: right: {right}") # ERROR HERE
@@ -2660,6 +2670,8 @@ noiseGenerator):
                             oppositeBranchDir = Quaternion(startPointTangent, -2.0 * math.radians(rotateAngle)) @ oppositeBranchDir
                     
                     treeGen.report({'INFO'}, f"in addBranches(): oppositeBranchDir: {oppositeBranchDir}")
+                    
+                    oppositeBranchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * random.uniform(-1.0, 1.0)) * treeShapeRatioValue * branchShapeRatioValue
                          
                     oppositeBranch = node(data.startPoint, 
                                           1.0, 
@@ -2669,12 +2681,12 @@ noiseGenerator):
                                           taper * taperFactorList[clusterIndex].taperFactor, 
                                           startTvalGlobal, #tValGlobal
                                           0.0, 
-                                          branchLength)
+                                          oppositeBranchLength)
                                           
                     oppositeBranch.tangent.append(oppositeBranchDir)
                     oppositeBranch.tValBranch = 0.0
                     
-                    oppositeBranchNext = node(data.startPoint + oppositeBranchDir * branchLength, 
+                    oppositeBranchNext = node(data.startPoint + oppositeBranchDir * oppositeBranchLength, 
                                               1.0,
                                               oppositeBranchCotangent,
                                               clusterIndex,
@@ -2682,7 +2694,7 @@ noiseGenerator):
                                               taper * taperFactorList[clusterIndex].taperFactor,
                                               data.startNode.tValGlobal,
                                               0.0,
-                                              branchLength)
+                                              oppositeBranchLength)
                     oppositeBranchNext.tangent.append(oppositeBranchDir)
                     oppositeBranchNext.tValBranch = 1.0
                     oppositeBranch.next.append(oppositeBranchNext)
@@ -2700,10 +2712,14 @@ noiseGenerator):
                     #oppositeBranchDir = Quaternion(startPointTangent, math.radians(180.0)) @ branchDir
                     #oppositeBranchCotangent = Quaternion(branchCotangent, math.radians(180.0)) @ branchCotangent
                     
-                    for n in range(1, branchClusterSettingsList[clusterIndex].branchWhorlCount):
+                    whorlCount = int(round(lerp(branchClusterSettingsList[clusterIndex].branchWhorlCountStart, branchClusterSettingsList[clusterIndex].branchWhorlCountEnd, startTvalGlobal)))
+                    
+                    for n in range(1, whorlCount):
                         centerDirs.append(centerDirs[len(centerDirs) - 1])
-                        whorlDir = Quaternion(startPointTangent, math.radians(n * 360.0 / branchClusterSettingsList[clusterIndex].branchWhorlCount)) @ branchDir
-                        whorlCotangent = Quaternion(branchCotangent, math.radians(n * 360.0 / branchClusterSettingsList[clusterIndex].branchWhorlCount)) @ branchCotangent
+                        whorlDir = Quaternion(startPointTangent, math.radians(n * 360.0 / whorlCount)) @ branchDir
+                        whorlCotangent = Quaternion(branchCotangent, math.radians(n * 360.0 / whorlCount)) @ branchCotangent
+                        
+                        whorlBranchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * random.uniform(-1.0, 1.0)) * treeShapeRatioValue * branchShapeRatioValue
                         
                         #---
                         whorlBranch = node(data.startPoint, 
@@ -2714,12 +2730,12 @@ noiseGenerator):
                                            taper * taperFactorList[clusterIndex].taperFactor, 
                                            startTvalGlobal, #tValGlobal
                                            0.0, 
-                                           branchLength)
+                                           whorlBranchLength)
                                           
                         whorlBranch.tangent.append(whorlDir)
                         whorlBranch.tValBranch = 0.0
                         
-                        whorlBranchNext = node(data.startPoint + whorlDir * branchLength, 
+                        whorlBranchNext = node(data.startPoint + whorlDir * whorlBranchLength, 
                                                1.0,
                                                whorlCotangent,
                                                clusterIndex,
@@ -3024,7 +3040,8 @@ def splitBranches(treeGen,
                             stemRingResolution,
                             curvOffsetStrength,
                             treeGen, 
-                            rootNode)
+                            rootNode
+                            )
                         
                         if splitNode == nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0]:
                             #did not split
@@ -3055,6 +3072,8 @@ def shapeRatio(self, context, tValGlobal, treeShape):
         return 0.2 + 0.8 * math.sin(math.pi * tValGlobal)
     if treeShape == "HEMISPHERICAL":
         return 0.2 + 0.8 * math.sin(0.5 * math.pi * tValGlobal)
+    if treeShape == "INVERSE_HEMISPHERICAL":
+        return 0.2 + 0.8 * math.sin(0.5 * math.pi * (1.0 - tValGlobal))
     if treeShape == "CYLINDRICAL":
         return 1.0;
     if treeShape == "TAPERED_CYLINDRICAL":
@@ -3205,10 +3224,11 @@ def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLen
     #treeGen.report({'INFO'}, f"in generateStartPointData: startNode.next[startNodeNextIndex].point: {startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point}")
     
     if outwardDir == Vector((0.0, 0.0, 0.0)):
-        outwardDir = lerp(
-            startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.cotangent,
-            startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent, 
-            tVal)
+        #outwardDir = lerp(
+        #    startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.cotangent,
+        #    startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent, 
+        #    tVal)
+        outwardDir = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent
             
         #self.report({'INFO'}, "in add Branches(): outwardDir is zero [0]")
         #tan index split! ERROR HERE !!!
@@ -3216,10 +3236,12 @@ def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLen
     outwardDir.z = 0.0
 
     if outwardDir == Vector((0.0, 0.0, 0.0)):
-        outwardDir = lerp(
-            startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.cotangent,
-            startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent,
-            tVal)
+        #outwardDir = lerp(
+        #    startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.cotangent,
+        #    startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent,
+        #    tVal)
+        outwardDir = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent
+        
         #self.report({'INFO'}, "in add Branches(): outwardDir is zero [1]")
         # print("outward_dir is zero, using cotangent: ", outward_dir)
     outwardDir = outwardDir.normalized()
@@ -3556,6 +3578,7 @@ class treeShapeEnumProp(bpy.types.PropertyGroup):
             ('CONICAL', "Conical", "A cone-shaped tree."),
             ('SPHERICAL', "Spherical", "A sphere-shaped tree."),
             ('HEMISPHERICAL', "Hemispherical", "A half-sphere shaped tree."),
+            ('INVERSE_HEMISPHERICAL', "Inverse Hemispherical", "An upside-down half-sphere shaped tree."),
             ('CYLINDRICAL', "Cylindrical", "A cylinder-shaped tree."),
             ('TAPERED_CYLINDRICAL', "Tapered Cylindrical", "A cylinder that tapers towards the top."),
             ('FLAME', "Flame", "A flame-shaped tree."),
@@ -3661,7 +3684,8 @@ class branchClusterSettings(bpy.types.PropertyGroup):
     treeShape: bpy.props.PointerProperty(type = treeShapeEnumProp)
     branchShape: bpy.props.PointerProperty(type = treeShapeEnumProp)
     branchType: bpy.props.PointerProperty(type = branchTypeEnumProp)
-    branchWhorlCount: bpy.props.IntProperty(name = "Whorl count", default = 3, min = 3)
+    branchWhorlCountStart: bpy.props.IntProperty(name = "Whorl count start", default = 3, min = 1)
+    branchWhorlCountEnd: bpy.props.IntProperty(name = "Whorl count end", default = 3, min = 1)
     relBranchLength: bpy.props.FloatProperty(name = "Relative branch length", default = 1.0, min = 0.0, max = 1.0)
     relBranchLengthVariation: bpy.props.FloatProperty(name = "Relative branch length variation", default = 0.0, min = 0.0, soft_max = 1.0)
     #taperFactor: bpy.props.FloatProperty(name = "Taper factor", default = 1.0, min = 0.0, soft_max = 1.0) # -> own variable
@@ -4438,8 +4462,11 @@ def load_properties(filePath, context):
         for i, value in enumerate(data.get("branchTypeList", [])):
             props.branchClusterSettingsList[i].branchType.value = value
             
-        for i, value in enumerate(data.get("branchWhorlCountList", [])):
-            props.branchClusterSettingsList[i].branchWhorlCount = value
+        for i, value in enumerate(data.get("branchWhorlCountStartList", [])):
+            props.branchClusterSettingsList[i].branchWhorlCountStart = value
+            
+        for i, value in enumerate(data.get("branchWhorlCountEndList", [])):
+            props.branchClusterSettingsList[i].branchWhorlCountEndStart = value
             
         for i, value in enumerate(data.get("relBranchLengthList", [])):
             props.branchClusterSettingsList[i].relBranchLength = value
@@ -4468,7 +4495,7 @@ def load_properties(filePath, context):
         for i, value in enumerate(data.get("branchesEndHeightClusterList", [])):
             props.branchClusterSettingsList[i].branchesEndHeightCluster = value
             
-        for i, value in exumerate(data.get("branchesStartPointVariationList", [])):
+        for i, value in enumerate(data.get("branchesStartPointVariationList", [])):
             props.branchClusterSettingsList[i].branchesStartPointVariation = value
         
         for i, value in enumerate(data.get("noiseAmplitudeHorizontalBranchList", [])):
@@ -5064,7 +5091,8 @@ def save_properties(filePath, treeGen):
         "treeShapeList": [props.branchClusterSettingsList[i].treeShape.value for i in range(props.branchClusters)],
         "branchShapeList": [props.branchClusterSettingsList[i].branchShape.value for i in range(props.branchClusters)],
         "branchTypeList": [props.branchClusterSettingsList[i].branchType.value for i in range(props.branchClusters)],
-        "branchWhorlCountList": [props.branchClusterSettingsList[i].branchWhorlCount for i in range(props.branchClusters)],
+        "branchWhorlCountStartList": [props.branchClusterSettingsList[i].branchWhorlCountStart for i in range(props.branchClusters)],
+        "branchWhorlCountEndList": [props.branchClusterSettingsList[i].branchWhorlCountEnd for i in range(props.branchClusters)],
         "relBranchLengthList": [props.branchClusterSettingsList[i].relBranchLength for i in range(props.branchClusters)],
         "relBranchLengthVariationList": [props.branchClusterSettingsList[i].relBranchLengthVariation for i in range(props.branchClusters)],
         "taperFactorList": [props.taperFactorList[i].taperFactor for i in range(props.branchClusters)],
@@ -5425,9 +5453,13 @@ class branchSettings(bpy.types.Panel):
                     
                     if scene.branchClusterSettingsList[i].branchType.value == 'WHORLED':
                         split = box2.split(factor=0.6)
-                        split.label(text="Branch whorl count")
-                        split.prop(scene.branchClusterSettingsList[i], "branchWhorlCount", text="")
-                    
+                        split.label(text="Branch whorl count start")
+                        split.prop(scene.branchClusterSettingsList[i], "branchWhorlCountStart", text="")
+                        
+                        split = box2.split(factor=0.6)
+                        split.label(text="Branch whorl count end")
+                        split.prop(scene.branchClusterSettingsList[i], "branchWhorlCountEnd", text="")
+                        
                     #box.prop(scene.branchClusterSettingsList[i].branchShape, "value")
                     
                     split = box.split(factor=0.6)
@@ -6218,6 +6250,7 @@ def register():
             ('CONICAL', "Conical", "A cone-shaped tree."),
             ('SPHERICAL', "Spherical", "A sphere-shaped tree."),
             ('HEMISPHERICAL', "Hemispherical", "A half-sphere shaped tree."),
+            ('INVERSE_HEMISPHERICAL', "Inverse Hemispherical", "An upside-down half-sphere shaped tree."),
             ('CYLINDRICAL', "Cylindrical", "A cylinder-shaped tree."),
             ('TAPERED_CYLINDRICAL', "Tapered Cylindrical", "A cylinder that tapers towards the top."),
             ('FLAME', "Flame", "A flame-shaped tree."),
