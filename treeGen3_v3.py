@@ -12,18 +12,17 @@ bl_info = {
 
 import bpy
 import math
-from math import atan2
 import mathutils
 from mathutils import Vector, Quaternion, Matrix
 import random
 import json
 
 class startNodeInfo():
-    def __init__(self, StartNode, NextIndex, StartTvalSegment, EndTvalSegment, StartTvalGlobal, EndTvalGlobal):
+    def __init__(self, StartNode, NextIndex, StartTval, EndTval, StartTvalGlobal, EndTvalGlobal):
         self.startNode = StartNode
         self.nextIndex = NextIndex
-        self.startTvalSegment = StartTvalSegment
-        self.endTvalSegment = EndTvalSegment
+        self.startTval = StartTval
+        self.endTval = EndTval
         self.startTvalGlobal = StartTvalGlobal
         self.endTvalGlobal = EndTvalGlobal
         
@@ -101,7 +100,7 @@ class node():
         #for t in self.tangent:
             #drawArrow(self.point, self.point + t / 2.0)
         #if self.clusterIndex == -1: 
-        drawDebugPoint(self.point, 0.005)
+        #drawDebugPoint(self.point, 0.005)
         
         for n, nextNode in enumerate(self.next):
             longestBranchLengthInCluster = 1.0
@@ -166,8 +165,7 @@ class node():
                         
                         startTvalSegment = (segmentStartGlobal - self.tValGlobal) / (self.next[n].tValGlobal - self.tValGlobal)
                         endTvalSegment = (segmentEndGlobal - self.tValGlobal) / (self.next[n].tValGlobal - self.tValGlobal)
-                        
-                        
+                     
                         startNodesNextIndexStartTvalEndTval.append(startNodeInfo(self, n, startTvalSegment, endTvalSegment, segmentStartGlobal, segmentEndGlobal))
                         #treeGen.report({'INFO'}, f"in getAllStartNodes(): stem: adding node: self.point: {self.point}, newClusterIndex: {newClusterIndex}")
         
@@ -200,7 +198,7 @@ class node():
                                 
                                 startTval = (segStart - tA) / (tB - tA)
                                 endTval = (segEnd - tA) / (tB - tA)
-                                startNodesNextIndexStartTvalEndTval.append(startNodeInfo(self, n, startTval, endTval))
+                                startNodesNextIndexStartTvalEndTval.append(startNodeInfo(self, n, startTval, endTval, segStart, segEnd))
                                 #if self.clusterIndex == 0:
                                     #treeGen.report({'INFO'}, f"adding in self.clusterIndex == 0 len(self.next): {len(self.next)}")
                                     #drawDebugPoint(self.point, 0.5)
@@ -235,7 +233,7 @@ class node():
             branchNodesNextIndexStartTvalEndTval.append([])
             for n in b:
                 for i in range(0, len(n.next)):
-                    branchNodesNextIndexStartTvalEndTval[len(branchNodesNextIndexStartTvalEndTval) - 1].append(startNodeInfo(n, i, 0.0, 1.0))
+                    branchNodesNextIndexStartTvalEndTval[len(branchNodesNextIndexStartTvalEndTval) - 1].append(startNodeInfo(n, i, 0.0, 1.0, 0.0, 1.0))
                 n.getAllStartNodes(
                     treeGen,
                     startNodesNextIndexStartTvalEndTval, 
@@ -1069,19 +1067,16 @@ class generateTree(bpy.types.Operator):
             nodes[1].tangent.append(Vector((0.0,0.0,1.0)))
             nodes[1].cotangent = Vector((1.0,0.0,0.0))
             nodes[0].next.append(nodes[1])
-            #nodes[0].outwardDir.append(nodes[0].cotangent)
+            nodes[0].outwardDir.append(nodes[0].cotangent)
             nodes[0].rotateAngleRange.append(180.0)
-            #nodes[1].outwardDir.append(nodes[0].cotangent)
+            nodes[1].outwardDir.append(nodes[0].cotangent)
             nodes[1].rotateAngleRange.append(180.0)
             
             
             if context.scene.nrSplits > 0:
                 maxSplitHeightUsed = splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, context.scene.stemSplitHeightInLevelList, context.scene.splitHeightVariation, context.scene.splitLengthVariation, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution, context.scene.curvOffsetStrength, self, nodes[0])
                 context.scene.maxSplitHeightUsed = max(context.scene.maxSplitHeightUsed, maxSplitHeightUsed)
-                
             
-                
-                #def calculateOutwardDirAndRotateAngleRange(treeGen, activeNode, rootNode, treeGrowDir, treeHeight):
             
             nodes[0].resampleSpline(nodes[0], self, context.scene.resampleDistance)
             
@@ -1135,8 +1130,6 @@ class generateTree(bpy.types.Operator):
                                     context.scene.noiseScale, 
                                     nodes[0].point - (nodes[0].next[0].point - nodes[0].point), 
                                     context.scene.treeHeight)
-                                    
-            #calculateOutwardDirAndRotateAngleRange(self, nodes[0], nodes[0], context.scene.treeGrowDir, context.scene.treeHeight)
             
             #def applyNoise(
         # self, 
@@ -1162,7 +1155,7 @@ class generateTree(bpy.types.Operator):
             #context.scene.branchClusterSettingsList
             
             if context.scene.branchClusters > 0:
-                addBranches2(
+                addBranches(
                 self, 
                 self, 
                 context.scene.resampleDistance,
@@ -1690,166 +1683,8 @@ def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
         activeNode.radius = branchTipRadius
         #self.report({'INFO'}, f"activeNode.radius = branchTipRadius = {branchTipRadius}")
         return branchTipRadius
-    
-def calculateOutwardDirAndRotateAngleRange(treeGen, activeNode, rootNode, treeGrowDir, treeHeight, nrSplitsPassed = 0, prevOutwardDir = Vector((0.0,0.0,0.0))):
-    
-    #TODO: set outwardDir , rotateAngleRange = 180 in rootNode...
-    
-    #in node: outwardDir[], rotateAngleRange[]
-    
-    
-    
-    #drawArrow(activeNode.point, activeNode.point + activeNode.cotangent)
-    centerPoint = sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, rootNode.next[0].point, rootNode.next[0].tangent[0], activeNode.tValGlobal);
-    #drawDebugPoint(centerPoint, 0.1)
-    
-    if nrSplitsPassed == 0:
-        if len(activeNode.next) == 2:
-            #TEMP
-            activeNode.rotateAngleRange[0] = activeNode.rotateAngleRange[0] / 2.0
-            activeNode.rotateAngleRange.append(activeNode.rotateAngleRange[0])
-            
-            nextCenterPointA = sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, rootNode.next[0].point, rootNode.next[0].tangent[0], activeNode.next[0].tValGlobal);
-            outwardDirA = activeNode.next[0].point - nextCenterPointA
-            
-            if len(outwardDirA) < 0.01:
-                outwardDirA = activeNode.cotangent
-            else:
-                outwardDirA = outwardDirA.normalized()
-            drawArrow(activeNode.point, activeNode.point + outwardDirA)
-            
-            nextCenterPointB = sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, rootNode.next[0].point, rootNode.next[0].tangent[0], activeNode.next[1].tValGlobal);
-            outwardDirB = activeNode.next[1].point - nextCenterPointA
-            
-            if len(outwardDirB) < 0.01:
-                outwardDirB = activeNode.cotangent
-            else:
-                outwardDirB = outwardDirB.normalized()
-            drawArrow(activeNode.point, activeNode.point + outwardDirB)
-            activeNode.outwardDir.append(outwardDirA)
-            activeNode.outwardDir.append(outwardDirB)
-            
-            activeNode.next[0].rotateAngleRange.append(activeNode.rotateAngleRange[0])
-            activeNode.next[1].rotateAngleRange.append(activeNode.rotateAngleRange[1])
-        else:
-            outwardDir = activeNode.cotangent
-            drawArrow(activeNode.point, activeNode.point + outwardDir)
-            activeNode.next[0].rotateAngleRange = activeNode.rotateAngleRange
-            activeNode.outwardDir.append(outwardDir)
-    else:
-        if len(activeNode.next) == 1:
-            if nrSplitsPassed < 2:
-                outwardDir = activeNode.point - centerPoint
-            else:
-                #TODO: split outwardDir... next.outwardDir ? ...
-                outwardDir = activeNode.point - centerPoint
-            
-            if len(outwardDir) < 0.01:
-                outwardDir = activeNode.cotangent
-            else:
-                outwardDir = outwardDir.normalized()
-            #drawArrow(activeNode.point, activeNode.point + outwardDir)
-            #activeNode.outwardDir.append(outwardDir)
-            
-            drawArrow(activeNode.point, activeNode.point + prevOutwardDir)
-            activeNode.outwardDir.append(prevOutwardDir)
-            
-            activeNode.next[0].rotateAngleRange = activeNode.rotateAngleRange
-    
-        if len(activeNode.next) == 2:
-            nextCenterPointA = sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, rootNode.next[0].point, rootNode.next[0].tangent[0], activeNode.next[0].tValGlobal);
-            #outwardDirA = activeNode.next[0].point - nextCenterPointA
-            
-            outwardDir = activeNode.point - centerPoint
-            outwardDirA = outwardDir + Quaternion(activeNode.tangent[0], math.radians(activeNode.rotateAngleRange[0])) @ outwardDir
-            outwardDirB = outwardDir + Quaternion(activeNode.tangent[0], -math.radians(activeNode.rotateAngleRange[0])) @ outwardDir
-            
-             # ERROR HERE !!!
-             
-             
-            activeNode.rotateAngleRange[0] = activeNode.rotateAngleRange[0] / 2.0
-            activeNode.rotateAngleRange.append(activeNode.rotateAngleRange[0])
-            
-            activeNode.outwardDir.append(outwardDirA)
-            activeNode.outwardDir.append(outwardDirB / 2.0) # TEMP TEMP TEMP
-            
-            
-            treeGen.report({'INFO'}, f"len(activeNode.tangent): {len(activeNode.tangent)}")
-            treeGen.report({'INFO'}, f"len(activeNode.rotateAngleRange): {len(activeNode.rotateAngleRange)}")
-            treeGen.report({'INFO'}, f"len(activeNode.outwardDir): {len(activeNode.outwardDir)}") #ERROR HERE
-            startVec = Quaternion(activeNode.tangent[0], -math.radians(activeNode.rotateAngleRange[0])) @ outwardDirA
-            # TEST TEST  TEST activeNode.outwardDir[0]
-            endVec = Quaternion(activeNode.tangent[0], math.radians(activeNode.rotateAngleRange[0])) @ outwardDirA
-            # TEST TEST TEST activeNode.outwardDir[0]
-            
-            #if len(outwardDirA) < 0.01:
-            #    outwardDirA = activeNode.cotangent
-            #else:
-            #    outwardDirA = outwardDirA.normalized()
-            
-            treeGen.report({'INFO'}, f"startVec: {startVec}")
-            treeGen.report({'INFO'}, f"activeNode.outwardDir: {activeNode.outwardDir}")
-            #outwardDirA = (startVec + activeNode.outwardDir[0]) / 2.0
-            #outwardDirB = (endVec + activeNode.outwardDir[0]) / 2.0
-            drawArrow(activeNode.point, activeNode.point + outwardDirA)
-            drawArrow(activeNode.point, activeNode.point + outwardDirB)
-            
-            #nextCenterPointB = sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, rootNode.next[0].point, rootNode.next[0].tangent[0], activeNode.next[1].tValGlobal);
-            #outwardDirB = activeNode.next[1].point - nextCenterPointA
-            
-            #if len(outwardDirB) < 0.01:
-            #    outwardDirB = activeNode.cotangent
-            #else:
-            #    outwardDirB = outwardDirB.normalized()
-            drawArrow(activeNode.point, activeNode.point + outwardDirA)
-            drawArrow(activeNode.point, activeNode.point + outwardDirB)
-            activeNode.outwardDir.append(outwardDirA)
-            activeNode.outwardDir.append(outwardDirB)
-            activeNode.next[0].outwardDir.append(outwardDirA) # TEST
-            activeNode.next[1].outwardDir.append(outwardDirB) # TEST
-            
-            activeNode.next[0].rotateAngleRange.append(activeNode.rotateAngleRange[0])
-            activeNode.next[1].rotateAngleRange.append(activeNode.rotateAngleRange[1])
-            
-            #TODO: sort A, B...
-            
-            #TEMP
-            #activeNode.rotateAngleRange[0] = activeNode.rotateAngleRange[0] / 2.0
-            #activeNode.rotateAngleRange.append(activeNode.rotateAngleRange[0])
-            
-    treeGen.report({'INFO'}, f"activeNode.rotateAngleRange: {activeNode.rotateAngleRange}")
-    treeGen.report({'INFO'}, f"activeNode.outwardDir: {activeNode.outwardDir}")
-    
-    if len(activeNode.next) > 0:
-        startVec = Quaternion(activeNode.tangent[0], -math.radians(activeNode.rotateAngleRange[0])) @ activeNode.outwardDir[0]
-        endVec = Quaternion(activeNode.tangent[0], math.radians(activeNode.rotateAngleRange[0])) @ activeNode.outwardDir[0]
-        #drawArrow(activeNode.point, activeNode.point + startVec)
-        #drawArrow(activeNode.point, activeNode.point + endVec)
-        
-    if len(activeNode.next) > 1:
-        nrSplitsPassed += 1
-        startVecB = Quaternion(activeNode.tangent[0], -math.radians(activeNode.rotateAngleRange[1])) @ activeNode.outwardDir[1]
-        endVecB = Quaternion(activeNode.tangent[0], math.radians(activeNode.rotateAngleRange[1])) @ activeNode.outwardDir[1]
-        #drawArrow(activeNode.point, activeNode.point + startVecB)
-        #drawArrow(activeNode.point, activeNode.point + endVecB)
-    for n, next in enumerate(activeNode.next):
-        calculateOutwardDirAndRotateAngleRange(treeGen, next, rootNode, treeGrowDir, treeHeight, nrSplitsPassed, activeNode.outwardDir[n])
 
-def splitRecursive(startNode, 
-                   nrSplits, 
-                   splitAngle, 
-                   splitPointAngle, 
-                   variance, 
-                   splitHeightInLevel, 
-                   splitHeightVariation, 
-                   splitLengthVariation, 
-                   stemSplitMode, 
-                   stemSplitRotateAngle, 
-                   root_node, 
-                   stemRingResolution, 
-                   curvOffsetStrength, 
-                   self, 
-                   rootNode):
+def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, splitHeightInLevel, splitHeightVariation, splitLengthVariation, stemSplitMode, stemSplitRotateAngle, root_node, stemRingResolution, curvOffsetStrength, self, rootNode):
     
     #TODO: store in node: outwardDir, rotateAngleRange
     
@@ -2055,10 +1890,8 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
     #TODO: store in node: outwardDir, rotateAngleRange
     #TODO: outwardDir, centerPoint
     
-    #newNode.outwardDir.append(splitAfterNode.outwardDir[0]) #(?) # TODO ...
-    #newNode.outwardDir[0] = Quaternion(splitAfterNode.tangent[0], 90.0) @ newNode.outwardDir[0]
-    #newNode.outwardDir.append(Quaternion(newNode.tangent[0], 180) @ newNode.outwardDir[0])
-    #self.report({'INFO'}, f"splitAfterNode.outwardDir: {splitAfterNode.outwardDir}")
+    newNode.outwardDir = splitAfterNode.outwardDir #(?) # TODO ...
+    self.report({'INFO'}, f"newNode.outwardDir: {newNode.outwardDir}")
     
     
     calculateSplitData(newNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, newNode.outwardDir)
@@ -2112,13 +1945,15 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariat
     previousNodeA = splitNode
     previousNodeB = splitNode
     curv_offset = splitNode.tangent[0].normalized() * (s.next[0].point - s.point).length * (splitAngle / 360.0) * curvOffsetStrength
-    
-    
+    s.outwardDir = outwardDir #TODO
+    self.report({'INFO'}, f"outwardDir: {outwardDir}")
+    drawArrow(s.point, s.point + outwardDir[0]) # ??? why [0] ???
 
     for i in range(nodesAfterSplitNode):
         s = s.next[0]
         rel_pos = s.point - splitNode.point
-                
+        s.outwardDir = outwardDir #TODO
+        drawArrow(s.point, s.point + outwardDir[0])
 
         tangent_a = (Quaternion(splitAxis, math.radians(splitAngle)) @ s.tangent[0]).normalized()
         tangent_b = (Quaternion(splitAxis, -math.radians(splitAngle)) @ s.tangent[0]).normalized()
@@ -2569,169 +2404,6 @@ def addLeaves(self, treeGen, rootNode,        #     TODO: support multiple leaf 
             leafObject.data.materials.append(leafMaterial)
                 
 
-def addBranches2(
-self, 
-treeGen, 
-resampleDistance,
-
-context, #ERROR: when treeGrowDir == (0,0,1) !!
-rootNode, 
-branchClusters,
-
-branchClusterSettingsList,
-
-parentClusterBoolListList, 
-
-treeGrowDir, 
-treeHeight, 
-taper, 
-taperFactorList, 
-
-branchSplitHeightInLevel, #==branchSplitHeightInLevelList_0
-branchSplitHeightInLevelList_1,
-branchSplitHeightInLevelList_2,
-branchSplitHeightInLevelList_3,
-branchSplitHeightInLevelList_4,
-branchSplitHeightInLevelList_5, 
-branchSplitHeightInLevelList_6, 
-branchSplitHeightInLevelList_7, 
-branchSplitHeightInLevelList_8, 
-branchSplitHeightInLevelList_9, 
-branchSplitHeightInLevelList_10, 
-branchSplitHeightInLevelList_11, 
-branchSplitHeightInLevelList_12, 
-branchSplitHeightInLevelList_13, 
-branchSplitHeightInLevelList_14, 
-branchSplitHeightInLevelList_15, 
-branchSplitHeightInLevelList_16, 
-branchSplitHeightInLevelList_17, 
-branchSplitHeightInLevelList_18, 
-branchSplitHeightInLevelList_19, 
-
-branchSplitHeightInLevelListList,
-            
-hangingBranchesList, 
-
-noiseGenerator):
-    treeGen.report({'INFO'}, "in addBranches2()")
-    for clusterIndex in range(0, branchClusters):
-        nrBranches = branchClusterSettingsList[clusterIndex].nrBranches      
-        branchesStartHeightGlobal = branchClusterSettingsList[clusterIndex].branchesStartHeightGlobal
-        branchesEndHeightGlobal = branchClusterSettingsList[clusterIndex].branchesEndHeightGlobal
-        branchesStartHeightCluster = branchClusterSettingsList[clusterIndex].branchesStartHeightCluster
-        branchesEndHeightCluster = branchClusterSettingsList[clusterIndex].branchesEndHeightCluster
-        branchesStartPointVariation = branchClusterSettingsList[clusterIndex].branchesStartPointVariation
-        
-        startNodesNextIndexStartTvalEndTval = []
-        branchNodesNextIndexStartTvalEndTval = []
-        branchNodes = []
-        centerDirs = []
-        c = 0
-        if clusterIndex - 1 >= 0:
-            c = clusterIndex - 1
-        else:
-            c = clusterIndex
-            
-        for i in range(0, branchClusterSettingsList[clusterIndex].nrBranches):
-            branchNodesNextIndexStartTvalEndTval.append([])
-        
-        if len(parentClusterBoolListList) > 0:
-            rootNode.getAllStartNodes(
-                self, 
-                startNodesNextIndexStartTvalEndTval, 
-                branchNodesNextIndexStartTvalEndTval,
-                -1, 
-                branchesStartHeightGlobal, 
-                branchesEndHeightGlobal, 
-                branchesStartHeightCluster, 
-                branchesEndHeightCluster, 
-                parentClusterBoolListList, 
-                clusterIndex)
-            
-            for info in startNodesNextIndexStartTvalEndTval:
-                #drawDebugPoint(info.startNode.point, 0.1)
-                treeGen.report({'INFO'}, f"startNode.tValGlobal: {info.startNode.tValGlobal}")
-                
-            windingAngle = 60.0 # TODO...
-                
-            if branchClusterSettingsList[clusterIndex].useFibonacciAngles == True:
-                branchRotateAngle = (windingAngle + 360.0) % 360.0
-            else:
-                #treeGen.report({'INFO'}, f"in add Branches: fibonacciNrList[clusterIndex].rotate_angle_range: {fibonacciNrList[clusterIndex].rotate_angle_range}")
-                #treeGen.report({'INFO'}, f"in add Branches: windingAngle: {windingAngle}")
-                if branchClusterSettingsList[clusterIndex].rotateAngleRange <= 0.0:
-                    branchClusterSettingsList[clusterIndex].rotateAngleRange = 180.0
-                branchRotateAngle = windingAngle % branchClusterSettingsList[clusterIndex].rotateAngleRange + branchClusterSettingsList[clusterIndex].rotateAngleOffset - branchClusterSettingsList[clusterIndex].rotateAngleRange / 2.0
-                
-            # choose start point whose angle is closest to the rotate angle (TODO: only for angleMode: WINDING)
-            segmentLengths = []
-            
-            totalLength = calculateSegmentLengthsAndTotalLength(self, treeGen, startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster)
-            # -> uses startHeight, endHeight!
-            
-            treeGen.report({'INFO'}, f"totalLength: {totalLength}")
-            for l in segmentLengths:
-                treeGen.report({'INFO'}, f"segment length: {l}")
-            
-            # generate start points
-            startPoints = []
-            for branchIndex in range(0, nrBranches):
-                branchPos = branchIndex * totalLength / nrBranches + random.uniform(-branchesStartPointVariation, branchesStartPointVariation)
-                if branchPos < 0.0:
-                    branchPos = 0.0
-                if branchPos > totalLength:
-                    branchPos = totalLength
-                    
-                data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, False)
-                startPoints.append(data)
-                
-            
-            # sort start points
-            #pointsGroupedByOffset = OrderedDict()
-            #for startData in data:
-            #    startData.startPoint
-                
-            #sort startPoints by tValGlobal
-            sortedStartPoints = sorted(startPoints, key=lambda x: x.startPointTvalGlobal)
-            
-            angleDiff = []
-            size = 0.2
-            for s in sortedStartPoints:
-                treeGen.report({'INFO'}, f"sorted: startPoint.tValGlobal: {s.startPointTvalGlobal}, startPoint.z: {s.startPoint.z}")
-                drawDebugPoint(s.startPoint, size)
-                size += 0.05
-                
-                #return startPointData(startPoint, tValGlobal, outwardDir, nStart, startNodeIndex, startNodeNextIndex, tVal,                    tangent, startPointCotangent)
-
-                    #class startPointData():
-                    #def __init__(self, StartPoint, StartPointTvalGlobal, OutwardDir, StartNode, StartNodeIndex,                                    StartNodeNextIndex, T, Tangent, Cotangent):
-    
-    
-            
-            
-                startNodeAngle = atan2(s.startPoint[0], -s.startPoint[1])
-                angleDiff.append(min((branchRotateAngle - startNodeAngle + 2.0 * math.pi) % (2.0 * math.pi), (startNodeAngle - branchRotateAngle + 2.0 * math.pi) % (2.0 * math.pi)))
-                
-            startNodeIndex = angleDiff.index(min(angleDiff))
-            
-            startNodeInfo = sortedStartPoints[startNodeIndex]
-            
-            drawArrow(startNodeInfo.startPoint, startNodeInfo.startPoint + Vector((0.0,0.0,1.0)))
-            
-            #for branchIndex in range(0, nrBranches):
-            
-            #class startPointData():
-            #   def __init__(self, StartPoint, StartPointTvalGlobal, OutwardDir, StartNode, StartNodeIndex, StartNodeNextIndex, T, Tangent, Cotangent):
-            #       self.startPoint = StartPoint
-            #       self.startPointTvalGlobal = StartPointTvalGlobal
-            #       self.outwardDir = OutwardDir
-            #       self.startNode = StartNode
-            #       self.startNodeIndex = StartNodeIndex
-            #       self.startNodeNextIndex = StartNodeNextIndex
-            #       self.t = T
-            #       self.tangent = Tangent
-            #       self.cotangent = Cotangent
-
 
 def addBranches(
 self, 
@@ -2817,6 +2489,27 @@ noiseGenerator):
             
             totalLength = calculateSegmentLengthsAndTotalLength(self, treeGen, startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster)
             
+            startPointData = []
+            
+            for branchIndex in range(0, nrBranches):
+                branchPos = branchIndex * totalLength / nrBranches + random.uniform(-branchesStartPointVariation, branchesStartPointVariation)
+                if branchPos < 0.0:
+                    branchPos = 0.0
+                if branchPos > totalLength:
+                    branchPos = totalLength
+                treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, branchPos: {branchPos}") 
+                startPointData.append(generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, False))
+            
+            # -> TODO: 1. get all startPointData -> startPointData[]
+            # ->       2. sort by startPointTvalGlobal!
+            for data in startPointData:
+                treeGen.report({'INFO'}, f"before sort: startPointTvalGlobal: {data.startPointTvalGlobal}")
+                
+            startPointData.sort(key=lambda x: x.startPointTvalGlobal)
+            
+            for data in startPointData:
+                treeGen.report({'INFO'}, f"after sort: startPointTvalGlobal: {data.startPointTvalGlobal}")
+            
             windingAngle = 0.0
             for branchIndex in range(0, nrBranches):
                 branchPos = branchIndex * totalLength / nrBranches + random.uniform(-branchesStartPointVariation, branchesStartPointVariation)
@@ -2826,7 +2519,12 @@ noiseGenerator):
                     branchPos = totalLength
                 treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, branchPos: {branchPos}") 
                 
-                data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, False)
+                
+                
+                
+                
+                data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, False) # OLD !!!
+                
                 
                 startPoint = data.startPoint
                 treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, startPoint: {startPoint}")
@@ -2861,7 +2559,7 @@ noiseGenerator):
                     centerDir = data.outwardDir # for symmetric!
                     centerDirs.append(centerDir)
                     #drawArrow(startPoint, startPoint + data.outwardDir) 
-                    treeGen.report({'INFO'}, f"in add Branches: outwardDir: {data.outwardDir}")              
+                    #treeGen.report({'INFO'}, f"in add Branches: outwardDir: {data.outwardDir}")              
                     if branchClusterSettingsList[clusterIndex].useFibonacciAngles == True:
                         angle = (windingAngle + 360.0) % 360.0
                         right = startPointTangent.cross(Vector((1.0,0.0,0.0))).normalized() # -> most likely vertical
@@ -2871,10 +2569,10 @@ noiseGenerator):
                         if branchClusterSettingsList[clusterIndex].rotateAngleRange <= 0.0:
                             branchClusterSettingsList[clusterIndex].rotateAngleRange = 180.0
                         angle = windingAngle % branchClusterSettingsList[clusterIndex].rotateAngleRange + branchClusterSettingsList[clusterIndex].rotateAngleOffset - branchClusterSettingsList[clusterIndex].rotateAngleRange / 2.0
-                        treeGen.report({'INFO'}, f"in add Branches: angle: {angle}")
+                        #treeGen.report({'INFO'}, f"in add Branches: angle: {angle}")
                         
                         ################################################
-                        treeGen.report({'INFO'}, f"startPointTangent: {startPointTangent}")
+                        #treeGen.report({'INFO'}, f"startPointTangent: {startPointTangent}")
                         #right = startPointTangent.cross(Vector((0.0,0.0,1.0))) # ERROR HERE !!!
                         right = data.outwardDir.cross(startPointTangent)
                         
@@ -2885,14 +2583,16 @@ noiseGenerator):
                                 right = h.cross(data.startNode.tangent[0])
                             else:
                                 right = Vector((1.0,0.0,0.0))
-                            drawArrow(startPoint, startPoint + right / 2.0) 
-                        else:
-                            right = right.normalized() # ERROR HERE
+                            drawArrow(startPoint, startPoint + right * data.startPointTvalGlobal)
                             
-                            drawArrow(startPoint, startPoint + data.outwardDir) 
+                        else:
+                            right = right.normalized()
+                            
+                            drawArrow(startPoint, startPoint + data.outwardDir * data.startPointTvalGlobal) 
+                            treeGen.report({'INFO'}, f"startPointTvalGlobal: {data.startPointTvalGlobal}")  # ERROR HERE
                         ################################################
                         
-                    treeGen.report({'INFO'}, f"WINDING: right: {right}") # ERROR HERE
+                    #treeGen.report({'INFO'}, f"WINDING: right: {right}")
                     axis = right.cross(startPointTangent).normalized()
                     branchDir = Quaternion(axis, math.radians(-verticalAngle)) @ startPointTangent
                     #treeGen.report({'INFO'}, f"WINDING: angle: {angle}, axis startPointTangent: {startPointTangent}, branchDir: {branchDir}")
@@ -2944,7 +2644,7 @@ noiseGenerator):
                 
                 branchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * random.uniform(-1.0, 1.0)) * treeShapeRatioValue * branchShapeRatioValue
                 
-                treeGen.report({'INFO'}, f"in addBranches(): branchDir: {branchDir}")
+                #treeGen.report({'INFO'}, f"in addBranches(): branchDir: {branchDir}")
                     
                 branch = node(data.startPoint, 
                               1.0, 
@@ -2999,7 +2699,7 @@ noiseGenerator):
                         else:
                             oppositeBranchDir = Quaternion(startPointTangent, -2.0 * math.radians(rotateAngle)) @ oppositeBranchDir
                     
-                    treeGen.report({'INFO'}, f"in addBranches(): oppositeBranchDir: {oppositeBranchDir}")
+                    #treeGen.report({'INFO'}, f"in addBranches(): oppositeBranchDir: {oppositeBranchDir}")
                     
                     oppositeBranchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * random.uniform(-1.0, 1.0)) * treeShapeRatioValue * branchShapeRatioValue
                          
@@ -3493,35 +3193,34 @@ def calculateSegmentLengthsAndTotalLength(self, treeGen, startNodesNextIndexStar
 def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, calledFromAddLeaves):
     accumLength = 0.0
     startNodeIndex = 0
+    tVal = 0.0
     tValGlobal = 0.0
-    
-    #startNodesNextIndexStratTvalEndTval: tVal -> tVal_segment!
     
     #self.report({'INFO'}, f"in generateStartPointData: branchPos: {branchPos}, len(SegmentLengths): {len(segmentLengths)}")
     
-    for n in startNodesNextIndexStartTvalEndTval:
-        self.report({'INFO'}, f"in generateStartPointData: startNode.tValGlobal: {n.startNode.tValGlobal}") #OK
-    
     for i in range(len(segmentLengths)):
-        self.report({'INFO'}, f"in generateStartPointData: segmentLengths[{i}]: {segmentLengths[i]}")
+        #self.report({'INFO'}, f"in generateStartPointData: segmentLengths[{i}]: {segmentLengths[i]}")
         if accumLength + segmentLengths[i] >= branchPos:
             startNodeIndex = i
             segStart = accumLength
             segLen = segmentLengths[i]
-            self.report({'INFO'}, f"in generateStartPointData: branchPos: {branchPos}") #OK
+            #self.report({'INFO'}, f"in generateStartPointData: segmentLength: {segLen}") #OK
             if segLen > 0.0:
                 tVal = (branchPos - segStart) / segLen
                 #branchPos: [0 .. totalLength]
-                self.report({'INFO'}, f"in generateStartPointData: tVal: {tVal}")
+                #self.report({'INFO'}, f"in generateStartPointData: tVal: {tVal}")
             
-            startTval = startNodesNextIndexStartTvalEndTval[startNodeIndex].startTvalGlobal
-            endTval = startNodesNextIndexStartTvalEndTval[startNodeIndex].endTvalGlobal
-            self.report({'INFO'}, f"in generateStartPointData: startTval: {startTval}, endTval:{endTval}, segmentLength: {segmentLengths[i]}") 
+            startTval = startNodesNextIndexStartTvalEndTval[startNodeIndex].startTval
+            endTval = startNodesNextIndexStartTvalEndTval[startNodeIndex].endTval
+            startNode = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode
+            nextNode = startNode.next[startNodesNextIndexStartTvalEndTval[startNodeIndex].nextIndex]
+            
+            #self.report({'INFO'}, f"in generateStartPointData: startTval: {startTval}, endTval:{endTval}, segmentLength: {segmentLengths[i]}") 
             # startTval: 0.0, endTval:0.2, segmentLength: 6.18
-            tValGlobal = startTval + tVal * (endTval - startTval) # ??? ERROR HERE !!!
+            tVal = startTval + tVal * (endTval - startTval)
+            startPointTvalGlobal = startNode.tValGlobal + tVal * (nextNode.tValGlobal - startNode.tValGlobal)
             break
         accumLength += segmentLengths[i]
-    self.report({'INFO'}, f"in generateStartPointData: tValGlobal: {tValGlobal}")
         
     startNodeNextIndex = startNodesNextIndexStartTvalEndTval[startNodeIndex].nextIndex
     nStart = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode
@@ -3556,7 +3255,7 @@ def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLen
     startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal) - centerPoint
     
        
-    self.report({'INFO'}, f"in generateStartPointData: startNode.point: ({startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point.x:.2f}, {startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point.y:.2f}, {startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point.z:.2f}), startNode.tValGlobal: {startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal:.2f}, tValGlobal: {tValGlobal:.2f}")
+    #treeGen.report({'INFO'}, f"in generateStartPointData: startNode.point: {startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point}")
     #treeGen.report({'INFO'}, f"in generateStartPointData: startNode.next[startNodeNextIndex].point: {startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point}")
     
     if outwardDir == Vector((0.0, 0.0, 0.0)):
@@ -3582,16 +3281,16 @@ def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLen
         # print("outward_dir is zero, using cotangent: ", outward_dir)
     outwardDir = outwardDir.normalized()
     
-    self.report({'INFO'}, f"in generateStartPointData: startPoint: ({startPoint.x:.2f}, {startPoint.y:.2f}, {startPoint.z:.2f}), tValGlobal: {tValGlobal:.2f}, tVal: {tVal:.2f}")
+    #self.report({'INFO'}, f"in generateStartPointData: startPoint: {startPoint}")
     #self.report({'INFO'}, f"in generateStartPointData: outwardDir: {outwardDir}")
     
-    drawDebugPoint(startPoint, 0.1)
+    #drawDebugPoint(startPoint, 0.1)
     #drawDebugPoint(startPoint + outwardDir, 0.1)
     
     #self.report({'INFO'}, f"in add Branches(): startPoint: {startPoint}, outwardDir: {outwardDir}")
     #self.report({'INFO'}, f"in add Branches(): centerPoint: {centerPoint}")
     
-    return startPointData(startPoint, tValGlobal, outwardDir, nStart, startNodeIndex, startNodeNextIndex, tVal, tangent, startPointCotangent)
+    return startPointData(startPoint, startPointTvalGlobal, outwardDir, nStart, startNodeIndex, startNodeNextIndex, tVal, tangent, startPointCotangent)
 
     #class startPointData():
     #def __init__(self, StartPoint, StartPointTvalGlobal, OutwardDir, StartNode, StartNodeIndex, StartNodeNextIndex, T, Tangent, Cotangent):
