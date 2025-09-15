@@ -44,6 +44,11 @@ class startPointData():
         self.tangent = Tangent
         self.cotangent = Cotangent
         
+class dummyStartPointData():
+    def __init__(self):
+        self.dummyStartPoints = [] # for all other stems at same height as startPoint
+        
+        
 class rotationStep():
     def __init__(self, RotationPoint, Curvature, CurveAxis, IsLast):
        self.rotationPoint = RotationPoint
@@ -259,7 +264,35 @@ class node():
         #parentClusterBoolListList, 
         #newClusterIndex):
                   
-            
+    def getAllParallelStartPoints(self, treeGen, startPointTvalGlobal, startNode, parallelPoints):
+        
+        treeGen.report({'INFO'}, "in getAllParallelStartPoints() startNode.point: {startNode.point}") #OK
+        treeGen.report({'INFO'}, "in getAllParallelStartPoints() startPointTvalGlobal: {startPointTvalGlobal}")
+        treeGen.report({'INFO'}, "in getAllParallelStartPoints() self.tValGlobal: {self.tValGlobal}") 
+        
+        
+        if self != startNode:
+            if self.tValGlobal < startPointTvalGlobal:
+                for i, n in enumerate(self.next):
+                    if n.tValGlobal > startPointTvalGlobal:
+                        tVal = (startPointTvalGlobal - self.tValGlobal) / (n.tValGlobal - self.tValGlobal)
+                        if len(self.next) == 2:
+                            treeGen.report({'INFO'}, "in getAllParallelStartPoints() appinding point 2")
+                            parallelPoints.append(sampleSplineT(self.point, n.point, self.tangent[i + 1], n.tangent[0], tVal))
+                        if len(self.next) == 1:
+                            treeGen.report({'INFO'}, "in getAllParallelStartPoints() appinding point 1")
+                            parallelPoints.append(sampleSplineT(self.point, n.point, self.tangent[0], n.tangent[0], tVal))
+                        
+                        #def sampleSplineT(start, end, startTangent, endTangent, t):
+                    else:
+                        n.getAllParallelStartPoints(treeGen, startPointTvalGlobal, startNode, parallelPoints)
+        else:
+            for n in self.next:
+                if n.tValGlobal < startPointTvalGlobal:
+                    n.getAllParallelStartPoints(treeGen, startPointTvalGlobal, startNode, parallelPoints)        
+        return parallelPoints
+    
+         
     def lengthToTip(self):
         if len(self.next) > 0:
             return self.next[0].lengthToTip() + (self.next[0].point - self.point).length
@@ -2510,6 +2543,10 @@ noiseGenerator):
             for data in startPointData:
                 treeGen.report({'INFO'}, f"after sort: startPointTvalGlobal: {data.startPointTvalGlobal}")
             
+            dummyStartPointData = []
+            for data in startPointData:
+                dummyStartPointData.append(generateDummyStartPointData(treeGen, rootNode, data))
+            
             windingAngle = 0.0
             for branchIndex in range(0, nrBranches):
                 branchPos = branchIndex * totalLength / nrBranches + random.uniform(-branchesStartPointVariation, branchesStartPointVariation)
@@ -2553,6 +2590,11 @@ noiseGenerator):
                 
                 if branchClusterSettingsList[clusterIndex].rotateAngleRange == 0.0:
                     branchClusterSettingsList[clusterIndex].rotateAngleRange = 180.0
+                    
+                if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "ADAPTIVE":
+                    branchDir = startPointTangent.cross(Vector((1.0,0.0,0.0))).normalized()
+                    centerDir = data.outwardDir # for symmetric!
+                    centerDirs.append(centerDir)
                 
                 if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "WINDING":
                     
@@ -3189,6 +3231,22 @@ def calculateSegmentLengthsAndTotalLength(self, treeGen, startNodesNextIndexStar
             
     return totalLength
 
+def generateDummyStartPointData(treeGen, rootNode, startPointDatum):
+    
+    treeGen.report({'INFO'}, "in generateDummyStartPointData()")
+    parallelPoints = []
+    rootNode.getAllParallelStartPoints(treeGen, startPointDatum.startPointTvalGlobal, startPointDatum.startNode, parallelPoints)
+    
+    for p in parallelPoints:
+        drawDebugPoint(p, 0.2)
+    
+    dummyStartPointData = []
+    
+    return dummyStartPointData
+    #class startPointData():
+    #def __init__(self, StartPoint, StartPointTvalGlobal, OutwardDir, StartNode, StartNodeIndex, StartNodeNextIndex, T, Tangent, Cotangent):
+    
+    
 
 def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, calledFromAddLeaves):
     accumLength = 0.0
@@ -3638,7 +3696,8 @@ class angleModeEnumProp(bpy.types.PropertyGroup):
         name = "branchAngleMode",
         items=[
             ('SYMMETRIC', "Symmetric", "symmetric branch angles"),
-            ('WINDING', "Winding", "winding branch angles")
+            ('WINDING', "Winding", "winding branch angles"),
+            ('ADAPTIVE', "Adaptive", "adaptive (TEMP for debug)")
         ],
         default='WINDING'
     )
