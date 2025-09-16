@@ -2487,8 +2487,15 @@ def findClosestVectors(treeGen, vectors, target_vector):
         
     clockwise_angle_range = min_clockwise_diff / 2.0
     anticlockwise_angle_range = min_anticlockwise_diff / 2.0
+    treeGen.report({'INFO'}, f"clockwise_angle_range: {clockwise_angle_range}")
+    treeGen.report({'INFO'}, f"anticlockwise_angle_range: {anticlockwise_angle_range}")
+    
+    
+    half_closest_clockwise_vector = Quaternion(Vector((0.0,0.0,1.0)), math.radians(clockwise_angle_range)) @ target_vector
+    half_closest_anticlockwise_vector = Quaternion(Vector((0.0,0.0,1.0)), -math.radians(clockwise_angle_range)) @ target_vector
+        
 
-    return closest_clockwise_vector, closest_anticlockwise_vector, clockwise_angle_range, anticlockwise_angle_range
+    return closest_clockwise_vector, closest_anticlockwise_vector, half_closest_clockwise_vector, half_closest_anticlockwise_vector, clockwise_angle_range, anticlockwise_angle_range
 
     
 
@@ -2627,12 +2634,18 @@ noiseGenerator):
                 for spData in data:
                     directions.append(Vector(((spData.startPoint - centerPoints[n]).x, (spData.startPoint - centerPoints[n]).y, 0.0)))
                 
-                (cwVector, acwVector, halfAngleCW, halfAngleACW) = findClosestVectors(treeGen, directions, startPointData[n].outwardDir) # -> rotate angle range !!!
+                #return closest_clockwise_vector, closest_anticlockwise_vector, half_closest_clockwise_vector, half_closest_anticlockwise_vector, clockwise_angle_range, anticlockwise_angle_range
+                
+                (cwVector, acwVector, halfCwVector, halfAcwVector, halfAngleCW, halfAngleACW) = findClosestVectors(treeGen, directions, startPointData[n].outwardDir) # -> rotate angle range !!!
+                
                 treeGen.report({'INFO'}, f"cwVector: {cwVector}")
                 treeGen.report({'INFO'}, f"acwVector: {acwVector}")
                 treeGen.report({'INFO'}, f"halfAngleCW: {halfAngleCW}, halfAngleACW: {halfAngleACW}")
                 drawArrow(centerPoints[n], centerPoints[n] + cwVector)
                 drawArrow(centerPoints[n], centerPoints[n] + acwVector)
+                drawArrow(centerPoints[n], centerPoints[n] + halfCwVector / 2.0)
+                drawArrow(centerPoints[n], centerPoints[n] + halfAcwVector / 2.0)
+                
                 
                     #angle = math.atan2(dir[0], dir[1])
                     #angleToStartPointAngle = ((angle - startPointAngle) + (2.0 * math.pi)) % (2.0 * math.pi)
