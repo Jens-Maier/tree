@@ -43,6 +43,7 @@ class startPointData():
         self.t = T
         self.tangent = Tangent
         self.cotangent = Cotangent
+        self.rotateAngleRange = 0.0
         
 class dummyStartPointData():
     def __init__(self):
@@ -2523,6 +2524,7 @@ noiseGenerator):
             totalLength = calculateSegmentLengthsAndTotalLength(self, treeGen, startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster)
             
             startPointData = []
+            branchPositions = []
             
             for branchIndex in range(0, nrBranches):
                 branchPos = branchIndex * totalLength / nrBranches + random.uniform(-branchesStartPointVariation, branchesStartPointVariation)
@@ -2530,11 +2532,11 @@ noiseGenerator):
                     branchPos = 0.0
                 if branchPos > totalLength:
                     branchPos = totalLength
+                branchPositions.append(branchPos)
                 treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, branchPos: {branchPos}") 
                 startPointData.append(generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, False))
             
             # -> TODO: 1. get all startPointData -> startPointData[]
-            # ->       2. sort by startPointTvalGlobal!
             for data in startPointData:
                 treeGen.report({'INFO'}, f"before sort: startPointTvalGlobal: {data.startPointTvalGlobal}")
                 
@@ -2544,21 +2546,61 @@ noiseGenerator):
                 treeGen.report({'INFO'}, f"after sort: startPointTvalGlobal: {data.startPointTvalGlobal}")
             
             dummyStartPointData = []
+            centerPoints = []
             for data in startPointData:
-                dummyStartPointData.append(generateDummyStartPointData(treeGen, rootNode, data))
+                (dummyData, centerPoint) = generateDummyStartPointData(treeGen, rootNode, data)
+                dummyStartPointData.append(dummyData)
+                centerPoints.append(centerPoint)
+                # generates all parallel start points for one startPoint
+            
+            for d in dummyStartPointData:
+                treeGen.report({'INFO'}, f"in addBranches(): dummyStartPointData: ")
+                for i in d:
+                    treeGen.report({'INFO'}, f"dummyStartPoint: {i.startPoint}")
+            
+            # -> calculate outwardDir per startPoint startPointData.outwardDir
+            
+            
+            # TODO: calculate right and left dummy neighbor
+            for n, data in enumerate(dummyStartPointData):
+                # TODO: -> calculate rotate angle range per startPoint
+                startPointAngle = math.atan2(startPointData[n].outwardDir[0], startPointData[n].outwardDir[1])
+                rightNeighborAngle = (startPointAngle + math.pi) % (2.0 * math.pi)
+                leftNeighborAngle = (startPointAngle + math.pi) % (2.0 * math.pi)
+                
+                for spData in data:
+                    dir = Vector(((spData.startPoint - centerPoint).x, (spData.startPoint - centerPoint).y, 0.0))
+                    angle = math.atan2(dir[0], dir[1])
+                    angleToStartPointAngle = ((angle - startPointAngle) + (2.0 * math.pi)) % (2.0 * math.pi)
+                    rightNeightborAngleToStartPointAngle = ((rightNeighborAngle - startPointAngle) + (2.0 * math.pi)) % (2.0 * math.pi)
+                    leftNeighborAngleToStartPointAngle = ((leftNeighborAngle - startPointAngle) + (2.0 * math.pi)) % (2.0 * math.pi)
+                    
+                    if angleToStartPointAngle < rightNeightborAngleToStartPointAngle and angleToStartPointAngle > 0.0: 
+                        rightNeightborAngle = angle
+                    
+                    if angleToStartPointAngle > leftNeighborAngleToStartPointAngle and angleToStartPointAngle < 0.0:
+                        leftNeighborAngle = angle
+            
+                rightRotationRange = ((rightNeighborAngle - startPointAngle + 2.0 * math.pi) % (2.0 * math.pi)) / 2.0
+                leftRotationRange = ((startPointAngle - leftNeighborAngle + 2.0 * math.pi) % (2.0 * math.pi)) / 2.0
+                treeGen.report({'INFO'}, f"rightRotationRange: {rightRotationRange}")
+                treeGen.report({'INFO'}, f"leftRotationRange: {leftRotationRange}")
+            
+            for n, data in enumerate(startPointData):
+                data.outwardDir = data.startPoint - centerPoints[n]
+                treeGen.report({'INFO'}, f"startPointData.outwardDir: {data.outwardDir}")
+                drawArrow(data.startPoint, data.startPoint + data.outwardDir)
+                treeGen.report({'INFO'}, f"startPointData.rotateAngleRange: {data.rotateAngleRange}")
             
             windingAngle = 0.0
             for branchIndex in range(0, nrBranches):
-                branchPos = branchIndex * totalLength / nrBranches + random.uniform(-branchesStartPointVariation, branchesStartPointVariation)
-                if branchPos < 0.0:
-                    branchPos = 0.0
-                if branchPos > totalLength:
-                    branchPos = totalLength
-                treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, branchPos: {branchPos}") 
-                
-                
-                
-                
+                #branchPos = branchIndex * totalLength / nrBranches + random.uniform(-branchesStartPointVariation, branchesStartPointVariation)
+                #if branchPos < 0.0:
+                #    branchPos = 0.0
+                #if branchPos > totalLength:
+                #    branchPos = totalLength
+                #treeGen.report({'INFO'}, f"clusterIndex: {clusterIndex}, branchPos: {branchPos}") 
+                branchPos = branchPositions[branchIndex]
                 
                 data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, False) # OLD !!!
                 
@@ -3237,12 +3279,22 @@ def generateDummyStartPointData(treeGen, rootNode, startPointDatum):
     parallelPoints = []
     rootNode.getAllParallelStartPoints(treeGen, startPointDatum.startPointTvalGlobal, startPointDatum.startNode, parallelPoints)
     
+    dummyStartPointData = []
+    centerPoint = Vector(startPointDatum.startPoint)
+    n = 1
+    for p in parallelPoints:
+        centerPoint += p
+        n += 1
+    centerPoint = centerPoint / n
+    drawDebugPoint(centerPoint, 0.2)
+    
     for p in parallelPoints:
         drawDebugPoint(p, 0.2)
+        dummyStartPointData.append(startPointData(p, startPointDatum.startPointTvalGlobal, Vector((0.0,0.0,0.0)), None, 0, 0, 0, Vector((0.0,0.0,0.0)), Vector((0.0,0.0,0.0))))
+        
     
-    dummyStartPointData = []
     
-    return dummyStartPointData
+    return (dummyStartPointData, centerPoint)
     #class startPointData():
     #def __init__(self, StartPoint, StartPointTvalGlobal, OutwardDir, StartNode, StartNodeIndex, StartNodeNextIndex, T, Tangent, Cotangent):
     
