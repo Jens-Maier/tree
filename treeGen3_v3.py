@@ -1981,13 +1981,13 @@ def calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariat
     curv_offset = splitNode.tangent[0].normalized() * (s.next[0].point - s.point).length * (splitAngle / 360.0) * curvOffsetStrength
     s.outwardDir = outwardDir #TODO
     self.report({'INFO'}, f"outwardDir: {outwardDir}")
-    drawArrow(s.point, s.point + outwardDir[0]) # ??? why [0] ???
+    #drawArrow(s.point, s.point + outwardDir[0]) # ??? why [0] ???
 
     for i in range(nodesAfterSplitNode):
         s = s.next[0]
         rel_pos = s.point - splitNode.point
         s.outwardDir = outwardDir #TODO
-        drawArrow(s.point, s.point + outwardDir[0])
+        #drawArrow(s.point, s.point + outwardDir[0])
 
         tangent_a = (Quaternion(splitAxis, math.radians(splitAngle)) @ s.tangent[0]).normalized()
         tangent_b = (Quaternion(splitAxis, -math.radians(splitAngle)) @ s.tangent[0]).normalized()
@@ -2436,8 +2436,61 @@ def addLeaves(self, treeGen, rootNode,        #     TODO: support multiple leaf 
             #if leafMaterial is not None:
             leafObject.data.materials.clear()
             leafObject.data.materials.append(leafMaterial)
-                
 
+
+#def vector_angle(v1, v2):
+#    """Returns the angle between two 2D vectors in radians."""
+#    return math.atan2(v2[1], v2[0]) - math.atan2(v1[1], v1[0])
+
+def findClosestVectors(treeGen, vectors, target_vector):
+    
+    def get_angle(v):
+        """Helper function to get angle in degrees (0-360)."""
+        angle = math.atan2(v[1], v[0])
+        # Convert to degrees and normalize to 0-360
+        angle = math.degrees(angle)
+        return (angle + 360) % 360
+    
+    target_angle = get_angle(target_vector)
+    
+    min_clockwise_diff = float('inf')
+    closest_clockwise_vector = None
+
+    min_anticlockwise_diff = float('inf')
+    closest_anticlockwise_vector = None
+
+    for v in vectors:
+        vector_angle = get_angle(v)
+
+        # Calculate clockwise difference
+        # This handles the wrap-around from 0 to 360
+        clockwise_diff = (target_angle - vector_angle + 360) % 360
+        if clockwise_diff < min_clockwise_diff and clockwise_diff != 0:
+            min_clockwise_diff = clockwise_diff
+            closest_clockwise_vector = v
+
+        # Calculate anticlockwise difference
+        # This also handles the wrap-around
+        anticlockwise_diff = (vector_angle - target_angle + 360) % 360
+        if anticlockwise_diff < min_anticlockwise_diff and anticlockwise_diff != 0:
+            min_anticlockwise_diff = anticlockwise_diff
+            closest_anticlockwise_vector = v
+    
+    treeGen.report({'INFO'}, f"min anticlockwise diff: {min_anticlockwise_diff}")
+    treeGen.report({'INFO'}, f"min clockwise diff: {min_clockwise_diff}")
+    
+    # Handle the case where the target vector is not found in the list, but one of the vectors is the same.
+    if closest_clockwise_vector is None:
+        closest_clockwise_vector = closest_anticlockwise_vector
+    if closest_anticlockwise_vector is None:
+        closest_anticlockwise_vector = closest_clockwise_vector
+        
+    clockwise_angle_range = min_clockwise_diff / 2.0
+    anticlockwise_angle_range = min_anticlockwise_diff / 2.0
+
+    return closest_clockwise_vector, closest_anticlockwise_vector, clockwise_angle_range, anticlockwise_angle_range
+
+    
 
 def addBranches(
 self, 
@@ -2567,24 +2620,39 @@ noiseGenerator):
                 startPointAngle = math.atan2(startPointData[n].outwardDir[0], startPointData[n].outwardDir[1])
                 rightNeighborAngle = (startPointAngle + math.pi) % (2.0 * math.pi)
                 leftNeighborAngle = (startPointAngle + math.pi) % (2.0 * math.pi)
+                rightDir = Vector((0.0,0.0,0.0))
+                leftDir = Vector((0.0,0.0,0.0))
                 
+                directions = []
                 for spData in data:
-                    dir = Vector(((spData.startPoint - centerPoint).x, (spData.startPoint - centerPoint).y, 0.0))
-                    angle = math.atan2(dir[0], dir[1])
-                    angleToStartPointAngle = ((angle - startPointAngle) + (2.0 * math.pi)) % (2.0 * math.pi)
-                    rightNeightborAngleToStartPointAngle = ((rightNeighborAngle - startPointAngle) + (2.0 * math.pi)) % (2.0 * math.pi)
-                    leftNeighborAngleToStartPointAngle = ((leftNeighborAngle - startPointAngle) + (2.0 * math.pi)) % (2.0 * math.pi)
-                    
-                    if angleToStartPointAngle < rightNeightborAngleToStartPointAngle and angleToStartPointAngle > 0.0: 
-                        rightNeightborAngle = angle
-                    
-                    if angleToStartPointAngle > leftNeighborAngleToStartPointAngle and angleToStartPointAngle < 0.0:
-                        leftNeighborAngle = angle
+                    directions.append(Vector(((spData.startPoint - centerPoints[n]).x, (spData.startPoint - centerPoints[n]).y, 0.0)))
+                
+                (cwVector, acwVector, halfAngleCW, halfAngleACW) = findClosestVectors(treeGen, directions, startPointData[n].outwardDir) # -> rotate angle range !!!
+                treeGen.report({'INFO'}, f"cwVector: {cwVector}")
+                treeGen.report({'INFO'}, f"acwVector: {acwVector}")
+                treeGen.report({'INFO'}, f"halfAngleCW: {halfAngleCW}, halfAngleACW: {halfAngleACW}")
+                drawArrow(centerPoints[n], centerPoints[n] + cwVector)
+                drawArrow(centerPoints[n], centerPoints[n] + acwVector)
+                
+                    #angle = math.atan2(dir[0], dir[1])
+                    #angleToStartPointAngle = ((angle - startPointAngle) + (2.0 * math.pi)) % (2.0 * math.pi)
+                    #rightNeightborAngleToStartPointAngle = ((rightNeighborAngle - startPointAngle) + (2.0 * math.pi)) % (2.0 * math.pi)
+                    #leftNeighborAngleToStartPointAngle = ((leftNeighborAngle - startPointAngle) + (2.0 * math.pi)) % (2.0 * math.pi)
+                    #
+                    #if angleToStartPointAngle < rightNeightborAngleToStartPointAngle and angleToStartPointAngle > 0.0: 
+                    #    rightNeightborAngle = angle
+                    #    rightDir = dir
+                    #
+                    #if angleToStartPointAngle > leftNeighborAngleToStartPointAngle and angleToStartPointAngle < 0.0:
+                    #    leftNeighborAngle = angle
+                    #    leftDir = dir
             
                 rightRotationRange = ((rightNeighborAngle - startPointAngle + 2.0 * math.pi) % (2.0 * math.pi)) / 2.0
                 leftRotationRange = ((startPointAngle - leftNeighborAngle + 2.0 * math.pi) % (2.0 * math.pi)) / 2.0
-                treeGen.report({'INFO'}, f"rightRotationRange: {rightRotationRange}")
-                treeGen.report({'INFO'}, f"leftRotationRange: {leftRotationRange}")
+                #treeGen.report({'INFO'}, f"rightRotationRange: {rightRotationRange}")
+                #treeGen.report({'INFO'}, f"leftRotationRange: {leftRotationRange}")
+                #drawArrow(centerPoint, centerPoint + rightDir)
+                #drawArrow(centerPoint, centerPoint + leftDir)
             
             for n, data in enumerate(startPointData):
                 data.outwardDir = data.startPoint - centerPoints[n]
@@ -2667,12 +2735,12 @@ noiseGenerator):
                                 right = h.cross(data.startNode.tangent[0])
                             else:
                                 right = Vector((1.0,0.0,0.0))
-                            drawArrow(startPoint, startPoint + right * data.startPointTvalGlobal)
+                            #drawArrow(startPoint, startPoint + right * data.startPointTvalGlobal)
                             
                         else:
                             right = right.normalized()
                             
-                            drawArrow(startPoint, startPoint + data.outwardDir * data.startPointTvalGlobal) 
+                            #drawArrow(startPoint, startPoint + data.outwardDir * data.startPointTvalGlobal) 
                             treeGen.report({'INFO'}, f"startPointTvalGlobal: {data.startPointTvalGlobal}")  # ERROR HERE
                         ################################################
                         
