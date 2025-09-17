@@ -2607,6 +2607,8 @@ noiseGenerator):
             
             dummyStartPointData = []
             centerPoints = []
+            rightRotationRange = []
+            leftRotationRange = []
             for data in startPointData:
                 (dummyData, centerPoint) = generateDummyStartPointData(treeGen, rootNode, data)
                 dummyStartPointData.append(dummyData)
@@ -2622,7 +2624,7 @@ noiseGenerator):
             
             
             # TODO: calculate right and left dummy neighbor
-            for n, data in enumerate(dummyStartPointData):
+            for n, data in enumerate(dummyStartPointData): # n == branchIndex
                 # TODO: -> calculate rotate angle range per startPoint
                 startPointAngle = math.atan2(startPointData[n].outwardDir[0], startPointData[n].outwardDir[1])
                 rightNeighborAngle = (startPointAngle + math.pi) % (2.0 * math.pi)
@@ -2636,7 +2638,7 @@ noiseGenerator):
                 
                 #return closest_clockwise_vector, closest_anticlockwise_vector, half_closest_clockwise_vector, half_closest_anticlockwise_vector, clockwise_angle_range, anticlockwise_angle_range
                 
-                (cwVector, acwVector, halfCwVector, halfAcwVector, halfAngleCW, halfAngleACW) = findClosestVectors(treeGen, directions, startPointData[n].outwardDir) # -> rotate angle range !!!
+                (cwVector, acwVector, halfCwVector, halfAcwVector, halfAngleCW, halfAngleACW) = findClosestVectors(treeGen, directions, startPointData[n].outwardDir) # -> adaptive rotate angle range !!!
                 
                 treeGen.report({'INFO'}, f"cwVector: {cwVector}")
                 treeGen.report({'INFO'}, f"acwVector: {acwVector}")
@@ -2660,8 +2662,8 @@ noiseGenerator):
                     #    leftNeighborAngle = angle
                     #    leftDir = dir
             
-                rightRotationRange = ((rightNeighborAngle - startPointAngle + 2.0 * math.pi) % (2.0 * math.pi)) / 2.0
-                leftRotationRange = ((startPointAngle - leftNeighborAngle + 2.0 * math.pi) % (2.0 * math.pi)) / 2.0
+                rightRotationRange.append(((rightNeighborAngle - startPointAngle + 2.0 * math.pi) % (2.0 * math.pi)) / 2.0)
+                leftRotationRange.append(((startPointAngle - leftNeighborAngle + 2.0 * math.pi) % (2.0 * math.pi)) / 2.0)
                 #treeGen.report({'INFO'}, f"rightRotationRange: {rightRotationRange}")
                 #treeGen.report({'INFO'}, f"leftRotationRange: {leftRotationRange}")
                 #drawArrow(centerPoint, centerPoint + rightDir)
@@ -2715,9 +2717,30 @@ noiseGenerator):
                     branchClusterSettingsList[clusterIndex].rotateAngleRange = 180.0
                     
                 if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "ADAPTIVE":
-                    branchDir = startPointTangent.cross(Vector((1.0,0.0,0.0))).normalized()
+                    
+                    #branchDir = startPointTangent.cross(Vector((1.0,0.0,0.0))).normalized() # ERROR HERE !!!
+                    
                     centerDir = data.outwardDir # for symmetric!
                     centerDirs.append(centerDir)
+                    
+                    #rightRotationRange, leftRotationRange
+                    treeGen.report({'INFO'}, f"ADAPTIVE: windingAngle: {windingAngle}") # degrees
+                    treeGen.report({'INFO'}, f"ADAPTIVE: rightRotationRange: {rightRotationRange[branchIndex]}") # radians
+                    treeGen.report({'INFO'}, f"ADAPTIVE: leftRotationRange: {leftRotationRange[branchIndex]}") # radians
+                    angle = windingAngle % math.degrees((rightRotationRange[branchIndex] + leftRotationRange[branchIndex]) / 2.0) - math.degrees(leftRotationRange[branchIndex] / 2.0)
+                    right = startPointData[branchIndex].outwardDir.cross(startPointTangent)
+                    treeGen.report({'INFO'}, f"in add Branches: ADAPTIVE: angle: {angle}")
+                    #startPointData[n].outwardDir
+                    
+                    treeGen.report({'INFO'}, f"ADAPTIVE: axis: {right}") # ERROR HERE ??? -> why alternating +- ???
+                    treeGen.report({'INFO'}, f"ADAPTIVE: verticalAngle: {verticalAngle}")
+                    treeGen.report({'INFO'}, f"ADAPTIVE: startPointTangent: {startPointTangent}")
+                    #axis = right.cross(startPointTangent).normalized()
+                    axis = -centerDir.cross(startPointTangent) #TEST
+                    #axis = right
+                    branchDir = Quaternion(axis, math.radians(-verticalAngle)) @ startPointTangent
+                    
+                    branchDir = Quaternion(startPointTangent, math.radians(angle)) @ branchDir
                 
                 if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "WINDING":
                     
@@ -2764,7 +2787,7 @@ noiseGenerator):
                     branchDir = Quaternion(startPointTangent, math.radians(angle)) @ branchDir
                     
                 if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "SYMMETRIC":
-                    #treeGen.report({'INFO'}, f"in addBranches(): symmetric")
+                    treeGen.report({'INFO'}, f"in addBranches(): symmetric")
                     centerDir = Quaternion(startPointTangent.cross(data.outwardDir), math.radians(-verticalAngle)) @ data.outwardDir # for symmetric!
                     centerDirs.append(centerDir)
                     axis = startPointTangent.cross(centerDir).normalized()
@@ -2849,8 +2872,16 @@ noiseGenerator):
                 if branchClusterSettingsList[clusterIndex].useFibonacciAngles == True:
                     windingAngle += branchClusterSettingsList[clusterIndex].fibonacciNr.fibonacci_angle
                 else:
-                    rotateAngle = (globalRotateAngle + branchRotateAngle) % branchClusterSettingsList[clusterIndex].rotateAngleRange
-                    windingAngle += rotateAngle
+                    if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "WINDING":
+                        rotateAngle = (globalRotateAngle + branchRotateAngle) % branchClusterSettingsList[clusterIndex].rotateAngleRange
+                        windingAngle += rotateAngle
+                        treeGen.report({'INFO'}, f"WINDING: adding rotateAngle = {rotateAngle} to windingAngle")
+                        
+                    if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "ADAPTIVE":
+                        rotateAngle = globalRotateAngle + branchRotateAngle
+                        windingAngle += rotateAngle
+                        treeGen.report({'INFO'}, f"ADAPTIVE: adding rotateAngle = {rotateAngle} to windingAngle = {windingAngle}")
+                    
                 
                 if branchClusterSettingsList[clusterIndex].branchType.value == "OPPOSITE":
                     centerDirs.append(centerDirs[len(centerDirs) - 1])
@@ -2864,7 +2895,7 @@ noiseGenerator):
                         else:
                             oppositeBranchDir = Quaternion(startPointTangent, -2.0 * math.radians(rotateAngle)) @ oppositeBranchDir
                     
-                    #treeGen.report({'INFO'}, f"in addBranches(): oppositeBranchDir: {oppositeBranchDir}")
+                    treeGen.report({'INFO'}, f"in addBranches(): oppositeBranchDir: {oppositeBranchDir}")
                     
                     oppositeBranchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * random.uniform(-1.0, 1.0)) * treeShapeRatioValue * branchShapeRatioValue
                          
