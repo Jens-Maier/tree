@@ -2491,8 +2491,8 @@ def findClosestVectors(treeGen, vectors, target_vector):
     treeGen.report({'INFO'}, f"anticlockwise_angle_range: {anticlockwise_angle_range}")
     
     
-    half_closest_clockwise_vector = Quaternion(Vector((0.0,0.0,1.0)), math.radians(clockwise_angle_range)) @ target_vector
-    half_closest_anticlockwise_vector = Quaternion(Vector((0.0,0.0,1.0)), -math.radians(clockwise_angle_range)) @ target_vector
+    half_closest_clockwise_vector = Quaternion(Vector((0.0,0.0,1.0)), -math.radians(clockwise_angle_range)) @ target_vector
+    half_closest_anticlockwise_vector = Quaternion(Vector((0.0,0.0,1.0)), math.radians(anticlockwise_angle_range)) @ target_vector
         
 
     return closest_clockwise_vector, closest_anticlockwise_vector, half_closest_clockwise_vector, half_closest_anticlockwise_vector, clockwise_angle_range, anticlockwise_angle_range
@@ -2640,14 +2640,16 @@ noiseGenerator):
                 
                 (cwVector, acwVector, halfCwVector, halfAcwVector, halfAngleCW, halfAngleACW) = findClosestVectors(treeGen, directions, startPointData[n].outwardDir) # -> adaptive rotate angle range !!!
                 
-                treeGen.report({'INFO'}, f"cwVector: {cwVector}")
-                treeGen.report({'INFO'}, f"acwVector: {acwVector}")
+                #treeGen.report({'INFO'}, f"cwVector: {cwVector}")
+                #treeGen.report({'INFO'}, f"acwVector: {acwVector}")
                 treeGen.report({'INFO'}, f"halfAngleCW: {halfAngleCW}, halfAngleACW: {halfAngleACW}")
                 drawArrow(centerPoints[n], centerPoints[n] + cwVector)
-                drawArrow(centerPoints[n], centerPoints[n] + acwVector)
-                drawArrow(centerPoints[n], centerPoints[n] + halfCwVector / 2.0)
-                drawArrow(centerPoints[n], centerPoints[n] + halfAcwVector / 2.0)
+                drawArrow(centerPoints[n], centerPoints[n] + acwVector / 2.0)
+                drawArrow(centerPoints[n], centerPoints[n] + halfCwVector / 2.0) 
+                drawArrow(centerPoints[n], centerPoints[n] + halfAcwVector) 
                 
+                rightRotationRange.append(halfAngleCW) # degrees
+                leftRotationRange.append(halfAngleACW) # degrees
                 
                     #angle = math.atan2(dir[0], dir[1])
                     #angleToStartPointAngle = ((angle - startPointAngle) + (2.0 * math.pi)) % (2.0 * math.pi)
@@ -2662,8 +2664,8 @@ noiseGenerator):
                     #    leftNeighborAngle = angle
                     #    leftDir = dir
             
-                rightRotationRange.append(((rightNeighborAngle - startPointAngle + 2.0 * math.pi) % (2.0 * math.pi)) / 2.0)
-                leftRotationRange.append(((startPointAngle - leftNeighborAngle + 2.0 * math.pi) % (2.0 * math.pi)) / 2.0)
+                #rightRotationRange.append(((rightNeighborAngle - startPointAngle + 2.0 * math.pi) % (2.0 * math.pi)) / 2.0)
+                #leftRotationRange.append(((startPointAngle - leftNeighborAngle + 2.0 * math.pi) % (2.0 * math.pi)) / 2.0)
                 #treeGen.report({'INFO'}, f"rightRotationRange: {rightRotationRange}")
                 #treeGen.report({'INFO'}, f"leftRotationRange: {leftRotationRange}")
                 #drawArrow(centerPoint, centerPoint + rightDir)
@@ -2672,7 +2674,7 @@ noiseGenerator):
             for n, data in enumerate(startPointData):
                 data.outwardDir = data.startPoint - centerPoints[n]
                 treeGen.report({'INFO'}, f"startPointData.outwardDir: {data.outwardDir}")
-                drawArrow(data.startPoint, data.startPoint + data.outwardDir)
+                drawArrow(data.startPoint, data.startPoint + data.outwardDir * 3.0)
                 treeGen.report({'INFO'}, f"startPointData.rotateAngleRange: {data.rotateAngleRange}")
             
             windingAngle = 0.0
@@ -2720,14 +2722,20 @@ noiseGenerator):
                     
                     #branchDir = startPointTangent.cross(Vector((1.0,0.0,0.0))).normalized() # ERROR HERE !!!
                     
-                    centerDir = data.outwardDir # for symmetric!
+                    centerDir = data.outwardDir # (???)startPointData[branchIndex].outwardDir #data.outwardDir # for symmetric! -> do not use data.outwardDir! 
+                    #
+                    # ->  use startPointData[n].outwardDir !!!
+                    # TODO.....
+                    
+                    
+                    
                     centerDirs.append(centerDir)
                     
                     #rightRotationRange, leftRotationRange
                     treeGen.report({'INFO'}, f"ADAPTIVE: windingAngle: {windingAngle}") # degrees
-                    treeGen.report({'INFO'}, f"ADAPTIVE: rightRotationRange: {rightRotationRange[branchIndex]}") # radians
-                    treeGen.report({'INFO'}, f"ADAPTIVE: leftRotationRange: {leftRotationRange[branchIndex]}") # radians
-                    angle = windingAngle % math.degrees((rightRotationRange[branchIndex] + leftRotationRange[branchIndex]) / 2.0) - math.degrees(leftRotationRange[branchIndex] / 2.0)
+                    treeGen.report({'INFO'}, f"ADAPTIVE: rightRotationRange: {rightRotationRange[branchIndex]}") # degrees
+                    treeGen.report({'INFO'}, f"ADAPTIVE: leftRotationRange: {leftRotationRange[branchIndex]}") # degrees
+                    angle = windingAngle % (rightRotationRange[branchIndex] + leftRotationRange[branchIndex]) / 2.0 - leftRotationRange[branchIndex] / 2.0
                     right = startPointData[branchIndex].outwardDir.cross(startPointTangent)
                     treeGen.report({'INFO'}, f"in add Branches: ADAPTIVE: angle: {angle}")
                     #startPointData[n].outwardDir
@@ -2736,12 +2744,19 @@ noiseGenerator):
                     treeGen.report({'INFO'}, f"ADAPTIVE: verticalAngle: {verticalAngle}")
                     treeGen.report({'INFO'}, f"ADAPTIVE: startPointTangent: {startPointTangent}")
                     #axis = right.cross(startPointTangent).normalized()
-                    axis = -centerDir.cross(startPointTangent) #TEST
+                    axis = -centerDir.cross(startPointTangent) #TEST  # ERROR HERE !!! -> use outwardDir from where arrow is drawn (where?) -> data.outwardDir!
                     #axis = right
-                    branchDir = Quaternion(axis, math.radians(-verticalAngle)) @ startPointTangent
+                    #drawArrow(
+                    branchDir = Quaternion(axis, math.radians(verticalAngle)) @ startPointTangent
                     
-                    branchDir = Quaternion(startPointTangent, math.radians(angle)) @ branchDir
-                
+                    ######################################################
+                    ####
+                    ###     TEST OFF
+                    ###
+                    branchDir = Quaternion(startPointTangent, math.radians(angle)) @ branchDir # TEST OFF
+                    #####
+                    ######################################################
+                    
                 if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "WINDING":
                     
                     centerDir = data.outwardDir # for symmetric!
@@ -3398,10 +3413,10 @@ def generateDummyStartPointData(treeGen, rootNode, startPointDatum):
         centerPoint += p
         n += 1
     centerPoint = centerPoint / n
-    drawDebugPoint(centerPoint, 0.2)
+    drawDebugPoint(centerPoint, 0.14)
     
     for p in parallelPoints:
-        drawDebugPoint(p, 0.2)
+        drawDebugPoint(p, 0.14)
         dummyStartPointData.append(startPointData(p, startPointDatum.startPointTvalGlobal, Vector((0.0,0.0,0.0)), None, 0, 0, 0, Vector((0.0,0.0,0.0)), Vector((0.0,0.0,0.0))))
         
     
