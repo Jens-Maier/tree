@@ -2677,6 +2677,8 @@ noiseGenerator):
                 drawArrow(data.startPoint, data.startPoint + data.outwardDir * 3.0)
                 treeGen.report({'INFO'}, f"startPointData.rotateAngleRange: {data.rotateAngleRange}")
             
+            maxAngle = 0.0
+            minAngle = 0.0
             windingAngle = 0.0
             for branchIndex in range(0, nrBranches):
                 #branchPos = branchIndex * totalLength / nrBranches + random.uniform(-branchesStartPointVariation, branchesStartPointVariation)
@@ -2735,24 +2737,33 @@ noiseGenerator):
                     treeGen.report({'INFO'}, f"ADAPTIVE: windingAngle: {windingAngle}") # degrees
                     treeGen.report({'INFO'}, f"ADAPTIVE: rightRotationRange: {rightRotationRange[branchIndex]}") # degrees
                     treeGen.report({'INFO'}, f"ADAPTIVE: leftRotationRange: {leftRotationRange[branchIndex]}") # degrees
-                    angle = windingAngle % (rightRotationRange[branchIndex] + leftRotationRange[branchIndex]) / 2.0 - leftRotationRange[branchIndex] / 2.0
+                    
+                    angle = windingAngle % (rightRotationRange[branchIndex] + leftRotationRange[branchIndex])  - leftRotationRange[branchIndex] 
+                    
+                    if angle > maxAngle:
+                        maxAngle = angle
+                    if angle < minAngle:
+                        minAngle = angle
+                        
                     right = startPointData[branchIndex].outwardDir.cross(startPointTangent)
                     treeGen.report({'INFO'}, f"in add Branches: ADAPTIVE: angle: {angle}")
+                    
                     #startPointData[n].outwardDir
                     
-                    treeGen.report({'INFO'}, f"ADAPTIVE: axis: {right}") # ERROR HERE ??? -> why alternating +- ???
+                    #treeGen.report({'INFO'}, f"ADAPTIVE: axis: {right}") # ERROR HERE ??? -> why alternating +- ???
                     treeGen.report({'INFO'}, f"ADAPTIVE: verticalAngle: {verticalAngle}")
                     treeGen.report({'INFO'}, f"ADAPTIVE: startPointTangent: {startPointTangent}")
                     #axis = right.cross(startPointTangent).normalized()
                     axis = -centerDir.cross(startPointTangent) #TEST  # ERROR HERE !!! -> use outwardDir from where arrow is drawn (where?) -> data.outwardDir!
                     #axis = right
-                    #drawArrow(
+                    
                     branchDir = Quaternion(axis, math.radians(verticalAngle)) @ startPointTangent
                     
                     ######################################################
                     ####
                     ###     TEST OFF
                     ###
+                    drawArrow(startPoint, startPoint + startPointTangent)
                     branchDir = Quaternion(startPointTangent, math.radians(angle)) @ branchDir # TEST OFF
                     #####
                     ######################################################
@@ -2995,8 +3006,9 @@ noiseGenerator):
                         
                         data.startNode.branches[startNodeNextIndex].append(whorlBranch)
                         branchNodes.append(whorlBranch)
-                    
-                
+            
+            treeGen.report({'INFO'}, f"in addBranches(): minAngle: {minAngle}, maxAngle: {maxAngle}")
+        
         #-----------------------------------------------------------------
         # for each branch cluster:        
         maxSplitHeightUsed = 0
@@ -3876,7 +3888,7 @@ class angleModeEnumProp(bpy.types.PropertyGroup):
         items=[
             ('SYMMETRIC', "Symmetric", "symmetric branch angles"),
             ('WINDING', "Winding", "winding branch angles"),
-            ('ADAPTIVE', "Adaptive", "adaptive (TEMP for debug)")
+            ('ADAPTIVE', "Adaptive winding", "adaptive winding branch angles")
         ],
         default='WINDING'
     )
@@ -3995,6 +4007,7 @@ class branchClusterSettings(bpy.types.PropertyGroup):
     rotateAngleCrownEnd: bpy.props.FloatProperty(name = "Rotate angle crown end")
     rotateAngleBranchStart: bpy.props.FloatProperty(name = "Rotate angle branch start")
     rotateAngleBranchEnd: bpy.props.FloatProperty(name = "Rotate angle branch end")
+    rotateAngleRangeFactor: bpy.props.FloatProperty(name = "Rotate angle range factor", default = 1.0, min = 0.0, soft_max = 2.0)
     
     hangingBranches: bpy.props.BoolProperty(name = "Hanging branches")
     reducedCurveStepCutoff: bpy.props.FloatProperty(name = "Reduced curve step cutoff", min = 0.0, soft_max = 1.0)
@@ -4832,6 +4845,9 @@ def load_properties(filePath, context):
             
         for i, value in enumerate(data.get("rotateAngleBranchEndList", [])):
             props.branchClusterSettingsList[i].rotateAngleBranchEnd = value
+        
+        for i, value in enumerate(data.get("rotateAngleRangeFactorList", [])):
+            props.branchClusterSettingsList[i].rotateAngleRangeFactor = value
             
             
         for i, value in enumerate(data.get("reducedCurveStepCutoffList", [])):
@@ -5400,6 +5416,7 @@ def save_properties(filePath, treeGen):
         "rotateAngleCrownEndList": [props.branchClusterSettingsList[i].rotateAngleCrownEnd for i in range(props.branchClusters)],
         "rotateAngleBranchStartList": [props.branchClusterSettingsList[i].rotateAngleBranchStart for i in range(props.branchClusters)],
         "rotateAngleBranchEndList": [props.branchClusterSettingsList[i].rotateAngleBranchEnd for i in range(props.branchClusters)],
+        "rotateAngleRangeFactorList": [props.branchClusterSettingsList[i].rotateAngleRangeFactor for i in range(props.branchClusters)],
         
         "reducedCurveStepCutoffList": [props.branchClusterSettingsList[i].reducedCurveStepCutoff for i in range(props.branchClusters)],
         "reducedCurveStepFactorList": [props.branchClusterSettingsList[i].reducedCurveStepFactor for i in range(props.branchClusters)],
@@ -5832,14 +5849,14 @@ class branchSettings(bpy.types.Panel):
                     split.label(text="Vertical angle branch end")
                     split.prop(scene.branchClusterSettingsList[i], "verticalAngleBranchEnd", text="")
                     
-                    split = box1.split(factor=0.6)
+                    box2 = box1.box()
+                    
+                    split = box2.split(factor=0.6)
                     split.label(text="Branch angle mode")
                     split.prop(scene.branchClusterSettingsList[i].branchAngleMode, "value", text="")
                     
-                    box2 = box1.box()
-                    split = box2.split(factor=0.6)
-                    
                     if scene.branchClusterSettingsList[i].branchAngleMode.value == 'WINDING':
+                        split = box2.split(factor=0.6)
                         split.label(text="Use Fibonacci angles")
                         split.prop(scene.branchClusterSettingsList[i], "useFibonacciAngles", text="")
                         if scene.branchClusterSettingsList[i].useFibonacciAngles == True:
@@ -5851,7 +5868,7 @@ class branchSettings(bpy.types.Panel):
                             split1.label(text="Angle:")
                             split1.label(text=f"{scene.branchClusterSettingsList[i].fibonacciNr.fibonacci_angle:.2f}°")
                     
-                    if scene.branchClusterSettingsList[i].useFibonacciAngles == False or scene.branchClusterSettingsList[i].branchAngleMode.value == 'SYMMETRIC':
+                    if scene.branchClusterSettingsList[i].branchAngleMode.value != 'ADAPTIVE' and (scene.branchClusterSettingsList[i].useFibonacciAngles == False or scene.branchClusterSettingsList[i].branchAngleMode.value == 'SYMMETRIC'):
                         split = box2.split(factor=0.6)
                         split.label(text="Rotate angle range")
                         split.prop(scene.branchClusterSettingsList[i], "rotateAngleRange", text="")
@@ -5861,7 +5878,7 @@ class branchSettings(bpy.types.Panel):
                         split.label(text="Rotate angle offset")
                         split.prop(scene.branchClusterSettingsList[i], "rotateAngleOffset", text="")
                         
-                    if scene.branchClusterSettingsList[i].useFibonacciAngles == False or scene.branchClusterSettingsList[i].branchAngleMode.value == 'SYMMETRIC':
+                    if scene.branchClusterSettingsList[i].branchAngleMode.value != 'ADAPTIVE' and scene.branchClusterSettingsList[i].useFibonacciAngles == False or scene.branchClusterSettingsList[i].branchAngleMode.value == 'SYMMETRIC':
                         split = box2.split(factor=0.6)
                         split.label(text="Rotate angle crown start")
                         split.prop(scene.branchClusterSettingsList[i], "rotateAngleCrownStart", text="")
@@ -5877,7 +5894,12 @@ class branchSettings(bpy.types.Panel):
                         split = box2.split(factor=0.6)
                         split.label(text="Rotate angle branch end")
                         split.prop(scene.branchClusterSettingsList[i], "rotateAngleBranchEnd", text="")
-        
+                    
+                    if scene.branchClusterSettingsList[i].branchAngleMode.value == 'ADAPTIVE':
+                        split = box2.split(factor=0.6)
+                        split.label(text="Rotate angle range factor")
+                        split.prop(scene.branchClusterSettingsList[i], "rotateAngleRangeFactor", text="", slider=True)
+                    
                     box3 = box1.box()
                     #if scene.hangingBranchesList[i].value == True:
                     #    split = box3.split(factor=0.6)
