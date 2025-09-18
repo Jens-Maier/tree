@@ -5878,7 +5878,7 @@ class branchSettings(bpy.types.Panel):
                         split.label(text="Rotate angle offset")
                         split.prop(scene.branchClusterSettingsList[i], "rotateAngleOffset", text="")
                         
-                    if scene.branchClusterSettingsList[i].branchAngleMode.value != 'ADAPTIVE' and scene.branchClusterSettingsList[i].useFibonacciAngles == False or scene.branchClusterSettingsList[i].branchAngleMode.value == 'SYMMETRIC':
+                    if scene.branchClusterSettingsList[i].useFibonacciAngles == False or scene.branchClusterSettingsList[i].branchAngleMode.value == 'SYMMETRIC':
                         split = box2.split(factor=0.6)
                         split.label(text="Rotate angle crown start")
                         split.prop(scene.branchClusterSettingsList[i], "rotateAngleCrownStart", text="")
