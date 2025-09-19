@@ -789,8 +789,7 @@ class generateTree(bpy.types.Operator):
                 context.scene.branchSplitHeightInLevelList_19, 
                 
                 context.scene.branchSplitHeightInLevelListList,
-                                
-                context.scene.hangingBranchesList, 
+                
                 noise_generator)
               
             calculateRadius(self, nodes[0], 100.0, context.scene.branchTipRadius)
@@ -1887,9 +1886,6 @@ branchSplitHeightInLevelList_18,
 branchSplitHeightInLevelList_19, 
 
 branchSplitHeightInLevelListList,
-            
-hangingBranchesList, 
-
 noiseGenerator):
     
     for clusterIndex in range(0, branchClusters):
@@ -2303,7 +2299,6 @@ noiseGenerator):
                 branchClusterSettingsList[clusterIndex].branchVariance, 
                 
                 branchClusterSettingsList[clusterIndex].branchSplitAxisVariation, 
-                False, 
                 
                 branchClusterSettingsList[clusterIndex].branchGlobalCurvatureStart, 
                 branchClusterSettingsList[clusterIndex].branchGlobalCurvatureEnd)
@@ -2361,7 +2356,6 @@ def splitBranches(treeGen,
                   variance, 
                   
                   branchSplitAxisVariation, 
-                  hangingBranches,
                   
                   curvatureStartGlobal, 
                   curvatureEndGlobal):
@@ -3066,7 +3060,6 @@ class branchClusterSettings(bpy.types.PropertyGroup):
     rotateAngleBranchEnd: bpy.props.FloatProperty(name = "Rotate angle branch end")
     rotateAngleRangeFactor: bpy.props.FloatProperty(name = "Rotate angle range factor", default = 1.0, min = 0.0, soft_max = 2.0)
     
-    hangingBranches: bpy.props.BoolProperty(name = "Hanging branches")
     reducedCurveStepCutoff: bpy.props.FloatProperty(name = "Reduced curve step cutoff", min = 0.0, soft_max = 1.0)
     reducedCurveStepFactor: bpy.props.FloatProperty(name = "Reduced curve step factor", min = 0.0, max = 1.0)
     branchGlobalCurvatureStart: bpy.props.FloatProperty(name = "Branch global curvature start")
@@ -3965,10 +3958,6 @@ def init_properties(data, props):
         
         for i, value in enumerate(data.get("branchSplitLengthVariationList", [])):
             props.branchClusterSettingsList[i].branchSplitLengthVariation = value
-        
-        for i, value in enumerate(data.get("hangingBranchesList", [])):
-            props.branchClusterSettingsList[i].hangingBranchesList.add()
-            item.value = value
         
         props.branchSplitHeightInLevelListList.clear()
         nestedBranchSplitHeightInLevelList = []
@@ -5269,7 +5258,6 @@ def register():
     bpy.types.Scene.branchClusterBoolListList = bpy.props.CollectionProperty(type=branchClusterBoolListProp)
     bpy.types.Scene.nrBranchesListIndex = bpy.props.IntProperty(default=0)
     bpy.types.Scene.taperFactorList = bpy.props.CollectionProperty(type=posFloatPropSoftMax1)
-    bpy.types.Scene.hangingBranchesList = bpy.props.CollectionProperty(type=boolProp)
     bpy.types.Scene.branchSplitHeightInLevelListList = bpy.props.CollectionProperty(type=floatListProp01)
     bpy.types.Scene.branchSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0)
     bpy.types.Scene.branchSplitHeightInLevelList_0 = bpy.props.CollectionProperty(type=floatProp01default0p5)
@@ -5627,7 +5615,6 @@ def unregister():
     del bpy.types.Scene.branchClusterBoolListList
     del bpy.types.Scene.nrBranchesListIndex
     del bpy.types.Scene.taperFactorList
-    del bpy.types.Scene.hangingBranchesList
     del bpy.types.Scene.branchSplitHeightInLevelListList
     del bpy.types.Scene.branchSplitHeightInLevelListIndex
     del bpy.types.Scene.branchSplitHeightInLevelList_0
