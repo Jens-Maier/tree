@@ -1001,6 +1001,8 @@ class splitMode:
     ALTERNATING = 2
 
 
+
+
 class generateTree(bpy.types.Operator):
     bl_label = "generateTree"
     bl_idname = "object.generate_tree"
@@ -3642,7 +3644,7 @@ class leafClusterBoolListProp(bpy.types.PropertyGroup):
         description="Show/hide leaf clusters",
         default=True
     )
-    
+
 class treeShapeEnumProp(bpy.types.PropertyGroup):
     value: bpy.props.EnumProperty(
         name = "branchShape", 
@@ -3659,6 +3661,18 @@ class treeShapeEnumProp(bpy.types.PropertyGroup):
         ],
         default='CONICAL'        
     )
+    
+class treePresetEnumProp(bpy.types.PropertyGroup):
+    value: bpy.props.EnumProperty(
+        name = "Preset",
+        description="Select a preset.",
+        items = [
+            ('TREE1', "Tree1", "First tree"),
+            ('TREE2', "Tree2", "Second tree")
+        ],
+        default='TREE1'
+    )
+    
     
 class splitModeEnumProp(bpy.types.PropertyGroup):
     value: bpy.props.EnumProperty(
@@ -3996,6 +4010,10 @@ class treeGenPanel(bpy.types.Panel):
         row.label(icon = 'COLORSET_12_VEC')
         
         row.operator("object.generate_tree", text="Generate Tree")
+        
+        layout.prop(context.scene, "treePreset")
+        
+        #split.prop(context.scene, "stemSplitMode", text="")
         
 class treeSettings(bpy.types.Panel):
     bl_label = "Tree Settings"
@@ -4375,7 +4393,6 @@ class exportProperties(bpy.types.Operator):
         props = context.scene  
         
         filename = props.file_name + ".json"  # Automatically append .json  
-        #filepath = bpy.path.abspath(f"//{filename}")  # Save to the specified filename 
         
         filepath = os.path.join(props.folder_path, filename)
          
@@ -4390,11 +4407,12 @@ class importProperties(bpy.types.Operator):
     def execute(self, context):
         props = context.scene  
         filename = props.file_name + ".json"  # Automatically append .json  
-        filepath = bpy.path.abspath(f"//{filename}")  # Load from the specified filename  
+        
+        filepath = os.path.join(props.folder_path, filename)
+        
         load_properties(filepath, context)
         self.report({'INFO'}, f'Loaded properties from {filepath}')
         
-        #bpy.ops.object.generate_tree()
         return {'FINISHED'}
     
 def load_properties(filePath, context):
@@ -5895,6 +5913,8 @@ def register():
     bpy.utils.register_class(exportProperties)
         
     #data types
+    bpy.utils.register_class(treePresetEnumProp)
+    
     bpy.utils.register_class(treeShapeEnumProp)
     bpy.utils.register_class(splitModeEnumProp)
     bpy.utils.register_class(angleModeEnumProp)
@@ -5980,6 +6000,8 @@ def register():
         default = True
     )
     bpy.types.Scene.stemSplitHeightInLevelListIndex = bpy.props.IntProperty(default = 0)
+    
+    bpy.types.Scene.treePreset = bpy.props.PointerProperty(type=treePresetEnumProp)
     
     bpy.types.Scene.folder_path = bpy.props.StringProperty(name="Folder Path", subtype='DIR_PATH', default="")
     bpy.types.Scene.file_name = bpy.props.StringProperty(name="File Name", default="my_tree_properties")
@@ -6194,6 +6216,9 @@ def register():
         default='CONICAL'
     )
     
+    
+    
+    
     bpy.types.Scene.stemRingResolution = bpy.props.IntProperty(
         name = "Stem Ring Resolution",
         description = "Resolution of the stem rings",
@@ -6265,6 +6290,7 @@ def unregister():
         
     #data types
     bpy.utils.unregister_class(treeShapeEnumProp)
+    bpy.utils.unregister_class(treePresetEnumProp)
     bpy.utils.unregister_class(splitModeEnumProp)
     bpy.utils.unregister_class(angleModeEnumProp)
     bpy.utils.unregister_class(branchTypeEnumProp)
@@ -6345,6 +6371,7 @@ def unregister():
     del bpy.types.Scene.stemSplitHeightInLevelListIndex
     del bpy.types.Scene.file_name
     del bpy.types.Scene.folder_path
+    del bpy.types.Scene.treePreset
     del bpy.types.Scene.parentClusterBoolList
     del bpy.types.Scene.parentClusterBoolListList
     del bpy.types.Scene.branchClusterBoolListList
