@@ -3831,12 +3831,11 @@ def init_properties(data, props):
         for i, value in enumerate(data.get("branchesEndHeightGlobalList", [])):
             props.branchClusterSettingsList[i].branchesEndHeightGlobal = value
         
-        if i > 0: # hide for first branch cluster since it can only have the stem as parent
-            for i, value in enumerate(data.get("branchesStartHeightClusterList", [])):
-                props.branchClusterSettingsList[i].branchesStartHeightCluster = value
-                
-            for i, value in enumerate(data.get("branchesEndHeightClusterList", [])):
-                props.branchClusterSettingsList[i].branchesEndHeightCluster = value
+        for i, value in enumerate(data.get("branchesStartHeightClusterList", [])):
+            props.branchClusterSettingsList[i].branchesStartHeightCluster = value
+        
+        for i, value in enumerate(data.get("branchesEndHeightClusterList", [])):
+            props.branchClusterSettingsList[i].branchesEndHeightCluster = value
             
         for i, value in enumerate(data.get("branchesStartPointVariationList", [])):
             props.branchClusterSettingsList[i].branchesStartPointVariation = value
@@ -4782,13 +4781,14 @@ class branchSettings(bpy.types.Panel):
                     split.label(text="Branches end height global")
                     split.prop(scene.branchClusterSettingsList[i], "branchesEndHeightGlobal", text="", slider=True)
                     
-                    split = box.split(factor=0.6)
-                    split.label(text="Branches start height cluster")
-                    split.prop(scene.branchClusterSettingsList[i], "branchesStartHeightCluster", text="", slider=True)
-                    
-                    split = box.split(factor=0.6)
-                    split.label(text="Branches end height cluster")
-                    split.prop(scene.branchClusterSettingsList[i], "branchesEndHeightCluster", text="", slider=True)
+                    if i > 0: # hide for first branch cluster since it can only have the stem as parent
+                        split = box.split(factor=0.6)
+                        split.label(text="Branches start height cluster")
+                        split.prop(scene.branchClusterSettingsList[i], "branchesStartHeightCluster", text="", slider=True)
+                        
+                        split = box.split(factor=0.6)
+                        split.label(text="Branches end height cluster")
+                        split.prop(scene.branchClusterSettingsList[i], "branchesEndHeightCluster", text="", slider=True)
                     
                     split = box.split(factor=0.6)
                     split.label(text="Branches start point variation")
