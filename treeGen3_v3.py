@@ -1,14 +1,4 @@
-bl_info = {
-    "name" : "treeGen3",
-    "author" : "Jens Maier", 
-    "version" : (1,0,0),
-    "blender" : (4,5,3),
-    "description" : "Tree generator",
-    "location" : "View3d > Sidebar",
-    "warning" : "",
-    "wiki_url" : "",
-    "category" : "Add Mesh",
-} # -> move to blender_manifest.toml (https://www.youtube.com/watch?v=IVLPQYk0wv4)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
 import math
@@ -113,9 +103,44 @@ class node():
             longestBranchLengthInCluster = 1.0
             
             if len(self.next) > 1:
-                segments.append(segment(self.clusterIndex, self.point, nextNode.point, self.tangent[n + 1], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.tValGlobal, nextNode.tValGlobal, self.tValBranch, nextNode.tValBranch, self.ringResolution, False, self.branchLength, longestBranchLengthInCluster, self.taper, nextNode.taper))
+                segments.append(segment(self.clusterIndex, 
+                                        self.point, 
+                                        nextNode.point, 
+                                        self.tangent[n + 1], 
+                                        nextNode.tangent[0], 
+                                        self.cotangent, 
+                                        nextNode.cotangent, 
+                                        self.radius, 
+                                        nextNode.radius, 
+                                        self.tValGlobal, 
+                                        nextNode.tValGlobal, 
+                                        self.tValBranch, 
+                                        nextNode.tValBranch, 
+                                        self.ringResolution, 
+                                        False, self.branchLength, 
+                                        longestBranchLengthInCluster, 
+                                        self.taper, 
+                                        nextNode.taper))
             else:
-                segments.append(segment(self.clusterIndex, self.point, nextNode.point, self.tangent[0], nextNode.tangent[0], self.cotangent, nextNode.cotangent, self.radius, nextNode.radius, self.tValGlobal, nextNode.tValGlobal, self.tValBranch, nextNode.tValBranch, self.ringResolution, connectedToPrev, self.branchLength, longestBranchLengthInCluster, self.taper, nextNode.taper))
+                segments.append(segment(self.clusterIndex, 
+                                        self.point, 
+                                        nextNode.point, 
+                                        self.tangent[0], 
+                                        nextNode.tangent[0], 
+                                        self.cotangent, 
+                                        nextNode.cotangent, 
+                                        self.radius, 
+                                        nextNode.radius, 
+                                        self.tValGlobal, 
+                                        nextNode.tValGlobal, 
+                                        self.tValBranch, 
+                                        nextNode.tValBranch, 
+                                        self.ringResolution, 
+                                        connectedToPrev, 
+                                        self.branchLength, 
+                                        longestBranchLengthInCluster, 
+                                        self.taper, 
+                                        nextNode.taper))
         
             nextNode.getAllSegments(treeGen, rootNode, segments, True)
         
@@ -346,66 +371,7 @@ class node():
                 self.point, 
                 treeHeight
             )
-                    
-             
-    def applyCurvature(
-        self, 
-        treeGen, 
-        rootNode, 
-        treeGrowDir, 
-        treeHeight, 
-        curvatureStartGlobal,
-        curvatureStartBranch,
-        curvatureEndGlobal, 
-        curvatureEndBranch,
-        clusterIndex, 
-        branchStartPoint, 
-        curveStep,
-        maxCurveSteps):
-        
-        if clusterIndex == -1:
-            nextTangent = (treeGrowDir.normalized() * treeHeight - (rootNode.point + rootNode.tangent[0] * (treeGrowDir.normalized() * treeHeight - rootNode.point).length * (1.5 / 3.0))).normalized()
-        
-            centerPoint = sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, Vector((0.0,0.0,1.0)), nextTangent, self.tValGlobal)
-        else:
-            centerPoint = branchStartPoint
-        
-        outwardDir = self.point - centerPoint
-                
-        right = self.tangent[0].cross(Vector((0.0,0.0,0.1)))
-        if right.length < 0.01: # near vertical branch
-            if outwardDir.length < 0.001:
-                curveAxis = self.cotangent
-            else:
-                curveAxis = outwardDir.cross(self.tangent[0])
-        else:
-            curveAxis = right.normalized()
-        
-        globalCurvature = lerp(curvatureStartGlobal, curvatureEndGlobal, self.tValGlobal)
-        branchCurvature = lerp(curvatureStartBranch, curvatureEndBranch, self.tValBranch)
-        
-        curvature = globalCurvature + branchCurvature
-        
-        curveStepTangent = Quaternion(curveAxis, math.radians(curvature)) @ self.tangent[0]
-        
-        curveAxis = curveAxis.normalized()
-        
-        self.curveStep(treeGen, curvature, curveAxis, self.point, True)
-        
-        for n in self.next:
-            if curveStep <= maxCurveSteps:
-                n.applyCurvature(treeGen, 
-                                 rootNode, 
-                                 treeGrowDir, 
-                                 treeHeight, 
-                                 curvatureStartGlobal,
-                                 curvatureStartBranch,
-                                 curvatureEndGlobal,
-                                 curvatureEndBranch,
-                                 clusterIndex, 
-                                 branchStartPoint, 
-                                 curveStep + 1, 
-                                 maxCurveSteps)
+    
     
     def attractOutward(self,
                        treeGen, 
@@ -491,7 +457,7 @@ class node():
     
             
     
-    def applyCurvature2(
+    def applyCurvature(
         self,
         treeGen,
         rootNode,
@@ -548,7 +514,7 @@ class node():
             else:
                 for tangentIndex in range(0, len(self.tangent)):
                     self.tangent[tangentIndex] = Quaternion(step.curveAxis, math.radians(step.curvature / 1.0)) @ self.tangent[tangentIndex]
-                    self.cotangent = Quaternion(step.curveAxis, math.radians(step.curvature / 1.0)) @ self.cotangent #???
+                    self.cotangent = Quaternion(step.curveAxis, math.radians(step.curvature / 1.0)) @ self.cotangent
             
         if len(rotationSteps) > 0:
             rotationSteps[len(rotationSteps) - 1].isLast = False
@@ -559,13 +525,13 @@ class node():
                 isLast = True
                 
             if Vector((self.tangent[0].x, self.tangent[0].y, 0.0)).dot(Vector((self.next[0].tangent[0].x, self.next[0].tangent[0].y, 0.0))) < reducedCurveStepCutoff:
-                rotationSteps.append(rotationStep(self.point, curvature  * reducedCurveStepFactor, curveAxis, isLast))
+                rotationSteps.append(rotationStep(self.point, curvature * reducedCurveStepFactor, curveAxis, isLast))
             else:
                 rotationSteps.append(rotationStep(self.point, curvature, curveAxis, isLast))
         
         
         for n in self.next:
-                n.applyCurvature2(
+                n.applyCurvature(
                 treeGen,
                 rootNode,
                 treeGrowDir,
@@ -717,12 +683,25 @@ class generateTree(bpy.types.Operator):
             nodes[1].rotateAngleRange.append(180.0)
             
             if context.scene.nrSplits > 0:
-                maxSplitHeightUsed = splitRecursive(nodes[0], context.scene.nrSplits, context.scene.stemSplitAngle, context.scene.stemSplitPointAngle, context.scene.variance, context.scene.stemSplitHeightInLevelList, context.scene.splitHeightVariation, context.scene.splitLengthVariation, context.scene.stemSplitMode, context.scene.stemSplitRotateAngle, nodes[0], context.scene.stemRingResolution, context.scene.curvOffsetStrength, self, nodes[0])
+                maxSplitHeightUsed = splitRecursive(nodes[0], 
+                                                    context.scene.nrSplits, 
+                                                    context.scene.stemSplitAngle, 
+                                                    context.scene.stemSplitPointAngle, 
+                                                    context.scene.variance, 
+                                                    context.scene.stemSplitHeightInLevelList, 
+                                                    context.scene.splitHeightVariation, 
+                                                    context.scene.splitLengthVariation, 
+                                                    context.scene.stemSplitMode, 
+                                                    context.scene.stemSplitRotateAngle, 
+                                                    nodes[0], 
+                                                    context.scene.stemRingResolution, 
+                                                    context.scene.curvOffsetStrength, self, nodes[0])
+                                                    
                 context.scene.maxSplitHeightUsed = max(context.scene.maxSplitHeightUsed, maxSplitHeightUsed)
             
             nodes[0].resampleSpline(nodes[0], self, context.scene.resampleDistance)
             
-            nodes[0].applyCurvature2(self, 
+            nodes[0].applyCurvature(self, 
                                     nodes[0], 
                                     context.scene.treeGrowDir, 
                                     context.scene.treeHeight, 
@@ -804,7 +783,16 @@ class generateTree(bpy.types.Operator):
                 context.scene.leafParentClusterBoolListList, 
                 context.scene.leaf_material)
             
-            generateVerticesAndTriangles(self, self, context, segments, dir, context.scene.taper, radius, context.scene.ringSpacing, context.scene.stemRingResolution, context.scene.taperFactorList, context.scene.branchTipRadius, context.scene.bark_material)
+            generateVerticesAndTriangles(self, self, context, 
+                segments, 
+                dir, 
+                context.scene.taper, 
+                radius, 
+                context.scene.ringSpacing, 
+                context.scene.stemRingResolution, 
+                context.scene.taperFactorList, 
+                context.scene.branchTipRadius, 
+                context.scene.bark_material)
             
             if len(context.scene.stemSplitHeightInLevelList) > context.scene.maxSplitHeightUsed + 1:
                 for i in range(context.scene.maxSplitHeightUsed + 1, len(context.scene.stemSplitHeightInLevelList)):
@@ -1181,7 +1169,21 @@ def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
         activeNode.radius = branchTipRadius
         return branchTipRadius
 
-def splitRecursive(startNode, nrSplits, splitAngle, splitPointAngle, variance, splitHeightInLevel, splitHeightVariation, splitLengthVariation, stemSplitMode, stemSplitRotateAngle, root_node, stemRingResolution, curvOffsetStrength, self, rootNode):
+def splitRecursive(startNode, 
+                   nrSplits, 
+                   splitAngle, 
+                   splitPointAngle, 
+                   variance, 
+                   splitHeightInLevel, 
+                   splitHeightVariation, 
+                   splitLengthVariation, 
+                   stemSplitMode, 
+                   stemSplitRotateAngle, 
+                   root_node, 
+                   stemRingResolution, 
+                   curvOffsetStrength, 
+                   self, 
+                   rootNode):
     
     while len(splitHeightInLevel) < nrSplits:
         newHeight = splitHeightInLevel.add()
@@ -1322,7 +1324,22 @@ def split(startNode,
     
     return startNode
 
-def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, mode, rotationAngle, branchSplitAxisVariation, stemRingResolution, curvOffsetStrength, self, rootNode):
+def splitAtNewNode(nrNodesToTip, 
+                   splitAfterNodeNr, 
+                   startNode, 
+                   nextIndex, 
+                   splitHeight, 
+                   splitLengthVariation, 
+                   splitAngle, 
+                   splitPointAngle, 
+                   level, 
+                   mode, 
+                   rotationAngle, 
+                   branchSplitAxisVariation, 
+                   stemRingResolution, 
+                   curvOffsetStrength, 
+                   self, 
+                   rootNode):
     # Split at new node between two nodes
     
     splitAfterNode = startNode
@@ -1375,7 +1392,18 @@ def splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHe
     calculateSplitData(newNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, newNode.outwardDir)
     return newNode
 
-def calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, sMode, rotationAngle, stemRingResolution, curvOffsetStrength, self, outwardDir):
+def calculateSplitData(splitNode, 
+                       splitAngle, 
+                       splitPointAngle, 
+                       splitLengthVariation, 
+                       branchSplitAxisVariation, 
+                       level, 
+                       sMode, 
+                       rotationAngle, 
+                       stemRingResolution, 
+                       curvOffsetStrength, 
+                       self, 
+                       outwardDir):
     
     n = splitNode
     nodesAfterSplitNode = 0
@@ -2303,7 +2331,7 @@ noiseGenerator):
         for i, branchNode in enumerate(branchNodes):
             
             branchNode.resampleSpline(rootNode, treeGen, resampleDistance)
-            branchNode.applyCurvature2(treeGen, 
+            branchNode.applyCurvature(treeGen, 
                                       rootNode, 
                                       treeGrowDir, 
                                       treeHeight, 
@@ -2455,15 +2483,18 @@ def splitBranches(treeGen,
                     indexToSplit = random.randint(0, len(nodeIndices) - 1)
                     if len(nodeIndices) > indexToSplit:
                         splitHeight = branchSplitHeightInLevel[level].value
+                        treeGen.report({'INFO'}, f"branch splitHeight before: {splitHeight}")
+                        treeGen.report({'INFO'}, f"branchSplitHeightVariation: {branchSplitHeightVariation}")
+                        treeGen.report({'INFO'}, f"h: {h}")
                         if h * splitHeight < 0:
                             splitHeight = max(splitHeight + h * branchSplitHeightVariation, 0.05)
                         else:
                             splitHeight = min(splitHeight + h * branchSplitHeightVariation, 0.95)
-                        
+                        treeGen.report({'INFO'}, f"branch splitHeight: {splitHeight}")
                         splitNode = split(
                             nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0],
                             nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][1], 
-                            branchSplitHeightInLevel[level].value, 
+                            splitHeight, 
                             branchSplitLengthVariation,
                             splitAngle,
                             splitPointAngle, 
@@ -2523,7 +2554,14 @@ def shapeRatio(self, context, tValGlobal, treeShape):
         else:
             return 0.5 + 0.5 * (1.0 - tValGlobal) / 0.3
 
-def calculateSegmentLengthsAndTotalLength(self, treeGen, startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster):
+def calculateSegmentLengthsAndTotalLength(self, 
+                                          treeGen, 
+                                          startNodesNextIndexStartTvalEndTval, 
+                                          segmentLengths, 
+                                          branchesStartHeightGlobal, 
+                                          branchesEndHeightGlobal, 
+                                          branchesStartHeightCluster, 
+                                          branchesEndHeightCluster):
     totalLength = 0.0
     for i in range(0, len(startNodesNextIndexStartTvalEndTval)):
         
@@ -2599,7 +2637,14 @@ def generateDummyStartPointData(treeGen, rootNode, startPointDatum):
     return (dummyStartPointData, centerPoint)
         
 
-def generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, calledFromAddLeaves):
+def generateStartPointData(self, 
+                           startNodesNextIndexStartTvalEndTval, 
+                           segmentLengths, 
+                           branchPos, 
+                           treeGrowDir, 
+                           rootNode, 
+                           treeHeight, 
+                           calledFromAddLeaves):
     accumLength = 0.0
     startNodeIndex = 0
     tVal = 0.0
@@ -2683,7 +2728,18 @@ def sampleSplineTangentT(start, end, startTangent, endTangent, t):
 def lerp(a, b, t):
     return a + (b - a) * t
 
-def generateVerticesAndTriangles(self, treeGen, context, segments, dir, taper, radius, ringSpacing, stemRingRes, taperFactor, branchTipRadius, barkMaterial):
+def generateVerticesAndTriangles(self, 
+                                 treeGen, 
+                                 context, 
+                                 segments, 
+                                 dir, 
+                                 taper, 
+                                 radius, 
+                                 ringSpacing, 
+                                 stemRingRes, 
+                                 taperFactor, 
+                                 branchTipRadius, 
+                                 barkMaterial):
     vertices = []
     faces = []
     
@@ -2737,7 +2793,9 @@ def generateVerticesAndTriangles(self, treeGen, context, segments, dir, taper, r
                     startRadius = segments[s].startRadius
                     endRadius = segments[s].endRadius
                     linearRadius = lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing))
-                    normalizedCurve = (1.0 - branchTipRadius) * tValBranch + sampleCurve(treeGen, tValBranch) * context.scene.taperFactorList[segments[s].clusterIndex].taperFactor
+                    normalizedCurve = (1.0 - branchTipRadius) * tValBranch + sampleCurve(treeGen, tValBranch) * context.scene.taperFactorList[segments[s].clusterIndex].taperFactor 
+                    # TODO: taper curve for each cluster
+                    # (default: deactivated -> default slope..)
                     radius = linearRadius * normalizedCurve
                     
                 for i in range(0, segments[s].ringResolution):
@@ -2918,7 +2976,9 @@ class treePresetEnumProp(bpy.types.PropertyGroup):
         description="Select a preset.",
         items = [
             ('TREE1', "Tree1", "First tree"),
-            ('TREE2', "Tree2", "Second tree")
+            ('TREE2', "Tree2", "Second tree"),
+            ('MAPLE', "Maple tree", "Large maple tree"),
+            ('SILVER_BIRCH', "Silver birch", "Silver birch tree")
         ],
         default='TREE1'
     )
@@ -3621,6 +3681,7 @@ def resetTaperCurve():
             curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
     curveNode.mapping.update()
     
+    
 class exportProperties(bpy.types.Operator):
     bl_idname = "export.save_properties_file"
     bl_label = "Save Properties"
@@ -3634,16 +3695,6 @@ class exportProperties(bpy.types.Operator):
          
         save_properties(filepath, self)
         self.report({'INFO'}, f'Saved properties to {filepath}')
-        return {'FINISHED'}
-
-class loadPreset(bpy.types.Operator):
-    bl_idname = "export.load_preset"
-    bl_label = "Load Preset"
-    
-    def execute(self, context):
-        props = context.scene
-        
-        load_preset(props.treePreset.value, context, self)
         return {'FINISHED'}
 
 
@@ -3660,7 +3711,19 @@ class importProperties(bpy.types.Operator):
         load_properties(filepath, context)
         
         return {'FINISHED'}
+
+
+class loadPreset(bpy.types.Operator):
+    bl_idname = "export.load_preset"
+    bl_label = "Load Preset"
     
+    def execute(self, context):
+        props = context.scene
+        
+        load_preset(props.treePreset.value, context, self)
+        return {'FINISHED'}
+
+
 def load_properties(filePath, context):
     with open(filePath, 'r') as f:
         data = json.load(f)
@@ -3679,6 +3742,19 @@ def load_preset(preset, context, self):
         data = json.loads(f)
         props = context.scene
         init_properties(data, props)
+        
+    if preset == 'MAPLE':
+        f = '{"treeHeight": 10.0, "treeGrowDir": [0.0010000000474974513, 0.0, 1.0], "taper": 0.14000000059604645, "taperCurvePoints": [[0.0, 1.0], [1.0, 0.0]], "taperCurveHandleTypes": ["VECTOR", "VECTOR"], "branchTipRadius": 0.0020000000949949026, "ringSpacing": 2.0, "stemRingResolution": 16, "resampleDistance": 0.5, "noiseAmplitudeVertical": 1.2300000190734863, "noiseAmplitudeHorizontal": 1.2000000476837158, "noiseAmplitudeGradient": 0.35999998450279236, "noiseAmplitudeExponent": 1.0299999713897705, "noiseScale": 0.3100000321865082, "seed": 1549, "curvatureStart": 0.0, "curvatureEnd": 0.0, "maxCurveSteps": 10, "nrSplits": 2, "variance": 0.0, "stemSplitMode": "ROTATE_ANGLE", "stemSplitRotateAngle": 90.0, "curvOffsetStrength": 0.0, "stemSplitHeightInLevelList": [0.15380950272083282, 0.5], "stemSplitHeightInLevelListIndex": 1, "splitHeightVariation": 0.0, "splitLengthVariation": 0.030000001192092896, "stemSplitAngle": 4.0800018310546875, "stemSplitPointAngle": 15.690000534057617, "branchClusters": 2, "showBranchClusterList": [true, true], "showParentClusterList": [true, true], "parentClusterBoolListList": [[true], [false, true]], "nrBranchesList": [37, 68], "treeShapeList": ["INVERSE_HEMISPHERICAL", "INVERSE_HEMISPHERICAL"], "branchShapeList": ["CYLINDRICAL", "CYLINDRICAL"], "branchTypeList": ["SINGLE", "SINGLE"], "branchWhorlCountStartList": [12, 3], "branchWhorlCountEndList": [3, 3], "relBranchLengthList": [0.5138890147209167, 0.2569444477558136], "relBranchLengthVariationList": [0.0694444477558136, 0.0], "taperFactorList": [0.8402778506278992, 0.8402777910232544], "ringResolutionList": [6, 5], "branchesStartHeightGlobalList": [0.19351230561733246, 0.0], "branchesEndHeightGlobalList": [0.9166666865348816, 1.0], "branchesStartHeightClusterList": [0.0, 0.05508948862552643], "branchesEndHeightClusterList": [0.875, 0.340277761220932], "branchesStartPointVariationList": [0.0, 0.0], "showNoiseSettingsList": [true, true], "noiseAmplitudeHorizontalList": [0.0, 0.0], "noiseAmplitudeVerticalList": [0.0, 0.0], "noiseAmplitudeGradientList": [0.0, 0.0], "noiseAmplitudeExponentList": [1.0, 1.0], "noiseScaleList": [1.0, 1.0], "showAngleSettingsList": [true, true], "verticalAngleCrownStartList": [50.410003662109375, 45.0], "verticalAngleCrownEndList": [31.21000099182129, 45.0], "verticalAngleBranchStartList": [0.0, 0.0], "verticalAngleBranchEndList": [0.0, 0.0], "branchAngleModeList": ["WINDING", "SYMMETRIC"], "useFibonacciAnglesList": [false, true], "fibonacciNr": [40, 5], "rotateAngleRangeList": [200.0399932861328, 180.0], "rotateAngleOffsetList": [90.0, 0.0], "rotateAngleCrownStartList": [70.87999725341797, -10.410000801086426], "rotateAngleCrownEndList": [71.18000030517578, -13.709999084472656], "rotateAngleBranchStartList": [0.0, 0.0], "rotateAngleBranchEndList": [0.0, 0.0], "rotateAngleRangeFactorList": [1.0, 1.0], "reducedCurveStepCutoffList": [0.010000020265579224, 0.0], "reducedCurveStepFactorList": [0.0, 0.0], "branchGlobalCurvatureStartList": [0.0, 0.0], "branchGlobalCurvatureEndList": [0.0, 0.0], "branchCurvatureStartList": [-3.330000162124634, 0.6599999666213989], "branchCurvatureEndList": [2.3399999141693115, 1.5], "branchCurvatureOffsetStrengthList": [0.0, 0.0], "showSplitSettingsList": [true, true], "nrSplitsPerBranchList": [7.980000019073486, 2.369999885559082], "branchSplitModeList": ["HORIZONTAL", "HORIZONTAL"], "branchSplitRotateAngleList": [0.0, 0.0], "branchSplitAxisVariationList": [0.5399997234344482, 0.44999998807907104], "branchSplitAngleList": [15.239999771118164, 15.300000190734863], "branchSplitPointAngleList": [10.530000686645508, 10.5], "splitsPerBranchVariationList": [0.0, 0.0], "branchVarianceList": [0.0, 0.0], "outwardAttractionList": [0.0, 0.0], "branchSplitHeightVariationList": [0.38129496574401855, 0.0], "branchSplitLengthVariationList": [0.1366906315088272, 0.0], "showBranchSplitHeights": [true, true], "branchSplitHeightInLevelListIndex": 0, "branchSplitHeightInLevelList_0": [0.2300613522529602, 0.4166666567325592, 0.2371794879436493, 0.2756410241127014, 0.5], "branchSplitHeightInLevelListIndex_0": 0, "branchSplitHeightInLevelList_1": [0.3205128014087677, 0.3205128014087677, 0.23076921701431274], "branchSplitHeightInLevelListIndex_1": 0, "branchSplitHeightInLevelList_2": [], "branchSplitHeightInLevelListIndex_2": 0, "branchSplitHeightInLevelList_3": [], "branchSplitHeightInLevelListIndex_3": 0, "branchSplitHeightInLevelList_4": [], "branchSplitHeightInLevelListIndex_4": 0, "branchSplitHeightInLevelList_5": [], "branchSplitHeightInLevelListIndex_5": 2, "branchSplitHeightInLevelList_6": [], "branchSplitHeightInLevelListIndex_6": 0, "branchSplitHeightInLevelList_7": [], "branchSplitHeightInLevelListIndex_7": 0, "branchSplitHeightInLevelList_8": [], "branchSplitHeightInLevelListIndex_8": 0, "branchSplitHeightInLevelList_9": [], "branchSplitHeightInLevelListIndex_9": 0, "branchSplitHeightInLevelList_10": [], "branchSplitHeightInLevelListIndex_10": 0, "branchSplitHeightInLevelList_11": [], "branchSplitHeightInLevelListIndex_11": 0, "branchSplitHeightInLevelList_12": [], "branchSplitHeightInLevelListIndex_12": 0, "branchSplitHeightInLevelList_13": [], "branchSplitHeightInLevelListIndex_13": 0, "branchSplitHeightInLevelList_14": [], "branchSplitHeightInLevelListIndex_14": 0, "branchSplitHeightInLevelList_15": [], "branchSplitHeightInLevelListIndex_15": 0, "branchSplitHeightInLevelList_16": [], "branchSplitHeightInLevelListIndex_16": 0, "branchSplitHeightInLevelList_17": [], "branchSplitHeightInLevelListIndex_17": 0, "branchSplitHeightInLevelList_18": [], "branchSplitHeightInLevelListIndex_18": 0, "branchSplitHeightInLevelList_19": [], "branchSplitHeightInLevelListIndex_19": 0, "branchSplitHeightInLevelListList": [], "showLeafSettings": [], "leavesDensityList": [], "leafSizeList": [], "leafAspectRatioList": [], "leafStartHeightGlobalList": [], "leafEndHeightGlobalList": [], "leafStartHeightClusterList": [], "leafEndHeightClusterList": [], "leafTypeList": [], "leafWhorlCountList": [], "leafAngleModeList": [], "leafVerticalAngleBranchStartList": [], "leafVerticalAngleBranchEndList": [], "leafRotateAngleBranchStartList": [], "leafRotateAngleBranchEndList": [], "leafTiltAngleBranchStartList": [], "leafTiltAngleBranchEndList": [], "showLeafClusterList": [true], "leafParentClusterBoolListList": [[false, true, false]]}'
+        data = json.loads(f)
+        props = context.scene
+        init_properties(data, props)
+        
+    if preset == 'SILVER_BIRCH':
+        f = '{"treeHeight": 10.0, "treeGrowDir": [0.0010000000474974513, 0.0, 1.0], "taper": 0.11999999731779099, "taperCurvePoints": [[0.0, 1.0], [1.0, 0.0]], "taperCurveHandleTypes": ["VECTOR", "VECTOR"], "branchTipRadius": 0.0020000000949949026, "ringSpacing": 2.0, "stemRingResolution": 16, "resampleDistance": 0.5, "noiseAmplitudeVertical": 0.0, "noiseAmplitudeHorizontal": 0.0, "noiseAmplitudeGradient": 0.0, "noiseAmplitudeExponent": 0.0, "noiseScale": 1.0, "seed": 1786, "curvatureStart": 0.0, "curvatureEnd": 0.0, "maxCurveSteps": 10, "nrSplits": 0, "variance": 0.0, "stemSplitMode": "ROTATE_ANGLE", "stemSplitRotateAngle": 90.0, "curvOffsetStrength": 0.0, "stemSplitHeightInLevelList": [], "stemSplitHeightInLevelListIndex": 5, "splitHeightVariation": 0.11999999731779099, "splitLengthVariation": 0.030000001192092896, "stemSplitAngle": 16.950000762939453, "stemSplitPointAngle": 15.690000534057617, "branchClusters": 1, "showBranchClusterList": [false], "showParentClusterList": [true], "parentClusterBoolListList": [[true]], "nrBranchesList": [24], "treeShapeList": ["INVERSE_CONICAL"], "branchShapeList": ["CYLINDRICAL"], "branchTypeList": ["SINGLE"], "branchWhorlCountStartList": [3], "branchWhorlCountEndList": [3], "relBranchLengthList": [0.5838925838470459], "relBranchLengthVariationList": [0.0], "taperFactorList": [0.8120805621147156], "ringResolutionList": [6], "branchesStartHeightGlobalList": [0.24161073565483093], "branchesEndHeightGlobalList": [0.9127516746520996], "branchesStartHeightClusterList": [0.0], "branchesEndHeightClusterList": [1.0], "branchesStartPointVariationList": [0.0], "showNoiseSettingsList": [false], "noiseAmplitudeHorizontalList": [0.0], "noiseAmplitudeVerticalList": [0.0], "noiseAmplitudeGradientList": [0.0], "noiseAmplitudeExponentList": [1.0], "noiseScaleList": [1.0], "showAngleSettingsList": [false], "verticalAngleCrownStartList": [81.18000030517578], "verticalAngleCrownEndList": [-5.160000324249268], "verticalAngleBranchStartList": [0.0], "verticalAngleBranchEndList": [0.0], "branchAngleModeList": ["WINDING"], "useFibonacciAnglesList": [true], "fibonacciNr": [6], "rotateAngleRangeList": [180.0], "rotateAngleOffsetList": [0.0], "rotateAngleCrownStartList": [0.0], "rotateAngleCrownEndList": [0.0], "rotateAngleBranchStartList": [0.0], "rotateAngleBranchEndList": [0.0], "rotateAngleRangeFactorList": [1.0], "reducedCurveStepCutoffList": [0.0], "reducedCurveStepFactorList": [0.0], "branchGlobalCurvatureStartList": [1.0], "branchGlobalCurvatureEndList": [-6.119999885559082], "branchCurvatureStartList": [0.0], "branchCurvatureEndList": [0.0], "branchCurvatureOffsetStrengthList": [0.0], "showSplitSettingsList": [true], "nrSplitsPerBranchList": [1.5], "branchSplitModeList": ["HORIZONTAL"], "branchSplitRotateAngleList": [0.0], "branchSplitAxisVariationList": [0.23999999463558197], "branchSplitAngleList": [15.0], "branchSplitPointAngleList": [15.0], "splitsPerBranchVariationList": [0.0], "branchVarianceList": [0.0], "outwardAttractionList": [0.0], "branchSplitHeightVariationList": [0.2569444477558136], "branchSplitLengthVariationList": [0.2013888955116272], "showBranchSplitHeights": [true], "branchSplitHeightInLevelListIndex": 0, "branchSplitHeightInLevelList_0": [0.29754602909088135, 0.4018405079841614], "branchSplitHeightInLevelListIndex_0": 0, "branchSplitHeightInLevelList_1": [], "branchSplitHeightInLevelListIndex_1": 0, "branchSplitHeightInLevelList_2": [], "branchSplitHeightInLevelListIndex_2": 0, "branchSplitHeightInLevelList_3": [], "branchSplitHeightInLevelListIndex_3": 0, "branchSplitHeightInLevelList_4": [], "branchSplitHeightInLevelListIndex_4": 0, "branchSplitHeightInLevelList_5": [], "branchSplitHeightInLevelListIndex_5": 2, "branchSplitHeightInLevelList_6": [], "branchSplitHeightInLevelListIndex_6": 0, "branchSplitHeightInLevelList_7": [], "branchSplitHeightInLevelListIndex_7": 0, "branchSplitHeightInLevelList_8": [], "branchSplitHeightInLevelListIndex_8": 0, "branchSplitHeightInLevelList_9": [], "branchSplitHeightInLevelListIndex_9": 0, "branchSplitHeightInLevelList_10": [], "branchSplitHeightInLevelListIndex_10": 0, "branchSplitHeightInLevelList_11": [], "branchSplitHeightInLevelListIndex_11": 0, "branchSplitHeightInLevelList_12": [], "branchSplitHeightInLevelListIndex_12": 0, "branchSplitHeightInLevelList_13": [], "branchSplitHeightInLevelListIndex_13": 0, "branchSplitHeightInLevelList_14": [], "branchSplitHeightInLevelListIndex_14": 0, "branchSplitHeightInLevelList_15": [], "branchSplitHeightInLevelListIndex_15": 0, "branchSplitHeightInLevelList_16": [], "branchSplitHeightInLevelListIndex_16": 0, "branchSplitHeightInLevelList_17": [], "branchSplitHeightInLevelListIndex_17": 0, "branchSplitHeightInLevelList_18": [], "branchSplitHeightInLevelListIndex_18": 0, "branchSplitHeightInLevelList_19": [], "branchSplitHeightInLevelListIndex_19": 0, "branchSplitHeightInLevelListList": [], "showLeafSettings": [], "leavesDensityList": [], "leafSizeList": [], "leafAspectRatioList": [], "leafStartHeightGlobalList": [], "leafEndHeightGlobalList": [], "leafStartHeightClusterList": [], "leafEndHeightClusterList": [], "leafTypeList": [], "leafWhorlCountList": [], "leafAngleModeList": [], "leafVerticalAngleBranchStartList": [], "leafVerticalAngleBranchEndList": [], "leafRotateAngleBranchStartList": [], "leafRotateAngleBranchEndList": [], "leafTiltAngleBranchStartList": [], "leafTiltAngleBranchEndList": [], "showLeafClusterList": [true], "leafParentClusterBoolListList": [[true, false]]}'
+        data = json.loads(f)
+        props = context.scene
+        init_properties(data, props)
+        
  
 def init_properties(data, props):
         props.treeHeight = data.get("treeHeight", props.treeHeight)
@@ -5239,8 +5315,8 @@ def register():
     
     bpy.types.Scene.treePreset = bpy.props.PointerProperty(type=treePresetEnumProp)
     
-    bpy.types.Scene.folder_path = bpy.props.StringProperty(name="Folder Path", subtype='DIR_PATH', default="")
-    bpy.types.Scene.file_name = bpy.props.StringProperty(name="File Name", default="my_tree_properties")
+    bpy.types.Scene.folder_path = bpy.props.StringProperty(name="Folder", subtype='DIR_PATH', default="")
+    bpy.types.Scene.file_name = bpy.props.StringProperty(name="File Name", default="")
         
     bpy.types.Scene.parentClusterBoolList = bpy.props.CollectionProperty(type=boolProp)
     bpy.types.Scene.parentClusterBoolListList = bpy.props.CollectionProperty(type=parentClusterBoolListProp)
