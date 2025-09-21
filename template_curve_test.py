@@ -260,7 +260,21 @@ class EvalPanel(bpy.types.Panel):
         layout.prop(context.scene, "evaluate", slider=True)
         layout.operator("scene.evaluate_button", text="Evaluate").x = context.scene.evaluate
         layout.operator("scene.init_button", text="Initialise")
+
+class BranchSettings(bpy.types.Panel):
+    bl_label = "Branch Settings"
+    bl_idname = "PT_branchSettings"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'curveMapping'
+    
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(context.scene, "nrBranchClusters")
         
+        for i in range(0, context.scene.nrBranchClusters):
+            box = layout.box()
+
 class updateButton(bpy.types.Operator):
     bl_idname="scene.update"
     bl_label="Update"
@@ -374,6 +388,7 @@ class bendBranchesPanel(bpy.types.Panel):
 def register():
     bpy.utils.register_class(CurvyPanel)
     bpy.utils.register_class(EvalPanel)
+    bpy.utils.register_class(BranchSettings)
     bpy.utils.register_class(evaluateButton)
     bpy.utils.register_class(initButton)
     bpy.utils.register_class(bendBranchesPanel)
@@ -388,6 +403,12 @@ def register():
         max = 1.0
     )
     
+    bpy.types.Scene.nrBranchClusters = bpy.props.IntProperty(
+        name = "nr branch clusters",
+        default = 0,
+        min = 0
+    )
+    
     bpy.types.Scene.my_curve_mapping : bpy.props.CurveMappingProperty(
         name="My Curve Mapping", 
         min=0.0, 
@@ -398,6 +419,7 @@ def register():
 def unregister():
     bpy.utils.unregister_class(CurvyPanel)
     bpy.utils.unregister_class(EvalPanel)
+    bpy.utils.unregister_class(BranchSettings)
     bpy.utils.unregister_class(bendBranchesPanel)
     bpy.utils.unregister_class(evaluateButton)
     bpy.utils.unregister_class(updateButton)
@@ -406,6 +428,7 @@ def unregister():
     bpy.utils.unregister_class(floatProp)
     del bpy.types.Scene.evaluate
     del bpy.types.Scene.my_curve_mapping
+    del bpy.types.Scene.nrBranchClusters
     
 if __name__ == "__main__":
     register();
