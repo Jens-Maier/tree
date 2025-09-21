@@ -3637,6 +3637,7 @@ class splitSettings(bpy.types.Panel):
 
 
 taper_node_mapping = {}
+branch_taper_node_mapping = {}
 branch_taper_node_mapping_0 = {}
 branch_taper_node_mapping_1 = {}
 branch_taper_node_mapping_2 = {}
@@ -3663,11 +3664,10 @@ def taperNodeTree():
         taperCurveNodeGroup = bpy.data.node_groups.new('taperNodeGroup', 'ShaderNodeTree')
     return bpy.data.node_groups['taperNodeGroup'].nodes
 
-def branchTaperNodeTree(branchCluster):
-    groupName = f'branchTaperNodeGroup{branchCluster}'
-    if groupName not in bpy.data.node_groups:
-        bpy.data.node_groups.new(groupName, 'ShaderNodeTree')
-    return bpy.data.node_groups[groupName].nodes
+def branchTaperNodeTree():
+    if 'branchTaperNodeGroup' not in bpy.data.node_groups:
+        ng = bpy.data.node_groups.new('branchTaperNodeGroup', 'ShaderNodeTree')
+    return bpy.data.node_groups['branchTaperNodeGroup'].nodes
     
 
 
@@ -3679,23 +3679,7 @@ def taperCurveData(taperCurve): # taperCurve == 'taperMapping'
     nodeTree = taperNodeTree()[taper_node_mapping[taperCurve]]
     return nodeTree
 
-def branchTaperCurveData(taperCurve, branchCluster): # taperCurve == 'taperMappingCluster0'
-    if branchCluster == 0:
-        if taperCurve not in branch_taper_node_mapping_0:
-            BranchTaperNodeTree = branchTaperNodeTree(branchCluster).new('ShaderNodeRGBCurve')
-            branch_taper_node_mapping_0[taperCurve] = BranchTaperNodeTree.name
-        
-        branchNodeTree = branchTaperNodeTree(branchCluster)[branch_taper_node_mapping_0[taperCurve]]
-        return branchNodeTree
-    
-    if branchCluster == 1:
-        if taperCurve not in branch_taper_node_mapping_1:
-            BranchTaperNodeTree = branchTaperNodeTree(branchCluster).new('ShaderNodeRGBCurve')
-            branch_taper_node_mapping_1[taperCurve] = BranchTaperNodeTree.name
-        
-        branchNodeTree = branchTaperNodeTree(branchCluster)[branch_taper_node_mapping_1[taperCurve]]
-        return branchNodeTree
-    
+
 
 class resetCurvesButton(bpy.types.Operator):
     bl_idname = "scene.reset_curves"
@@ -3713,10 +3697,10 @@ def ensure_branch_curve_node(idx):
     curve_name = f"BranchCluster_{idx}"
     if 'CurveNodeGroup' not in bpy.data.node_groups:
         bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
-    if curve_name not in taper_node_mapping:
-        cn = branchTaperNodeTree(idx).new('ShaderNodeRGBCurve')  #branchTaperNodeTree(branchCluster)
+    if curve_name not in branch_taper_node_mapping:
+        cn = branchTaperNodeTree().new('ShaderNodeRGBCurve')  #branchTaperNodeTree(branchCluster)
         #cn.label = curve_name
-        taper_node_mapping[curve_name] = cn.name
+        branch_taper_node_mapping[curve_name] = cn.name # (taper_node_mapping... (ERROR HERE ???))
     return curve_name
 
 class resetCurvesClusterButton(bpy.types.Operator):
@@ -3728,13 +3712,16 @@ class resetCurvesClusterButton(bpy.types.Operator):
     def execute(self, context):
         self.report({'INFO'}, f"resetBranchTaperCurve(): level: {self.level}")
         
+        # Ensure the node and mapping exist
+        #taperCurveData('branchTaperMapping')
+        
         curve_name = ensure_branch_curve_node(self.level)
-        nodeGroups = bpy.data.node_groups.get(f'branchTaperNodeGroup{self.level}')
+        self.report({'INFO'}, f"curve_name: {curve_name}") # BranchCluster_1
         
-        self.report({'INFO'}, f"curve_name: {curve_name}")
+        nodeGroups = bpy.data.node_groups.get('branchTaperNodeGroup')
         
-        curveNodeMapping = nodeGroups.nodes[branch_taper_node_mapping_0['branchTaperMapping']].mapping
-        curveElement = nodeGroups.nodes[branch_taper_node_mapping_0['branchTaperMapping']].mapping.curves[3]
+        curveNodeMapping = nodeGroups.nodes[branch_taper_node_mapping[curve_name]].mapping
+        curveElement = nodeGroups.nodes[branch_taper_node_mapping[curve_name]].mapping.curves[3]
         
         self.report({'INFO'}, f"in reset: length: {len(curveElement.points)}")
         
