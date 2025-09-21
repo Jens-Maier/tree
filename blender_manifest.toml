@@ -1,16 +1,25 @@
 schema_version = "1.0.0"
-id = "sapling_tree_gen"
-name = "Sapling Tree Gen"
-version = "0.3.6"
-tagline = "Adds a parametric tree"
-maintainer = "Community"
+
+id = "treeGen"
+version = "1.0.0"
+name = "treeGen"
+tagline = "Generate a parametric tree"
+maintainer = "Jens Maier"
 type = "add-on"
-tags = ["Add Curve"]
-blender_version_min = "4.2.0"
-license = ["SPDX:GPL-2.0-or-later"]
-website = "https://projects.blender.org/extensions/add_curve_sapling"
-copyright = [
-    "2024 Andrew Hale (TrumanBlending)",
-    "2024 Aaron Buchler",
-    "2024 CansecoGPC",
+location = "View3d > Sidebar"
+
+website = "https://github.com/Jens-Maier/tree"
+support = "COMMUNITY"
+tags = ["Add Mesh", ]
+
+blender_version_min = "4.5.3"
+
+license = [
+  "SPDX:GPL-3.0-or-later",
 ]
+copyright = [
+  "2025 Jens Maier",
+]
+
+[permissions]
+files = "Read/write json files from/to disk"
