@@ -1,5 +1,7 @@
 import bpy
 import mathutils
+from mathutils import Vector
+import math
 
 class floatProp(bpy.types.PropertyGroup):
     value: bpy.props.FloatProperty(name = "floatValue", default=0)
@@ -258,12 +260,124 @@ class EvalPanel(bpy.types.Panel):
         layout.prop(context.scene, "evaluate", slider=True)
         layout.operator("scene.evaluate_button", text="Evaluate").x = context.scene.evaluate
         layout.operator("scene.init_button", text="Initialise")
+        
+class updateButton(bpy.types.Operator):
+    bl_idname="scene.update"
+    bl_label="Update"
+    
+    def execute(self, context):
+        nodes = []
+        angles = []
+        n = 6
+        for i in range(0, n):
+            nodes.append(Vector((i, 0.0, 0.0)))
+            angles.append(0.0)
+            bpy.ops.object.empty_add(type='SPHERE', location= nodes[i])
+            bpy.context.active_object.empty_display_size = 0.02
+        
+        iterations = 80
+        
+        fixPoint = Vector((-1.0,0.0,0.0))
+        
+        for i in range(iterations):
+            self.report({'INFO'}, f"iteration: {i}")
+            forces = []
+            for j in range(0, n):
+                gravity = 0.1
+                if j <= 1:
+                    Fgrav = Vector((0.0,0.0,-1.0)) * gravity / 5
+                    Fspring = (((nodes[j + 1] - nodes[j]).length - 1.0) * (nodes[j + 1] - nodes[j]) / (nodes[j + 1] - nodes[j]).length) * 0.8
+                    forces.append(Fgrav + Fspring)
+                    #TODO: length constratint!
+                else:
+                    
+                    if j == n - 1:
+                        Fgrav = Vector((0.0,0.0,-1.0)) * gravity #* (nodes[j] - nodes[j - 1]).dot(Vector((0.0,0.0,-1.0)))
+                        
+                        Fspring = (((nodes[j - 1] - nodes[j]).length - 1.0) * (nodes[j - 1] - nodes[j]) / (nodes[j - 1] - nodes[j]).length)
+                    else:
+                        Fgrav = Vector((0.0,0.0,-1.0)) * gravity
+                        Fspring = (((nodes[j + 1] - nodes[j]).length - 1.0) * (nodes[j + 1] - nodes[j]) / (nodes[j + 1] - nodes[j]).length + 
+                                   ((nodes[j - 1] - nodes[j]).length - 1.0) * (nodes[j - 1] - nodes[j]) / (nodes[j - 1] - nodes[j]).length) * 0.2
+                        #Fspring = ((nodes[j + 1] - nodes[j]) + (nodes[j - 1] - nodes[j])) * 0.2
+                        if j == 3:
+                            drawArrow(nodes[j], nodes[j + 1])
+                            drawArrow(nodes[j], nodes[j - 1])
+                        
+                        #self.report({'INFO'}, f"Fgrav: {Fgrav}")
+                        self.report({'INFO'}, f"Fspring: {Fspring}")
+                    
+                    
+                    if Fgrav.z > 0.0:
+                        self.report({'ERROR'}, f"Fgrav: {Fgrav}")
+                    F = Fgrav + Fspring
+                    #drawArrow(nodes[j], nodes[j] + F)
+                    drawArrow(nodes[j], nodes[j] + Fspring)
+                    #drawArrow(nodes[j], nodes[j] + Fgrav)
+                    #nodes[j] += F
+                    
+                    forces.append(F)
+                    #TODO: length constratint!
+                    
+            for j in range(0, n):
+                #apply forces
+                nodes[j] += forces[j]
+            
+            for j in range(0, n - 1):
+                #TODO: length constratint!
+                stretch = (nodes[n - j - 1] - nodes[n - j - 2]).length - 1.0
+                for k in range(n - j + 1, n):
+                    nodes[k] -= stretch * (nodes[k] - nodes[k - 1])
+                
+        for j in range(0, n):
+            p = nodes[j]
+            self.report({'INFO'}, f"p: {p}")
+            bpy.ops.object.empty_add(type='SPHERE', location = p)
+            bpy.context.active_object.empty_display_size = 0.01
+            #if j < n - 1:
+            #    drawArrow(nodes[j], nodes[j + 1])
+        
+        return {'FINISHED'} 
+    
+def drawArrow(a, b):
+    # Step 1: Create the empty at the position of point A with type 'SINGLE_ARROW'
+    bpy.ops.object.empty_add(type='SINGLE_ARROW', location=a)
+    empty = bpy.context.object  # Get the newly created empty
+    
+    # Step 2: Calculate the direction vector from A to B
+    direction = b - a
+    
+    # Step 3: Calculate the rotation to point from A to B
+    # Create a rotation matrix that makes the Z-axis of the empty point towards point B
+    rotation = direction.to_track_quat('Z', 'Y')  # 'Z' axis points towards B, 'Y' is up
+    
+    # Apply the rotation to the empty
+    empty.rotation_euler = rotation.to_euler()
+
+    # Step 4: Scale the empty based on the distance from A to B
+    distance = direction.length
+    empty.scale = (distance, distance, distance)  # Scale uniformly along all axes
+    
+    return empty
+        
+class bendBranchesPanel(bpy.types.Panel):
+    bl_label = "bend Branches"
+    bl_idname = "PT_bend_Branches"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'bendBranches'
+    
+    def draw(self, context):
+        layout = self.layout
+        layout.operator("scene.update", text="Update")
 
 def register():
     bpy.utils.register_class(CurvyPanel)
     bpy.utils.register_class(EvalPanel)
     bpy.utils.register_class(evaluateButton)
     bpy.utils.register_class(initButton)
+    bpy.utils.register_class(bendBranchesPanel)
+    bpy.utils.register_class(updateButton)
     
     bpy.utils.register_class(floatProp)
     
@@ -284,7 +398,10 @@ def register():
 def unregister():
     bpy.utils.unregister_class(CurvyPanel)
     bpy.utils.unregister_class(EvalPanel)
+    bpy.utils.unregister_class(bendBranchesPanel)
     bpy.utils.unregister_class(evaluateButton)
+    bpy.utils.unregister_class(updateButton)
+    
     bpy.utils.unregister_class(initButton)
     bpy.utils.unregister_class(floatProp)
     del bpy.types.Scene.evaluate
