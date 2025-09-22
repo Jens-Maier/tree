@@ -47,7 +47,7 @@ class rotationStep():
        self.curvature = Curvature
        self.curveAxis = CurveAxis
        self.isLast = IsLast
-        
+
 class node():
     def __init__(self, Point, Radius, Cotangent, ClusterIndex, RingResolution, Taper, TvalGlobal, TvalBranch, BranchLength):
         self.point = Point
@@ -600,9 +600,25 @@ class node():
                 
             if len(nextNode.next) > 0:
                 nextNode.resampleSpline(rootNode, treeGen, resampleDistance)
-           
-           
-           
+ 
+def drawDebugPoint(pos, size, name="debugPoint"):
+    bpy.ops.object.empty_add(type='SPHERE', location=pos)
+    bpy.context.active_object.empty_display_size = size
+    bpy.context.active_object.name=name
+    
+def drawArrow(a, b):
+    bpy.ops.object.empty_add(type='SINGLE_ARROW', location=a)
+    empty = bpy.context.object
+    
+    direction = b - a
+    rotation = direction.to_track_quat('Z', 'Y')  # 'Z' axis points towards B, 'Y' is up
+    empty.rotation_euler = rotation.to_euler()
+    distance = direction.length
+    empty.scale = (distance, distance, distance)  # Scale uniformly along all axes
+    
+    return empty
+ 
+ 
 class segment():
     def __init__(self, ClusterIndex, Start, End, StartTangent, EndTangent, StartCotangent, EndCotangent, StartRadius, EndRadius, StartTvalGlobal, EndTvalGlobal, StartTvalBranch, EndTvalBranch, RingResolution, ConnectedToPrevious, BranchLength, LongestBranchLengthInCluster, StartTaper, EndTaper):
         self.clusterIndex = ClusterIndex
@@ -624,13 +640,11 @@ class segment():
         self.longestBranchLengthInCluster = LongestBranchLengthInCluster
         self.startTaper = StartTaper
         self.endTaper = EndTaper
-        
+
 class splitMode:
     HORIZONTAL = 0
     ROTATE_ANGLE = 1
     ALTERNATING = 2
-
-
 
 
 class generateTree(bpy.types.Operator):
@@ -990,157 +1004,526 @@ class generateTree(bpy.types.Operator):
         return {'FINISHED'}
 
 
-def lerp(self, a, b, t):
-    return (a + (b - 1) * t)    
-def f0(t):
-    return (-0.5*t*t*t + t*t - 0.5*t)
-def f1(t):
-    return (1.5*t*t*t - 2.5*t*t + 1.0)
-def f2(t):
-    return (-1.5*t*t*t + 2.0*t*t + 0.5*t)
-def f3(t):
-    return (0.5*t*t*t - 0.5*t*t)
-    
-def sampleSpline(p0, p1, p2, p3, t):
-    return f0(t) * p0 + f1(t) * p1 + f2(t) * p2 + f3(t) * p3
-    
-def sampleCurve(self, x):
-    nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
-    curveElement = nodeGroups.nodes[taper_node_mapping['taperMappingBranchCluster0']].mapping.curves[3] 
-    y = 0.0
-    for n in range(0, len(curveElement.points) - 1):
-        
-        px = curveElement.points[n].location.x
-        py = curveElement.points[n].location.y
-        
-        #first segment
-        if n == 0:
-            if curveElement.points[1].handle_type == "VECTOR":
-                #linear
-                p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
-                p1 = curveElement.points[0].location
-                p2 = curveElement.points[1].location
-                p3 = curveElement.points[1].location + (curveElement.points[1].location - curveElement.points[0].location)
-            else:
-                p1 = curveElement.points[0].location
-                p2 = curveElement.points[1].location
-                if curveElement.points[0].handle_type == "AUTO" or curveElement.points[0].handle_type == "AUTO_CLAMPED":
-                    if len(curveElement.points) > 2:
-                        slope2 = 2.0 * (p2.y - p1.y) / (p2.x - p1.x)
-                        #n = 0, n -> 2 * slope
-                        p0 = mathutils.Vector((p1.x - (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y - slope2 * (p2.x - p1.x)))
-                    else: # only 2 points -> linear
-                        p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
-                    
-                    if len(curveElement.points) > 2:                            
-                        p3 = curveElement.points[2].location
-                    else: # linear when only 2 points
-                        p3 = p2 + (p2 - p1)
-                        p0 = p1 - (p2 - p1)
-                else:
-                    #n = 0, reflected == 1 * slope
-                    slope1 = 1.0 * (p2.y - p1.y) / (p2.x - p1.x)
-                    p0 = mathutils.Vector((p2.x + (p2.x - p1.x), p1.y + slope1 * (p2.x - p1.x)))
-                    # [0] -> reflected
-                    if len(curveElement.points) > 2:
-                        # cubic
-                        p3 = curveElement.points[2].location
-                    else:
-                        # 2 points: 0: auto, 1: auto -> linear (== 1 * slope)
-                        # linear
-                        p3 = p2 + (p2 - p1)
-            
-        #last segment
-        if n == len(curveElement.points) - 2:
-            if curveElement.points[len(curveElement.points) - 2].handle_type == "VECTOR":
-                #n = last, linear
-                p0 = curveElement.points[len(curveElement.points) - 2].location - (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
-                p1 = curveElement.points[len(curveElement.points) - 2].location
-                p2 = curveElement.points[len(curveElement.points) - 1].location
-                
-                p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
-            
-            else:
-                p1 = curveElement.points[len(curveElement.points) - 2].location
-                p2 = curveElement.points[len(curveElement.points) - 1].location
-                p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
-                if curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO" or curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO_CLAMPED":
-                    p0 = curveElement.points[len(curveElement.points) - 3].location
-                    #n = last, n -> 2 * slope
-                    slope2 = 2.0 * (p3.y - p2.y) / (p3.x - p2.x)
-                    if len(curveElement.points) > 2:
-                        p3 = mathutils.Vector((p2.x + (p2.x - p1.x) / (1.0 + abs(slope2)), p3.y + slope2 * (p2.x - p1.x)))  
-                    else:
-                        p3 = p2 + (p2 - p1)
-                        #n = last, p3: mirror
-                else:
-                    #n = last, slope
-                    if len(curveElement.points) > 2:
-                        # cubic
-                        p0 = curveElement.points[0].location
-                    else:
-                        # 2 points: 0: auto, 1: auto -> linear (== 1 * slope)
-                        # linear
-                        p0 = p1 - (p2 - p1)
-            
-        #middle segments
-        if n > 0 and n < len(curveElement.points) - 2:
-            if curveElement.points[n].handle_type == "AUTO" or curveElement.points[n].handle_type == "AUTO_CLAMPED":
-                if curveElement.points[n + 1].handle_type == "VECTOR":
-                    #n = middle, n + 1 -> reflected
-                    p0 = curveElement.points[n - 1].location
-                    p1 = curveElement.points[n].location
-                    p2 = curveElement.points[n + 1].location
-                    p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
-                else:
-                    #n = middle, (cubic (clamped)) -> spline!
-                    p0 = curveElement.points[n - 1].location
-                    p1 = curveElement.points[n].location
-                    p2 = curveElement.points[n + 1].location
-                    p3 = curveElement.points[n + 2].location
-                            
-            if curveElement.points[n].handle_type == "VECTOR":
-                if curveElement.points[n + 1].handle_type == "VECTOR":
-                    #linear
-                    p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
-                    p1 = curveElement.points[n].location
-                    p2 = curveElement.points[n + 1].location
-                    p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
-                else:
-                    #n = middle, n -> reflected
-                    p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
-                    p1 = curveElement.points[n].location
-                    p2 = curveElement.points[n + 1].location
-                    p3 = curveElement.points[n + 2].location
-        
-        if p1.x <= x and (p2.x > x or p2.x == 1.0):
-            
-            tx = (x - p1.x) / (p2.x - p1.x)
-            
-            px = sampleSpline(p0.x, p1.x, p2.x, p3.x, tx)
-            py = sampleSpline(p0.y, p1.y, p2.y, p3.y, tx)
-            
-            #self.report({'INFO'}, f"sample point: x: {x}, y: {y}, px: {px}, py: {py}")
-            return py
-    self.report({'ERROR'}, f"segment not found!, x: {x}")
-    return 0.0
 
-def drawDebugPoint(pos, size, name="debugPoint"):
+class floatProp(bpy.types.PropertyGroup):
+    value: bpy.props.FloatProperty(name = "floatValue", default=0)
+
+def myNodeTree():
+    if 'CurveNodeGroup' not in bpy.data.node_groups:
+        ng = bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
+    return bpy.data.node_groups['CurveNodeGroup'].nodes
+
+curve_node_mapping = {}
+
+def myCurveData(curve_name):
+    if curve_name not in curve_node_mapping:
+        cn = myNodeTree().new('ShaderNodeRGBCurve')
+        curve_node_mapping[curve_name] = cn.name
+    nodeTree = myNodeTree()[curve_node_mapping[curve_name]]
+    return nodeTree
+
+class resetCurvesButton(bpy.types.Operator):
+    bl_idname = "scene.reset_curves"
+    bl_label = "initialise"
+    
+    def execute(self, context):
+        nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
+        nrCurves = len(nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves)
+        curveElement = nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves[3]
+        
+        resetTaperCurve()
+        return {'FINISHED'}
+
+
+def ensure_branch_curve_node(idx):
+    curve_name = f"BranchCluster_{idx}"
+    if 'CurveNodeGroup' not in bpy.data.node_groups:
+        bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
+    if curve_name not in curve_node_mapping:
+        cn = myNodeTree().new('ShaderNodeRGBCurve')
+        #cn.label = curve_name
+        curve_node_mapping[curve_name] = cn.name
+    return curve_name
+
+
+def drawDebugPoint(pos, name="debugPoint"):
     bpy.ops.object.empty_add(type='SPHERE', location=pos)
-    bpy.context.active_object.empty_display_size = size
+    bpy.context.active_object.empty_display_size = 0.1
     bpy.context.active_object.name=name
+
+
+class AddBranchClusterButton(bpy.types.Operator):
+    bl_idname = "scene.add_branch_cluster"
+    bl_label = "Add Branch Cluster"
+
+    def execute(self, context):
+        context.scene.nrBranchClusters += 1
+        idx = context.scene.nrBranchClusters - 1
+        ensure_branch_curve_node(idx)
+        self.report({'INFO'}, f"Added branch cluster {idx}")
+        return {'FINISHED'}
     
-def drawArrow(a, b):
-    bpy.ops.object.empty_add(type='SINGLE_ARROW', location=a)
-    empty = bpy.context.object
+
+class BranchClusterResetButton(bpy.types.Operator):
+    bl_idname = "scene.reset_branch_cluster"
+    bl_label = "Reset Branch Cluster"
     
-    direction = b - a
-    rotation = direction.to_track_quat('Z', 'Y')  # 'Z' axis points towards B, 'Y' is up
-    empty.rotation_euler = rotation.to_euler()
-    distance = direction.length
-    empty.scale = (distance, distance, distance)  # Scale uniformly along all axes
+    idx: bpy.props.IntProperty()
     
-    return empty
+    def execute(self, context):
+        curve_name = ensure_branch_curve_node(self.idx)
+        self.report({'INFO'}, f"curve_name: {curve_name}")
+        
+        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
+        curveNodeMapping = nodeGroups.nodes[curve_node_mapping[curve_name]].mapping
+        curveElement = nodeGroups.nodes[curve_node_mapping[curve_name]].mapping.curves[3]
+        
+        self.report({'INFO'}, f"in reset: length: {len(curveElement.points)}")
+        
+        curveElement.points[0].location = (0.0, 1.0)
+        curveElement.points[1].location = (1.0, 0.0)
+        curveElement.points[0].handle_type = "VECTOR"
+        curveElement.points[1].handle_type = "VECTOR"
+        if len(curveElement.points) > 2:
+            for i in range(2, len(curveElement.points)):
+                curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
+                
+        curveNodeMapping.update()
+        
+        return {'FINISHED'}
+
+
+
+class BranchClusterEvaluateButton(bpy.types.Operator):
+    bl_idname = "scene.evaluate_branch_cluster"
+    bl_label = "Evaluate Branch Cluster"
+    
+    idx: bpy.props.IntProperty()
+    x: bpy.props.FloatProperty()
+    
+    def lerp(self, a, b, t):
+        return (a + (b - 1) * t)
+    
+    def f0(self, t):
+        return (2.0 - t) * (2.0 - t) * (1.0 - t) / 2.0
+    def f1(self, t):
+        return (2.0 - t) * (2.0 - t) * t + (t - 1.0) * (3.0 - t) * (2.0 - t) / 2.0
+    def f2(self, t):
+        return (2.0 - t) * (t - 1.0) * t / 2.0 + (3.0 - t) * (t - 1.0) * (t - 1.0)
+    def f3(self, t):
+        return (t - 1.0) * (t - 1.0) * (t - 2.0) / 2.0
+    
+    def sampleSpline(self, p0, p1, p2, p3, t):
+        return self.f0(t + 1.0) * p0 + self.f1(t + 1.0) * p1 + self.f2(t + 1.0) * p2 + self.f3(t + 1.0) * p3
+    
+    def f0b(self, t):
+        return (-0.5*t*t*t + t*t - 0.5*t)
+    def f1b(self, t):
+        return (1.5*t*t*t - 2.5*t*t + 1.0)
+    def f2b(self, t):
+        return (-1.5*t*t*t + 2.0*t*t + 0.5*t)
+    def f3b(self, t):
+        return (0.5*t*t*t - 0.5*t*t)
+    
+    def sampleSplineB(self, p0, p1, p2, p3, t):
+        return self.f0b(t) * p0 + self.f1b(t) * p1 + self.f2b(t) * p2 + self.f3b(t) * p3
+
+    def execute(self, context):
+        curve_name = ensure_branch_curve_node(self.idx)
+        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
+        curveElement = nodeGroups.nodes[curve_node_mapping[curve_name]].mapping.curves[3]
+        y = 0.0
+        nrSamplePoints = 20
+        self.report({'INFO'}, f"length: {len(curveElement.points)}")
+        for i in range(0, nrSamplePoints):  
+            self.report({'INFO'}, f"begin of sample point {i}")
+            x = i / nrSamplePoints
+            
+            for n in range(0, len(curveElement.points) - 1):
+                
+                px = curveElement.points[n].location.x
+                py = curveElement.points[n].location.y
+                
+                #first segment
+                if n == 0:
+                    if curveElement.points[1].handle_type == "VECTOR":
+                        #linear
+                        p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
+                        p1 = curveElement.points[0].location
+                        p2 = curveElement.points[1].location
+                        p3 = curveElement.points[1].location + (curveElement.points[1].location - curveElement.points[0].location)
+                    else:
+                        p1 = curveElement.points[0].location
+                        p2 = curveElement.points[1].location
+                        if curveElement.points[0].handle_type == "AUTO" or curveElement.points[0].handle_type == "AUTO_CLAMPED":
+                            if len(curveElement.points) > 2:
+                                slope2 = 2.0 * (p2.y - p1.y) / (p2.x - p1.x)
+                                #n = 0, n -> 2 * slope
+                                p0 = mathutils.Vector((p1.x - (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y - slope2 * (p2.x - p1.x)))
+                            else: # only 2 points -> linear
+                                p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
+                            
+                            if len(curveElement.points) > 2:                            
+                                p3 = curveElement.points[2].location
+                            else: # linear when only 2 points
+                                p3 = p2 + (p2 - p1)
+                                p0 = p1 - (p2 - p1)
+                        else:
+                            #n = 0, reflected == 1 * slope
+                            slope1 = 1.0 * (p2.y - p1.y) / (p2.x - p1.x)
+                            p0 = mathutils.Vector((p2.x + (p2.x - p1.x), p1.y + slope1 * (p2.x - p1.x)))
+                            # [0] -> reflected
+                            if len(curveElement.points) > 2:
+                                # cubic
+                                p3 = curveElement.points[2].location
+                            else:
+                                # 2 points: 0: auto, 1: auto -> linear (== 1 * slope)
+                                # linear
+                                p3 = p2 + (p2 - p1)
+                    
+                #last segment
+                if n == len(curveElement.points) - 2:
+                    if curveElement.points[len(curveElement.points) - 2].handle_type == "VECTOR":
+                        #n = last, linear
+                        p0 = curveElement.points[len(curveElement.points) - 2].location - (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                        p1 = curveElement.points[len(curveElement.points) - 2].location
+                        p2 = curveElement.points[len(curveElement.points) - 1].location
+                        
+                        p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                    
+                    else:
+                        p1 = curveElement.points[len(curveElement.points) - 2].location
+                        p2 = curveElement.points[len(curveElement.points) - 1].location
+                        p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                        if curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO" or curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO_CLAMPED":
+                            p0 = curveElement.points[len(curveElement.points) - 3].location
+                            #n = last, n -> 2 * slope
+                            slope2 = 2.0 * (p3.y - p2.y) / (p3.x - p2.x)
+                            if len(curveElement.points) > 2:
+                                p3 = mathutils.Vector((p2.x + (p2.x - p1.x) / (1.0 + abs(slope2)), p3.y + slope2 * (p2.x - p1.x)))  
+                            else:
+                                p3 = p2 + (p2 - p1)
+                                #n = last, p3: mirror
+                        else:
+                            #n = last, slope
+                            if len(curveElement.points) > 2:
+                                # cubic
+                                p0 = curveElement.points[0].location
+                            else:
+                                # 2 points: 0: auto, 1: auto -> linear (== 1 * slope)
+                                # linear
+                                p0 = p1 - (p2 - p1)
+                    
+                #middle segments
+                if n > 0 and n < len(curveElement.points) - 2:
+                    if curveElement.points[n].handle_type == "AUTO" or curveElement.points[n].handle_type == "AUTO_CLAMPED":
+                        if curveElement.points[n + 1].handle_type == "VECTOR":
+                            #n = middle, n + 1 -> reflected
+                            p0 = curveElement.points[n - 1].location
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
+                        else:
+                            #n = middle, (cubic (clamped)) -> spline!
+                            p0 = curveElement.points[n - 1].location
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 2].location
+                                    
+                    if curveElement.points[n].handle_type == "VECTOR":
+                        if curveElement.points[n + 1].handle_type == "VECTOR":
+                            #linear
+                            p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
+                        else:
+                            #n = middle, n -> reflected
+                            p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 2].location
+                
+                if p1.x <= x and (p2.x > x or p2.x == 1.0):
+                    
+                    tx = (x - p1.x) / (p2.x - p1.x)
+                    
+                    px = self.sampleSpline(p0.x, p1.x, p2.x, p3.x, tx)
+                    py = self.sampleSpline(p0.y, p1.y, p2.y, p3.y, tx)
+                            
+                    #py = self.sampleSpline(p0.y, p1.y, p2.y, p3.y, x)
+                            
+                    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p0.x, 0.0, p0.y))
+                    bpy.context.active_object.empty_display_size = 0.03
+                    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p1.x, 0.0, p1.y))
+                    bpy.context.active_object.empty_display_size = 0.03
+                    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p2.x, 0.0, p2.y))
+                    bpy.context.active_object.empty_display_size = 0.03
+                    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p3.x, 0.0, p3.y))
+                    bpy.context.active_object.empty_display_size = 0.03
+                    
+                    bpy.ops.object.empty_add(type='SPHERE', location= (x,0.0,py))
+                
+                    bpy.context.active_object.empty_display_size = 0.01
+        return {'FINISHED'}
+
+#class CurvyPanel(bpy.types.Panel):
+#    bl_label = "Test curve mapping"
+#    bl_idname = "PT_treeGen"
+#    bl_space_type = 'VIEW_3D'
+#    bl_region_type = 'UI'
+#    bl_category = 'treeGen'
+#
+#    def draw(self, context):
+#        layout = self.layout
+#        scene = context.scene
+#        layout.template_curve_mapping(myCurveData('TestOne'), "mapping")
+    
+class BranchSettings(bpy.types.Panel):
+    bl_label = "Branch Settings"
+    bl_idname = "PT_branchSettings"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'curveMapping2'
+    
+    def draw(self, context):
+        layout = self.layout
+        layout = self.layout
+        
+        layout.template_curve_mapping(myCurveData('TestOne'), "mapping")
+        
+        layout.prop(context.scene, "evaluate", slider=True)
+        layout.operator("scene.evaluate_button", text="Evaluate").x = context.scene.evaluate
+        layout.operator("scene.init_button", text="Initialise")
+        #layout.template_curve_mapping(taperCurveData('taperMapping'), "mapping")
+        
+        layout.prop(context.scene, "nrBranchClusters")
+        layout.operator("scene.add_branch_cluster", text="Add Branch Cluster")
+        for i in range(0, context.scene.nrBranchClusters):
+            curve_name = ensure_branch_curve_node(i)
+            box = layout.box()
+            box.label(text=f"Branch Cluster {i}")
+            curve_node = myCurveData(curve_name)
+            box.template_curve_mapping(curve_node, "mapping")
+            op = box.operator("scene.evaluate_branch_cluster", text="Evaluate")
+            op.idx = i
+            reset = box.operator("scene.reset_branch_cluster", text="Reset")
+            reset.idx = i
+            
+class initButton(bpy.types.Operator):
+    bl_idname="scene.init_button"
+    bl_label="initialise"
+        
+    def execute(self, context):
+        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
+        nrCurves = len(nodeGroups.nodes[curve_node_mapping['TestOne']].mapping.curves)
+        self.report({'INFO'}, f"nrCurves: {nrCurves}")
+        curveElement = nodeGroups.nodes[curve_node_mapping['TestOne']].mapping.curves[3] 
+        
+        #initialise values
+        curveElement.points[0].location = (0.0, 1.0)
+        curveElement.points[1].location = (1.0, 0.0)
+        if len(curveElement.points) > 2:
+            for i in range(2, len(curveElement.points)):
+                curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
+                self.report({'INFO'}, "removing point")
+        nodeGroups.nodes[curve_node_mapping['TestOne']].mapping.update()
+        return {'FINISHED'}
+    
+    
+class evaluateButton(bpy.types.Operator):
+    bl_idname="scene.evaluate_button"
+    bl_label="evaluate"
+    
+    x: bpy.props.FloatProperty()
+    
+    def lerp(self, a, b, t):
+        return (a + (b - 1) * t)
+    
+    def f0(self, t):
+        return (2.0 - t) * (2.0 - t) * (1.0 - t) / 2.0
+    def f1(self, t):
+        return (2.0 - t) * (2.0 - t) * t + (t - 1.0) * (3.0 - t) * (2.0 - t) / 2.0
+    def f2(self, t):
+        return (2.0 - t) * (t - 1.0) * t / 2.0 + (3.0 - t) * (t - 1.0) * (t - 1.0)
+    def f3(self, t):
+        return (t - 1.0) * (t - 1.0) * (t - 2.0) / 2.0
+    
+    def sampleSpline(self, p0, p1, p2, p3, t):
+        return self.f0(t + 1.0) * p0 + self.f1(t + 1.0) * p1 + self.f2(t + 1.0) * p2 + self.f3(t + 1.0) * p3
+    
+    def f0b(self, t):
+        return (-0.5*t*t*t + t*t - 0.5*t)
+    def f1b(self, t):
+        return (1.5*t*t*t - 2.5*t*t + 1.0)
+    def f2b(self, t):
+        return (-1.5*t*t*t + 2.0*t*t + 0.5*t)
+    def f3b(self, t):
+        return (0.5*t*t*t - 0.5*t*t)
+    
+    
+    
+    def sampleSplineB(self, p0, p1, p2, p3, t):
+        return self.f0b(t) * p0 + self.f1b(t) * p1 + self.f2b(t) * p2 + self.f3b(t) * p3
+        
+    def execute(self, context):
+        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
+        curveElement = nodeGroups.nodes[curve_node_mapping['TestOne']].mapping.curves[3] 
+        y = 0.0
+        nrSamplePoints = 20
+        self.report({'INFO'}, f"length: {len(curveElement.points)}")
+        
+        for i in range(0, nrSamplePoints):  
+            self.report({'INFO'}, f"begin of sample point {i}")
+            x = i / nrSamplePoints
+            
+            for n in range(0, len(curveElement.points) - 1):
+                px = curveElement.points[n].location.x
+                py = curveElement.points[n].location.y
+                self.report({'INFO'}, f"begin of loop: n = {n}")
+                
+                #first segment
+                if n == 0:
+                    if curveElement.points[1].handle_type == "VECTOR":
+                        self.report({'INFO'}, "n = 0, linear") 
+                        p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
+                        p1 = curveElement.points[0].location
+                        p2 = curveElement.points[1].location
+                        p3 = curveElement.points[1].location + (curveElement.points[1].location - curveElement.points[0].location)
+                        self.report({'INFO'}, f"n = 0, linear: p0: {p0}, p1: {p1}, p2: {p2}, p3: {p3}")
+                    else:
+                        
+                        p1 = curveElement.points[0].location
+                        p2 = curveElement.points[1].location
+                        if curveElement.points[0].handle_type == "AUTO" or curveElement.points[0].handle_type == "AUTO_CLAMPED":
+                            if len(curveElement.points) > 2:
+                                slope2 = 2.0 * (p2.y - p1.y) / (p2.x - p1.x)
+                                self.report({'INFO'}, f"n = 0, n -> 2 * slope2: {slope2}")
+                                self.report({'INFO'}, f"in n = 0, AUTO: p1: {p1}, p2: {p2}")
+                                p0 = mathutils.Vector((p1.x - (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y - slope2 * (p2.x - p1.x)))
+                                self.report({'INFO'}, f"in n = 0, AUTO: p0: {p0}")
+                            else: #only 2 points -> linear
+                                p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
+                                self.report({'INFO'}, f"in n = 0: only 2 points -> linear, p0.x: {p0.x}, p0.y: {p0.y}")
+                                                            
+                            if len(curveElement.points) > 2:                            
+                                p3 = curveElement.points[2].location
+                            else: # linear when only 2 points
+                                p3 = p2 + (p2 - p1)
+                                p0 = p1 - (p2 - p1)
+                                
+                                self.report({'INFO'}, f"in n = 0, AUTO: p0: {p0}")
+                                self.report({'INFO'}, f"in n = 0, AUTO: p3: {p3}")
+                            self.report({'INFO'}, f"in n = 0, AUTO: p3: {p3}")
+                        else:
+                            self.report({'INFO'}, "n = 0, reflected == 1 * slope")
+                            slope1 = 1.0 * (p2.y - p1.y) / (p2.x - p1.x)
+                            self.report({'INFO'}, f"n = 0, n -> 2 * slope1: {slope1}")
+                            p0 = mathutils.Vector((p2.x + (p2.x - p1.x), p1.y + slope2 * (p2.x - p1.x)))
+                            # [0] -> reflected
+                            if len(curveElement.points) > 2:
+                                # cubic
+                                p3 = curveElement.points[2].location
+                            else:
+                                # 2 points: 0: auto, 1: auto -> linear (== 1 * slope)
+                                # linear
+                                p3 = p2 + (p2 - p1)
+            
+                #last segment
+                if n == len(curveElement.points) - 2:
+                    if curveElement.points[len(curveElement.points) - 2].handle_type == "VECTOR":
+                        self.report({'INFO'}, "n = last, linear")
+                        p0 = curveElement.points[len(curveElement.points) - 2].location - (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                        p1 = curveElement.points[len(curveElement.points) - 2].location
+                        p2 = curveElement.points[len(curveElement.points) - 1].location
+                        p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                    else:
+                        p1 = curveElement.points[len(curveElement.points) - 2].location
+                        p2 = curveElement.points[len(curveElement.points) - 1].location
+                        p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                        if curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO" or curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO_CLAMPED":
+                            p0 = curveElement.points[len(curveElement.points) - 3].location
+                            self.report({'INFO'}, "n = last, n -> 2 * slope")
+                            slope2 = 2.0 * (p3.y - p2.y) / (p3.x - p2.x)
+                            if len(curveElement.points) > 2:
+                                p3 = mathutils.Vector((p2.x + (p2.x - p1.x) / (1.0 + abs(slope2)), p3.y + slope2 * (p2.x - p1.x)))
+                            else:
+                                p3 = p2 + (p2 - p1)
+                        else:
+                            self.report({'INFO'}, "n = last, slope")
+                            if len(curveElement.points) > 2:
+                                # cubic
+                                p0 = curveElement.points[0].location
+                            else:
+                                # 2 points: 0: auto, 1: auto -> linear (== 1 * slope)
+                                # liear
+                                p0 = p1 - (p2 - p1)
+            
+                #middle segments
+                if n > 0 and n < len(curveElement.points) - 2:
+                    if curveElement.points[n].handle_type == "AUTO" or curveElement.points[n].handle_type == "AUTO_CLAMPED":
+                        if curveElement.points[n + 1].handle_type == "VECTOR":
+                            self.report({'INFO'}, "n = middle, n + 1 -> reflected")
+                            p0 = curveElement.points[n - 1].location
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
+                        else:
+                            self.report({'INFO'}, "n = middle, (cubic (clamped)) -> spline!")
+                            p0 = curveElement.points[n - 1].location
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 2].location
+                            
+                    if curveElement.points[n].handle_type == "VECTOR":
+                        if curveElement.points[n + 1].handle_type == "VECTOR":
+                            self.report({'INFO'}, "linear")
+                            p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
+                        else:
+                            self.report({'INFO'}, "n = middle, n -> reflected")
+                            p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
+                            p1 = curveElement.points[n].location
+                            p2 = curveElement.points[n + 1].location
+                            p3 = curveElement.points[n + 2].location
+            
+                if p1.x <= x and p2.x >= x:
+                    self.report({'INFO'}, f"found segment n={n}: p0.x: {p0.x}, p1.x: {p1.x}, p2.x: {p2.x}, p3.x: {p3.x}, x: {x}")
+                    
+                    
+                    
+                
+                    #  x: [0..1]
+                    # tx: [p1.x...p2.x]
+                    #tx = p1.x + x * (p2.x - p1.x)
+                    
+                    tx = (x - p1.x) / (p2.x - p1.x)  #AI
+                    
+                    self.report({'INFO'}, f"tx: {tx}")
+                    #py = self.sampleSpline(p0.y, p1.y, p2.y, p3.y, tx)
+                    
+                    px = self.sampleSplineB(p0.x, p1.x, p2.x, p3.x, tx) # tx (not x) (AI)
+                    py = self.sampleSplineB(p0.y, p1.y, p2.y, p3.y, tx)
+                    
+                    #py = self.sampleSpline(p0.y, p1.y, p2.y, p3.y, x)
+                    
+                    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p0.x, 0.0, p0.y))
+                    bpy.context.active_object.empty_display_size = 0.03
+                    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p1.x, 0.0, p1.y))
+                    bpy.context.active_object.empty_display_size = 0.03
+                    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p2.x, 0.0, p2.y))
+                    bpy.context.active_object.empty_display_size = 0.03
+                    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(p3.x, 0.0, p3.y))
+                    bpy.context.active_object.empty_display_size = 0.03
+                    
+                    bpy.ops.object.empty_add(type='SPHERE', location= (x,0.0,py))
+                
+                    bpy.context.active_object.empty_display_size = 0.01
+        return {'FINISHED'} 
+    
+
 
 def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
     if len(activeNode.next) > 0 or len(activeNode.branches) > 0:
@@ -1168,7 +1551,8 @@ def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
     else:
         activeNode.radius = branchTipRadius
         return branchTipRadius
-
+    
+    
 def splitRecursive(startNode, 
                    nrSplits, 
                    splitAngle, 
@@ -1283,6 +1667,7 @@ def splitRecursive(startNode,
                 break
     return maxSplitHeightUsed
 
+
 def split(startNode, 
           nextIndex, 
           splitHeight, 
@@ -1323,6 +1708,7 @@ def split(startNode,
                 return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, mode, rotationAngle, branchSplitAxisVariation, stemRingResolution, curvOffsetStrength, self, rootNode) # clusterIndex???
     
     return startNode
+
 
 def splitAtNewNode(nrNodesToTip, 
                    splitAfterNodeNr, 
@@ -1391,6 +1777,7 @@ def splitAtNewNode(nrNodesToTip,
     
     calculateSplitData(newNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, newNode.outwardDir)
     return newNode
+
 
 def calculateSplitData(splitNode, 
                        splitAngle, 
@@ -1473,7 +1860,8 @@ def calculateSplitData(splitNode,
             previousNodeB.next.append(nodeB)
             previousNodeA = nodeA
             previousNodeB = nodeB
-            
+
+
 def nodesToTip(n, i):
     if len(n.next) > 0:
         if i > 500:
@@ -1485,7 +1873,8 @@ def nodesToTip(n, i):
 
 def lerp(a, b, t):
     return a + (b - a) * t
-    
+
+
 class SimplexNoiseGenerator():
     def __init__(self, treeGen, seed=None):
         self.onethird = 1.0 / 3.0
@@ -1608,6 +1997,7 @@ class SimplexNoiseGenerator():
 
     def fastfloor(self, n):
         return int(n) if n > 0 else int(n) - 1
+
 
 def addLeaves(self, treeGen, rootNode,
         treeGrowDir, 
@@ -2356,7 +2746,8 @@ noiseGenerator):
                                       branchClusterSettingsList[clusterIndex].noiseScale, 
                                       branchNode.point - (branchNode.next[0].point - branchNode.point), 
                                       branchLength)
-                                      
+
+
                                     
 def splitBranches(treeGen, 
                   rootNode, 
@@ -2525,9 +2916,8 @@ def splitBranches(treeGen,
                             splitsInLevel += 1
                             
     return maxSplitHeightInLevelUsed
-    
-                   
-            
+
+
 def shapeRatio(self, context, tValGlobal, treeShape):
     if treeShape == "CONICAL":
         return 0.2 + 0.8 * tValGlobal
@@ -2553,6 +2943,7 @@ def shapeRatio(self, context, tValGlobal, treeShape):
             return 0.5 + 0.5 * tValGlobal / 0.7
         else:
             return 0.5 + 0.5 * (1.0 - tValGlobal) / 0.3
+
 
 def calculateSegmentLengthsAndTotalLength(self, 
                                           treeGen, 
@@ -2617,6 +3008,7 @@ def calculateSegmentLengthsAndTotalLength(self,
         # t-global only influences segmentLengths if segment is in stem! -> else only use t-branch !!!
     return totalLength
 
+
 def generateDummyStartPointData(treeGen, rootNode, startPointDatum):
     
     #treeGen.report({'INFO'}, "in generateDummyStartPointData()")
@@ -2635,7 +3027,7 @@ def generateDummyStartPointData(treeGen, rootNode, startPointDatum):
         dummyStartPointData.append(startPointData(p, startPointDatum.startPointTvalGlobal, Vector((0.0,0.0,0.0)), None, 0, 0, 0, Vector((0.0,0.0,0.0)), Vector((0.0,0.0,0.0))))
     
     return (dummyStartPointData, centerPoint)
-        
+
 
 def generateStartPointData(self, 
                            startNodesNextIndexStartTvalEndTval, 
@@ -2708,7 +3100,7 @@ def generateStartPointData(self,
     
     return startPointData(startPoint, startPointTvalGlobal, outwardDir, nStart, startNodeIndex, startNodeNextIndex, tVal, tangent, startPointCotangent)
 
-    
+
 def sampleSplineC(controlPt0, controlPt1, controlPt2, controlPt3, t):
     return (1.0 - t)**3.0 * controlPt0 + 3.0 * (1.0 - t)**2.0 * t * controlPt1 + 3.0 * (1.0 - t) * t**2.0 * controlPt2 + t**3.0 * controlPt3
 
@@ -2727,6 +3119,7 @@ def sampleSplineTangentT(start, end, startTangent, endTangent, t):
 
 def lerp(a, b, t):
     return a + (b - a) * t
+
 
 def generateVerticesAndTriangles(self, 
                                  treeGen, 
@@ -2850,7 +3243,6 @@ def update_fibonacci_numbers(self):
             fn1 = temp
     self.fibonacci_angle = 360.0 * (1.0 - fn0 / fn1)
     
-    
 class fibonacciProps(bpy.types.PropertyGroup):
     fibonacci_nr: bpy.props.IntProperty(name = "fibonacciNr", default=3, min=3, 
         update = lambda self, context:update_fibonacci_numbers(self))
@@ -2859,7 +3251,6 @@ class fibonacciProps(bpy.types.PropertyGroup):
     
     use_fibonacci: bpy.props.BoolProperty(name = "useFibonacci", default=False,
         update = lambda self, context:update_fibonacci_numbers(self))
-        
 
 class intProp(bpy.types.PropertyGroup):
     value: bpy.props.IntProperty(name = "intValue", default=0, min=0, soft_max=10)
@@ -2905,7 +3296,8 @@ class floatListProp01(bpy.types.PropertyGroup):
         
 class boolProp(bpy.types.PropertyGroup):
     value: bpy.props.BoolProperty(name = "boolValue", default=False)
-    
+
+
 class showSplitLevelsProp(bpy.types.PropertyGroup):
     show_split_levels: bpy.props.BoolProperty(
         name="Show Split Levels",
@@ -3014,7 +3406,8 @@ class branchTypeEnumProp(bpy.types.PropertyGroup):
         ],
         default='SINGLE'
     )
-    
+
+
 class toggleBool(bpy.types.Operator):
     bl_idname = "scene.toggle_bool"
     bl_label = "Toggle Bool"
@@ -3295,6 +3688,7 @@ class UL_branchSplitLevelListLevel_19(bpy.types.UIList): #template for UIList
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
  
+ 
 class treeGenPanel(bpy.types.Panel):
     bl_label = "Tree Generator"
     bl_idname = "PT_TreeGen"
@@ -3323,6 +3717,7 @@ class treeGenPanel(bpy.types.Panel):
         row.label(icon = 'COLORSET_12_VEC')
         row.operator("object.generate_tree", text="Generate Tree")
         
+    
 class treeSettings(bpy.types.Panel):
     bl_label = "Tree Settings"
     bl_idname = "PT_TreeSettings"
@@ -3633,113 +4028,7 @@ class splitSettings(bpy.types.Panel):
         row = layout.row()
         layout.prop(context.scene, "stemSplitPointAngle")
         row = layout.row()
-        
 
-
-taper_node_mapping = {}
-branch_taper_node_mapping = {}
-branch_taper_node_mapping_0 = {}
-branch_taper_node_mapping_1 = {}
-branch_taper_node_mapping_2 = {}
-branch_taper_node_mapping_3 = {}
-branch_taper_node_mapping_4 = {}
-branch_taper_node_mapping_5 = {}
-branch_taper_node_mapping_6 = {}
-branch_taper_node_mapping_7 = {}
-branch_taper_node_mapping_8 = {}
-branch_taper_node_mapping_9 = {}
-branch_taper_node_mapping_10 = {}
-branch_taper_node_mapping_11 = {}
-branch_taper_node_mapping_12 = {}
-branch_taper_node_mapping_13 = {}
-branch_taper_node_mapping_14 = {}
-branch_taper_node_mapping_15 = {}
-branch_taper_node_mapping_16 = {}
-branch_taper_node_mapping_17 = {}
-branch_taper_node_mapping_18 = {}
-branch_taper_node_mapping_19 = {}
-
-def taperNodeTree():
-    if 'taperNodeGroup' not in bpy.data.node_groups:
-        taperCurveNodeGroup = bpy.data.node_groups.new('taperNodeGroup', 'ShaderNodeTree')
-    return bpy.data.node_groups['taperNodeGroup'].nodes
-
-def branchTaperNodeTree():
-    if 'branchTaperNodeGroup' not in bpy.data.node_groups:
-        ng = bpy.data.node_groups.new('branchTaperNodeGroup', 'ShaderNodeTree')
-    return bpy.data.node_groups['branchTaperNodeGroup'].nodes
-    
-
-
-def taperCurveData(taperCurve): # taperCurve == 'taperMapping'
-    if taperCurve not in taper_node_mapping:
-        TaperNodeTree = taperNodeTree().new('ShaderNodeRGBCurve')
-        taper_node_mapping[taperCurve] = TaperNodeTree.name
-        
-    nodeTree = taperNodeTree()[taper_node_mapping[taperCurve]]
-    return nodeTree
-
-
-
-class resetCurvesButton(bpy.types.Operator):
-    bl_idname = "scene.reset_curves"
-    bl_label = "initialise"
-    
-    def execute(self, context):
-        nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
-        nrCurves = len(nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves)
-        curveElement = nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves[3]
-        
-        resetTaperCurve()
-        return {'FINISHED'}
-
-def ensure_branch_curve_node(idx):
-    curve_name = f"BranchCluster_{idx}"
-    if 'branchTaperNodeGroup' not in bpy.data.node_groups:
-        bpy.data.node_groups.new('branchTaperNodeGroup', 'ShaderNodeTree')
-    group = bpy.data.node_groups['branchTaperNodeGroup']
-    if curve_name not in branch_taper_node_mapping:
-        cn = group.nodes.new('ShaderNodeRGBCurve')
-        branch_taper_node_mapping[curve_name] = cn.name # (taper_node_mapping... (ERROR HERE ???))
-    return curve_name
-
-class resetCurvesClusterButton(bpy.types.Operator):
-    bl_idname = "scene.reset_curves_cluster"
-    bl_label = "initialise"
-    
-    level: bpy.props.IntProperty()
-    
-    def execute(self, context):
-        self.report({'INFO'}, f"resetBranchTaperCurve(): level: {self.level}")
-        
-        # Ensure the node and mapping exist
-        #taperCurveData('branchTaperMapping')
-        
-        curve_name = ensure_branch_curve_node(self.level)
-        self.report({'INFO'}, f"curve_name: {curve_name}") # BranchCluster_1
-        
-        nodeGroups = bpy.data.node_groups.get('branchTaperNodeGroup')
-        
-        curveNodeMapping = nodeGroups.nodes[branch_taper_node_mapping[curve_name]].mapping
-        curveElement = curveNodeMapping.curves[3]
-        
-        self.report({'INFO'}, f"in reset: length: {len(curveElement.points)}")
-        
-        curveElement.points[0].location = (0.0, 1.0)
-        curveElement.points[1].location = (1.0, 0.0)
-        curveElement.points[0].handle_type = "VECTOR"
-        curveElement.points[1].handle_type = "VECTOR"
-        if len(curveElement.points) > 2:
-            for i in range(2, len(curveElement.points)):
-                curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
-                
-        curveNodeMapping.update()
-        
-        return {'FINISHED'}
-    
-    
-    
-    
 def reset_taper_curve_deferred():
     bpy.ops.scene.reset_curves()
     return None
@@ -3762,7 +4051,7 @@ def resetTaperCurve():
             curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
     curveNode.mapping.update()
     
-    
+
 class exportProperties(bpy.types.Operator):
     bl_idname = "export.save_properties_file"
     bl_label = "Save Properties"
@@ -3792,7 +4081,6 @@ class importProperties(bpy.types.Operator):
         load_properties(filepath, context)
         
         return {'FINISHED'}
-
 
 class loadPreset(bpy.types.Operator):
     bl_idname = "export.load_preset"
@@ -3836,7 +4124,7 @@ def load_preset(preset, context, self):
         props = context.scene
         init_properties(data, props)
         
- 
+
 def init_properties(data, props):
         props.treeHeight = data.get("treeHeight", props.treeHeight)
         treeGrowDir = data.get("treeGrowDir", props.treeGrowDir)
@@ -4310,7 +4598,7 @@ def init_properties(data, props):
         for value in data.get("leafTiltAngleBranchEndList", []):
             props.leafClusterSettingsList[i].leafTiltAngleBranchEnd = value
             i += 1
-            
+
 def save_properties(filePath, treeGen):
     props = bpy.context.scene
     
@@ -4707,7 +4995,8 @@ def save_properties(filePath, treeGen):
 
     with open(filePath, 'w') as f:
         json.dump(data, f)
-    
+
+
 def draw_leaf_cluster_bools(layout, scene, cluster_index, leafParentClusterBool):
     boolListItem = scene.leafParentClusterBoolListList[cluster_index].value
     
@@ -4859,7 +5148,7 @@ class removeItem(bpy.types.Operator):
                     leafParentClusterList.value[0].value = True
             
         return {'FINISHED'}
-        
+
 class branchSettings(bpy.types.Panel):
     bl_label = "Branch Settings"
     bl_idname = "PT_BranchSettings"
@@ -5209,6 +5498,7 @@ class branchSettings(bpy.types.Panel):
                                 box2.prop(splitLevel, "value", text=f"Split height level {j}", slider=True)
                                 j += 1
 
+
 class addLeafItem(bpy.types.Operator):
     bl_idname = "scene.add_leaf_item"
     bl_label = "Add Item"
@@ -5332,13 +5622,15 @@ class leafSettings(bpy.types.Panel):
                 
                 box1 = box.box()
                 draw_leaf_cluster_bools(box1, scene, i, scene.leafParentClusterBoolListList[i])
+
+
         
 def register():
     #save and load
     bpy.utils.register_class(importProperties)
     bpy.utils.register_class(exportProperties)
     bpy.utils.register_class(loadPreset)
-        
+    
     #data types
     bpy.utils.register_class(treePresetEnumProp)
     
@@ -5380,8 +5672,6 @@ def register():
     bpy.utils.register_class(addBranchSplitLevel)
     bpy.utils.register_class(removeBranchSplitLevel)
     bpy.utils.register_class(generateTree)
-    bpy.utils.register_class(resetCurvesButton)
-    bpy.utils.register_class(resetCurvesClusterButton)
     bpy.utils.register_class(addLeafItem)
     bpy.utils.register_class(removeLeafItem)
     
@@ -5393,7 +5683,11 @@ def register():
     bpy.utils.register_class(splitSettings)
     bpy.utils.register_class(branchSettings)
     bpy.utils.register_class(leafSettings)
-        
+    
+    bpy.utils.register_class(BranchSettings)
+    
+    #bpy.utils.register_class(CurvyPanel)
+    
     #UILists
     bpy.utils.register_class(UL_stemSplitLevelList)
     bpy.utils.register_class(UL_branchSplitLevelListLevel_0)
@@ -5416,6 +5710,15 @@ def register():
     bpy.utils.register_class(UL_branchSplitLevelListLevel_17)
     bpy.utils.register_class(UL_branchSplitLevelListLevel_18)
     bpy.utils.register_class(UL_branchSplitLevelListLevel_19)
+    
+    
+    
+    bpy.utils.register_class(evaluateButton)
+    bpy.utils.register_class(initButton)
+    bpy.utils.register_class(AddBranchClusterButton)
+    bpy.utils.register_class(BranchClusterEvaluateButton)
+    bpy.utils.register_class(BranchClusterResetButton)
+    
     
     #collections    
     bpy.types.Scene.branchClusterSettingsList = bpy.props.CollectionProperty(type=branchClusterSettings)
@@ -5491,6 +5794,28 @@ def register():
     
     bpy.types.Scene.leafParentClusterBoolListList = bpy.props.CollectionProperty(type=leafParentClusterBoolListProp)
             
+    
+    
+    bpy.types.Scene.evaluate = bpy.props.FloatProperty(
+        name = "evaluate at",
+        default = 0.0,
+        min = 0.0, 
+        max = 1.0
+    )
+    
+    bpy.types.Scene.nrBranchClusters = bpy.props.IntProperty(
+        name = "nr branch clusters",
+        default = 0,
+        min = 0
+    )
+    
+    bpy.types.Scene.my_curve_mapping : bpy.props.CurveMappingProperty(
+        name="My Curve Mapping", 
+        min=0.0, 
+        max=1.0,
+        subtype='VALUE' # or 'XYZ', 'HSV', 'CRGB'
+    )
+    
     bpy.types.Scene.treeHeight = bpy.props.FloatProperty(
         name = "tree height",
         description = "the heihgt of the tree",
@@ -5699,6 +6024,8 @@ def register():
     
     bpy.app.timers.register(reset_taper_curve_deferred, first_interval=0.1)
     
+    
+
 def unregister():
     #save and load
     bpy.utils.unregister_class(importProperties)
@@ -5732,6 +6059,7 @@ def unregister():
     bpy.utils.unregister_class(leafAngleModeEnumProp)
     bpy.utils.unregister_class(leafTypeEnumProp)
     
+    
     bpy.utils.unregister_class(branchClusterSettings)
     bpy.utils.unregister_class(leafClusterSettings)
     
@@ -5750,6 +6078,14 @@ def unregister():
     bpy.utils.unregister_class(addLeafItem)
     bpy.utils.unregister_class(removeLeafItem)
     
+    bpy.utils.unregister_class(evaluateButton)
+    bpy.utils.unregister_class(updateButton)
+    bpy.utils.unregister_class(AddBranchClusterButton)
+    bpy.utils.unregister_class(BranchClusterEvaluateButton)
+    bpy.utils.unregister_class(BranchClusterResetButton)
+    bpy.utils.unregister_class(initButton)
+    
+    
     #panels
     bpy.utils.unregister_class(treeGenPanel)
     bpy.utils.unregister_class(treeSettings)
@@ -5758,7 +6094,11 @@ def unregister():
     bpy.utils.unregister_class(splitSettings)
     bpy.utils.unregister_class(branchSettings)
     bpy.utils.unregister_class(leafSettings)
-        
+    
+    #bpy.utils.unregister_class(CurvyPanel)
+    bpy.utils.unregister_class(BranchSettings)
+    bpy.utils.unregister_class(bendBranchesPanel)
+    
     #UILists
     bpy.utils.unregister_class(UL_stemSplitLevelList)
     bpy.utils.unregister_class(UL_branchSplitLevelListLevel_0)
@@ -5782,7 +6122,12 @@ def unregister():
     bpy.utils.unregister_class(UL_branchSplitLevelListLevel_18)
     bpy.utils.unregister_class(UL_branchSplitLevelListLevel_19)
     
+    
     # Unregister collections
+    del bpy.types.Scene.evaluate
+    del bpy.types.Scene.my_curve_mapping
+    del bpy.types.Scene.nrBranchClusters
+    
     del bpy.types.Scene.branchClusterSettingsList
     del bpy.types.Scene.stemSplitHeightInLevelList
     del bpy.types.Scene.showStemSplitHeights
@@ -5873,7 +6218,7 @@ def unregister():
     del bpy.types.Scene.treeGrowDir
     del bpy.types.Scene.ringResolution
     del bpy.types.Scene.leafClusters
-
+    
     # Unregister timers
     bpy.app.timers.unregister(reset_taper_curve_deferred)
     
@@ -5887,4 +6232,4 @@ def unregister():
     bpy.utils.unregister_class(leafSettings)
     
 if __name__ == "__main__":
-    register();
+    register()
