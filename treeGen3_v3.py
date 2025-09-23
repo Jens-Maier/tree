@@ -1074,7 +1074,7 @@ class AddBranchClusterButton(bpy.types.Operator):
     
 
 class BranchClusterResetButton(bpy.types.Operator):
-    bl_idname = "scene.reset_branch_cluster"
+    bl_idname = "scene.reset_branch_cluster_curve"
     bl_label = "Reset Branch Cluster"
     
     idx: bpy.props.IntProperty()
@@ -1316,7 +1316,7 @@ class BranchSettings(bpy.types.Panel):
         #    box.template_curve_mapping(curve_node, "mapping")
         #    op = box.operator("scene.evaluate_branch_cluster", text="Evaluate")
         #    op.idx = i
-        #    reset = box.operator("scene.reset_branch_cluster", text="Reset")
+        #    reset = box.operator("scene.reset_branch_cluster_curve", text="Reset")
         #    reset.idx = i
         
         #layout = self.layout
@@ -1402,15 +1402,17 @@ class BranchSettings(bpy.types.Panel):
                     box3 = box.box()
                     row = box3.row()
                     
-                    split = row.split(factor=0.6)
-                    split.label(text="Use taper curve")
-                    split.prop(scene.branchClusterSettingsList[i], "useTaperCurve", text="")
+                    #split.prop(scene.branchClusterSettingsList[i], "useTaperCurve", text="")
+                    
+                    row.operator("scene.toggle_use_taper_curve", text="Use taper curve", icon="TRIA_DOWN" if scene.branchClusterSettingsList[i].useTaperCurve else "TRIA_RIGHT").idx = i
+                    
+                    #box.prop(scene.branchClusterBoolListList[i], "show_branch_cluster", icon="TRIA_DOWN" if scene.branchClusterBoolListList[i].show_branch_cluster else "TRIA_RIGHT", emboss=False, text=f"Branch cluster {i}", toggle=True)
                     
                     if scene.branchClusterSettingsList[i].useTaperCurve == True:
-                        row = box3.row()
-                        op = row.operator("scene.evaluate_branch_cluster", text="Evaluate branch")
-                        op.idx = i
-                        reset = row.operator("scene.reset_branch_cluster", text="Reset")
+                        #row = box3.row()
+                        #op = row.operator("scene.evaluate_branch_cluster", text="Evaluate branch")
+                        #op.idx = i
+                        reset = row.operator("scene.reset_branch_cluster_curve", text="Reset")
                         reset.idx = i
                         curve_name = ensure_branch_curve_node(i)
                         curve_node = myCurveData(curve_name)
@@ -1918,6 +1920,7 @@ def sampleCurveStem(self, x):
     def sampleSpline(p0, p1, p2, p3, t):
         return f0(t) * p0 + f1(t) * p1 + f2(t) * p2 + f3(t) * p3
     
+    ensure_stem_curve_node()
     nodeGroups = bpy.data.node_groups.get('CurveNodeGroup') #taperNodeGroup')
     curveElement = nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves[3] #'Stem'
     self.report({'INFO'}, "sample spline: ")
@@ -4121,6 +4124,23 @@ class leafTypeEnumProp(bpy.types.PropertyGroup):
         default='SINGLE'
     )
 
+class toggleUseTaperCurveOperator(bpy.types.Operator):
+    bl_idname = "scene.toggle_use_taper_curve"
+    bl_label = "Use Taper Curve"
+    bl_description = "resets taper curve"
+    
+    idx: bpy.props.IntProperty()
+    
+    def execute(self, context):
+        settings = context.scene.branchClusterSettingsList[self.idx]
+        wasEnabled = settings.useTaperCurve
+        settings.useTaperCurve = not wasEnabled
+        if wasEnabled:
+            bpy.ops.scene.reset_branch_cluster_curve(idx = self.idx)
+            
+        return {'FINISHED'}
+    
+
 class branchClusterSettings(bpy.types.PropertyGroup):
     branchClusterBoolList: bpy.props.CollectionProperty(type=branchClusterBoolListProp)
     nrBranches: bpy.props.IntProperty(name = "Number of branches", default = 3, min = 0)
@@ -4799,8 +4819,13 @@ def init_properties(data, props):
         controlPts = data.get("taperCurvePoints", controlPts)
         handleTypes = []
         handleTypes = data.get("taperCurveHandleTypes", handleTypes)
-        nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
-        curveElement = nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves[3]
+        #nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
+        
+        ensure_stem_curve_node()
+        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup') #taperNodeGroup')
+        curveElement = nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves[3] #'Stem'
+    
+        #curveElement = nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves[3]
         
                 
         if len(curveElement.points) > 2:
@@ -4817,7 +4842,7 @@ def init_properties(data, props):
                 curveElement.points[len(curveElement.points) - 1].location.y = controlPts[i][1]
                 
                 curveElement.points[len(curveElement.points) - 1].handle_type = handleTypes[i]
-        nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.update()
+        nodeGroups.nodes[curve_node_mapping['Stem']].mapping.update()
         
         props.branchTipRadius = data.get("branchTipRadius", props.branchTipRadius)
         props.ringSpacing = data.get("ringSpacing", props.ringSpacing)
@@ -5988,6 +6013,7 @@ def register():
     bpy.utils.register_class(generateTree)
     bpy.utils.register_class(addLeafItem)
     bpy.utils.register_class(removeLeafItem)
+    bpy.utils.register_class(toggleUseTaperCurveOperator)
     
     #panels
     bpy.utils.register_class(treeGenPanel)
@@ -6397,6 +6423,7 @@ def unregister():
     bpy.utils.unregister_class(BranchClusterEvaluateButton)
     bpy.utils.unregister_class(BranchClusterResetButton)
     bpy.utils.unregister_class(initButton)
+    bpy.utils.unregister_class(toggleUseTaperCurveOperator)
     
     
     #panels
