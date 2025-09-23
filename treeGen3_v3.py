@@ -4825,7 +4825,6 @@ def init_properties(data, props):
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup') #taperNodeGroup')
         curveElement = nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves[3] #'Stem'
     
-        #curveElement = nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves[3]
         
                 
         if len(curveElement.points) > 2:
@@ -4834,7 +4833,8 @@ def init_properties(data, props):
         curveElement.points[0].location = controlPts[0]
         curveElement.points[0].handle_type = handleTypes[0]
         curveElement.points[1].location = controlPts[1]
-        curveElement.points[1].handle_type = handleTypes[0]
+        curveElement.points[1].handle_type = handleTypes[1]
+        
         if len(controlPts) > 2:
             for i in range(2, len(controlPts)):
                 curveElement.points.new(curveElement.points[len(curveElement.points) - 1].location.x, curveElement.points[len(curveElement.points) - 1].location.y)
@@ -4842,6 +4842,7 @@ def init_properties(data, props):
                 curveElement.points[len(curveElement.points) - 1].location.y = controlPts[i][1]
                 
                 curveElement.points[len(curveElement.points) - 1].handle_type = handleTypes[i]
+                
         nodeGroups.nodes[curve_node_mapping['Stem']].mapping.update()
         
         props.branchTipRadius = data.get("branchTipRadius", props.branchTipRadius)
@@ -4883,6 +4884,51 @@ def init_properties(data, props):
         props.parentClusterBoolListList.clear()
         
         props.branchClusters = data.get("branchClusters", props.branchClusters)
+        
+        
+        # nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
+        #
+        # for clusterIndex in range(props.branchClusters):
+        #   curve_name = ensure_branch_curve_node(clusterIndex)
+        #   curveElement = nodeGroups.nodes[curve_node_mapping[curve_name]].mapping.curves[3]
+        #   clusterTaperControlPts.append([])
+        #   clusterTaperCurveHandleTypes.append([])
+        #   for i in range(0, len(curveElement.points)):
+        #     clusterTaperControlPts[clusterIndex].append(curveElement.points[i].location)
+        #     clusterTaperCurveHandleTypes[clusterIndex].append(curveElement.points[i].handle_type)
+        
+        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
+        
+        clusterControlPts = []
+        clusterControlPts = data.get("clusterTaperControlPts", controlPts)
+        clusterHandleTypes = []
+        clusterHandleTypes = data.get("clusterTaperCurveHandleTypes", handleTypes)
+        
+        for clusterIndex in range(props.branchClusters):
+            curve_name = ensure_branch_curve_node(clusterIndex)
+            curveElement = nodeGroups.nodes[curve_node_mapping[curve_name]].mapping.curves[3]
+            
+            
+            
+            if len(curveElement.points) > 2:
+                for i in range(2, len(curveElement.points)):
+                    curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
+                    
+                curveElement.points[0].location = controlPts[0]
+                curveElement.points[0].handle_type = handleTypes[0]
+                curveElement.points[1].location = controlPts[1]
+                curveElement.points[1].handle_type = handleTypes[1]
+                
+                if len(controlPts) > 2:
+                    for i in range(2, len(controlPts)):
+                        curveElement.points.new(curveElement.points[len(curveElement.points) - 1].location.x, curveElement.points[len(curveElement.points) - 1].location.y)
+                        curveElement.points[len(curveElement.points) - 1].location.x = clusterControlPts[clusterIndex][i][0]
+                        curveElement.points[len(curveElement.points) - 1].location.y = clusterControlPts[clusterIndex][i][1]
+                
+                        curveElement.points[len(curveElement.points) - 1].handle_type = clusterHandleTypes[clusterIndex][i]
+            
+            nodeGroups.nodes[curve_node_mapping[curve_name]].mapping.update()
+            
         
         nestedList = []
         nestedList = data.get("parentClusterBoolListList", nestedList)
@@ -5290,10 +5336,17 @@ def init_properties(data, props):
 def save_properties(filePath, treeGen):
     props = bpy.context.scene
     
+    
+    
+    # stem ------
+    #
+    # nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
+    # curveElement = nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves[3] 
+    
     controlPts = []
     handleTypes = []
-    nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
-    curveElement = nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves[3]
+    nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
+    curveElement = nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves[3]
     for n in range(0, len(curveElement.points)):
         controlPts.append(list(curveElement.points[n].location))
         handleTypes.append(curveElement.points[n].handle_type)
@@ -5479,13 +5532,30 @@ def save_properties(filePath, treeGen):
             if len(props.branchClusterSettingsList) > 19:
                 storeSplitHeights_19 = props.branchSplitHeightInLevelList_19
     
+    clusterTaperControlPts = []
+    clusterTaperCurveHandleTypes = []
+    
+    nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
+        
+    for clusterIndex in range(props.branchClusters):
+        curve_name = ensure_branch_curve_node(clusterIndex)
+        curveElement = nodeGroups.nodes[curve_node_mapping[curve_name]].mapping.curves[3]
+        clusterTaperControlPts.append([])
+        clusterTaperCurveHandleTypes.append([])
+        for i in range(0, len(curveElement.points)):
+            clusterTaperControlPts[clusterIndex].append(curveElement.points[i].location)
+            clusterTaperCurveHandleTypes[clusterIndex].append(curveElement.points[i].handle_type)
+    
     data = {
         "treeHeight": props.treeHeight,
         "treeGrowDir": list(props.treeGrowDir),
         "taper": props.taper,
         
-        "taperCurvePoints": [list(pt.location) for pt in bpy.data.node_groups.get('taperNodeGroup').nodes[taper_node_mapping['taperMapping']].mapping.curves[3].points],
-        "taperCurveHandleTypes": [pt.handle_type for pt in bpy.data.node_groups.get('taperNodeGroup').nodes[taper_node_mapping['taperMapping']].mapping.curves[3].points],
+        "taperCurvePoints": [list(pt.location) for pt in bpy.data.node_groups.get('CurveNodeGroup').nodes[curve_node_mapping['Stem']].mapping.curves[3].points],
+        "taperCurveHandleTypes": [pt.handle_type for pt in bpy.data.node_groups.get('CurveNodeGroup').nodes[curve_node_mapping['Stem']].mapping.curves[3].points],
+        
+        "clusterTaperCurvePoints": [list(list(pt) for pt in clusterTaperPoints) for clusterTaperPoints in clusterTaperControlPts],
+        "clusterTaperCurveHandleTypes": [list(clusterTaperHandles) for clusterTaperHandles in clusterTaperCurveHandleTypes],
     
         "branchTipRadius": props.branchTipRadius,
         "ringSpacing": props.ringSpacing,
