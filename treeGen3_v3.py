@@ -1286,7 +1286,7 @@ class BranchClusterEvaluateButton(bpy.types.Operator):
 #    def draw(self, context):
 #        layout = self.layout
 #        scene = context.scene
-#        layout.template_curve_mapping(myCurveData('TestOne'), "mapping")
+#        layout.template_curve_mapping(myCurveData('Stem'), "mapping")
     
 class BranchSettings(bpy.types.Panel):
     bl_label = "Branch Settings"
@@ -1298,7 +1298,7 @@ class BranchSettings(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         
-        #layout.template_curve_mapping(myCurveData('TestOne'), "mapping")
+        #layout.template_curve_mapping(myCurveData('Stem'), "mapping")
         
         #layout.prop(context.scene, "evaluate", slider=True)
         #layout.operator("scene.evaluate_button", text="Evaluate").x = context.scene.evaluate
@@ -1691,9 +1691,9 @@ class initButton(bpy.types.Operator):
         
     def execute(self, context):
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
-        nrCurves = len(nodeGroups.nodes[curve_node_mapping['TestOne']].mapping.curves)
+        nrCurves = len(nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves)
         self.report({'INFO'}, f"nrCurves: {nrCurves}")
-        curveElement = nodeGroups.nodes[curve_node_mapping['TestOne']].mapping.curves[3] 
+        curveElement = nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves[3] 
         
         #initialise values
         curveElement.points[0].location = (0.0, 1.0)
@@ -1705,7 +1705,7 @@ class initButton(bpy.types.Operator):
             for i in range(2, len(curveElement.points)):
                 curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
                 self.report({'INFO'}, "removing point")
-        nodeGroups.nodes[curve_node_mapping['TestOne']].mapping.update()
+        nodeGroups.nodes[curve_node_mapping['Stem']].mapping.update()
         return {'FINISHED'}
     
     
@@ -1746,7 +1746,7 @@ class evaluateButton(bpy.types.Operator):
         
     def execute(self, context):
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
-        curveElement = nodeGroups.nodes[curve_node_mapping['TestOne']].mapping.curves[3] 
+        curveElement = nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves[3] 
         y = 0.0
         nrSamplePoints = 20
         self.report({'INFO'}, f"length: {len(curveElement.points)}")
@@ -1919,7 +1919,7 @@ def sampleCurveStem(self, x):
         return f0(t) * p0 + f1(t) * p1 + f2(t) * p2 + f3(t) * p3
     
     nodeGroups = bpy.data.node_groups.get('CurveNodeGroup') #taperNodeGroup')
-    curveElement = nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves[3] 
+    curveElement = nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves[3] #'Stem'
     self.report({'INFO'}, "sample spline: ")
     for p in curveElement.points:
         self.report({'INFO'}, f"stem: point: {p.location}")
@@ -4404,7 +4404,7 @@ class treeSettings(bpy.types.Panel):
         
         row = layout.row()
         #layout.template_curve_mapping(taperCurveData('taperMapping'), "mapping")
-        layout.template_curve_mapping(myCurveData('TestOne'), "mapping")
+        layout.template_curve_mapping(myCurveData('Stem'), "mapping")
         
         layout.prop(context.scene, "evaluate", slider=True)
         layout.operator("scene.evaluate_button", text="Evaluate").x = context.scene.evaluate
