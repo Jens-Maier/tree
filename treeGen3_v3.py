@@ -1014,6 +1014,7 @@ def myNodeTree():
     return bpy.data.node_groups['CurveNodeGroup'].nodes
 
 curve_node_mapping = {}
+taper_node_mapping = {}
 
 def myCurveData(curve_name):
     if curve_name not in curve_node_mapping:
@@ -1024,7 +1025,7 @@ def myCurveData(curve_name):
 
 class resetCurvesButton(bpy.types.Operator):
     bl_idname = "scene.reset_curves"
-    bl_label = "initialise"
+    bl_label = "Reset"
     
     def execute(self, context):
         nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
@@ -1288,31 +1289,397 @@ class BranchSettings(bpy.types.Panel):
     
     def draw(self, context):
         layout = self.layout
-        layout = self.layout
         
-        layout.template_curve_mapping(myCurveData('TestOne'), "mapping")
+        #layout.template_curve_mapping(myCurveData('TestOne'), "mapping")
         
-        layout.prop(context.scene, "evaluate", slider=True)
-        layout.operator("scene.evaluate_button", text="Evaluate").x = context.scene.evaluate
-        layout.operator("scene.init_button", text="Initialise")
+        #layout.prop(context.scene, "evaluate", slider=True)
+        #layout.operator("scene.evaluate_button", text="Evaluate").x = context.scene.evaluate
+        #layout.operator("scene.init_button", text="Initialise")
         #layout.template_curve_mapping(taperCurveData('taperMapping'), "mapping")
         
-        layout.prop(context.scene, "nrBranchClusters")
-        layout.operator("scene.add_branch_cluster", text="Add Branch Cluster")
-        for i in range(0, context.scene.nrBranchClusters):
-            curve_name = ensure_branch_curve_node(i)
-            box = layout.box()
-            box.label(text=f"Branch Cluster {i}")
-            curve_node = myCurveData(curve_name)
-            box.template_curve_mapping(curve_node, "mapping")
-            op = box.operator("scene.evaluate_branch_cluster", text="Evaluate")
-            op.idx = i
-            reset = box.operator("scene.reset_branch_cluster", text="Reset")
-            reset.idx = i
+        # FUNKT!
+        #layout.prop(context.scene, "nrBranchClusters")
+        #layout.operator("scene.add_branch_cluster", text="Add Branch Cluster")
+        #for i in range(0, context.scene.nrBranchClusters):
+        #    curve_name = ensure_branch_curve_node(i)
+        #    box = layout.box()
+        #    box.label(text=f"Branch Cluster {i}")
+        #    curve_node = myCurveData(curve_name)
+        #    box.template_curve_mapping(curve_node, "mapping")
+        #    op = box.operator("scene.evaluate_branch_cluster", text="Evaluate")
+        #    op.idx = i
+        #    reset = box.operator("scene.reset_branch_cluster", text="Reset")
+        #    reset.idx = i
+        
+        #layout = self.layout
+        #obj = context.object
+        scene = context.scene
+        bl_parent_id = 'PT_TreeGen'
+        bl_optione = {'DEFAULT_CLOSED'}
+        
+        
+        row = layout.row(align = True)
+        row.operator("scene.add_list_item", text="Add")
+        row.operator("scene.remove_list_item", text="Remove")
+        
+        row = layout.row()
+        for i, outer in enumerate(scene.parentClusterBoolListList):
+            if i < len(scene.branchClusterBoolListList):
+                box = layout.box()
+                box.prop(scene.branchClusterBoolListList[i], "show_branch_cluster", icon="TRIA_DOWN" if scene.branchClusterBoolListList[i].show_branch_cluster else "TRIA_RIGHT", emboss=False, text=f"Branch cluster {i}", toggle=True)
+                if scene.branchClusterBoolListList[i].show_branch_cluster:
+                    box1 = box.box()
+                    row = box1.row()
+                    
+                    row.prop(outer, "show_cluster", icon="TRIA_DOWN" if outer.show_cluster else "TRIA_RIGHT", emboss=False, text=f"Parent clusters", toggle=True)
+                    
+                    if outer.show_cluster:
+                        if i < len(scene.branchClusterSettingsList):
+                            draw_parent_cluster_bools(box1, scene, i)
+                            
+                    split = box.split(factor=0.6)
+                    split.label(text="Number of branches")
+                    split.prop(scene.branchClusterSettingsList[i], "nrBranches", text="")
+                    
+                    
+                                        
+                    split = box.split(factor=0.6)
+                    split.label(text="Tree shape")
+                    split.prop(scene.branchClusterSettingsList[i].treeShape, "value", text="")
+                    
+                    split = box.split(factor=0.6)
+                    split.label(text="Branch shape")
+                    split.prop(scene.branchClusterSettingsList[i].branchShape, "value", text="")
+                    
+                    box2 = box.box()
+                    split = box2.split(factor=0.6)
+                    split.label(text="Branch type")
+                    split.prop(scene.branchClusterSettingsList[i].branchType, "value", text="")
+                    
+                    if scene.branchClusterSettingsList[i].branchType.value == 'WHORLED':
+                        split = box2.split(factor=0.6)
+                        split.label(text="Branch whorl count start")
+                        split.prop(scene.branchClusterSettingsList[i], "branchWhorlCountStart", text="")
+                        
+                        split = box2.split(factor=0.6)
+                        split.label(text="Branch whorl count end")
+                        split.prop(scene.branchClusterSettingsList[i], "branchWhorlCountEnd", text="")
+                                        
+                    split = box.split(factor=0.6)
+                    split.label(text="Relative branch length")
+                    split.prop(scene.branchClusterSettingsList[i], "relBranchLength", text="", slider=True)
+                                        
+                    split = box.split(factor=0.6)
+                    split.label(text="Relative branch length variation")
+                    split.prop(scene.branchClusterSettingsList[i], "relBranchLengthVariation", text="", slider=True)
+                    
+                    split = box.split(factor=0.6)
+                    split.label(text="Taper factor")
+                    if i < len(scene.taperFactorList):
+                        split.prop(scene.taperFactorList[i], "taperFactor", text="", slider=True)
+                    
+                    #split = box.split(factor=0.6)
+                    #split.label(text="Use taper curve")
+                    #split.prop(scene.branchClusterSettingsList[i], "useTaperCurve", text="")
+                    #
+                    #
+                    #
+                    #if scene.branchClusterSettingsList[i].useTaperCurve == True:
+                    #    # reset | hide
+                    #    row = box.row()
+                    #    row.operator("scene.reset_curves_cluster", text="Reset taper curve").level = i
+                    #
+                    #    taperCurveName = f"taperMappingBranchCluster{i}"
+                    #    box.template_curve_mapping(taperCurveData(taperCurveName), "mapping")
+                    box3 = box.box()
+                    row = box3.row()
+                    
+                    split = row.split(factor=0.6)
+                    split.label(text="Use taper curve")
+                    split.prop(scene.branchClusterSettingsList[i], "useTaperCurve", text="")
+                    
+                    if scene.branchClusterSettingsList[i].useTaperCurve == True:
+                        row = box3.row()
+                        op = row.operator("scene.evaluate_branch_cluster", text="Evaluate branch")
+                        op.idx = i
+                        reset = row.operator("scene.reset_branch_cluster", text="Reset")
+                        reset.idx = i
+                        curve_name = ensure_branch_curve_node(i)
+                        curve_node = myCurveData(curve_name)
+                        box3.template_curve_mapping(curve_node, "mapping")
+                    
+                    #row = box2.row()
+                    
+                    #row.prop(scene.branchClusterSettingsList[i], "showBranchSplitHeights", icon="TRIA_DOWN" if scene.branchClusterSettingsList[i].showBranchSplitHeights else "TRIA_RIGHT", text="", toggle=True)
+                    #
+                    #row.operator("scene.add_branch_split_level", text="Add split level").level = i
+                    #row.operator("scene.remove_branch_split_level", text="Remove").level = i
+                    #
+            
+                    
+                    split = box.split(factor=0.6)
+                    split.label(text="Ring resolution")
+                    split.prop(scene.branchClusterSettingsList[i], "ringResolution", text="")
+                    
+                    split = box.split(factor=0.6)
+                    split.label(text="Branches start height global")
+                    split.prop(scene.branchClusterSettingsList[i], "branchesStartHeightGlobal", text="", slider=True)
+                    
+                    split = box.split(factor=0.6)
+                    split.label(text="Branches end height global")
+                    split.prop(scene.branchClusterSettingsList[i], "branchesEndHeightGlobal", text="", slider=True)
+                    
+                    if i > 0: # hide for first branch cluster since it can only have the stem as parent
+                        split = box.split(factor=0.6)
+                        split.label(text="Branches start height cluster")
+                        split.prop(scene.branchClusterSettingsList[i], "branchesStartHeightCluster", text="", slider=True)
+                        
+                        split = box.split(factor=0.6)
+                        split.label(text="Branches end height cluster")
+                        split.prop(scene.branchClusterSettingsList[i], "branchesEndHeightCluster", text="", slider=True)
+                    
+                    split = box.split(factor=0.6)
+                    split.label(text="Branches start point variation")
+                    split.prop(scene.branchClusterSettingsList[i], "branchesStartPointVariation", text="", slider=True)
+                
+                split = box.split(factor=0.6)
+                split.prop(scene.branchClusterSettingsList[i], "showNoiseSettings", icon="TRIA_DOWN" if scene.branchClusterSettingsList[i].showNoiseSettings else "TRIA_RIGHT", emboss=False, text="Noise settings", toggle=True)
+                if scene.branchClusterSettingsList[i].showNoiseSettings:
+                    box1 = box.box()
+                    split = box1.split(factor=0.6)
+                    split.label(text="Noise Amplitude Horizontal")
+                    split.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeHorizontalBranch", text="")
+                    
+                    split = box1.split(factor=0.6)
+                    split.label(text="Noise Amplitude Vertical")
+                    split.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeVerticalBranch", text="")
+                                        
+                    split = box1.split(factor=0.6)
+                    split.label(text="Noise Amplitude Gradient")
+                    split.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeBranchGradient", text="")
+                                        
+                    split = box1.split(factor=0.6)
+                    split.label(text="Noise Amplitude Exponent")
+                    split.prop(scene.branchClusterSettingsList[i], "noiseAmplitudeBranchExponent", text="")
+                    
+                    split = box1.split(factor=0.6)
+                    split.label(text="Noise Scale")
+                    split.prop(scene.branchClusterSettingsList[i], "noiseScale", text="")
+                    
+                split = box.split(factor=0.6)
+                split.prop(scene.branchClusterSettingsList[i], "showAngleSettings", icon="TRIA_DOWN" if scene.branchClusterSettingsList[i].showAngleSettings else "TRIA_RIGHT", emboss=False, text="Angle settings", toggle=True)
+                if scene.branchClusterSettingsList[i].showAngleSettings:
+                    box1 = box.box()
+                    split = box1.split(factor=0.6)
+                    split.label(text="Vertical angle crown start")
+                    split.prop(scene.branchClusterSettingsList[i], "verticalAngleCrownStart", text="")
+                    
+                    split = box1.split(factor=0.6)
+                    split.label(text="Vertical angle crown end")
+                    split.prop(scene.branchClusterSettingsList[i], "verticalAngleCrownEnd", text="")
+                    
+                    split = box1.split(factor=0.6)
+                    split.label(text="Vertical angle branch start")
+                    split.prop(scene.branchClusterSettingsList[i], "verticalAngleBranchStart", text="")
+                    
+                    split = box1.split(factor=0.6)
+                    split.label(text="Vertical angle branch end")
+                    split.prop(scene.branchClusterSettingsList[i], "verticalAngleBranchEnd", text="")
+                    
+                    box2 = box1.box()
+                    
+                    split = box2.split(factor=0.6)
+                    split.label(text="Branch angle mode")
+                    split.prop(scene.branchClusterSettingsList[i].branchAngleMode, "value", text="")
+                    
+                    if scene.branchClusterSettingsList[i].branchAngleMode.value == 'WINDING':
+                        split = box2.split(factor=0.6)
+                        split.label(text="Use Fibonacci angles")
+                        split.prop(scene.branchClusterSettingsList[i], "useFibonacciAngles", text="")
+                        if scene.branchClusterSettingsList[i].useFibonacciAngles == True:
+                            split = box2.split(factor=0.6)
+                            split.label(text="Fibonacci number")
+                            split.prop(scene.branchClusterSettingsList[i].fibonacciNr, "fibonacci_nr", text="")
+                            
+                            split1 = box2.split(factor=0.6)
+                            split1.label(text="Angle:")
+                            split1.label(text=f"{scene.branchClusterSettingsList[i].fibonacciNr.fibonacci_angle:.2f}°")
+                    
+                    if scene.branchClusterSettingsList[i].branchAngleMode.value != 'ADAPTIVE' and (scene.branchClusterSettingsList[i].useFibonacciAngles == False or scene.branchClusterSettingsList[i].branchAngleMode.value == 'SYMMETRIC'):
+                        split = box2.split(factor=0.6)
+                        split.label(text="Rotate angle range")
+                        split.prop(scene.branchClusterSettingsList[i], "rotateAngleRange", text="")
+                        
+                    if scene.branchClusterSettingsList[i].useFibonacciAngles == False and scene.branchClusterSettingsList[i].branchAngleMode.value == 'WINDING':
+                        split = box2.split(factor=0.6)
+                        split.label(text="Rotate angle offset")
+                        split.prop(scene.branchClusterSettingsList[i], "rotateAngleOffset", text="")
+                        
+                    if scene.branchClusterSettingsList[i].useFibonacciAngles == False or scene.branchClusterSettingsList[i].branchAngleMode.value == 'SYMMETRIC':
+                        split = box2.split(factor=0.6)
+                        split.label(text="Rotate angle crown start")
+                        split.prop(scene.branchClusterSettingsList[i], "rotateAngleCrownStart", text="")
+                        
+                        split = box2.split(factor=0.6)
+                        split.label(text="Rotate angle crown end")
+                        split.prop(scene.branchClusterSettingsList[i], "rotateAngleCrownEnd", text="")
+                        
+                        split = box2.split(factor=0.6)
+                        split.label(text="Rotate angle branch start")
+                        split.prop(scene.branchClusterSettingsList[i], "rotateAngleBranchStart", text="")
+                        
+                        split = box2.split(factor=0.6)
+                        split.label(text="Rotate angle branch end")
+                        split.prop(scene.branchClusterSettingsList[i], "rotateAngleBranchEnd", text="")
+                    
+                    if scene.branchClusterSettingsList[i].branchAngleMode.value == 'ADAPTIVE':
+                        split = box2.split(factor=0.6)
+                        split.label(text="Rotate angle range factor")
+                        split.prop(scene.branchClusterSettingsList[i], "rotateAngleRangeFactor", text="", slider=True)
+                    
+                    box3 = box1.box()
+                                        
+                    split = box3.split(factor=0.6)
+                    split.label(text="Reduced curve step cutoff")
+                    split.prop(scene.branchClusterSettingsList[i], "reducedCurveStepCutoff", text="")
+                    
+                    split = box3.split(factor=0.6)
+                    split.label(text="Reduced curve step factor")
+                    split.prop(scene.branchClusterSettingsList[i], "reducedCurveStepFactor", text="", slider=True)
+                    
+                    
+                    split = box3.split(factor=0.6)
+                    split.label(text="Branch global curvature start")
+                    split.prop(scene.branchClusterSettingsList[i], "branchGlobalCurvatureStart", text="")
+                    
+                    split = box3.split(factor=0.6)
+                    split.label(text="Branch global curvature end")
+                    split.prop(scene.branchClusterSettingsList[i], "branchGlobalCurvatureEnd", text="")
+                    
+                    split = box3.split(factor=0.6)
+                    split.label(text="Branch curvature start")
+                    split.prop(scene.branchClusterSettingsList[i], "branchCurvatureStart", text="")
+                    
+                    split = box3.split(factor=0.6)
+                    split.label(text="Branch curvature end")
+                    split.prop(scene.branchClusterSettingsList[i], "branchCurvatureEnd", text="")
+                    
+                    split = box3.split(factor=0.6)
+                    split.label(text="Branch curvature offset")
+                    split.prop(scene.branchClusterSettingsList[i], "branchCurvatureOffsetStrength", text="")
+                    
+                split = box.split(factor=0.6)
+                split.prop(scene.branchClusterSettingsList[i], "showSplitSettings", icon="TRIA_DOWN" if scene.branchClusterSettingsList[i].showSplitSettings else "TRIA_RIGHT", emboss=False, text="Split settings", toggle=True)
+                
+                if scene.branchClusterSettingsList[i].showSplitSettings:
+                    box2 = box.box()
+                    
+                    split = box2.split(factor=0.6)
+                    split.label(text="Nr splits per branch")
+                    split.prop(scene.branchClusterSettingsList[i], "nrSplitsPerBranch", text="")
+                    
+                    box3 = box2.box()
+                    split = box3.split(factor=0.6)
+                    split.label(text="Branch split mode")
+                    split.prop(scene.branchClusterSettingsList[i].branchSplitMode, "value", text="")
+                    mode = scene.branchClusterSettingsList[i].branchSplitMode.value
+                    if mode == "ROTATE_ANGLE":
+                        split = box3.split(factor=0.6)
+                        split.label(text="Branch split rotate angle")
+                        split.prop(scene.branchClusterSettingsList[i], "branchSplitRotateAngle", text="")
+                            
+                    if mode == "HORIZONTAL":
+                        split = box3.split(factor=0.6)
+                        split.label(text="Branch split axis variation")
+                        split.prop(scene.branchClusterSettingsList[i], "branchSplitAxisVariation", text="")
+                    
+                    split = box2.split(factor=0.6)
+                    split.label(text="Branch split angle")
+                    split.prop(scene.branchClusterSettingsList[i], "branchSplitAngle", text="")
+                    
+                    split = box2.split(factor=0.6)
+                    split.label(text="Branch split point angle")
+                    split.prop(scene.branchClusterSettingsList[i], "branchSplitPointAngle", text="")
+                        
+                    split = box2.split(factor=0.6)
+                    split.label(text="Splits per branch variation")
+                    split.prop(scene.branchClusterSettingsList[i], "splitsPerBranchVariation", text="")
+                    
+                    split = box2.split(factor=0.6)
+                    split.label(text="Branch variance")
+                    split.prop(scene.branchClusterSettingsList[i], "branchVariance", text="", slider=True)
+                    
+                    split = box2.split(factor=0.6)
+                    split.label(text="Outward attraction")
+                    split.prop(scene.branchClusterSettingsList[i], "outwardAttraction", text="", slider=True)
+                
+                    split = box2.split(factor=0.6)
+                    split.label(text="Branch split height variation")
+                    split.prop(scene.branchClusterSettingsList[i], "branchSplitHeightVariation", text="", slider=True)
+                    
+                    split = box2.split(factor=0.6)
+                    split.label(text="Branch split length variation")
+                    split.prop(scene.branchClusterSettingsList[i], "branchSplitLengthVariation", text="", slider=True)
+                
+                    row = box2.row()
+                    
+                    row.prop(scene.branchClusterSettingsList[i], "showBranchSplitHeights", icon="TRIA_DOWN" if scene.branchClusterSettingsList[i].showBranchSplitHeights else "TRIA_RIGHT", text="", toggle=True)
+            
+                    row.operator("scene.add_branch_split_level", text="Add split level").level = i
+                    row.operator("scene.remove_branch_split_level", text="Remove").level = i
+                    
+                    if context.scene.branchClusterSettingsList[i].showBranchSplitHeights == True:
+                        row = box2.row()
+                        if i == 0:
+                            row.template_list("UL_branchSplitLevelListLevel_0", "", scene, "branchSplitHeightInLevelList_0", scene, "branchSplitHeightInLevelListIndex_0")
+                        if i == 1:
+                            row.template_list("UL_branchSplitLevelListLevel_1", "", scene, "branchSplitHeightInLevelList_1", scene, "branchSplitHeightInLevelListIndex_1")
+                        if i == 2:
+                            row.template_list("UL_branchSplitLevelListLevel_2", "", scene, "branchSplitHeightInLevelList_2", scene, "branchSplitHeightInLevelListIndex_2")
+                        if i == 3:
+                            row.template_list("UL_branchSplitLevelListLevel_3", "", scene, "branchSplitHeightInLevelList_3", scene, "branchSplitHeightInLevelListIndex_3")
+                        if i == 4:
+                            row.template_list("UL_branchSplitLevelListLevel_4", "", scene, "branchSplitHeightInLevelList_4", scene, "branchSplitHeightInLevelListIndex_4")
+                        if i == 5:
+                            row.template_list("UL_branchSplitLevelListLevel_5", "", scene, "branchSplitHeightInLevelList_5", scene, "branchSplitHeightInLevelListIndex_5")
+                        if i == 6:
+                            row.template_list("UL_branchSplitLevelListLevel_6", "", scene, "branchSplitHeightInLevelList_6", scene, "branchSplitHeightInLevelListIndex_6")
+                        if i == 7:
+                            row.template_list("UL_branchSplitLevelListLevel_7", "", scene, "branchSplitHeightInLevelList_7", scene, "branchSplitHeightInLevelListIndex_7")
+                        if i == 8:
+                            row.template_list("UL_branchSplitLevelListLevel_8", "", scene, "branchSplitHeightInLevelList_8", scene, "branchSplitHeightInLevelListIndex_8")
+                        if i == 9:
+                            row.template_list("UL_branchSplitLevelListLevel_9", "", scene, "branchSplitHeightInLevelList_9", scene, "branchSplitHeightInLevelListIndex_9")
+                        if i == 10:
+                            row.template_list("UL_branchSplitLevelListLevel_10", "", scene, "branchSplitHeightInLevelList_10", scene, "branchSplitHeightInLevelListIndex_10")
+                        if i == 11:
+                            row.template_list("UL_branchSplitLevelListLevel_11", "", scene, "branchSplitHeightInLevelList_11", scene, "branchSplitHeightInLevelListIndex_11")
+                        if i == 12:
+                            row.template_list("UL_branchSplitLevelListLevel_12", "", scene, "branchSplitHeightInLevelList_12", scene, "branchSplitHeightInLevelListIndex_12")
+                        if i == 13:
+                            row.template_list("UL_branchSplitLevelListLevel_13", "", scene, "branchSplitHeightInLevelList_13", scene, "branchSplitHeightInLevelListIndex_13")
+                        if i == 14:
+                            row.template_list("UL_branchSplitLevelListLevel_14", "", scene, "branchSplitHeightInLevelList_14", scene, "branchSplitHeightInLevelListIndex_14")
+                        if i == 15:
+                            row.template_list("UL_branchSplitLevelListLevel_15", "", scene, "branchSplitHeightInLevelList_15", scene, "branchSplitHeightInLevelListIndex_15")
+                        if i == 16:
+                            row.template_list("UL_branchSplitLevelListLevel_16", "", scene, "branchSplitHeightInLevelList_16", scene, "branchSplitHeightInLevelListIndex_16")
+                        if i == 17:
+                            row.template_list("UL_branchSplitLevelListLevel_17", "", scene, "branchSplitHeightInLevelList_17", scene, "branchSplitHeightInLevelListIndex_17")
+                        if i == 18:
+                            row.template_list("UL_branchSplitLevelListLevel_18", "", scene, "branchSplitHeightInLevelList_18", scene, "branchSplitHeightInLevelListIndex_18")
+                        if i == 19:
+                            row.template_list("UL_branchSplitLevelListLevel_19", "", scene, "branchSplitHeightInLevelList_19", scene, "branchSplitHeightInLevelListIndex_19")
+                        if i > 19:
+                            j = 0
+                            splitLevelList = scene.branchSplitHeightInLevelListList[i - 6].value
+                            for splitLevel in splitLevelList:
+                                box2.prop(splitLevel, "value", text=f"Split height level {j}", slider=True)
+                                j += 1
             
 class initButton(bpy.types.Operator):
     bl_idname="scene.init_button"
-    bl_label="initialise"
+    bl_label="Reset"
         
     def execute(self, context):
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
@@ -1323,6 +1690,9 @@ class initButton(bpy.types.Operator):
         #initialise values
         curveElement.points[0].location = (0.0, 1.0)
         curveElement.points[1].location = (1.0, 0.0)
+        curveElement.points[0].handle_type = "VECTOR"
+        curveElement.points[1].handle_type = "VECTOR"
+        
         if len(curveElement.points) > 2:
             for i in range(2, len(curveElement.points)):
                 curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
@@ -1419,7 +1789,7 @@ class evaluateButton(bpy.types.Operator):
                             self.report({'INFO'}, "n = 0, reflected == 1 * slope")
                             slope1 = 1.0 * (p2.y - p1.y) / (p2.x - p1.x)
                             self.report({'INFO'}, f"n = 0, n -> 2 * slope1: {slope1}")
-                            p0 = mathutils.Vector((p2.x + (p2.x - p1.x), p1.y + slope2 * (p2.x - p1.x)))
+                            p0 = mathutils.Vector((p2.x + (p2.x - p1.x), p1.y + slope1 * (p2.x - p1.x)))
                             # [0] -> reflected
                             if len(curveElement.points) > 2:
                                 # cubic
@@ -1523,7 +1893,250 @@ class evaluateButton(bpy.types.Operator):
                     bpy.context.active_object.empty_display_size = 0.01
         return {'FINISHED'} 
     
+def sampleCurveStem(self, x):
+    nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
+    curveElement = nodeGroups.nodes[taper_node_mapping['taperMapping']].mapping.curves[3] 
+    y = 0.0
+    for n in range(0, len(curveElement.points) - 1):
+        
+        px = curveElement.points[n].location.x
+        py = curveElement.points[n].location.y
+        
+        #first segment
+        if n == 0:
+            if curveElement.points[1].handle_type == "VECTOR":
+                #linear
+                p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
+                p1 = curveElement.points[0].location
+                p2 = curveElement.points[1].location
+                p3 = curveElement.points[1].location + (curveElement.points[1].location - curveElement.points[0].location)
+            else:
+                p1 = curveElement.points[0].location
+                p2 = curveElement.points[1].location
+                if curveElement.points[0].handle_type == "AUTO" or curveElement.points[0].handle_type == "AUTO_CLAMPED":
+                    if len(curveElement.points) > 2:
+                        slope2 = 2.0 * (p2.y - p1.y) / (p2.x - p1.x)
+                        #n = 0, n -> 2 * slope
+                        p0 = mathutils.Vector((p1.x - (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y - slope2 * (p2.x - p1.x)))
+                    else: # only 2 points -> linear
+                        p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
+                    
+                    if len(curveElement.points) > 2:                            
+                        p3 = curveElement.points[2].location
+                    else: # linear when only 2 points
+                        p3 = p2 + (p2 - p1)
+                        p0 = p1 - (p2 - p1)
+                else:
+                    #n = 0, reflected == 1 * slope
+                    slope1 = 1.0 * (p2.y - p1.y) / (p2.x - p1.x)
+                    p0 = mathutils.Vector((p2.x + (p2.x - p1.x), p1.y + slope1 * (p2.x - p1.x)))
+                    # [0] -> reflected
+                    if len(curveElement.points) > 2:
+                        # cubic
+                        p3 = curveElement.points[2].location
+                    else:
+                        # 2 points: 0: auto, 1: auto -> linear (== 1 * slope)
+                        # linear
+                        p3 = p2 + (p2 - p1)
+            
+        #last segment
+        if n == len(curveElement.points) - 2:
+            if curveElement.points[len(curveElement.points) - 2].handle_type == "VECTOR":
+                #n = last, linear
+                p0 = curveElement.points[len(curveElement.points) - 2].location - (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                p1 = curveElement.points[len(curveElement.points) - 2].location
+                p2 = curveElement.points[len(curveElement.points) - 1].location
+                
+                p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+            
+            else:
+                p1 = curveElement.points[len(curveElement.points) - 2].location
+                p2 = curveElement.points[len(curveElement.points) - 1].location
+                p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                if curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO" or curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO_CLAMPED":
+                    p0 = curveElement.points[len(curveElement.points) - 3].location
+                    #n = last, n -> 2 * slope
+                    slope2 = 2.0 * (p3.y - p2.y) / (p3.x - p2.x)
+                    if len(curveElement.points) > 2:
+                        p3 = mathutils.Vector((p2.x + (p2.x - p1.x) / (1.0 + abs(slope2)), p3.y + slope2 * (p2.x - p1.x)))  
+                    else:
+                        p3 = p2 + (p2 - p1)
+                        #n = last, p3: mirror
+                else:
+                    #n = last, slope
+                    if len(curveElement.points) > 2:
+                        # cubic
+                        p0 = curveElement.points[0].location
+                    else:
+                        # 2 points: 0: auto, 1: auto -> linear (== 1 * slope)
+                        # linear
+                        p0 = p1 - (p2 - p1)
+            
+        #middle segments
+        if n > 0 and n < len(curveElement.points) - 2:
+            if curveElement.points[n].handle_type == "AUTO" or curveElement.points[n].handle_type == "AUTO_CLAMPED":
+                if curveElement.points[n + 1].handle_type == "VECTOR":
+                    #n = middle, n + 1 -> reflected
+                    p0 = curveElement.points[n - 1].location
+                    p1 = curveElement.points[n].location
+                    p2 = curveElement.points[n + 1].location
+                    p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
+                else:
+                    #n = middle, (cubic (clamped)) -> spline!
+                    p0 = curveElement.points[n - 1].location
+                    p1 = curveElement.points[n].location
+                    p2 = curveElement.points[n + 1].location
+                    p3 = curveElement.points[n + 2].location
+                            
+            if curveElement.points[n].handle_type == "VECTOR":
+                if curveElement.points[n + 1].handle_type == "VECTOR":
+                    #linear
+                    p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
+                    p1 = curveElement.points[n].location
+                    p2 = curveElement.points[n + 1].location
+                    p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
+                else:
+                    #n = middle, n -> reflected
+                    p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
+                    p1 = curveElement.points[n].location
+                    p2 = curveElement.points[n + 1].location
+                    p3 = curveElement.points[n + 2].location
+        
+        if p1.x <= x and (p2.x > x or p2.x == 1.0):
+            
+            tx = (x - p1.x) / (p2.x - p1.x)
+            
+            px = sampleSpline(p0.x, p1.x, p2.x, p3.x, tx)
+            py = sampleSpline(p0.y, p1.y, p2.y, p3.y, tx)
+            
+            #self.report({'INFO'}, f"sample point: x: {x}, y: {y}, px: {px}, py: {py}")
+            return py
+    self.report({'ERROR'}, f"segment not found!, x: {x}")
+    return 0.0
 
+def sampleCurveBranch(self, x, clusterIndex):
+    curve_name = ensure_branch_curve_node(clusterIndex)
+    
+    nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
+    curveElement = nodeGroups.nodes[curve_node_mapping[curve_name]].mapping.curves[3]
+    y = 0.0
+    
+    for n in range(0, len(curveElement.points) - 1):
+        
+        px = curveElement.points[n].location.x
+        py = curveElement.points[n].location.y
+        
+        #first segment
+        if n == 0:
+            if curveElement.points[1].handle_type == "VECTOR":
+                #linear
+                p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
+                p1 = curveElement.points[0].location
+                p2 = curveElement.points[1].location
+                p3 = curveElement.points[1].location + (curveElement.points[1].location - curveElement.points[0].location)
+            else:
+                p1 = curveElement.points[0].location
+                p2 = curveElement.points[1].location
+                if curveElement.points[0].handle_type == "AUTO" or curveElement.points[0].handle_type == "AUTO_CLAMPED":
+                    if len(curveElement.points) > 2:
+                        slope2 = 2.0 * (p2.y - p1.y) / (p2.x - p1.x)
+                        #n = 0, n -> 2 * slope
+                        p0 = mathutils.Vector((p1.x - (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y - slope2 * (p2.x - p1.x)))
+                    else: # only 2 points -> linear
+                        p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
+                    
+                    if len(curveElement.points) > 2:                            
+                        p3 = curveElement.points[2].location
+                    else: # linear when only 2 points
+                        p3 = p2 + (p2 - p1)
+                        p0 = p1 - (p2 - p1)
+                else:
+                    #n = 0, reflected == 1 * slope
+                    slope1 = 1.0 * (p2.y - p1.y) / (p2.x - p1.x)
+                    p0 = mathutils.Vector((p2.x + (p2.x - p1.x), p1.y + slope1 * (p2.x - p1.x)))
+                    # [0] -> reflected
+                    if len(curveElement.points) > 2:
+                        # cubic
+                        p3 = curveElement.points[2].location
+                    else:
+                        # 2 points: 0: auto, 1: auto -> linear (== 1 * slope)
+                        # linear
+                        p3 = p2 + (p2 - p1)
+            
+        #last segment
+        if n == len(curveElement.points) - 2:
+            if curveElement.points[len(curveElement.points) - 2].handle_type == "VECTOR":
+                #n = last, linear
+                p0 = curveElement.points[len(curveElement.points) - 2].location - (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                p1 = curveElement.points[len(curveElement.points) - 2].location
+                p2 = curveElement.points[len(curveElement.points) - 1].location
+                
+                p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+            
+            else:
+                p1 = curveElement.points[len(curveElement.points) - 2].location
+                p2 = curveElement.points[len(curveElement.points) - 1].location
+                p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
+                if curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO" or curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO_CLAMPED":
+                    p0 = curveElement.points[len(curveElement.points) - 3].location
+                    #n = last, n -> 2 * slope
+                    slope2 = 2.0 * (p3.y - p2.y) / (p3.x - p2.x)
+                    if len(curveElement.points) > 2:
+                        p3 = mathutils.Vector((p2.x + (p2.x - p1.x) / (1.0 + abs(slope2)), p3.y + slope2 * (p2.x - p1.x)))  
+                    else:
+                        p3 = p2 + (p2 - p1)
+                        #n = last, p3: mirror
+                else:
+                    #n = last, slope
+                    if len(curveElement.points) > 2:
+                        # cubic
+                        p0 = curveElement.points[0].location
+                    else:
+                        # 2 points: 0: auto, 1: auto -> linear (== 1 * slope)
+                        # linear
+                        p0 = p1 - (p2 - p1)
+            
+        #middle segments
+        if n > 0 and n < len(curveElement.points) - 2:
+            if curveElement.points[n].handle_type == "AUTO" or curveElement.points[n].handle_type == "AUTO_CLAMPED":
+                if curveElement.points[n + 1].handle_type == "VECTOR":
+                    #n = middle, n + 1 -> reflected
+                    p0 = curveElement.points[n - 1].location
+                    p1 = curveElement.points[n].location
+                    p2 = curveElement.points[n + 1].location
+                    p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
+                else:
+                    #n = middle, (cubic (clamped)) -> spline!
+                    p0 = curveElement.points[n - 1].location
+                    p1 = curveElement.points[n].location
+                    p2 = curveElement.points[n + 1].location
+                    p3 = curveElement.points[n + 2].location
+                            
+            if curveElement.points[n].handle_type == "VECTOR":
+                if curveElement.points[n + 1].handle_type == "VECTOR":
+                    #linear
+                    p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
+                    p1 = curveElement.points[n].location
+                    p2 = curveElement.points[n + 1].location
+                    p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
+                else:
+                    #n = middle, n -> reflected
+                    p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
+                    p1 = curveElement.points[n].location
+                    p2 = curveElement.points[n + 1].location
+                    p3 = curveElement.points[n + 2].location
+        
+        if p1.x <= x and (p2.x > x or p2.x == 1.0):
+            
+            tx = (x - p1.x) / (p2.x - p1.x)
+            
+            px = self.sampleSpline(p0.x, p1.x, p2.x, p3.x, tx)
+            py = self.sampleSpline(p0.y, p1.y, p2.y, p3.y, tx)
+            
+            return py
+                
+    return 0.0
+    
 
 def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
     if len(activeNode.next) > 0 or len(activeNode.branches) > 0:
@@ -3178,7 +3791,7 @@ def generateVerticesAndTriangles(self,
                     startRadius = segments[s].startRadius
                     endRadius = segments[s].endRadius
                     linearRadius = lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing))
-                    normalizedCurve = (1.0 - branchTipRadius) * tVal + sampleCurve(treeGen, tVal)
+                    normalizedCurve = (1.0 - branchTipRadius) * tVal + sampleCurveStem(treeGen, tVal)
                     
                     radius = linearRadius * normalizedCurve
                 else:
@@ -3186,7 +3799,7 @@ def generateVerticesAndTriangles(self,
                     startRadius = segments[s].startRadius
                     endRadius = segments[s].endRadius
                     linearRadius = lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing))
-                    normalizedCurve = (1.0 - branchTipRadius) * tValBranch + sampleCurve(treeGen, tValBranch) * context.scene.taperFactorList[segments[s].clusterIndex].taperFactor 
+                    normalizedCurve = (1.0 - branchTipRadius) * tValBranch + sampleCurveBranch(treeGen, tValBranch, segmants[s].clusterIndex) * context.scene.taperFactorList[segments[s].clusterIndex].taperFactor 
                     # TODO: taper curve for each cluster
                     # (default: deactivated -> default slope..)
                     radius = linearRadius * normalizedCurve
@@ -3694,7 +4307,7 @@ class treeGenPanel(bpy.types.Panel):
     bl_idname = "PT_TreeGen"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'treeGen'
+    bl_category = 'curveMapping2'
     
     def draw(self, context):
         layout = self.layout
@@ -3723,7 +4336,7 @@ class treeSettings(bpy.types.Panel):
     bl_idname = "PT_TreeSettings"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'treeGen'
+    bl_category = 'curveMapping2'
     
     def draw(self, context):
         layout = self.layout
@@ -3745,8 +4358,15 @@ class treeSettings(bpy.types.Panel):
         layout.prop(context.scene, "taper")
         row = layout.row()
         layout.operator("scene.reset_curves", text="Reset taper curve")
+        
         row = layout.row()
-        layout.template_curve_mapping(taperCurveData('taperMapping'), "mapping")
+        #layout.template_curve_mapping(taperCurveData('taperMapping'), "mapping")
+        layout.template_curve_mapping(myCurveData('TestOne'), "mapping")
+        
+        layout.prop(context.scene, "evaluate", slider=True)
+        layout.operator("scene.evaluate_button", text="Evaluate").x = context.scene.evaluate
+        layout.operator("scene.init_button", text="Reset")
+        
         row = layout.row()
         layout.prop(context.scene, "branchTipRadius")
         row = layout.row()
@@ -3761,7 +4381,7 @@ class noiseSettings(bpy.types.Panel):
     bl_idname = "PT_NoiseSettings"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'treeGen'
+    bl_category = 'curveMapping2'
     
     def draw(self, context):
         layout = self.layout
@@ -3787,7 +4407,7 @@ class angleSettings(bpy.types.Panel):
     bl_idname = "PT_AngleSettings"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'treeGen'
+    bl_category = 'curveMapping2'
     
     def draw(self, context):
         layout = self.layout
@@ -3981,7 +4601,7 @@ class splitSettings(bpy.types.Panel):
     bl_idname = "PT_SplitSettings"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'treeGen'
+    bl_category = 'curveMapping2'
     
     def draw(self, context):
         layout = self.layout
@@ -4261,7 +4881,7 @@ def init_properties(data, props):
         
         for i, value in enumerate(data.get("useTaperCurveList", [])):
             props.branchClusterSettingsList[i].useTaperCurve = value
-        
+            
         for i, value in enumerate(data.get("ringResolutionList", [])):
             props.branchClusterSettingsList[i].ringResolution = value
         
@@ -5228,8 +5848,6 @@ class branchSettings(bpy.types.Panel):
                     split.label(text="Use taper curve")
                     split.prop(scene.branchClusterSettingsList[i], "useTaperCurve", text="")
                     
-                    
-                    
                     if scene.branchClusterSettingsList[i].useTaperCurve == True:
                         # reset | hide
                         row = box.row()
@@ -5535,7 +6153,7 @@ class leafSettings(bpy.types.Panel):
     bl_idname = "PT_LeafSettings"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'treeGen'
+    bl_category = 'curveMapping2'
     
     def draw(self, context):
         layout = self.layout
