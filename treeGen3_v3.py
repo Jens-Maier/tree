@@ -790,6 +790,7 @@ class generateTree(bpy.types.Operator):
             segments = []
             nodes[0].getAllSegments(self, nodes[0], segments, False)
             
+            
             addLeaves(self, self, nodes[0], 
                 context.scene.treeGrowDir, 
                 context.scene.treeHeight, 
@@ -2210,7 +2211,8 @@ def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
     else:
         activeNode.radius = branchTipRadius
         return branchTipRadius
-    
+
+
     
 def splitRecursive(startNode, 
                    nrSplits, 
@@ -3795,6 +3797,14 @@ def generateVerticesAndTriangles(self,
     vertices = []
     faces = []
     
+    seamIndices = []
+    seamOffset = 0
+    
+    UVs = []
+    faceUVs = []
+    cumulative_u = 0.0
+    max_v = 0.0
+    
     offset = 0
     counter = 0
     
@@ -3821,6 +3831,9 @@ def generateVerticesAndTriangles(self,
             controlPt1 = segments[s].start + segments[s].startTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0
             controlPt2 = segments[s].end - segments[s].endTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0
         
+            sectionStartPos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, startSection / sections)
+            # TODO: startSection = 1...
+            
             for section in range(startSection, sections + 1):
                 pos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / sections)
                 tangent = sampleSplineTangentC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / sections).normalized()
@@ -3849,28 +3862,121 @@ def generateVerticesAndTriangles(self,
                     # TODO: taper curve for each cluster
                     # (default: deactivated -> default slope..)
                     radius = linearRadius * normalizedCurve
-                    
+                
+                
+                
                 for i in range(0, segments[s].ringResolution):
                     angle = (2 * math.pi * i) / segments[s].ringResolution
                     x = math.cos(angle)
                     y = math.sin(angle)
-                    v = pos + dirA * radius * math.cos(angle) + dirB * radius * math.sin(angle) 
-                    vertices.append(v)
+                    vertexPos = pos + dirA * radius * math.cos(angle) + dirB * radius * math.sin(angle) 
+                    vertices.append(vertexPos)
                     counter += 1
+                    
+                                         
+                    #u = cumulative_u + angle * radius
+                    #v = (pos - sectionStartPos).length
+                    #max_v = max(max_v, v)
+                    #UVs.append((u, v))
+                    
+                #cumulative_u += 2.0 * math.pi * radius
             
+            for section in range(0, sections + 1):
+                seamIndices.append(seamOffset + section * segments[s].ringResolution)
+                
+            seamOffset += (sections + 1) * segments[s].ringResolution
+                    
+                
             for c in range(0, sections): 
+                
+                pos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, c / sections)
+                nextPos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, (c + 1) / sections)
+                taper = lerp(segments[s].startTaper, segments[s].endTaper, section / sections)
+                startRadius = segments[s].startRadius
+                endRadius = segments[s].endRadius
+                linearRadius = lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing))
+                normalizedCurve = (1.0 - branchTipRadius) * tVal + sampleCurveStem(treeGen, tVal)
+                
+                radius = linearRadius * normalizedCurve
+                
                 for j in range(0, segments[s].ringResolution):
                     faces.append((offset + c * (segments[s].ringResolution) + j,
                         offset + c * (segments[s].ringResolution) + (j + 1) % (segments[s].ringResolution), 
                         offset + c * (segments[s].ringResolution) + segments[s].ringResolution  + (j + 1) % (segments[s].ringResolution), 
                         offset + c * (segments[s].ringResolution) + segments[s].ringResolution  + j))
+                    
+                    faceUVData = []
+                    
+                    angle = (2 * math.pi * j) / segments[s].ringResolution
+                    nextAngle = ((2 * math.pi * (j + 1)) ) / segments[s].ringResolution
+                    
+                    treeGen.report({'INFO'}, f"j: {j}, angle: {angle}, nextAngle: {nextAngle}, startRadius: {startRadius}")
+                    
+                    u = cumulative_u + angle * startRadius
+                    v = (pos - sectionStartPos).length
+                    
+                    nextU = cumulative_u + nextAngle * startRadius
+                    nextV = (nextPos - sectionStartPos).length
+                    max_v = max(max_v, nextV)
+                    
+                    faceUVData.append((u,v))
+                    faceUVData.append((u, nextV))
+                    faceUVData.append((nextU, nextV))
+                    faceUVData.append((nextU, v))
+                    
+                    
+                    faceUVs.append(faceUVData)
                         
+                    # -> store 4 UVs in list per face (faceUVs)
+                    # -> set UVs in:
+                    #       for i, face in enumerate(faces):
+                    #           uvLayer.data[meshData.polygons[i].loop_indices[0]].uv = ...
+                
+                cumulative_u += 2.0 * math.pi * radius
+                
+                
+            # -> TODO: use loop_indices:
+            # For each polygon, assign UVs per loop (face corner)
+            # 
+            # for poly in meshData.polygons:
+            #    for loop_index in poly.loop_indices:
+            #       vertex_index = meshData.loops[loop_index].vertex_index
+            #
+            #       # Compute u, v for this vertex in this face
+            #       # Usually, you can use stored UVs or recompute based on the vertex position and which face it is
+            #       u, v = UVs[vertex_index]  # If you have a UVs list per vertex
+            #
+            #       # BUT: To properly handle seams, you need to check if this is a seam and assign u=0 or u=1 accordingly
+            #       # For simple cylinder: if vertex_index is at the seam, decide based on which face this is
+            #       uv_layer.data[loop_index].uv = (u, v)
+        
+            
             offset += counter
             counter = 0
-        
+    
     meshData = bpy.data.meshes.new("treeMesh")
     meshData.from_pydata(vertices, [], faces)
     meshData.update()
+        
+    if len(meshData.uv_layers) == 0:
+        meshData.uv_layers.new()
+    
+    uvLayer = meshData.uv_layers.active
+    
+    for i, face in enumerate(faces):
+        uvLayer.data[meshData.polygons[i].loop_indices[0]].uv = (faceUVs[i][0][0] / max_v, faceUVs[i][0][1] / max_v)
+        uvLayer.data[meshData.polygons[i].loop_indices[1]].uv = (faceUVs[i][1][0] / max_v, faceUVs[i][1][1] / max_v)
+        uvLayer.data[meshData.polygons[i].loop_indices[2]].uv = (faceUVs[i][2][0] / max_v, faceUVs[i][2][1] / max_v)
+        uvLayer.data[meshData.polygons[i].loop_indices[3]].uv = (faceUVs[i][3][0] / max_v, faceUVs[i][3][1] / max_v)
+        
+    meshData.update()
+    
+    #for i, face in enumerate(leafFaces):
+    #    uvLayer.data[leafMeshData.polygons[i].loop_indices[0]].uv = leafUVs[face[0]]
+    #    uvLayer.data[leafMeshData.polygons[i].loop_indices[1]].uv = leafUVs[face[1]]
+    #    uvLayer.data[leafMeshData.polygons[i].loop_indices[2]].uv = leafUVs[face[2]]
+    #    uvLayer.data[leafMeshData.polygons[i].loop_indices[3]].uv = leafUVs[face[3]]
+      
     
     for polygon in meshData.polygons:
         polygon.use_smooth = True
