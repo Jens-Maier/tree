@@ -3802,7 +3802,8 @@ def generateVerticesAndTriangles(self,
     
     UVs = []
     faceUVs = []
-    cumulative_u = 0.0
+    cumulative_u_start = 0.0
+    cumulative_u_end = 0.0
     max_v = 0.0
     
     offset = 0
@@ -3842,6 +3843,7 @@ def generateVerticesAndTriangles(self,
                 dirA = (dirB.cross(tangent)).normalized()
                 
                 tVal = segments[s].startTvalGlobal + (segments[s].endTvalGlobal - segments[s].startTvalGlobal) * (section / sections)
+                nextTval = segments[s].startTvalGlobal + (segments[s].endTvalGlobal - segments[s].startTvalGlobal) * ((section + 1) / sections)
                 
                 tValBranch = segments[s].startTvalBranch + (segments[s].endTvalBranch - segments[s].startTvalBranch) * (section / sections)
                 tValGlobal = segments[s].startTvalGlobal + (segments[s].endTvalGlobal - segments[s].endTvalGlobal) * (section / sections)
@@ -3874,12 +3876,12 @@ def generateVerticesAndTriangles(self,
                     counter += 1
                     
                                          
-                    #u = cumulative_u + angle * radius
+                    #u = cumulative_u_start + angle * radius
                     #v = (pos - sectionStartPos).length
                     #max_v = max(max_v, v)
                     #UVs.append((u, v))
                     
-                #cumulative_u += 2.0 * math.pi * radius
+                #cumulative_u_start += 2.0 * math.pi * radius
             
             for section in range(0, sections + 1):
                 seamIndices.append(seamOffset + section * segments[s].ringResolution)
@@ -3888,6 +3890,9 @@ def generateVerticesAndTriangles(self,
                     
                 
             for c in range(0, sections): 
+                treeGen.report({'INFO'}, f"section: {c}")
+                treeGen.report({'INFO'}, f"cumulative u start: {cumulative_u_start}")
+                treeGen.report({'INFO'}, f"cumulative u end: {cumulative_u_end}")
                 
                 pos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, c / sections)
                 nextPos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, (c + 1) / sections)
@@ -3898,6 +3903,16 @@ def generateVerticesAndTriangles(self,
                 normalizedCurve = (1.0 - branchTipRadius) * tVal + sampleCurveStem(treeGen, tVal)
                 
                 radius = linearRadius * normalizedCurve
+                
+                nextLinearRadius = lerp(segments[s].startRadius, segments[s].endRadius, (section + 1) / (segmentLength / branchRingSpacing))
+                nextNormalizedCurve = (1.0 - branchTipRadius) * nextTval + sampleCurveStem(treeGen, nextTval)
+                nextRadius = nextLinearRadius * nextNormalizedCurve
+                
+                treeGen.report({'INFO'}, f"    pos: {pos}")
+                treeGen.report({'INFO'}, f"nextPos: {nextPos}")
+                treeGen.report({'INFO'}, f"radius: {radius}")
+                treeGen.report({'INFO'}, f"nextRadius: {nextRadius}")
+                                
                 
                 for j in range(0, segments[s].ringResolution):
                     faces.append((offset + c * (segments[s].ringResolution) + j,
@@ -3910,19 +3925,26 @@ def generateVerticesAndTriangles(self,
                     angle = (2 * math.pi * j) / segments[s].ringResolution
                     nextAngle = ((2 * math.pi * (j + 1)) ) / segments[s].ringResolution
                     
-                    treeGen.report({'INFO'}, f"j: {j}, angle: {angle}, nextAngle: {nextAngle}, startRadius: {startRadius}")
+                    #treeGen.report({'INFO'}, f"j: {j}, angle: {angle}, nextAngle: {nextAngle}, startRadius: {startRadius}")
                     
-                    u = cumulative_u + angle * startRadius
+                    u = cumulative_u_start + angle * radius
                     v = (pos - sectionStartPos).length
+                    treeGen.report({'INFO'}, f"u: {u}")
                     
-                    nextU = cumulative_u + nextAngle * startRadius
+                    u_End = cumulative_u_start + nextAngle * radius
+                    
+                    nextU = cumulative_u_start + angle * nextRadius + math.pi * (startRadius - endRadius)
                     nextV = (nextPos - sectionStartPos).length
+                    nextU_End = cumulative_u_end + nextAngle * nextRadius + math.pi * (startRadius - endRadius)
+                    
                     max_v = max(max_v, nextV)
                     
+                    faceUVData.append((u_End, v))
+                    
                     faceUVData.append((u,v))
-                    faceUVData.append((u, nextV))
                     faceUVData.append((nextU, nextV))
-                    faceUVData.append((nextU, v))
+                    faceUVData.append((nextU_End, nextV))
+                    
                     
                     
                     faceUVs.append(faceUVData)
@@ -3932,7 +3954,8 @@ def generateVerticesAndTriangles(self,
                     #       for i, face in enumerate(faces):
                     #           uvLayer.data[meshData.polygons[i].loop_indices[0]].uv = ...
                 
-                cumulative_u += 2.0 * math.pi * radius
+                #cumulative_u_start += 2.0 * math.pi * startRadius
+                #cumulative_u_end += 2.0 * math.pi * endRadius
                 
                 
             # -> TODO: use loop_indices:
