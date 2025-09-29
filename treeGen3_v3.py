@@ -1924,9 +1924,9 @@ def sampleCurveStem(self, x):
     ensure_stem_curve_node()
     nodeGroups = bpy.data.node_groups.get('CurveNodeGroup') #taperNodeGroup')
     curveElement = nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves[3] #'Stem'
-    self.report({'INFO'}, "sample spline: ")
-    for p in curveElement.points:
-        self.report({'INFO'}, f"stem: point: {p.location}")
+    #self.report({'INFO'}, "sample spline: ")
+    #for p in curveElement.points:
+    #    self.report({'INFO'}, f"stem: point: {p.location}")
         
     y = 0.0
     for n in range(0, len(curveElement.points) - 1):
@@ -2041,7 +2041,7 @@ def sampleCurveStem(self, x):
             px = sampleSpline(p0.x, p1.x, p2.x, p3.x, tx)
             py = sampleSpline(p0.y, p1.y, p2.y, p3.y, tx)
             
-            self.report({'INFO'}, f"stem: sample point: x: {x}, y: {y}, px: {px}, py: {py}")
+            #self.report({'INFO'}, f"stem: sample point: x: {x}, y: {y}, px: {px}, py: {py}")
             return py
     self.report({'ERROR'}, f"segment not found!, x: {x}")
     return 0.0
@@ -3811,6 +3811,7 @@ def generateVerticesAndTriangles(self,
     
     startSection = 0
     
+    treeGen.report({'INFO'}, f"segments: {len(segments)}") # 1
     for s in range(0, len(segments)):
         segmentLength = (segments[s].end - segments[s].start).length
         if segmentLength > 0:
@@ -3861,11 +3862,12 @@ def generateVerticesAndTriangles(self,
                     endRadius = segments[s].endRadius
                     linearRadius = lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing))
                     normalizedCurve = (1.0 - branchTipRadius) * tValBranch + sampleCurveBranch(treeGen, tValBranch, segments[s].clusterIndex) * context.scene.taperFactorList[segments[s].clusterIndex].taperFactor 
-                    # TODO: taper curve for each cluster
-                    # (default: deactivated -> default slope..)
+                    
                     radius = linearRadius * normalizedCurve
                 
-                
+                treeGen.report({'INFO'}, f"mesh: segments[{s}].startRadius: {segments[s].startRadius}")
+                treeGen.report({'INFO'}, f"mesh: segments[{s}].endRadius: {segments[s].endRadius}")
+                treeGen.report({'INFO'}, f"mesh: segments[{s}], section[{section}]: radius: {radius}")
                 
                 for i in range(0, segments[s].ringResolution):
                     angle = (2 * math.pi * i) / segments[s].ringResolution
@@ -3883,72 +3885,75 @@ def generateVerticesAndTriangles(self,
                     
                 #cumulative_u_start += 2.0 * math.pi * radius
             
-            for section in range(0, sections + 1):
-                seamIndices.append(seamOffset + section * segments[s].ringResolution)
+            #for section in range(0, sections + 1):
+            #    seamIndices.append(seamOffset + section * segments[s].ringResolution)
                 
             seamOffset += (sections + 1) * segments[s].ringResolution
                     
-                
+            treeGen.report({'INFO'}, f"sections: {sections}") # 5
+            radiusOffset_0 = 0.0
+            radiusOffset_1 = 0.0
+            startRadius = 0.0
             for c in range(0, sections): 
                 treeGen.report({'INFO'}, f"section: {c}")
-                treeGen.report({'INFO'}, f"cumulative u start: {cumulative_u_start}")
-                treeGen.report({'INFO'}, f"cumulative u end: {cumulative_u_end}")
+                treeGen.report({'INFO'}, f"cumulative u start: {cumulative_u_start}") # 0.0
+                treeGen.report({'INFO'}, f"cumulative u end: {cumulative_u_end}") # 0.0
+                treeGen.report({'INFO'}, f"segments[{s}].startRadius: {segments[s].startRadius}") # 2.58
+                treeGen.report({'INFO'}, f"segments[{s}].endRadius: {segments[s].endRadius}") # 0.05
+                
+                tVal = segments[s].startTvalGlobal + (segments[s].endTvalGlobal - segments[s].startTvalGlobal) * (c / sections)
+                
+                nextTval = segments[s].startTvalGlobal + (segments[s].endTvalGlobal - segments[s].startTvalGlobal) * ((c + 1) / sections)
+                treeGen.report({'INFO'}, f"segments[{s}].sections[{c}].tVal: {tVal}")
+                treeGen.report({'INFO'}, f"segments[{s}].sections[{c}].nextTval: {nextTval}")
                 
                 pos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, c / sections)
                 nextPos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, (c + 1) / sections)
-                taper = lerp(segments[s].startTaper, segments[s].endTaper, section / sections)
-                startRadius = segments[s].startRadius
-                endRadius = segments[s].endRadius
-                linearRadius = lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing))
+                
+                
+                linearRadius = lerp(segments[s].startRadius, segments[s].endRadius, c / (segmentLength / branchRingSpacing))
                 normalizedCurve = (1.0 - branchTipRadius) * tVal + sampleCurveStem(treeGen, tVal)
                 
                 radius = linearRadius * normalizedCurve
+                ##
+                if c == 0:
+                    startRadius = radius
                 
-                nextLinearRadius = lerp(segments[s].startRadius, segments[s].endRadius, (section + 1) / (segmentLength / branchRingSpacing))
+                nextLinearRadius = lerp(segments[s].startRadius, segments[s].endRadius, (c + 1) / (segmentLength / branchRingSpacing))
                 nextNormalizedCurve = (1.0 - branchTipRadius) * nextTval + sampleCurveStem(treeGen, nextTval)
                 nextRadius = nextLinearRadius * nextNormalizedCurve
                 
-                treeGen.report({'INFO'}, f"    pos: {pos}")
-                treeGen.report({'INFO'}, f"nextPos: {nextPos}")
-                treeGen.report({'INFO'}, f"radius: {radius}")
-                treeGen.report({'INFO'}, f"nextRadius: {nextRadius}")
-                                
+                treeGen.report({'INFO'}, f"segments[{s}].sections[{c}].radius: {radius}")
+                treeGen.report({'INFO'}, f"segments[{s}].sections[{c}].nextRadius: {nextRadius}")
+                     
                 
                 for j in range(0, segments[s].ringResolution):
-                    faces.append((offset + c * (segments[s].ringResolution) + j,
+                    faces.append((
+                        offset + c * (segments[s].ringResolution) + j,
                         offset + c * (segments[s].ringResolution) + (j + 1) % (segments[s].ringResolution), 
                         offset + c * (segments[s].ringResolution) + segments[s].ringResolution  + (j + 1) % (segments[s].ringResolution), 
                         offset + c * (segments[s].ringResolution) + segments[s].ringResolution  + j))
                     
                     faceUVData = []
                     
-                    angle = (2 * math.pi * j) / segments[s].ringResolution
-                    nextAngle = ((2 * math.pi * (j + 1)) ) / segments[s].ringResolution
                     
-                    #treeGen.report({'INFO'}, f"j: {j}, angle: {angle}, nextAngle: {nextAngle}, startRadius: {startRadius}")
                     
-                    u = cumulative_u_start + angle * radius
-                    v = (pos - sectionStartPos).length
-                    treeGen.report({'INFO'}, f"u: {u}")
                     
-                    u_End = cumulative_u_start + nextAngle * radius
+                    faceUVData.append((( j      * nextRadius + (segments[s].ringResolution / 2.0) * (startRadius - nextRadius)) / segmentLength, (1 + c) / sections))
                     
-                    nextU = cumulative_u_start + angle * nextRadius + math.pi * (startRadius - endRadius)
-                    nextV = (nextPos - sectionStartPos).length
-                    nextU_End = cumulative_u_end + nextAngle * nextRadius + math.pi * (startRadius - endRadius)
+                    faceUVData.append((((j + 1) * nextRadius + (segments[s].ringResolution / 2.0) * (startRadius - nextRadius)) / segmentLength, (1 + c) / sections))
                     
-                    max_v = max(max_v, nextV)
+                    faceUVData.append((((j + 1) * radius + (segments[s].ringResolution / 2.0) * (startRadius - radius)) / segmentLength, (0 + c) / sections))
                     
-                    faceUVData.append((u_End, v))
-                    
-                    faceUVData.append((u,v))
-                    faceUVData.append((nextU, nextV))
-                    faceUVData.append((nextU_End, nextV))
-                    
+                    faceUVData.append((( j      * radius + (segments[s].ringResolution / 2.0) * (startRadius - radius)) / segmentLength , (0 + c) / sections))                
                     
                     
                     faceUVs.append(faceUVData)
-                        
+                
+                
+                radiusOffset_0 += nextRadius
+                radiusOffset_1 += nextRadius
+                    
                     # -> store 4 UVs in list per face (faceUVs)
                     # -> set UVs in:
                     #       for i, face in enumerate(faces):
@@ -3987,10 +3992,10 @@ def generateVerticesAndTriangles(self,
     uvLayer = meshData.uv_layers.active
     
     for i, face in enumerate(faces):
-        uvLayer.data[meshData.polygons[i].loop_indices[0]].uv = (faceUVs[i][0][0] / max_v, faceUVs[i][0][1] / max_v)
-        uvLayer.data[meshData.polygons[i].loop_indices[1]].uv = (faceUVs[i][1][0] / max_v, faceUVs[i][1][1] / max_v)
-        uvLayer.data[meshData.polygons[i].loop_indices[2]].uv = (faceUVs[i][2][0] / max_v, faceUVs[i][2][1] / max_v)
-        uvLayer.data[meshData.polygons[i].loop_indices[3]].uv = (faceUVs[i][3][0] / max_v, faceUVs[i][3][1] / max_v)
+        uvLayer.data[meshData.polygons[i].loop_indices[0]].uv = (faceUVs[i][0][0], faceUVs[i][0][1])
+        uvLayer.data[meshData.polygons[i].loop_indices[1]].uv = (faceUVs[i][1][0], faceUVs[i][1][1])
+        uvLayer.data[meshData.polygons[i].loop_indices[2]].uv = (faceUVs[i][2][0], faceUVs[i][2][1])
+        uvLayer.data[meshData.polygons[i].loop_indices[3]].uv = (faceUVs[i][3][0], faceUVs[i][3][1])
         
     meshData.update()
     
