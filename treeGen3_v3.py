@@ -1001,6 +1001,7 @@ class generateTree(bpy.types.Operator):
                         h = context.scene.branchSplitHeightInLevelList_19.add()
             
             bpy.context.view_layer.objects.active = bpy.data.objects["tree"]
+            bpy.ops.object.mode_set(mode='OBJECT')
             bpy.ops.object.select_all(action='DESELECT')
         return {'FINISHED'}
 
@@ -3811,6 +3812,8 @@ def generateVerticesAndTriangles(self,
     
     startSection = 0
     
+    startOffset = 0.0
+    
     treeGen.report({'INFO'}, f"segments: {len(segments)}") # 1
     for s in range(0, len(segments)):
         segmentLength = (segments[s].end - segments[s].start).length
@@ -3891,8 +3894,8 @@ def generateVerticesAndTriangles(self,
             seamOffset += (sections + 1) * segments[s].ringResolution
                     
             treeGen.report({'INFO'}, f"sections: {sections}") # 5
-            radiusOffset_0 = 0.0
-            radiusOffset_1 = 0.0
+            #radiusOffset_0 = 0.0
+            #radiusOffset_1 = 0.0
             startRadius = 0.0
             for c in range(0, sections): 
                 treeGen.report({'INFO'}, f"section: {c}")
@@ -3939,20 +3942,21 @@ def generateVerticesAndTriangles(self,
                     
                     
                     
-                    faceUVData.append((( j      * nextRadius + (segments[s].ringResolution / 2.0) * (startRadius - nextRadius)) / segmentLength, (1 + c) / sections))
+                    faceUVData.append((startOffset + ( j      * nextRadius + (segments[s].ringResolution / 2.0) * (startRadius - nextRadius)) / segmentLength, (1 + c) / sections))
                     
-                    faceUVData.append((((j + 1) * nextRadius + (segments[s].ringResolution / 2.0) * (startRadius - nextRadius)) / segmentLength, (1 + c) / sections))
+                    faceUVData.append((startOffset + ((j + 1) * nextRadius + (segments[s].ringResolution / 2.0) * (startRadius - nextRadius)) / segmentLength, (1 + c) / sections))
                     
-                    faceUVData.append((((j + 1) * radius + (segments[s].ringResolution / 2.0) * (startRadius - radius)) / segmentLength, (0 + c) / sections))
+                    faceUVData.append((startOffset + ((j + 1) * radius + (segments[s].ringResolution / 2.0) * (startRadius - radius)) / segmentLength, (0 + c) / sections))
                     
-                    faceUVData.append((( j      * radius + (segments[s].ringResolution / 2.0) * (startRadius - radius)) / segmentLength , (0 + c) / sections))                
+                    faceUVData.append((startOffset + ( j      * radius + (segments[s].ringResolution / 2.0) * (startRadius - radius)) / segmentLength , (0 + c) / sections))                
                     
                     
                     faceUVs.append(faceUVData)
+            
+            startOffset += segments[s].startRadius * segments[s].ringResolution / segmentLength
                 
-                
-                radiusOffset_0 += nextRadius
-                radiusOffset_1 += nextRadius
+                #radiusOffset_0 += nextRadius
+                #radiusOffset_1 += nextRadius
                     
                     # -> store 4 UVs in list per face (faceUVs)
                     # -> set UVs in:
@@ -3999,6 +4003,9 @@ def generateVerticesAndTriangles(self,
         
     meshData.update()
     
+    
+    
+        
     #for i, face in enumerate(leafFaces):
     #    uvLayer.data[leafMeshData.polygons[i].loop_indices[0]].uv = leafUVs[face[0]]
     #    uvLayer.data[leafMeshData.polygons[i].loop_indices[1]].uv = leafUVs[face[1]]
@@ -4020,6 +4027,13 @@ def generateVerticesAndTriangles(self,
         bpy.context.collection.objects.link(treeObject)
         treeObject.select_set(True)
         self.report({'INFO'}, "Created new object!")
+    
+    bpy.context.view_layer.objects.active = treeObject
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.uv.select_all(action='SELECT')
+    #bpy.ops.uv.pack_islands(udim_source='ACTIVE_UDIM', margin=0.02, shape_method='CONVEX')
+    
+    #bpy.ops.object.mode_set(mode='OBJECT')
         
     treeObject.data.materials.clear()
     treeObject.data.materials.append(barkMaterial)
