@@ -7,6 +7,7 @@ from mathutils import Vector, Quaternion, Matrix
 import random
 import json
 import os
+import bmesh
 
 class startNodeInfo():
     def __init__(self, StartNode, NextIndex, StartTval, EndTval, StartTvalGlobal, EndTvalGlobal):
@@ -3796,6 +3797,8 @@ def generateVerticesAndTriangles(self,
                                  branchTipRadius, 
                                  barkMaterial):
     vertices = []
+    vertexTvalGlobal = []
+    ringAngle = []
     faces = []
     
     seamIndices = []
@@ -3813,6 +3816,8 @@ def generateVerticesAndTriangles(self,
     startSection = 0
     
     startOffset = 0.0
+    
+    uvRows = 2
     
     treeGen.report({'INFO'}, f"segments: {len(segments)}") # 1
     for s in range(0, len(segments)):
@@ -3878,24 +3883,13 @@ def generateVerticesAndTriangles(self,
                     y = math.sin(angle)
                     vertexPos = pos + dirA * radius * math.cos(angle) + dirB * radius * math.sin(angle) 
                     vertices.append(vertexPos)
+                    vertexTvalGlobal.append(tVal)
+                    ringAngle.append(angle)
                     counter += 1
-                    
-                                         
-                    #u = cumulative_u_start + angle * radius
-                    #v = (pos - sectionStartPos).length
-                    #max_v = max(max_v, v)
-                    #UVs.append((u, v))
-                    
-                #cumulative_u_start += 2.0 * math.pi * radius
-            
-            #for section in range(0, sections + 1):
-            #    seamIndices.append(seamOffset + section * segments[s].ringResolution)
-                
+                     
             seamOffset += (sections + 1) * segments[s].ringResolution
                     
-            treeGen.report({'INFO'}, f"sections: {sections}") # 5
-            #radiusOffset_0 = 0.0
-            #radiusOffset_1 = 0.0
+            treeGen.report({'INFO'}, f"sections: {sections}")
             startRadius = 0.0
             for c in range(0, sections): 
                 treeGen.report({'INFO'}, f"section: {c}")
@@ -3918,7 +3912,7 @@ def generateVerticesAndTriangles(self,
                 normalizedCurve = (1.0 - branchTipRadius) * tVal + sampleCurveStem(treeGen, tVal)
                 
                 radius = linearRadius * normalizedCurve
-                ##
+                
                 if c == 0:
                     startRadius = radius
                 
@@ -3940,51 +3934,31 @@ def generateVerticesAndTriangles(self,
                     faceUVData = []
                     
                     
+                    faceUVData.append((startOffset + ( j      * radius + (segments[s].ringResolution / 2.0) * (startRadius - radius)) / segmentLength , (0 + c) / sections)) # 0
                     
+                    faceUVData.append((startOffset + ((j + 1) * radius + (segments[s].ringResolution / 2.0) * (startRadius - radius)) / segmentLength, (0 + c) / sections)) # 1
                     
-                    faceUVData.append((startOffset + ( j      * nextRadius + (segments[s].ringResolution / 2.0) * (startRadius - nextRadius)) / segmentLength, (1 + c) / sections))
+                    faceUVData.append((startOffset + ((j + 1) * nextRadius + (segments[s].ringResolution / 2.0) * (startRadius - nextRadius)) / segmentLength, (1 + c) / sections)) # 7
                     
-                    faceUVData.append((startOffset + ((j + 1) * nextRadius + (segments[s].ringResolution / 2.0) * (startRadius - nextRadius)) / segmentLength, (1 + c) / sections))
-                    
-                    faceUVData.append((startOffset + ((j + 1) * radius + (segments[s].ringResolution / 2.0) * (startRadius - radius)) / segmentLength, (0 + c) / sections))
-                    
-                    faceUVData.append((startOffset + ( j      * radius + (segments[s].ringResolution / 2.0) * (startRadius - radius)) / segmentLength , (0 + c) / sections))                
+                    faceUVData.append((startOffset + ( j      * nextRadius + (segments[s].ringResolution / 2.0) * (startRadius - nextRadius)) / segmentLength, (1 + c) / sections)) # 6
                     
                     
                     faceUVs.append(faceUVData)
             
             startOffset += segments[s].startRadius * segments[s].ringResolution / segmentLength
-                
-                #radiusOffset_0 += nextRadius
-                #radiusOffset_1 += nextRadius
-                    
-                    # -> store 4 UVs in list per face (faceUVs)
-                    # -> set UVs in:
-                    #       for i, face in enumerate(faces):
-                    #           uvLayer.data[meshData.polygons[i].loop_indices[0]].uv = ...
-                
-                #cumulative_u_start += 2.0 * math.pi * startRadius
-                #cumulative_u_end += 2.0 * math.pi * endRadius
-                
-                
-            # -> TODO: use loop_indices:
-            # For each polygon, assign UVs per loop (face corner)
-            # 
-            # for poly in meshData.polygons:
-            #    for loop_index in poly.loop_indices:
-            #       vertex_index = meshData.loops[loop_index].vertex_index
-            #
-            #       # Compute u, v for this vertex in this face
-            #       # Usually, you can use stored UVs or recompute based on the vertex position and which face it is
-            #       u, v = UVs[vertex_index]  # If you have a UVs list per vertex
-            #
-            #       # BUT: To properly handle seams, you need to check if this is a seam and assign u=0 or u=1 accordingly
-            #       # For simple cylinder: if vertex_index is at the seam, decide based on which face this is
-            #       uv_layer.data[loop_index].uv = (u, v)
-        
             
             offset += counter
             counter = 0
+    
+    #maxU = 0.0
+    #for faceUVData in faceUVs:
+    #    for n in range(0, len(faceUVData)):
+    #        faceUVData[n] = (faceUVData[n][0] / uvRows, faceUVData[n][1] / uvRows)
+        #if faceUVData[1][0] > maxU:
+        #    maxU = faceUVData[1][0]
+    
+    #if (maxU / uvRows) # TODO...
+    
     
     meshData = bpy.data.meshes.new("treeMesh")
     meshData.from_pydata(vertices, [], faces)
@@ -4000,7 +3974,9 @@ def generateVerticesAndTriangles(self,
         uvLayer.data[meshData.polygons[i].loop_indices[1]].uv = (faceUVs[i][1][0], faceUVs[i][1][1])
         uvLayer.data[meshData.polygons[i].loop_indices[2]].uv = (faceUVs[i][2][0], faceUVs[i][2][1])
         uvLayer.data[meshData.polygons[i].loop_indices[3]].uv = (faceUVs[i][3][0], faceUVs[i][3][1])
-        
+    
+    
+    
     meshData.update()
     
     
@@ -4027,13 +4003,33 @@ def generateVerticesAndTriangles(self,
         bpy.context.collection.objects.link(treeObject)
         treeObject.select_set(True)
         self.report({'INFO'}, "Created new object!")
-    
+        
     bpy.context.view_layer.objects.active = treeObject
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.uv.select_all(action='SELECT')
-    #bpy.ops.uv.pack_islands(udim_source='ACTIVE_UDIM', margin=0.02, shape_method='CONVEX')
+    #bpy.ops.uv.pack_islands(udim_source='ACTIVE_UDIM', rotate=False, margin=0.02, shape_method='CONVEX')
     
-    #bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.ops.object.mode_set(mode='OBJECT')
+    
+    mesh = treeObject.data
+    
+    #if "tVal" not in mesh.vertex_attributes:
+    #    mesh.vertex_attributes.add(name="tVal", type='FLOAT')
+    
+    if "tVal" not in mesh.attributes:
+        #bpy.ops.geometry.attribute_add(name="tVal", domain='POINT', data_type='FLOAT2')
+        bpy.ops.geometry.attribute_add(name="tVal", domain='POINT', data_type='FLOAT')
+        
+    if "ringAnlge" not in mesh.attributes:
+        bpy.ops.geometry.attribute_add(name="ringAnlge", domain='POINT', data_type='FLOAT')
+    
+    tValAttribute = mesh.attributes["tVal"]
+    ringAngleAttribute = mesh.attributes["ringAnlge"]
+        
+    for i, vertex in enumerate(mesh.vertices):
+        #tValAttribute.data[i].vector = Vector((0.5,0.5))
+        tValAttribute.data[i].value = vertexTvalGlobal[i]
+        ringAngleAttribute.data[i].value = ringAngle[i] / (2.0 * math.pi)
         
     treeObject.data.materials.clear()
     treeObject.data.materials.append(barkMaterial)
