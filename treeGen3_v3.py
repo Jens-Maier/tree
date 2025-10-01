@@ -3971,8 +3971,23 @@ def generateVerticesAndTriangles(self,
     #if (maxU / uvRows) # TODO...
     
     
+    
     meshData = bpy.data.meshes.new("treeMesh")
     meshData.from_pydata(vertices, [], faces)
+    
+    ############################################################
+    #mesh.calc_normals_split()
+    
+    custom_normals = [None] * len(meshData.loops)
+    
+    for poly in meshData.polygons:
+        for loop_index in poly.loop_indices:
+            vertex_index = meshData.loops[loop_index].vertex_index
+            custom_normals[loop_index] = normals[vertex_index]  # Your custom normal !!!!!!!!!!
+
+    meshData['use_auto_smooth'] = True
+    meshData.normals_split_custom_set(custom_normals)
+    #############################################################
     
     # can not set normals in meshData, only in bmesh
     bmesh_obj = bmesh.new()
@@ -3991,11 +4006,6 @@ def generateVerticesAndTriangles(self,
     meshData.update()
 
 
-    #for i, normal in enumerate(normals):
-    #    meshData.vertices[i].normal = normal
-        
-    #meshData.update()
-    
     
         
     if len(meshData.uv_layers) == 0:
@@ -4039,6 +4049,9 @@ def generateVerticesAndTriangles(self,
         self.report({'INFO'}, "Created new object!")
         
     bpy.context.view_layer.objects.active = treeObject
+    
+    bpy.ops.object.shade_auto_smooth(angle=0.5)
+    
     #bpy.ops.object.mode_set(mode='EDIT')
     #bpy.ops.uv.select_all(action='SELECT')
     #bpy.ops.uv.pack_islands(udim_source='ACTIVE_UDIM', rotate=False, margin=0.02, shape_method='CONVEX')
