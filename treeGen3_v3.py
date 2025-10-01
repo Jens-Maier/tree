@@ -3797,6 +3797,7 @@ def generateVerticesAndTriangles(self,
                                  branchTipRadius, 
                                  barkMaterial):
     vertices = []
+    normals = []
     vertexTvalGlobal = []
     ringAngle = []
     faces = []
@@ -3832,7 +3833,7 @@ def generateVerticesAndTriangles(self,
                 if segments[s].connectedToPrevious == True and segments[s - 1].connectedToPrevious == False: # only on first segment 
                     #-> later connected segments: dont subtract stemRingRes again!
                     startSection = 1
-                    offset -= segments[s].ringResolution
+                    offset -= segments[s].ringResolution + 1 # TEST
                     
                 if segments[s].connectedToPrevious == False:
                     startSection = 0
@@ -3877,17 +3878,20 @@ def generateVerticesAndTriangles(self,
                 treeGen.report({'INFO'}, f"mesh: segments[{s}].endRadius: {segments[s].endRadius}")
                 treeGen.report({'INFO'}, f"mesh: segments[{s}], section[{section}]: radius: {radius}")
                 
-                for i in range(0, segments[s].ringResolution):
+                for i in range(0, segments[s].ringResolution + 1):
                     angle = (2 * math.pi * i) / segments[s].ringResolution
                     x = math.cos(angle)
                     y = math.sin(angle)
                     vertexPos = pos + dirA * radius * math.cos(angle) + dirB * radius * math.sin(angle) 
                     vertices.append(vertexPos)
+                    normals.append(dirA * radius * math.cos(angle) + dirB * radius * math.sin(angle))
+                    # TODO: double seam vertex -> custom normals -> for UVs !!!
+                    
                     vertexTvalGlobal.append(tVal)
                     ringAngle.append(angle)
                     counter += 1
                      
-            seamOffset += (sections + 1) * segments[s].ringResolution
+            seamOffset += (sections + 1) * (segments[s].ringResolution + 1) # TEST +1 !!!
                     
             treeGen.report({'INFO'}, f"sections: {sections}")
             startRadius = 0.0
@@ -3922,15 +3926,21 @@ def generateVerticesAndTriangles(self,
                 
                 treeGen.report({'INFO'}, f"segments[{s}].sections[{c}].radius: {radius}")
                 treeGen.report({'INFO'}, f"segments[{s}].sections[{c}].nextRadius: {nextRadius}")
-                     
                 
-                for j in range(0, segments[s].ringResolution):
-                    faces.append((
-                        offset + c * (segments[s].ringResolution) + j,
-                        offset + c * (segments[s].ringResolution) + (j + 1) % (segments[s].ringResolution), 
-                        offset + c * (segments[s].ringResolution) + segments[s].ringResolution  + (j + 1) % (segments[s].ringResolution), 
-                        offset + c * (segments[s].ringResolution) + segments[s].ringResolution  + j))
+                
+                for j in range(0, segments[s].ringResolution): # offset += ringRes + 1
+                    fa = offset + (c * (segments[s].ringResolution)) % segments[s].ringResolution + j
+                    fb = offset + (c * (segments[s].ringResolution)) % segments[s].ringResolution + (j + 1)
+                    fc = offset + (c * (segments[s].ringResolution)) % segments[s].ringResolution + segments[s].ringResolution + 1 + (j + 1)
+                    fd = offset + (c * (segments[s].ringResolution)) % segments[s].ringResolution + segments[s].ringResolution + 1 + j
                     
+                    faces.append((fa, fb, fc, fd))
+                    
+                    #if c == 1:
+                    treeGen.report({'INFO'}, f"offset: {offset}-------fa: {fa}, fb: {fb}, fc: {fc}, fd: {fd}")
+                        
+                        # TODO: double seam vertex -> custom normals -> for UVs !!!
+                        
                     faceUVData = []
                     
                     
@@ -3947,6 +3957,7 @@ def generateVerticesAndTriangles(self,
             
             startOffset += segments[s].startRadius * segments[s].ringResolution / segmentLength
             
+            treeGen.report({'INFO'}, f"adding {counter - 1} to offset")
             offset += counter
             counter = 0
     
@@ -3962,7 +3973,30 @@ def generateVerticesAndTriangles(self,
     
     meshData = bpy.data.meshes.new("treeMesh")
     meshData.from_pydata(vertices, [], faces)
+    
+    # can not set normals in meshData, only in bmesh
+    bmesh_obj = bmesh.new()
+    bmesh_obj.from_mesh(meshData)
+    
+    for i, vertex in enumerate(bmesh_obj.verts):
+        vertex.normal = normals[i]
+        treeGen.report({'INFO'}, f"normals[{i}]: {normals[i]}")
+        
+
+    # Update the mesh with the new normals
+    bmesh_obj.to_mesh(meshData)
+    bmesh_obj.free()
+    
+    # Update mesh data
     meshData.update()
+
+
+    #for i, normal in enumerate(normals):
+    #    meshData.vertices[i].normal = normal
+        
+    #meshData.update()
+    
+    
         
     if len(meshData.uv_layers) == 0:
         meshData.uv_layers.new()
@@ -4005,11 +4039,11 @@ def generateVerticesAndTriangles(self,
         self.report({'INFO'}, "Created new object!")
         
     bpy.context.view_layer.objects.active = treeObject
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.uv.select_all(action='SELECT')
+    #bpy.ops.object.mode_set(mode='EDIT')
+    #bpy.ops.uv.select_all(action='SELECT')
     #bpy.ops.uv.pack_islands(udim_source='ACTIVE_UDIM', rotate=False, margin=0.02, shape_method='CONVEX')
     
-    bpy.ops.object.mode_set(mode='OBJECT')
+    #bpy.ops.object.mode_set(mode='OBJECT')
     
     mesh = treeObject.data
     
@@ -4020,11 +4054,11 @@ def generateVerticesAndTriangles(self,
         #bpy.ops.geometry.attribute_add(name="tVal", domain='POINT', data_type='FLOAT2')
         bpy.ops.geometry.attribute_add(name="tVal", domain='POINT', data_type='FLOAT')
         
-    if "ringAnlge" not in mesh.attributes:
-        bpy.ops.geometry.attribute_add(name="ringAnlge", domain='POINT', data_type='FLOAT')
+    if "ringAngle" not in mesh.attributes:
+        bpy.ops.geometry.attribute_add(name="ringAngle", domain='POINT', data_type='FLOAT')
     
     tValAttribute = mesh.attributes["tVal"]
-    ringAngleAttribute = mesh.attributes["ringAnlge"]
+    ringAngleAttribute = mesh.attributes["ringAngle"]
         
     for i, vertex in enumerate(mesh.vertices):
         #tValAttribute.data[i].vector = Vector((0.5,0.5))
