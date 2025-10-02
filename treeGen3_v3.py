@@ -107,9 +107,10 @@ class node():
                 segments.append(segment(self.clusterIndex, 
                                         self.point, 
                                         nextNode.point, 
-                                        self.tangent[n + 1], 
+                                        self.tangent[0],# -> firstTangent = self.tangent[0] 
+                                        self.tangent[n + 1],
                                         nextNode.tangent[0], 
-                                        self.cotangent, 
+                                        self.cotangent,
                                         nextNode.cotangent, 
                                         self.radius, 
                                         nextNode.radius, 
@@ -126,7 +127,8 @@ class node():
                 segments.append(segment(self.clusterIndex, 
                                         self.point, 
                                         nextNode.point, 
-                                        self.tangent[0], 
+                                        self.tangent[0], # -> firstTangent = self.tangent[0] 
+                                        self.tangent[0],
                                         nextNode.tangent[0], 
                                         self.cotangent, 
                                         nextNode.cotangent, 
@@ -621,10 +623,11 @@ def drawArrow(a, b):
  
  
 class segment():
-    def __init__(self, ClusterIndex, Start, End, StartTangent, EndTangent, StartCotangent, EndCotangent, StartRadius, EndRadius, StartTvalGlobal, EndTvalGlobal, StartTvalBranch, EndTvalBranch, RingResolution, ConnectedToPrevious, BranchLength, LongestBranchLengthInCluster, StartTaper, EndTaper):
+    def __init__(self, ClusterIndex, Start, End, FirstTangent, StartTangent, EndTangent, StartCotangent, EndCotangent, StartRadius, EndRadius, StartTvalGlobal, EndTvalGlobal, StartTvalBranch, EndTvalBranch, RingResolution, ConnectedToPrevious, BranchLength, LongestBranchLengthInCluster, StartTaper, EndTaper):
         self.clusterIndex = ClusterIndex
         self.start = Start
         self.end = End
+        self.firstTangent = FirstTangent
         self.startTangent = StartTangent
         self.endTangent = EndTangent
         self.startCotangent = StartCotangent
@@ -3839,6 +3842,9 @@ def generateVerticesAndTriangles(self,
                     startSection = 0
                     offset = len(vertices)
                     
+            # in segment: -> firstTangent = self.tangent[0] 
+            
+                    
             controlPt1 = segments[s].start + segments[s].startTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0
             controlPt2 = segments[s].end - segments[s].endTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0
         
@@ -3848,6 +3854,11 @@ def generateVerticesAndTriangles(self,
             for section in range(startSection, sections + 1):
                 pos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / sections)
                 tangent = sampleSplineTangentC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / sections).normalized()
+                
+                if section == 0:
+                   tangent = segments[s].firstTangent
+                
+                
                 dirA = lerp(segments[s].startCotangent, segments[s].endCotangent, section / sections)
                 dirB = (tangent.cross(dirA)).normalized()
                 dirA = (dirB.cross(tangent)).normalized()
