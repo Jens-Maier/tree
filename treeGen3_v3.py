@@ -477,8 +477,7 @@ class node():
         
         rotationSteps=None, 
         prevPoint = None,
-        prevNode = None, 
-        firstVertical = True
+        prevNode = None
     ):
                 
         if rotationSteps is None:
@@ -517,7 +516,7 @@ class node():
             else:
                 for tangentIndex in range(0, len(self.tangent)):
                     self.tangent[tangentIndex] = Quaternion(step.curveAxis, step.curvature) @ self.tangent[tangentIndex]
-                    self.cotangent = Quaternion(step.curveAxis, step.curvature) @ self.cotangent
+                self.cotangent = Quaternion(step.curveAxis, step.curvature) @ self.cotangent
             
         if len(rotationSteps) > 0:
             rotationSteps[len(rotationSteps) - 1].isLast = False
@@ -549,8 +548,7 @@ class node():
                 reducedCurveStepFactor,
                 rotationSteps.copy(), 
                 self.point, 
-                self, 
-                firstVertical)
+                self)
         
         tanCount = len(self.tangent)
         if prevPoint != None:
@@ -1072,8 +1070,12 @@ class AddBranchClusterButton(bpy.types.Operator):
     bl_label = "Add Branch Cluster"
 
     def execute(self, context):
-        context.scene.nrBranchClusters += 1
-        idx = context.scene.nrBranchClusters - 1
+        
+        context.scene.treeSettings.nrBranchClusters += 1
+        idx = context.scene.treeSettings.nrBranchClusters - 1
+        
+        #context.scene.nrBranchClusters += 1
+        #idx = context.scene.nrBranchClusters - 1
         ensure_branch_curve_node(idx)
         self.report({'INFO'}, f"Added branch cluster {idx}")
         return {'FINISHED'}
@@ -3462,7 +3464,7 @@ def splitBranches(treeGen,
         weight = pow(length, 2.0)
         branchWeights.append(weight)
         totalWeight += weight
-    for i in range(len(allBranchNodes)):
+    for i in range(len(allBranchNodes)):        
         splitsForBranch[i] = int(round(nrBranchSplits * branchWeights[i] / totalWeight + random.uniform(-splitsPerBranchVariation * nrSplitsPerBranch, splitsPerBranchVariation * nrSplitsPerBranch)))
         
         if splitsForBranch[i] < 1:
@@ -3849,8 +3851,7 @@ def generateVerticesAndTriangles(self,
             controlPt2 = segments[s].end - segments[s].endTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0
         
             sectionStartPos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, startSection / sections)
-            # TODO: startSection = 1...
-            
+                        
             for section in range(startSection, sections + 1):
                 pos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / sections)
                 tangent = sampleSplineTangentC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / sections).normalized()
@@ -4006,7 +4007,7 @@ def generateVerticesAndTriangles(self,
     
     for i, vertex in enumerate(bmesh_obj.verts):
         vertex.normal = normals[i]
-        treeGen.report({'INFO'}, f"normals[{i}]: {normals[i]}")
+        #treeGen.report({'INFO'}, f"normals[{i}]: {normals[i]}")
         
 
     # Update the mesh with the new normals
@@ -4337,11 +4338,44 @@ class toggleUseTaperCurveOperator(bpy.types.Operator):
         settings = context.scene.branchClusterSettingsList[self.idx]
         wasEnabled = settings.useTaperCurve
         settings.useTaperCurve = not wasEnabled
-        if wasEnabled:
-            bpy.ops.scene.reset_branch_cluster_curve(idx = self.idx)
-            
+        bpy.ops.scene.reset_branch_cluster_curve(idx = self.idx)
+        
         return {'FINISHED'}
     
+class treeGeneratorSettings(bpy.types.PropertyGroup):
+    nrBranchClusters: bpy.props.IntProperty(name = "nr branch clusters", default = 0, min = 0)
+    treeHeight: bpy.props.FloatProperty(name = "Tree Height", description = "The height of the tree", default = 10.0, min = 0.0, soft_max = 50.0, unit = 'LENGTH')
+    taper: bpy.props.FloatProperty(name = "Taper", description = "Taper of the stem", default = 0.1, min = 0.0, soft_max = 0.5)
+    branchTipRadius: bpy.props.FloatProperty(name = "Branch Tip Radius", description = "Branch radius at the tip", default = 0.0, min = 0.0, soft_max = 0.1, unit = 'LENGTH')
+    ringSpacing: bpy.props.FloatProperty(name = "Ring Spacing", description = "Spacing between rings", default = 0.1, min = 0.001, unit = 'LENGTH')
+    noiseAmplitudeHorizontal: bpy.props.FloatProperty(name = "Noise Amplitude Horizontal", description = "Noise amplitude horizontal", default = 0.0, min = 0.0)
+    noiseAmplitudeVertical: bpy.props.FloatProperty(name = "Noise Amplitude Vertical", description = "Noise amplitude vertical", default = 0.0, min = 0.0)
+    noiseAmplitudeGradient: bpy.props.FloatProperty(name = "Noise Amplitude Gradient", description = "Gradient of noise Amplitude at the base of the tree", default = 0.1, min = 0.0)
+    noiseAmplitudeExponent: bpy.props.FloatProperty(name = "Noise Amplitude Exponent", description = "Exponent for noise amplitude", default = 1.0, min = 0.0)
+    noiseScale: bpy.props.FloatProperty(name = "Noise Scale", description = "Scale of the noise", default = 1.0, min = 0.0, unit = 'LENGTH')
+    seed: bpy.props.IntProperty(name = "Seed", description = "Noise generator seed")
+    curvatureStart: bpy.props.FloatProperty(name = "Curvature Start", description = "Curvature at start of branches", default = 0.0)
+    curvatureEnd: bpy.props.FloatProperty(name = "Curvature End", description = "Curvature at end of branches", default = 0.0)
+    maxCurveSteps: bpy.props.IntProperty(name = "Max Curve Steps", description = "debug max curve steps", default = 100, min = 0)
+    stemSplitRotateAngle: bpy.props.FloatProperty(name = "Stem Split Rotate Anlge", description = "Rotation angle for stem splits", default = 0.0, min = 0.0, max = 360.0, unit = 'ROTATION')
+    variance: bpy.props.FloatProperty(name = "Variance", description = "Variance", default = 0.0, min = 0.0, max = 1.0)
+    stemSplitHeightInLevelList: bpy.props.PointerProperty(type = bpy.props.CollectionProperty)
+    stemSplitHeightInLevelListIndex: bpy.props.IntProperty(min = 0, default = 0)
+    curvOffsetStrength: bpy.props.FloatProperty(name = "Curvature Offset Strength", description = "Strength of the curvature offset", default = 0.0, min = 0.0)
+    stemSplitAngle: bpy.props.FloatProperty(name = "Stem Split Anlge", description = "Angle of stem splits", default = 0.0, min = 0.0, max = 360.0, unit = 'ROTATION')
+    stemSplitPointAngle: bpy.props.FloatProperty(name = "Stem Split Point Angle", description = "Point angle of stem splits", default = 0.0, min = 0.0, max = 360.0, unit = 'ROTATION')
+    splitHeightVariation: bpy.props.FloatProperty(name = "Split Height Variation", description = "Variation in split height", default = 0.0, min = 0.0)
+    splitLengthVariation: bpy.props.FloatProperty(name = "Split Length Variation", description = "Variation in split length", default = 0.0, min = 0.0)
+    treeShape: bpy.props.PointerProperty(type = treeShapeEnumProp)
+    stemRingResolution: bpy.props.IntProperty(name = "Stem Ring Resolution", description = "Resolution of the stem rings", default = 6, min = 3)
+    resampleDistance: bpy.props.FloatProperty(name = "Resample Distance", description = "Distance between nodes", default = 10.0, min = 0.0, unit = 'LENGTH')
+    nrSplits: bpy.props.IntProperty(name = "Number of Splits", description = "Number of Splits", default = 0, min = 0)
+    stemSplitMode: bpy.props.PointerProperty(type = splitModeEnumProp)
+    branchClusters: bpy.props.IntProperty(name = "Branch Clusters", description = "Number of branch clusters", default = 0, min = 0)
+    treeGrowDir: bpy.props.FloatVectorProperty(name = "Tree Grow Direction", description = "Direction the tree grows in", default = (0.0, 0.0, 1.0), subtype = 'XYZ')
+    ringResolution: bpy.props.IntProperty(name = "Ring Resolution", description = "Resolution per ring", default = 6, min = 3)
+    leafClusters: bpy.props.IntProperty(name = "Leaf Clusters", description = "Number of leaf clusters", default = 0, min = 0)
+
 
 class branchClusterSettings(bpy.types.PropertyGroup):
     branchClusterBoolList: bpy.props.CollectionProperty(type=branchClusterBoolListProp)
@@ -4616,11 +4650,14 @@ class treeSettings(bpy.types.Panel):
         row.prop_search(context.scene, "leaf_material", bpy.data, "materials", text="")
         
         row = layout.row()
-        layout.prop(context.scene, "treeHeight")
+        layout.prop(context.scene.treeGeneratorSettings, "treeHeight")
+        
+        #row = layout.row()
+        #layout.prop(context.scene, "treeHeight")
         row = layout.row()
-        layout.prop(context.scene, "treeGrowDir")
+        layout.prop(context.scene.treeGeneratorSettings, "treeGrowDir")
         row = layout.row()
-        layout.prop(context.scene, "taper")
+        layout.prop(context.scene.treeGeneratorSettings, "taper")
         row = layout.row()
         layout.operator("scene.reset_curves", text="Reset taper curve")
         
@@ -4633,13 +4670,13 @@ class treeSettings(bpy.types.Panel):
         layout.operator("scene.init_button", text="Reset")
         
         row = layout.row()
-        layout.prop(context.scene, "branchTipRadius")
+        layout.prop(context.scene.treeGeneratorSettings, "branchTipRadius")
         row = layout.row()
-        layout.prop(context.scene, "ringSpacing")
+        layout.prop(context.scene.treeGeneratorSettings, "ringSpacing")
         row = layout.row()
-        layout.prop(context.scene, "stemRingResolution")
+        layout.prop(context.scene.treeGeneratorSettings, "stemRingResolution")
         row = layout.row()
-        layout.prop(context.scene, "resampleDistance")
+        layout.prop(context.scene.treeGeneratorSettings, "resampleDistance")
         
 class noiseSettings(bpy.types.Panel):
     bl_label = "Noise Settings"
@@ -4655,17 +4692,17 @@ class noiseSettings(bpy.types.Panel):
         bl_optione = {'DEFAULT_CLOSED'}
         
         row = layout.row()
-        layout.prop(context.scene, "noiseAmplitudeVertical")
+        layout.prop(context.scene.treeGeneratorSettings, "noiseAmplitudeVertical")
         row = layout.row()
-        layout.prop(context.scene, "noiseAmplitudeHorizontal")
+        layout.prop(context.scene.treeGeneratorSettings, "noiseAmplitudeHorizontal")
         row = layout.row()
-        layout.prop(context.scene, "noiseAmplitudeGradient")
+        layout.prop(context.scene.treeGeneratorSettings, "noiseAmplitudeGradient")
         row = layout.row()
-        layout.prop(context.scene, "noiseAmplitudeExponent")
+        layout.prop(context.scene.treeGeneratorSettings, "noiseAmplitudeExponent")
         row = layout.row()
-        layout.prop(context.scene, "noiseScale")
+        layout.prop(context.scene.treeGeneratorSettings, "noiseScale")
         row = layout.row()
-        layout.prop(context.scene, "seed")
+        layout.prop(context.scene.treeGeneratorSettings, "seed")
         
 class angleSettings(bpy.types.Panel):
     bl_label = "Angle Settings"
@@ -4683,21 +4720,21 @@ class angleSettings(bpy.types.Panel):
         
         
         row = layout.row()
-        layout.prop(context.scene, "curvatureStart")
+        layout.prop(context.scene.treeGeneratorSettings, "curvatureStart")
         row = layout.row()
-        layout.prop(context.scene, "curvatureEnd")
+        layout.prop(context.scene.treeGeneratorSettings, "curvatureEnd")
         row = layout.row()
-        layout.prop(context.scene, "maxCurveSteps")
+        layout.prop(context.scene.treeGeneratorSettings, "maxCurveSteps")
         
 class addStemSplitLevel(bpy.types.Operator):
     bl_idname = "scene.add_stem_split_level"
     bl_label = "Add split level"
     
-    def execute(self, context):
+    def execute(self, context): #scene.treeSettings, "stemSplitHeightInLevelList"
         context.scene.showStemSplitHeights = True
-        newSplitHeight = context.scene.stemSplitHeightInLevelList.add()
+        newSplitHeight = context.scene.treeSettings.stemSplitHeightInLevelList.add()
         newSplitHeight.value = 0.5
-        context.scene.stemSplitHeightInLevelListIndex = len(context.scene.stemSplitHeightInLevelList) - 1
+        context.scene.treeSettings.stemSplitHeightInLevelListIndex = len(context.scene.treeSettings.stemSplitHeightInLevelList) - 1
         return {'FINISHED'}
       
 class removeStemSplitLevel(bpy.types.Operator):
@@ -4707,8 +4744,8 @@ class removeStemSplitLevel(bpy.types.Operator):
     
     def execute(self, context):
         context.scene.showStemSplitHeights = True
-        if len(context.scene.stemSplitHeightInLevelList) > 0:
-            context.scene.stemSplitHeightInLevelList.remove(len(context.scene.stemSplitHeightInLevelList) - 1)
+        if len(context.scene.treeSettings.stemSplitHeightInLevelList) > 0:
+            context.scene.treeSettings.stemSplitHeightInLevelList.remove(len(context.scene.treeSettings.stemSplitHeightInLevelList) - 1)
         return {'FINISHED'}
     
 class addBranchSplitLevel(bpy.types.Operator):
@@ -4876,47 +4913,44 @@ class splitSettings(bpy.types.Panel):
         bl_optione = {'DEFAULT_CLOSED'}
         
         row = layout.row()
-        layout.prop(context.scene, "nrSplits")
+        layout.prop(context.scene.treeSettings, "nrSplits")
         
         row = layout.row()
-        layout.prop(context.scene, "variance", slider=True)
+        layout.prop(context.scene.treeSettings, "variance", slider=True)
         
         row = layout.row()
         split = row.split(factor=0.5)
         split.label(text="Stem split mode")
-        split.prop(context.scene, "stemSplitMode", text="")
+        split.prop(context.scene.treeSettings.stemSplitMode, "value", text="")
         mode = scene.stemSplitMode
         if mode == "ROTATE_ANGLE":
             row = layout.row()
-            layout.prop(context.scene, "stemSplitRotateAngle")
+            layout.prop(context.scene.treeSettings, "stemSplitRotateAngle")
         
         row = layout.row()
-        layout.prop(context.scene, "curvOffsetStrength")
+        layout.prop(context.scene.treeSettings, "curvOffsetStrength")
         
         box = layout.box()
         row = box.row()
         
-        row.prop(context.scene, "showStemSplitHeights", icon="TRIA_DOWN" if context.scene.showStemSplitHeights else "TRIA_RIGHT", emboss=False, text="")
+        row.prop(context.scene.treeSettings, "showStemSplitHeights", icon="TRIA_DOWN" if context.scene.showStemSplitHeights else "TRIA_RIGHT", emboss=False, text="")
+        
         
         row.operator("scene.add_stem_split_level", text="Add split level")
-        row.operator("scene.remove_stem_split_level", text="Remove").index = scene.stemSplitHeightInLevelListIndex
+        row.operator("scene.remove_stem_split_level", text="Remove").index = scene.treeSettings.stemSplitHeightInLevelListIndex
         if context.scene.showStemSplitHeights == True:
             row = layout.row()
-            row.template_list("UL_stemSplitLevelList", "", scene, "stemSplitHeightInLevelList", scene, "stemSplitHeightInLevelListIndex")
+            row.template_list("UL_stemSplitLevelList", "", scene, "treeSettings.stemSplitHeightInLevelList", scene, "treeSettings.stemSplitHeightInLevelListIndex")
         
         row = layout.row()
-        layout.prop(context.scene, "splitHeightVariation")
+        layout.prop(context.scene.treeSettings, "splitHeightVariation")
         row = layout.row()
-        layout.prop(context.scene, "splitLengthVariation")
+        layout.prop(context.scene.treeSettings, "splitLengthVariation")
         row = layout.row()
-        layout.prop(context.scene, "stemSplitAngle")
+        layout.prop(context.scene.treeSettings, "stemSplitAngle")
         row = layout.row()
-        layout.prop(context.scene, "stemSplitPointAngle")
+        layout.prop(context.scene.treeSettings, "stemSplitPointAngle")
         row = layout.row()
-
-def reset_taper_curve_deferred():
-    bpy.ops.scene.reset_curves()
-    return None
 
 def resetTaperCurve():
     nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
@@ -5011,11 +5045,11 @@ def load_preset(preset, context, self):
         
 
 def init_properties(data, props):
-        props.treeHeight = data.get("treeHeight", props.treeHeight)
-        treeGrowDir = data.get("treeGrowDir", props.treeGrowDir)
+        props.treeSettings.treeHeight = data.get("treeHeight", props.treeSettings.treeHeight)
+        treeGrowDir = data.get("treeGrowDir", props.treeSettings.treeGrowDir)
         if isinstance(treeGrowDir, list) and len(treeGrowDir) == 3:
-            props.treeGrowDir = treeGrowDir
-        props.taper = data.get("taper", props.taper)
+            props.treeSettings.treeGrowDir = treeGrowDir
+        props.treeSettings.taper = data.get("taper", props.treeSettings.taper)
         
         controlPts = []
         controlPts = data.get("taperCurvePoints", controlPts)
@@ -5047,45 +5081,45 @@ def init_properties(data, props):
                 
         nodeGroups.nodes[curve_node_mapping['Stem']].mapping.update()
         
-        props.branchTipRadius = data.get("branchTipRadius", props.branchTipRadius)
-        props.ringSpacing = data.get("ringSpacing", props.ringSpacing)
-        props.stemRingResolution = data.get("stemRingResolution", props.stemRingResolution)
-        props.resampleDistance = data.get("resampleDistance", props.resampleDistance)
+        props.treeSettings.branchTipRadius = data.get("branchTipRadius", props.treeSettings.branchTipRadius)
+        props.treeSettings.ringSpacing = data.get("ringSpacing", props.treeSettings.ringSpacing)
+        props.treeSettings.stemRingResolution = data.get("stemRingResolution", props.treeSettings.stemRingResolution)
+        props.treeSettings.resampleDistance = data.get("resampleDistance", props.treeSettings.resampleDistance)
         
-        props.noiseAmplitudeVertical = data.get("noiseAmplitudeVertical", props.noiseAmplitudeVertical)
-        props.noiseAmplitudeHorizontal = data.get("noiseAmplitudeHorizontal", props.noiseAmplitudeHorizontal)
-        props.noiseAmplitudeGradient = data.get("noiseAmplitudeGradient", props.noiseAmplitudeGradient)
-        props.noiseAmplitudeExponent = data.get("noiseAmplitudeExponent", props.noiseAmplitudeExponent)
-        props.noiseScale = data.get("noiseScale", props.noiseScale)
-        props.seed = data.get("seed", props.seed)
+        props.treeSettings.noiseAmplitudeVertical = data.get("noiseAmplitudeVertical", props.treeSettings.noiseAmplitudeVertical)
+        props.treeSettings.noiseAmplitudeHorizontal = data.get("noiseAmplitudeHorizontal", props.treeSettings.noiseAmplitudeHorizontal)
+        props.treeSettings.noiseAmplitudeGradient = data.get("noiseAmplitudeGradient", props.treeSettings.noiseAmplitudeGradient)
+        props.treeSettings.noiseAmplitudeExponent = data.get("noiseAmplitudeExponent", props.treeSettings.noiseAmplitudeExponent)
+        props.treeSettings.noiseScale = data.get("noiseScale", props.treeSettings.noiseScale)
+        props.treeSettings.seed = data.get("seed", props.treeSettings.seed)
         
-        props.curvatureStart = data.get("curvatureStart", props.curvatureStart)
-        props.curvatureEnd = data.get("curvatureEnd", props.curvatureEnd)
-        props.maxCurveSteps = data.get("maxCurveSteps", props.maxCurveSteps)
+        props.treeSettings.curvatureStart = data.get("curvatureStart", props.treeSettings.curvatureStart)
+        props.treeSettings.curvatureEnd = data.get("curvatureEnd", props.treeSettings.curvatureEnd)
+        props.treeSettings.maxCurveSteps = data.get("maxCurveSteps", props.treeSettings.maxCurveSteps)
         
-        props.nrSplits = data.get("nrSplits", props.nrSplits)
-        props.variance = data.get("variance", props.variance)
-        props.stemSplitMode = data.get("stemSplitMode", props.stemSplitMode)
-        props.stemSplitRotateAngle = data.get("stemSplitRotateAngle", props.stemSplitRotateAngle)
-        props.curvOffsetStrength = data.get("curvOffsetStrength", props.curvOffsetStrength)
+        props.treeSettings.nrSplits = data.get("nrSplits", props.treeSettings.nrSplits)
+        props.treeSettings.variance = data.get("variance", props.treeSettings.variance)
+        props.treeSettings.stemSplitMode = data.get("stemSplitMode", props.treeSettings.stemSplitMode)
+        props.treeSettings.stemSplitRotateAngle = data.get("stemSplitRotateAngle", props.treeSettings.stemSplitRotateAngle)
+        props.treeSettings.curvOffsetStrength = data.get("curvOffsetStrength", props.treeSettings.curvOffsetStrength)
         
         for value in data.get("stemSplitHeightInLevelList", []):
-            item = props.stemSplitHeightInLevelList.add()
+            item = props.treeSettings.stemSplitHeightInLevelList.add()
             item.value = value
-        props.stemSplitHeightInLevelListIndex = data.get("stemSplitHeightInLevelListIndex", props.stemSplitHeightInLevelListIndex)
+        props.treeSettings.stemSplitHeightInLevelListIndex = data.get("stemSplitHeightInLevelListIndex", props.treeSettings.stemSplitHeightInLevelListIndex)
                 
-        props.splitHeightVariation = data.get("splitHeightVariation", props.splitHeightVariation)
-        props.splitLengthVariation = data.get("splitLengthVariation", props.splitLengthVariation)
-        props.stemSplitAngle = data.get("stemSplitAngle", props.stemSplitAngle)
-        props.stemSplitPointAngle = data.get("stemSplitPointAngle", props.stemSplitPointAngle)
+        props.treeSettings.splitHeightVariation = data.get("splitHeightVariation", props.treeSettings.splitHeightVariation)
+        props.treeSettings.splitLengthVariation = data.get("splitLengthVariation", props.treeSettings.splitLengthVariation)
+        props.treeSettings.stemSplitAngle = data.get("stemSplitAngle", props.treeSettings.stemSplitAngle)
+        props.treeSettings.stemSplitPointAngle = data.get("stemSplitPointAngle", props.treeSettings.stemSplitPointAngle)
         
         for outerList in props.parentClusterBoolListList:
             while len(outerList.value) > 0:
                 outerList.value.clear()
         
-        props.parentClusterBoolListList.clear()
+        props.treeSettings.parentClusterBoolListList.clear()
         
-        props.branchClusters = data.get("branchClusters", props.branchClusters)
+        props.treeSettings.branchClusters = data.get("branchClusters", props.treeSettings.branchClusters)
         
         
         # nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
@@ -5749,9 +5783,9 @@ def save_properties(filePath, treeGen):
             clusterTaperCurveHandleTypes[clusterIndex].append(curveElement.points[i].handle_type)
     
     data = {
-        "treeHeight": props.treeHeight,
-        "treeGrowDir": list(props.treeGrowDir),
-        "taper": props.taper,
+        "treeHeight": props.treeSettings.treeHeight,
+        "treeGrowDir": list(props.treeSettings.treeGrowDir),
+        "taper": props.treeSettings.taper,
         
         "taperCurvePoints": [list(pt.location) for pt in bpy.data.node_groups.get('CurveNodeGroup').nodes[curve_node_mapping['Stem']].mapping.curves[3].points],
         "taperCurveHandleTypes": [pt.handle_type for pt in bpy.data.node_groups.get('CurveNodeGroup').nodes[curve_node_mapping['Stem']].mapping.curves[3].points],
@@ -5759,30 +5793,30 @@ def save_properties(filePath, treeGen):
         "clusterTaperCurvePoints": [list(list(pt) for pt in clusterTaperPoints) for clusterTaperPoints in clusterTaperControlPts],
         "clusterTaperCurveHandleTypes": [list(clusterTaperHandles) for clusterTaperHandles in clusterTaperCurveHandleTypes],
     
-        "branchTipRadius": props.branchTipRadius,
-        "ringSpacing": props.ringSpacing,
-        "stemRingResolution": props.stemRingResolution,
-        "resampleDistance": props.resampleDistance,
+        "branchTipRadius": props.treeSettings.branchTipRadius,
+        "ringSpacing": props.treeSettings.ringSpacing,
+        "stemRingResolution": props.treeSettings.stemRingResolution,
+        "resampleDistance": props.treeSettings.resampleDistance,
     
-        "noiseAmplitudeVertical": props.noiseAmplitudeVertical,
-        "noiseAmplitudeHorizontal": props.noiseAmplitudeHorizontal,
-        "noiseAmplitudeGradient": props.noiseAmplitudeGradient,
-        "noiseAmplitudeExponent": props.noiseAmplitudeExponent,
-        "noiseScale": props.noiseScale,
-        "seed": props.seed,
+        "noiseAmplitudeVertical": props.treeSettings.noiseAmplitudeVertical,
+        "noiseAmplitudeHorizontal": props.treeSettings.noiseAmplitudeHorizontal,
+        "noiseAmplitudeGradient": props.treeSettings.noiseAmplitudeGradient,
+        "noiseAmplitudeExponent": props.treeSettings.noiseAmplitudeExponent,
+        "noiseScale": props.treeSettings.noiseScale,
+        "seed": props.treeSettings.seed,
         
-        "curvatureStart": props.curvatureStart,
-        "curvatureEnd": props.curvatureEnd,
-        "maxCurveSteps": props.maxCurveSteps,
+        "curvatureStart": props.treeSettings.curvatureStart,
+        "curvatureEnd": props.treeSettings.curvatureEnd,
+        "maxCurveSteps": props.treeSettings.maxCurveSteps,
         
-        "nrSplits": props.nrSplits,
-        "variance": props.variance,
-        "stemSplitMode": props.stemSplitMode,
-        "stemSplitRotateAngle": props.stemSplitRotateAngle,
-        "curvOffsetStrength": props.curvOffsetStrength,
+        "nrSplits": props.treeSettings.nrSplits,
+        "variance": props.treeSettings.variance,
+        "stemSplitMode": props.treeSettings.stemSplitMode,
+        "stemSplitRotateAngle": props.treeSettings.stemSplitRotateAngle,
+        "curvOffsetStrength": props.treeSettings.curvOffsetStrength,
         
-        "stemSplitHeightInLevelList": [item.value for item in props.stemSplitHeightInLevelList],
-        "stemSplitHeightInLevelListIndex": props.stemSplitHeightInLevelListIndex,
+        "stemSplitHeightInLevelList": [item.value for item in props.treeSettings.stemSplitHeightInLevelList],
+        "stemSplitHeightInLevelListIndex": props.treeSettings.stemSplitHeightInLevelListIndex,
             
         "splitHeightVariation": props.splitHeightVariation,
         "splitLengthVariation": props.splitLengthVariation,
@@ -6237,6 +6271,9 @@ class leafSettings(bpy.types.Panel):
 
         
 def register():
+    
+    #bpy.types.Scene.stemSplitHeightInLevelList = bpy.props.CollectionProperty(type=floatProp01)# ??? ( -> use old parameter..)
+    
     #save and load
     bpy.utils.register_class(importProperties)
     bpy.utils.register_class(exportProperties)
@@ -6270,6 +6307,9 @@ def register():
     bpy.utils.register_class(leafAngleModeEnumProp)
     bpy.utils.register_class(leafTypeEnumProp)
     
+    
+    
+    bpy.utils.register_class(treeGeneratorSettings)
     bpy.utils.register_class(branchClusterSettings)
     bpy.utils.register_class(leafClusterSettings)
     
@@ -6330,11 +6370,13 @@ def register():
     #bpy.utils.register_class(BranchClusterEvaluateButton)
     bpy.utils.register_class(BranchClusterResetButton)
     
+    #tree settings
+    #bpy.types.Scene.treeSettings = bpy.props.PointerProperty(type=treeGeneratorSettings)
     
     #collections    
     bpy.types.Scene.branchClusterSettingsList = bpy.props.CollectionProperty(type=branchClusterSettings)
     
-    bpy.types.Scene.stemSplitHeightInLevelList = bpy.props.CollectionProperty(type=floatProp01)
+    
     bpy.types.Scene.showStemSplitHeights = bpy.props.BoolProperty(
         name = "Show/hide stem split heights",
         default = True
@@ -6406,242 +6448,222 @@ def register():
     bpy.types.Scene.leafParentClusterBoolListList = bpy.props.CollectionProperty(type=leafParentClusterBoolListProp)
             
     
-    
-    #bpy.types.Scene.evaluate = bpy.props.FloatProperty(
-    #    name = "evaluate at",
-    #    default = 0.0,
-    #    min = 0.0, 
-    #    max = 1.0
-    #)
-    
-    bpy.types.Scene.nrBranchClusters = bpy.props.IntProperty(
-        name = "nr branch clusters",
-        default = 0,
-        min = 0
-    )
-    
-    bpy.types.Scene.my_curve_mapping : bpy.props.CurveMappingProperty(
-        name="My Curve Mapping", 
-        min=0.0, 
-        max=1.0,
-        subtype='VALUE' # or 'XYZ', 'HSV', 'CRGB'
-    )
-    
-    bpy.types.Scene.treeHeight = bpy.props.FloatProperty(
-        name = "tree height",
-        description = "the heihgt of the tree",
-        default = 10,
-        min = 0,
-        soft_max = 50,
-        unit = 'LENGTH'
-    )
-    
-    bpy.types.Scene.taper = bpy.props.FloatProperty(
-        name = "taper",
-        description = "taper of the stem",
-        default = 0.1,
-        min = 0,
-        soft_max = 0.5
-    )
-    
-    bpy.types.Scene.branchTipRadius = bpy.props.FloatProperty(
-        name = "branch tip radius",
-        description = "branch radius at the tip",
-        default = 0, 
-        min = 0,
-        soft_max = 0.1,
-        unit = 'LENGTH'
-    )
-    
-    bpy.types.Scene.ringSpacing = bpy.props.FloatProperty(
-        name = "Ring Spacing",
-        description = "Spacing between rings",
-        default = 0.1,
-        min = 0.001,
-        unit = 'LENGTH'
-    )
-    bpy.types.Scene.noiseAmplitudeHorizontal = bpy.props.FloatProperty(
-        name = "Noise Amplitude Horizontal",
-        description = "Noise amplitude horizontal",
-        default = 0.0,
-        min = 0.0
-    )
-    bpy.types.Scene.noiseAmplitudeVertical = bpy.props.FloatProperty(
-        name = "Noise Amplitude Vertical",
-        description = "Noise amplitude vertical",
-        default = 0.0,
-        min = 0.0
-    )
-    bpy.types.Scene.noiseAmplitudeGradient = bpy.props.FloatProperty(
-        name = "Noise Amplitude Gradient",
-        description = "Gradient of noise Amplitude at the base of the tree",
-        default = 0.1,
-        min = 0.0
-    )
-    bpy.types.Scene.noiseAmplitudeExponent = bpy.props.FloatProperty(
-        name = "Noise Amplitude Exponent",
-        description = "Exponent for noise amplitude",
-        default = 1.0,
-        min = 0.0
-    )
-    bpy.types.Scene.noiseScale = bpy.props.FloatProperty(
-        name = "Noise Scale",
-        description = "Scale of the noise",
-        default = 1.0,
-        min = 0.0,
-        unit = 'LENGTH'
-    )
-    bpy.types.Scene.seed = bpy.props.IntProperty(
-        name = "Seed",
-        description = "Noise generator seed"
-    )
-    bpy.types.Scene.curvatureStart = bpy.props.FloatProperty(
-        name = "Curvature Start",
-        description = "Curvature at start of branches",
-        default = 0.0
-    )
-    bpy.types.Scene.curvatureEnd = bpy.props.FloatProperty(
-        name = "Curvature End",
-        description = "Curvature at end of branches",
-        default = 0.0
-    )
-    bpy.types.Scene.maxCurveSteps = bpy.props.IntProperty(
-        name = "Max Curve Steps",
-        description = "debug max curve steps",
-        default = 10,
-        min = 0
-    )
-    bpy.types.Scene.stemSplitRotateAngle = bpy.props.FloatProperty(
-        name = "Stem Split Rotate Angle",
-        description = "Rotation angle for stem splits",
-        default = 0.0,
-        min = 0.0,
-        max = 360.0,
-        unit = 'ROTATION'
-    )
-    bpy.types.Scene.variance = bpy.props.FloatProperty(
-        name = "Variance",
-        description = "Variance",
-        default = 0.0,
-        min = 0.0,
-        max = 1.0
-    )
-    bpy.types.Scene.curvOffsetStrength = bpy.props.FloatProperty(
-        name = "Curvature Offset Strength",
-        description = "Strength of the curvature offset",
-        default = 0.0,
-        min = 0.0
-    )
-    bpy.types.Scene.stemSplitAngle = bpy.props.FloatProperty(
-        name = "Stem Split Angle",
-        description = "Angle of stem splits",
-        default = 0.0,
-        min = 0.0,
-        max = 360.0,
-        unit = 'ROTATION'
-    )
-    
-    bpy.types.Scene.stemSplitPointAngle = bpy.props.FloatProperty(
-        name = "Stem Split Point Angle",
-        description = "Point angle of stem splits",
-        default = 0.0,
-        min = 0.0,
-        max = 360.0,
-        unit = 'ROTATION'
-    )
-    bpy.types.Scene.splitHeightVariation = bpy.props.FloatProperty(
-        name = "Split Height Variation",
-        description = "Variation in split height",
-        default = 0.0,
-        min = 0.0
-    )
-    bpy.types.Scene.splitLengthVariation = bpy.props.FloatProperty(
-        name = "Split Length Variation",
-        description = "Variation in split length",
-        default = 0.0,
-        min = 0.0
-    )
-    bpy.types.Scene.treeShape = bpy.props.EnumProperty(
-        name="Shape",
-        description="The shape of the tree.",
-        items=[
-            ('CONICAL', "Conical", "A cone-shaped tree."),
-            ('SPHERICAL', "Spherical", "A sphere-shaped tree."),
-            ('HEMISPHERICAL', "Hemispherical", "A half-sphere shaped tree."),
-            ('INVERSE_HEMISPHERICAL', "Inverse Hemispherical", "An upside-down half-sphere shaped tree."),
-            ('CYLINDRICAL', "Cylindrical", "A cylinder-shaped tree."),
-            ('TAPERED_CYLINDRICAL', "Tapered Cylindrical", "A cylinder that tapers towards the top."),
-            ('FLAME', "Flame", "A flame-shaped tree."),
-            ('INVERSE_CONICAL', "Inverse Conical", "An upside-down cone-shaped tree."),
-            ('TEND_FLAME', "Tend Flame", "A more slender flame-shaped tree.")
-        ],
-        default='CONICAL'
-    )
-    
-    bpy.types.Scene.stemRingResolution = bpy.props.IntProperty(
-        name = "Stem Ring Resolution",
-        description = "Resolution of the stem rings",
-        default = 16,
-        min = 3
-    )
-    bpy.types.Scene.resampleDistance = bpy.props.FloatProperty(
-        name = "Resample Distance", 
-        description = "Distance between nodes",
-        default = 10.0,
-        min = 0.0,
-        unit = 'LENGTH'
-    )
-    bpy.types.Scene.shyBranchesIterations = bpy.props.IntProperty(
-        name = "Shy Branches Iterations",
-        description = "Iterations for shy branches",
-        default = 0,
-        min = 0
-    )
-    bpy.types.Scene.nrSplits = bpy.props.IntProperty(
-        name = "Number of Splits",
-        description = "Number of splits",
-        default = 0,
-        min = 0
-    )
-    bpy.types.Scene.stemSplitMode = bpy.props.EnumProperty(
-        name = "Stem Split Mode",
-        description = "Mode for stem splits",
-        items=[
-            ('ROTATE_ANGLE', "Rotate Angle", "Split by rotating the angle"),
-            ('HORIZONTAL', "Horizontal", "Split horizontally"),
-        ],
-        default='ROTATE_ANGLE',
-    )
-    bpy.types.Scene.branchClusters = bpy.props.IntProperty(
-        name = "Branch Clusters",
-        description = "Number of branch clusters",
-        default = 0,
-        min = 0
-    )
+#    -> moved to treeGeneratorSettings!    
+#    
+#    bpy.types.Scene.nrBranchClusters = bpy.props.IntProperty(
+#        name = "nr branch clusters",
+#        default = 0,
+#        min = 0
+#    )
+#    
+#    
+#    bpy.types.Scene.treeHeight = bpy.props.FloatProperty(
+#        name = "tree height",
+#        description = "the heihgt of the tree",
+#        default = 10,
+#        min = 0,
+#        soft_max = 50,
+#        unit = 'LENGTH'
+#    )
+#    
+#    bpy.types.Scene.taper = bpy.props.FloatProperty(
+#        name = "taper",
+#        description = "taper of the stem",
+#        default = 0.1,
+#        min = 0,
+#        soft_max = 0.5
+#    )
+#    
+#    bpy.types.Scene.branchTipRadius = bpy.props.FloatProperty(
+#        name = "branch tip radius",
+#        description = "branch radius at the tip",
+#        default = 0, 
+#        min = 0,
+#        soft_max = 0.1,
+#        unit = 'LENGTH'
+#    )
+#    
+#    bpy.types.Scene.ringSpacing = bpy.props.FloatProperty(
+#        name = "Ring Spacing",
+#        description = "Spacing between rings",
+#        default = 0.1,
+#        min = 0.001,
+#        unit = 'LENGTH'
+#    )
+#    bpy.types.Scene.noiseAmplitudeHorizontal = bpy.props.FloatProperty(
+#        name = "Noise Amplitude Horizontal",
+#        description = "Noise amplitude horizontal",
+#        default = 0.0,
+#        min = 0.0
+#    )
+#    bpy.types.Scene.noiseAmplitudeVertical = bpy.props.FloatProperty(
+#        name = "Noise Amplitude Vertical",
+#        description = "Noise amplitude vertical",
+#        default = 0.0,
+#        min = 0.0
+#    )
+#    bpy.types.Scene.noiseAmplitudeGradient = bpy.props.FloatProperty(
+#        name = "Noise Amplitude Gradient",
+#        description = "Gradient of noise Amplitude at the base of the tree",
+#        default = 0.1,
+#        min = 0.0
+#    )
+#    bpy.types.Scene.noiseAmplitudeExponent = bpy.props.FloatProperty(
+#        name = "Noise Amplitude Exponent",
+#        description = "Exponent for noise amplitude",
+#        default = 1.0,
+#        min = 0.0
+#    )
+#    bpy.types.Scene.noiseScale = bpy.props.FloatProperty(
+#        name = "Noise Scale",
+#        description = "Scale of the noise",
+#        default = 1.0,
+#        min = 0.0,
+#        unit = 'LENGTH'
+#    )
+#    bpy.types.Scene.seed = bpy.props.IntProperty(
+#        name = "Seed",
+#        description = "Noise generator seed"
+#    )
+#    bpy.types.Scene.curvatureStart = bpy.props.FloatProperty(
+#        name = "Curvature Start",
+#        description = "Curvature at start of branches",
+#        default = 0.0
+#    )
+#    bpy.types.Scene.curvatureEnd = bpy.props.FloatProperty(
+#        name = "Curvature End",
+#        description = "Curvature at end of branches",
+#        default = 0.0
+#    )
+#    bpy.types.Scene.maxCurveSteps = bpy.props.IntProperty(
+#        name = "Max Curve Steps",
+#        description = "debug max curve steps",
+#        default = 10,
+#        min = 0
+#    )
+#    bpy.types.Scene.stemSplitRotateAngle = bpy.props.FloatProperty(
+#        name = "Stem Split Rotate Angle",
+#        description = "Rotation angle for stem splits",
+#        default = 0.0,
+#        min = 0.0,
+#        max = 360.0,
+#        unit = 'ROTATION'
+#    )
+#    bpy.types.Scene.variance = bpy.props.FloatProperty(
+#        name = "Variance",
+#        description = "Variance",
+#        default = 0.0,
+#        min = 0.0,
+#        max = 1.0
+#    )
+#    bpy.types.Scene.curvOffsetStrength = bpy.props.FloatProperty(
+#        name = "Curvature Offset Strength",
+#        description = "Strength of the curvature offset",
+#        default = 0.0,
+#        min = 0.0
+#    )
+#    bpy.types.Scene.stemSplitAngle = bpy.props.FloatProperty(
+#        name = "Stem Split Angle",
+#        description = "Angle of stem splits",
+#        default = 0.0,
+#        min = 0.0,
+#        max = 360.0,
+#        unit = 'ROTATION'
+#    )
+#    
+#    bpy.types.Scene.stemSplitPointAngle = bpy.props.FloatProperty(
+#        name = "Stem Split Point Angle",
+#        description = "Point angle of stem splits",
+#        default = 0.0,
+#        min = 0.0,
+#        max = 360.0,
+#        unit = 'ROTATION'
+#    )
+#    bpy.types.Scene.splitHeightVariation = bpy.props.FloatProperty(
+#        name = "Split Height Variation",
+#        description = "Variation in split height",
+#        default = 0.0,
+#        min = 0.0
+#    )
+#    bpy.types.Scene.splitLengthVariation = bpy.props.FloatProperty(
+#        name = "Split Length Variation",
+#        description = "Variation in split length",
+#        default = 0.0,
+#        min = 0.0
+#    )
+#    bpy.types.Scene.treeShape = bpy.props.EnumProperty(
+#        name="Shape",
+#        description="The shape of the tree.",
+#        items=[
+#            ('CONICAL', "Conical", "A cone-shaped tree."),
+#            ('SPHERICAL', "Spherical", "A sphere-shaped tree."),
+#            ('HEMISPHERICAL', "Hemispherical", "A half-sphere shaped tree."),
+#            ('INVERSE_HEMISPHERICAL', "Inverse Hemispherical", "An upside-down half-sphere shaped tree."),
+#            ('CYLINDRICAL', "Cylindrical", "A cylinder-shaped tree."),
+#            ('TAPERED_CYLINDRICAL', "Tapered Cylindrical", "A cylinder that tapers towards the top."),
+#            ('FLAME', "Flame", "A flame-shaped tree."),
+#            ('INVERSE_CONICAL', "Inverse Conical", "An upside-down cone-shaped tree."),
+#            ('TEND_FLAME', "Tend Flame", "A more slender flame-shaped tree.")
+#        ],
+#        default='CONICAL'
+#    )
+#    
+#    bpy.types.Scene.stemRingResolution = bpy.props.IntProperty(
+#        name = "Stem Ring Resolution",
+#        description = "Resolution of the stem rings",
+#        default = 16,
+#        min = 3
+#    )
+#    bpy.types.Scene.resampleDistance = bpy.props.FloatProperty(
+#        name = "Resample Distance", 
+#        description = "Distance between nodes",
+#        default = 10.0,
+#        min = 0.0,
+#        unit = 'LENGTH'
+#    )
+#    bpy.types.Scene.nrSplits = bpy.props.IntProperty(
+#        name = "Number of Splits",
+#        description = "Number of splits",
+#        default = 0,
+#        min = 0
+#    )
+#    bpy.types.Scene.stemSplitMode = bpy.props.EnumProperty(
+#        name = "Stem Split Mode",
+#        description = "Mode for stem splits",
+#        items=[
+#            ('ROTATE_ANGLE', "Rotate Angle", "Split by rotating the angle"),
+#            ('HORIZONTAL', "Horizontal", "Split horizontally"),
+#        ],
+#        default='ROTATE_ANGLE',
+#    )
+#    bpy.types.Scene.branchClusters = bpy.props.IntProperty(
+#        name = "Branch Clusters",
+#        description = "Number of branch clusters",
+#        default = 0,
+#        min = 0
+#    )
 
-    bpy.types.Scene.treeGrowDir = bpy.props.FloatVectorProperty(
-        name = "Tree Grow Direction",
-        description = "Direction the tree grows in",
-        default = (0.0, 0.0, 1.0),
-        subtype = 'XYZ'  # Important for direction vectors
-    )
-    
-    bpy.types.Scene.ringResolution = bpy.props.IntVectorProperty(
-        name="Ring Resolution",
-        description="Resolution per ring",
-        size = 1, # Start with a single element
-        default = [16],
-        min = 3
-    )
-    
-    bpy.types.Scene.leafClusters = bpy.props.IntProperty(
-        name = "Leaf Clusters",
-        description = "Number of leaf clusters",
-        default = 0,
-        min = 0
-    )
-    
-    bpy.app.timers.register(reset_taper_curve_deferred, first_interval=0.1)
+#    bpy.types.Scene.treeGrowDir = bpy.props.FloatVectorProperty(
+#        name = "Tree Grow Direction",
+#        description = "Direction the tree grows in",
+#        default = (0.0, 0.0, 1.0),
+#        subtype = 'XYZ'  # Important for direction vectors
+#    )
+#    
+#    bpy.types.Scene.ringResolution = bpy.props.IntVectorProperty(
+#        name="Ring Resolution",
+#        description="Resolution per ring",
+#        size = 1, # Start with a single element
+#        default = [16],
+#        min = 3
+#    )
+#    
+#    bpy.types.Scene.leafClusters = bpy.props.IntProperty(
+#        name = "Leaf Clusters",
+#        description = "Number of leaf clusters",
+#        default = 0,
+#        min = 0
+#    )
     
     
 
@@ -6693,14 +6715,10 @@ def unregister():
     bpy.utils.unregister_class(removeBranchSplitLevel)
     bpy.utils.unregister_class(generateTree)
     bpy.utils.unregister_class(resetCurvesButton)
-    bpy.utils.unregister_class(resetCurvesClusterButton)
     bpy.utils.unregister_class(addLeafItem)
     bpy.utils.unregister_class(removeLeafItem)
     
-    #bpy.utils.unregister_class(evaluateButton)
-    bpy.utils.unregister_class(updateButton)
     bpy.utils.unregister_class(AddBranchClusterButton)
-    #bpy.utils.unregister_class(BranchClusterEvaluateButton)
     bpy.utils.unregister_class(BranchClusterResetButton)
     bpy.utils.unregister_class(initButton)
     bpy.utils.unregister_class(toggleUseTaperCurveOperator)
@@ -6714,9 +6732,7 @@ def unregister():
     bpy.utils.unregister_class(splitSettings)
     bpy.utils.unregister_class(leafSettings)
     
-    #bpy.utils.unregister_class(CurvyPanel)
     bpy.utils.unregister_class(BranchSettings)
-    bpy.utils.unregister_class(bendBranchesPanel)
     
     #UILists
     bpy.utils.unregister_class(UL_stemSplitLevelList)
@@ -6743,9 +6759,7 @@ def unregister():
     
     
     # Unregister collections
-    #del bpy.types.Scene.evaluate
-    del bpy.types.Scene.my_curve_mapping
-    del bpy.types.Scene.nrBranchClusters
+    #del bpy.types.Scene.nrBranchClusters
     
     del bpy.types.Scene.branchClusterSettingsList
     del bpy.types.Scene.stemSplitHeightInLevelList
@@ -6830,7 +6844,6 @@ def unregister():
     del bpy.types.Scene.treeShape
     del bpy.types.Scene.stemRingResolution
     del bpy.types.Scene.resampleDistance
-    del bpy.types.Scene.shyBranchesIterations
     del bpy.types.Scene.nrSplits
     del bpy.types.Scene.stemSplitMode
     del bpy.types.Scene.branchClusters
@@ -6838,8 +6851,6 @@ def unregister():
     del bpy.types.Scene.ringResolution
     del bpy.types.Scene.leafClusters
     
-    # Unregister timers
-    bpy.app.timers.unregister(reset_taper_curve_deferred)
     
     # Unregister the panels and the UI
     bpy.utils.unregister_class(treeGenPanel)
