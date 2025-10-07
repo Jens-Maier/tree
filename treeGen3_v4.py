@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+
+
 import bpy
 import math
 import mathutils
@@ -9,12 +11,15 @@ import json
 import os
 import bmesh
 
-from treeGen3_v4_utils import startNodeInfo
-from treeGen3_v4_utils import nodeInfo
-from treeGen3_v4_utils import startPointData
-from treeGen3_v4_utils import dummyStartPointData
-from treeGen3_v4_utils import rotationStep
-from treeGen3_v4_utils import node
+import sys
+import os
+
+# Add the directory containing treeGen3_v4_utils.py to sys.path
+script_dir = os.path.dirname(os.path.realpath(__file__))
+if script_dir not in sys.path:
+    sys.path.append(script_dir)
+
+from treeGen3_v4_utils import startNodeInfo, nodeInfo, startPointData, dummyStartPointData, rotationStep, node
 
 
 

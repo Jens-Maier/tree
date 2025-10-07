@@ -1,3 +1,14 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+import bpy
+import math
+import mathutils
+from mathutils import Vector, Quaternion, Matrix
+import random
+import json
+import os
+import bmesh
+
 class startNodeInfo():
     def __init__(self, StartNode, NextIndex, StartTval, EndTval, StartTvalGlobal, EndTvalGlobal):
         self.startNode = StartNode
