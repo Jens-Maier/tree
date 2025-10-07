@@ -11,15 +11,41 @@ import json
 import os
 import bmesh
 
+import importlib.util
 import sys
 import os
 
 # Add the directory containing treeGen3_v4_utils.py to sys.path
-script_dir = os.path.dirname(os.path.realpath(__file__))
-if script_dir not in sys.path:
-    sys.path.append(script_dir)
 
-from treeGen3_v4_utils import startNodeInfo, nodeInfo, startPointData, dummyStartPointData, rotationStep, node
+# for testing: 
+module_path = "/home/j/Downloads/treeGen3_v4_utils.py"
+#module_path = os.path.join(os.path.dirname(__file__), "treeGen3_v4_utils.py")
+
+module_name = "treeGen3_v4_utils"
+spec = importlib.util.spec_from_file_location(module_name, module_path)
+module = importlib.util.module_from_spec(spec)
+sys.modules[module_name] = module
+spec.loader.exec_module(module)
+
+#startNodeInfo = module.startNodeInfo
+#nodeInfo = module.nodeInfo
+#startPointData = module.startPointData
+#dummyStartPointData = module.dummyStartPointData
+#rotationStep = module.rotationStep
+#node = module.node
+#segment = module.segment
+#splitMode = module.splitMode
+
+
+test_instance = module.testClass() # -> register dynamically!
+
+# TESTstartNodeInfo = module.startNodeInfo(None, 0, 0.0, 1.0, 0.0, 0.5)
+
+#script_dir = os.path.dirname(os.path.realpath(__file__))
+#if script_dir not in sys.path:
+#    sys.path.append(script_dir)
+#
+#from treeGen3_v4_utils import startNodeInfo, nodeInfo, startPointData, dummyStartPointData, rotationStep, node
 
 
 
@@ -634,6 +660,10 @@ class treeGenPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         obj = context.object
+        
+        row = layout.row()
+        
+        row.label(text=f"test: {test_instance.x}")
         
         layout.prop(context.scene.treeSettings, "folder_path")
         
@@ -1362,6 +1392,12 @@ class addItem(bpy.types.Operator): # add branch cluster
     bl_idname = "scene.add_list_item"
     bl_label = "Add Item"
     def execute(self, context):
+        
+        # TEST
+        TESTstartNodeInfo = module.startNodeInfo(None, 0, 0.0, 0.8, 0.0, 0.5)
+        self.report({'INFO'}, f"TESTstartNodeInfo: {TESTstartNodeInfo.endTval}")
+        
+        
         
         #taperCurveName = f"branchCluster{context.scene.branchClusters}TaperMapping"
         #nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
