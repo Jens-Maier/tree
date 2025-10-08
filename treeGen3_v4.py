@@ -47,6 +47,68 @@ test_instance = module.testClass() # -> register dynamically!
 #
 #from treeGen3_v4_utils import startNodeInfo, nodeInfo, startPointData, dummyStartPointData, rotationStep, node
 
+class generateTree(bpy.types.Operator):
+    bl_label = "generateTree"
+    bl_idname = "object.generate_tree"
+    
+    def execute(self, context):
+        self.report({'INFO'}, "in generateTree")
+        
+        dir = context.scene.treeSettings.treeGrowDir
+        self.report({'INFO'}, f"dir: {dir}")
+        height = context.scene.treeSettings.treeHeight
+        taper = context.scene.treeSettings.taper
+        radius = context.scene.treeSettings.branchTipRadius
+        stemRingRes = context.scene.treeSettings.stemRingResolution
+        context.scene.treeSettings.maxSplitHeightUsed = 0
+        context.scene.treeSettings.seed += 1
+        
+        #noise_generator = SimplexNoiseGenerator(self, context.scene.treeSettings.seed)
+        
+        if context.active_object is None:
+            treeMesh = bpy.data.meshes.new("treeMesh")
+            treeObject = bpy.data.objects.new("tree", treeMesh)
+            context.collection.objects.link(treeObject)
+            bpy.context.view_layer.objects.active = bpy.data.objects["tree"]
+            
+        if context.active_object.mode == 'OBJECT':
+            bpy.ops.object.select_all(action='DESELECT')
+            
+            nodes = []
+            nodeTangents = []
+            nodeTangents.append(Vector((0.0,0.0,1.0)))
+            nodes.append(module.node(Vector((0.0,0.0,0.0)), 0.1, Vector((1.0,0.0,0.0)), -1, stemRingRes, taper, 0.0,0.0, height))
+            nodes[0].tangent.append(Vector((0.0,0.0,1.0)))
+            nodes[0].cotangent = Vector((1.0,0.0,0.0))
+            nodes.append(module.node(dir * height, 0.1, Vector((1.0,0.0,0.0)), -1, stemRingRes, taper, 1.0,0.0,height))
+            nodes[1].tangent.append(Vector((0.0,0.0,1.0)))
+            nodes[1].cotangent = Vector((1.0,0.0,0.0))
+            nodes[0].next.append(nodes[1])
+            nodes[0].outwardDir.append(nodes[0].cotangent)
+            nodes[0].rotateAngleRange.append(180.0)
+            nodes[1].outwardDir.append(nodes[0].cotangent)
+            nodes[1].rotateAngleRange.append(180.0)
+            
+            
+            module.calculateRadius(self, nodes[0], 100.0, context.scene.treeSettings.branchTipRadius)
+            
+            segments = []
+            nodes[0].getAllSegments(self, nodes[0], segments, False)
+            self.report({'INFO'}, f"segments: {len(segments)}")
+            
+            module.generateVerticesAndTriangles(self, self, context, 
+                segments, 
+                dir, 
+                taper, 
+                radius,
+                context.scene.treeSettings.ringSpacing, 
+                stemRingRes,
+                context.scene.taperFactorList, 
+                context.scene.treeSettings.branchTipRadius, 
+                context.scene.bark_material)
+        
+        return {'FINISHED'}
+    
 
 
 class fibonacciProps(bpy.types.PropertyGroup):
@@ -678,9 +740,9 @@ class treeGenPanel(bpy.types.Panel):
         row = layout.row()
         row.operator("export.load_preset", text="Load Preset")
         
-        #row = layout.row()
-        #row.label(icon = 'COLORSET_12_VEC')
-        #row.operator("object.generate_tree", text="Generate Tree")
+        row = layout.row()
+        row.label(icon = 'COLORSET_12_VEC')
+        row.operator("object.generate_tree", text="Generate Tree")
     
 class treeSettingsPanel(bpy.types.Panel):
     bl_label = "Tree Settings"
@@ -1636,7 +1698,7 @@ def register():
     bpy.utils.register_class(removeStemSplitLevel) # TODO
     bpy.utils.register_class(addBranchSplitLevel) # TODO
     bpy.utils.register_class(removeBranchSplitLevel) # TODO
-    # bpy.utils.register_class(generateTree) # TODO
+    bpy.utils.register_class(generateTree) # TODO
     bpy.utils.register_class(addLeafItem) # TODO
     bpy.utils.register_class(removeLeafItem) # TODO
     bpy.utils.register_class(toggleUseTaperCurveOperator)
