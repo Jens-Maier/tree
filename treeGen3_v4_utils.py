@@ -1121,6 +1121,7 @@ def generateVerticesAndTriangles(self,
             startRadius = 0.0
             for c in range(0, sections): 
                 treeGen.report({'INFO'}, f"section: {c}")
+                treeGen.report({'INFO'}, f"offset: {offset}")
                 treeGen.report({'INFO'}, f"cumulative u start: {cumulative_u_start}") # 0.0
                 treeGen.report({'INFO'}, f"cumulative u end: {cumulative_u_end}") # 0.0
                 treeGen.report({'INFO'}, f"segments[{s}].startRadius: {segments[s].startRadius}") # 2.58
@@ -1131,6 +1132,8 @@ def generateVerticesAndTriangles(self,
                 nextTval = segments[s].startTvalGlobal + (segments[s].endTvalGlobal - segments[s].startTvalGlobal) * ((c + 1) / sections)
                 treeGen.report({'INFO'}, f"segments[{s}].sections[{c}].tVal: {tVal}")
                 treeGen.report({'INFO'}, f"segments[{s}].sections[{c}].nextTval: {nextTval}")
+                
+                
                 
                 pos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, c / sections)
                 nextPos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, (c + 1) / sections)
@@ -1161,7 +1164,7 @@ def generateVerticesAndTriangles(self,
                     faces.append((fa, fb, fc, fd))
                     
                     #if c == 1:
-                    #treeGen.report({'INFO'}, f"offset: {offset}-------fa: {fa}, fb: {fb}, fc: {fc}, fd: {fd}")
+                    treeGen.report({'INFO'}, f"offset: {offset}-------fa: {fa}, fb: {fb}, fc: {fc}, fd: {fd}")
                         
                         # TODO: double seam vertex -> custom normals -> for UVs !!!
                         
@@ -1179,6 +1182,7 @@ def generateVerticesAndTriangles(self,
                     
                     faceUVs.append(faceUVData)
             
+            
             startOffset += segments[s].startRadius * segments[s].ringResolution / segmentLength
             
             treeGen.report({'INFO'}, f"adding {counter - 1} to offset")
@@ -1194,6 +1198,7 @@ def generateVerticesAndTriangles(self,
     
     #if (maxU / uvRows) # TODO...
     
+    treeGen.report({'INFO'}, f"len(faces: {len(faces)}")
     
     
     meshData = bpy.data.meshes.new("treeMesh")

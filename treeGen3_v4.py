@@ -94,7 +94,7 @@ class generateTree(bpy.types.Operator):
             
             segments = []
             nodes[0].getAllSegments(self, nodes[0], segments, False)
-            self.report({'INFO'}, f"segments: {len(segments)}")
+            self.report({'INFO'}, f"segments: {len(segments)}, radius: {radius}")
             
             module.generateVerticesAndTriangles(self, self, context, 
                 segments, 
