@@ -761,7 +761,7 @@ class generateTree(bpy.types.Operator):
                 
                 context.scene.branchClusterSettingsList,
                 
-                context.scene.parentClusterBoolListList, 
+                context.scene.treeSettings.parentClusterBoolListList, 
                 
                 context.scene.treeSettings.treeGrowDir, 
                 context.scene.treeSettings.treeHeight,
@@ -802,7 +802,7 @@ class generateTree(bpy.types.Operator):
                 context.scene.treeSettings.treeGrowDir, 
                 context.scene.treeSettings.treeHeight, 
                 context.scene.leafClusterSettingsList,
-                context.scene.leafParentClusterBoolListList, 
+                context.scene.treeSettings.leafParentClusterBoolListList, 
                 context.scene.leaf_material)
             
             generateVerticesAndTriangles(self, self, context, 
@@ -1329,8 +1329,8 @@ class BranchSettings(bpy.types.Panel):
         row.operator("scene.remove_list_item", text="Remove")
         
         row = layout.row()
-        for i, outer in enumerate(scene.parentClusterBoolListList):
-            if i < len(scene.branchClusterBoolListList):
+        for i, outer in enumerate(scene.treeSettings.parentClusterBoolListList):
+            if i < len(scene.branchClusterBoolListList) and i < len(scene.branchClusterSettingsList):
                 box = layout.box()
                 box.prop(scene.branchClusterBoolListList[i], "show_branch_cluster", icon="TRIA_DOWN" if scene.branchClusterBoolListList[i].show_branch_cluster else "TRIA_RIGHT", emboss=False, text=f"Branch cluster {i}", toggle=True)
                 if scene.branchClusterBoolListList[i].show_branch_cluster:
@@ -1511,7 +1511,7 @@ class BranchSettings(bpy.types.Panel):
                             
                             split1 = box2.split(factor=0.6)
                             split1.label(text="Angle:")
-                            split1.label(text=f"{scene.branchClusterSettingsList[i].fibonacciNr.fibonacci_angle:.2f}°")
+                            split1.label(text=f"{(180.0 / math.pi) * scene.branchClusterSettingsList[i].fibonacciNr.fibonacci_angle:.2f}°")
                     
                     if scene.branchClusterSettingsList[i].branchAngleMode.value != 'ADAPTIVE' and (scene.branchClusterSettingsList[i].useFibonacciAngles == False or scene.branchClusterSettingsList[i].branchAngleMode.value == 'SYMMETRIC'):
                         split = box2.split(factor=0.6)
@@ -3104,7 +3104,7 @@ noiseGenerator):
                     centerDir = data.outwardDir
                     centerDirs.append(centerDir)            
                     if branchClusterSettingsList[clusterIndex].useFibonacciAngles == True:
-                        angle = (windingAngle + 360.0) % 360.0
+                        angle = (windingAngle + 2.0 * math.pi) % (2.0 * math.pi)
                         right = startPointTangent.cross(Vector((1.0,0.0,0.0))).normalized() # -> most likely vertical
                     else:
                         if branchClusterSettingsList[clusterIndex].rotateAngleRange <= 0.0:
@@ -3950,19 +3950,19 @@ def generateVerticesAndTriangles(self,
 def update_fibonacci_numbers(self):
     fn0 = 1.0
     fn1 = 1.0
-    self.rotate_angle_range = 360.0
+    self.rotate_angle_range = 2.0 * math.pi
     if self.fibonacci_nr > 2:
         for n in range(2, self.fibonacci_nr + 1):
             temp = fn0 + fn1
             fn0 = fn1
             fn1 = temp
-    self.fibonacci_angle = 360.0 * (1.0 - fn0 / fn1)
+    self.fibonacci_angle = 2.0 * math.pi * (1.0 - fn0 / fn1)
     
 class fibonacciProps(bpy.types.PropertyGroup):
     fibonacci_nr: bpy.props.IntProperty(name = "fibonacciNr", default=3, min=3, 
         update = lambda self, context:update_fibonacci_numbers(self))
         
-    fibonacci_angle: bpy.props.FloatProperty(name="", default=120.0, options={'HIDDEN'})
+    fibonacci_angle: bpy.props.FloatProperty(name="", default=2.0 * math.pi / 3.0, options={'HIDDEN'})
     
     use_fibonacci: bpy.props.BoolProperty(name = "useFibonacci", default=False,
         update = lambda self, context:update_fibonacci_numbers(self))
@@ -4132,7 +4132,7 @@ class toggleBool(bpy.types.Operator):
     bool_index: bpy.props.IntProperty()
     
     def execute(self, context):
-        boolList = context.scene.parentClusterBoolListList[self.list_index].value
+        boolList = context.scene.treeSettings.parentClusterBoolListList[self.list_index].value
         boolItem = boolList[self.bool_index]
         boolItem.value = not boolItem.value
         
@@ -4150,7 +4150,7 @@ class toggleLeafBool(bpy.types.Operator):
     bool_index: bpy.props.IntProperty()
     
     def execute(self, context):
-        boolList = context.scene.leafParentClusterBoolListList[self.list_index].value
+        boolList = context.scene.treeSettings.leafParentClusterBoolListList[self.list_index].value
         boolItem = boolList[self.bool_index]
         boolItem.value = not boolItem.value
         
@@ -4251,6 +4251,10 @@ class treeSettings(bpy.types.PropertyGroup):
         default='ROTATE_ANGLE',
     )
     maxSplitHeightUsed: bpy.props.IntProperty(default = 0)
+    
+    parentClusterBoolListList: bpy.props.CollectionProperty(type=parentClusterBoolListProp)
+    leafParentClusterBoolListList: bpy.props.CollectionProperty(type=leafParentClusterBoolListProp)
+    
     branchClusters: bpy.props.IntProperty(name = "Branch Clusters", default = 0, min = 0)
 
     treeGrowDir: bpy.props.FloatVectorProperty(
@@ -4947,25 +4951,25 @@ def load_properties(filePath, context):
 
 def load_preset(preset, context, self):
     if preset == 'TREE1':
-        f = '{"treeHeight": 10.0, "treeGrowDir": [0.0010000000474974513, 0.0, 1.0], "taper": 0.14000000059604645, "taperCurvePoints": [[0.0, 1.0], [1.0, 0.0]], "taperCurveHandleTypes": ["VECTOR", "VECTOR"], "branchTipRadius": 0.0020000000949949026, "ringSpacing": 2.0, "stemRingResolution": 16, "resampleDistance": 0.5, "noiseAmplitudeVertical": 1.2300000190734863, "noiseAmplitudeHorizontal": 1.2000000476837158, "noiseAmplitudeGradient": 0.35999998450279236, "noiseAmplitudeExponent": 1.0299999713897705, "noiseScale": 0.3100000321865082, "seed": 1465, "curvatureStart": 0.0, "curvatureEnd": 0.0, "nrSplits": 1, "variance": 0.0, "stemSplitMode": "ROTATE_ANGLE", "stemSplitRotateAngle": 90.0, "curvOffsetStrength": 0.0, "stemSplitHeightInLevelList": [0.125], "stemSplitHeightInLevelListIndex": 0, "splitHeightVariation": 0.0, "splitLengthVariation": 0.030000001192092896, "stemSplitAngle": 4.0800018310546875, "stemSplitPointAngle": 15.690000534057617, "branchClusters": 2, "showBranchClusterList": [false, false], "showParentClusterList": [true, true], "parentClusterBoolListList": [[true], [false, true]], "nrBranchesList": [37, 68], "treeShapeList": ["INVERSE_HEMISPHERICAL", "INVERSE_HEMISPHERICAL"], "branchShapeList": ["CYLINDRICAL", "CYLINDRICAL"], "branchTypeList": ["SINGLE", "SINGLE"], "branchWhorlCountStartList": [12, 3], "branchWhorlCountEndList": [2, 3], "relBranchLengthList": [0.5138890147209167, 0.2569444477558136], "relBranchLengthVariationList": [0.0694444477558136, 0.0], "taperFactorList": [0.8402778506278992, 0.8402777910232544], "ringResolutionList": [6, 5], "branchesStartHeightGlobalList": [0.1666666716337204, 0.0], "branchesEndHeightGlobalList": [0.9166666865348816, 1.0], "branchesStartHeightClusterList": [0.0, 0.0416666679084301], "branchesEndHeightClusterList": [0.875, 0.340277761220932], "branchesStartPointVariationList": [0.0, 0.0], "showNoiseSettingsList": [false, false], "noiseAmplitudeHorizontalList": [0.0, 0.0], "noiseAmplitudeVerticalList": [0.0, 0.0], "noiseAmplitudeGradientList": [0.0, 0.0], "noiseAmplitudeExponentList": [1.0, 1.0], "noiseScaleList": [1.0, 1.0], "showAngleSettingsList": [false, false], "verticalAngleCrownStartList": [71.6500015258789, 45.0], "verticalAngleCrownEndList": [26.650001525878906, 45.0], "verticalAngleBranchStartList": [0.0, 0.0], "verticalAngleBranchEndList": [0.0, 0.0], "branchAngleModeList": ["WINDING", "SYMMETRIC"], "useFibonacciAnglesList": [false, true], "fibonacciNr": [40, 5], "rotateAngleRangeList": [200.0399932861328, 180.0], "rotateAngleOffsetList": [90.0, 0.0], "rotateAngleCrownStartList": [70.87999725341797, -10.410000801086426], "rotateAngleCrownEndList": [71.18000030517578, -13.709999084472656], "rotateAngleBranchStartList": [0.0, 0.0], "rotateAngleBranchEndList": [0.0, 0.0], "reducedCurveStepCutoffList": [0.0, 0.0], "reducedCurveStepFactorList": [0.0, 0.0], "branchGlobalCurvatureStartList": [0.0, 0.0], "branchGlobalCurvatureEndList": [0.0, 0.0], "branchCurvatureStartList": [-3.330000162124634, 0.6599999666213989], "branchCurvatureEndList": [2.3399999141693115, 1.5], "branchCurvatureOffsetStrengthList": [0.0, 0.0], "showSplitSettingsList": [false, false], "nrSplitsPerBranchList": [7.980000019073486, 2.369999885559082], "branchSplitModeList": ["HORIZONTAL", "HORIZONTAL"], "branchSplitRotateAngleList": [0.0, 0.0], "branchSplitAxisVariationList": [0.5399997234344482, 0.44999998807907104], "branchSplitAngleList": [15.239999771118164, 15.300000190734863], "branchSplitPointAngleList": [10.530000686645508, 10.5], "splitsPerBranchVariationList": [0.0, 0.0], "branchVarianceList": [0.0, 0.0], "outwardAttractionList": [0.0, 0.0], "branchSplitHeightVariationList": [0.38129496574401855, 0.0], "branchSplitLengthVariationList": [0.1366906315088272, 0.0], "showBranchSplitHeights": [true, true], "branchSplitHeightInLevelListIndex": 0, "branchSplitHeightInLevelList_0": [0.4166666567325592, 0.2371794879436493, 0.2756410241127014, 0.3333333134651184, 0.5], "branchSplitHeightInLevelListIndex_0": 0, "branchSplitHeightInLevelList_1": [0.3205128014087677, 0.23076921701431274, 0.2820512652397156], "branchSplitHeightInLevelListIndex_1": 0, "branchSplitHeightInLevelList_2": [], "branchSplitHeightInLevelListIndex_2": 0, "branchSplitHeightInLevelList_3": [], "branchSplitHeightInLevelListIndex_3": 0, "branchSplitHeightInLevelList_4": [], "branchSplitHeightInLevelListIndex_4": 0, "branchSplitHeightInLevelList_5": [], "branchSplitHeightInLevelListIndex_5": 2, "branchSplitHeightInLevelList_6": [], "branchSplitHeightInLevelListIndex_6": 0, "branchSplitHeightInLevelList_7": [], "branchSplitHeightInLevelListIndex_7": 0, "branchSplitHeightInLevelList_8": [], "branchSplitHeightInLevelListIndex_8": 0, "branchSplitHeightInLevelList_9": [], "branchSplitHeightInLevelListIndex_9": 0, "branchSplitHeightInLevelList_10": [], "branchSplitHeightInLevelListIndex_10": 0, "branchSplitHeightInLevelList_11": [], "branchSplitHeightInLevelListIndex_11": 0, "branchSplitHeightInLevelList_12": [], "branchSplitHeightInLevelListIndex_12": 0, "branchSplitHeightInLevelList_13": [], "branchSplitHeightInLevelListIndex_13": 0, "branchSplitHeightInLevelList_14": [], "branchSplitHeightInLevelListIndex_14": 0, "branchSplitHeightInLevelList_15": [], "branchSplitHeightInLevelListIndex_15": 0, "branchSplitHeightInLevelList_16": [], "branchSplitHeightInLevelListIndex_16": 0, "branchSplitHeightInLevelList_17": [], "branchSplitHeightInLevelListIndex_17": 0, "branchSplitHeightInLevelList_18": [], "branchSplitHeightInLevelListIndex_18": 0, "branchSplitHeightInLevelList_19": [], "branchSplitHeightInLevelListIndex_19": 0, "branchSplitHeightInLevelListList": [], "showLeafSettings": [], "leavesDensityList": [], "leafSizeList": [], "leafAspectRatioList": [], "leafStartHeightGlobalList": [], "leafEndHeightGlobalList": [], "leafStartHeightClusterList": [], "leafEndHeightClusterList": [], "leafTypeList": [], "leafWhorlCountList": [], "leafAngleModeList": [], "leafVerticalAngleBranchStartList": [], "leafVerticalAngleBranchEndList": [], "leafRotateAngleBranchStartList": [], "leafRotateAngleBranchEndList": [], "leafTiltAngleBranchStartList": [], "leafTiltAngleBranchEndList": [], "showLeafClusterList": [true], "leafParentClusterBoolListList": [[false, true, false]]}'
+        f = '{"treeHeight": 10.0, "treeGrowDir": [0.0010000000474974513, 0.0, 1.0], "taper": 0.14000000059604645, "taperCurvePoints": [[0.0, 1.0], [1.0, 0.0]], "taperCurveHandleTypes": ["VECTOR", "VECTOR"], "clusterTaperCurvePoints": [[[0.0, 1.0], [1.0, 0.0]], [[0.0, 1.0], [1.0, 0.0]]], "clusterTaperCurveHandleTypes": [["VECTOR", "VECTOR"], ["VECTOR", "VECTOR"]], "branchTipRadius": 0.0020000000949949026, "ringSpacing": 2.0, "stemRingResolution": 16, "resampleDistance": 0.5, "noiseAmplitudeVertical": 1.2300000190734863, "noiseAmplitudeHorizontal": 1.2000000476837158, "noiseAmplitudeGradient": 0.35999998450279236, "noiseAmplitudeExponent": 1.0299999713897705, "noiseScale": 0.3100000321865082, "seed": 1484, "curvatureStart": 0.0, "curvatureEnd": 0.0, "nrSplits": 1, "variance": 0.0, "stemSplitMode": "ROTATE_ANGLE", "stemSplitRotateAngle": 1.5700000524520874, "curvOffsetStrength": 0.0, "stemSplitHeightInLevelList": [0.46694183349609375, 0.14462800323963165, 0.5, 0.5, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125], "stemSplitHeightInLevelListIndex": 0, "splitHeightVariation": 0.0, "splitLengthVariation": 0.030000001192092896, "stemSplitAngle": 0.07000000029802322, "stemSplitPointAngle": 0.25999999046325684, "branchClusters": 2, "showBranchClusterList": [true, true], "showParentClusterList": [true, true], "parentClusterBoolListList": [[true], [false, true]], "nrBranchesList": [37, 68], "treeShapeList": ["INVERSE_HEMISPHERICAL", "INVERSE_HEMISPHERICAL"], "branchShapeList": ["CYLINDRICAL", "CYLINDRICAL"], "branchTypeList": ["SINGLE", "SINGLE"], "branchWhorlCountStartList": [12, 3], "branchWhorlCountEndList": [3, 3], "relBranchLengthList": [0.5138890147209167, 0.2569444477558136], "relBranchLengthVariationList": [0.0694444477558136, 0.0], "taperFactorList": [0.8402778506278992, 0.8402777910232544], "useTaperCurveList": [false, false], "ringResolutionList": [6, 5], "branchesStartHeightGlobalList": [0.1666666716337204, 0.0], "branchesEndHeightGlobalList": [0.9166666865348816, 1.0], "branchesStartHeightClusterList": [0.0, 0.0416666679084301], "branchesEndHeightClusterList": [0.875, 0.340277761220932], "branchesStartPointVariationList": [0.0, 0.0], "showNoiseSettingsList": [true, true], "noiseAmplitudeHorizontalList": [0.0, 0.0], "noiseAmplitudeVerticalList": [0.0, 0.0], "noiseAmplitudeGradientList": [0.0, 0.0], "noiseAmplitudeExponentList": [1.0, 1.0], "noiseScaleList": [1.0, 1.0], "showAngleSettingsList": [true, true], "verticalAngleCrownStartList": [1.2400000095367432, 0.7850000262260437], "verticalAngleCrownEndList": [0.44999998807907104, 0.7850000262260437], "verticalAngleBranchStartList": [0.0, 0.0], "verticalAngleBranchEndList": [0.0, 0.0], "branchAngleModeList": ["WINDING", "SYMMETRIC"], "useFibonacciAnglesList": [false, true], "fibonacciNr": [40, 5], "rotateAngleRangeList": [6.2831854820251465, 3.140000104904175], "rotateAngleOffsetList": [1.5700000524520874, 0.0], "rotateAngleCrownStartList": [2.480001211166382, -0.17000000178813934], "rotateAngleCrownEndList": [2.480001211166382, -0.23999999463558197], "rotateAngleBranchStartList": [0.0, 0.0], "rotateAngleBranchEndList": [0.0, 0.0], "rotateAngleRangeFactorList": [1.0, 1.0], "reducedCurveStepCutoffList": [0.0, 0.0], "reducedCurveStepFactorList": [0.0, 0.0], "branchGlobalCurvatureStartList": [0.0, 0.0], "branchGlobalCurvatureEndList": [0.0, 0.0], "branchCurvatureStartList": [-0.057999998331069946, 0.012000000104308128], "branchCurvatureEndList": [0.03999999910593033, 0.024000000208616257], "branchCurvatureOffsetStrengthList": [0.0, 0.0], "showSplitSettingsList": [true, true], "nrSplitsPerBranchList": [7.980000019073486, 2.369999885559082], "branchSplitModeList": ["HORIZONTAL", "HORIZONTAL"], "branchSplitRotateAngleList": [0.0, 0.0], "branchSplitAxisVariationList": [0.5399997234344482, 0.44999998807907104], "branchSplitAngleList": [0.25999999046325684, 0.27000001072883606], "branchSplitPointAngleList": [0.17000000178813934, 0.17000000178813934], "splitsPerBranchVariationList": [0.0, 0.0], "branchVarianceList": [0.0, 0.0], "outwardAttractionList": [0.0, 0.0], "branchSplitHeightVariationList": [0.38129496574401855, 0.0], "branchSplitLengthVariationList": [0.1366906315088272, 0.0], "showBranchSplitHeights": [false, true], "branchSplitHeightInLevelListIndex": 0, "branchSplitHeightInLevelList_0": [0.4166666567325592, 0.2371794879436493, 0.2756410241127014, 0.3333333134651184, 0.5], "branchSplitHeightInLevelListIndex_0": 0, "branchSplitHeightInLevelList_1": [0.5458715558052063, 0.3205128014087677, 0.23076921701431274], "branchSplitHeightInLevelListIndex_1": 0, "branchSplitHeightInLevelList_2": [], "branchSplitHeightInLevelListIndex_2": 0, "branchSplitHeightInLevelList_3": [], "branchSplitHeightInLevelListIndex_3": 0, "branchSplitHeightInLevelList_4": [], "branchSplitHeightInLevelListIndex_4": 0, "branchSplitHeightInLevelList_5": [], "branchSplitHeightInLevelListIndex_5": 2, "branchSplitHeightInLevelList_6": [], "branchSplitHeightInLevelListIndex_6": 0, "branchSplitHeightInLevelList_7": [], "branchSplitHeightInLevelListIndex_7": 0, "branchSplitHeightInLevelList_8": [], "branchSplitHeightInLevelListIndex_8": 0, "branchSplitHeightInLevelList_9": [], "branchSplitHeightInLevelListIndex_9": 0, "branchSplitHeightInLevelList_10": [], "branchSplitHeightInLevelListIndex_10": 0, "branchSplitHeightInLevelList_11": [], "branchSplitHeightInLevelListIndex_11": 0, "branchSplitHeightInLevelList_12": [], "branchSplitHeightInLevelListIndex_12": 0, "branchSplitHeightInLevelList_13": [], "branchSplitHeightInLevelListIndex_13": 0, "branchSplitHeightInLevelList_14": [], "branchSplitHeightInLevelListIndex_14": 0, "branchSplitHeightInLevelList_15": [], "branchSplitHeightInLevelListIndex_15": 0, "branchSplitHeightInLevelList_16": [], "branchSplitHeightInLevelListIndex_16": 0, "branchSplitHeightInLevelList_17": [], "branchSplitHeightInLevelListIndex_17": 0, "branchSplitHeightInLevelList_18": [], "branchSplitHeightInLevelListIndex_18": 0, "branchSplitHeightInLevelList_19": [], "branchSplitHeightInLevelListIndex_19": 0, "branchSplitHeightInLevelListList": [], "showLeafSettings": [], "leavesDensityList": [], "leafSizeList": [], "leafAspectRatioList": [], "leafStartHeightGlobalList": [], "leafEndHeightGlobalList": [], "leafStartHeightClusterList": [], "leafEndHeightClusterList": [], "leafTypeList": [], "leafWhorlCountList": [], "leafAngleModeList": [], "leafVerticalAngleBranchStartList": [], "leafVerticalAngleBranchEndList": [], "leafRotateAngleBranchStartList": [], "leafRotateAngleBranchEndList": [], "leafTiltAngleBranchStartList": [], "leafTiltAngleBranchEndList": [], "showLeafClusterList": [true], "leafParentClusterBoolListList": [[false, true, false]]}'
         data = json.loads(f)
         props = context.scene
         init_properties(data, props)
         
     if preset == 'TREE2':
-        f = '{"treeHeight": 5.0, "treeGrowDir": [0.0, 0.0, 1.0], "taper": 0.15000000596046448, "taperCurvePoints": [[0.0, 1.0], [1.0, 0.0]], "taperCurveHandleTypes": ["VECTOR", "VECTOR"], "branchTipRadius": 0.0020000000949949026, "ringSpacing": 0.10000000149011612, "stemRingResolution": 16, "resampleDistance": 0.4599999785423279, "noiseAmplitudeVertical": 0.0, "noiseAmplitudeHorizontal": 0.0, "noiseAmplitudeGradient": 0.7799999713897705, "noiseAmplitudeExponent": 1.0299999713897705, "noiseScale": 1.0, "seed": 829, "curvatureStart": 0.0, "curvatureEnd": 1.9499998092651367, "nrSplits": 3, "variance": 0.0, "stemSplitMode": "ROTATE_ANGLE", "stemSplitRotateAngle": 90.0, "curvOffsetStrength": 0.0, "stemSplitHeightInLevelList": [0.13924051821231842, 0.1708860695362091], "stemSplitHeightInLevelListIndex": 0, "splitHeightVariation": 0.0, "splitLengthVariation": 0.030000001192092896, "stemSplitAngle": 18.720001220703125, "stemSplitPointAngle": 15.690000534057617, "branchClusters": 1, "showBranchClusterList": [true], "showParentClusterList": [true], "parentClusterBoolListList": [[true]], "nrBranchesList": [30], "branchShapeList": ["INVERSE_CONICAL"], "relBranchLengthList": [1.0], "relBranchLengthVariationList": [0.0], "taperFactorList": [0.7361111044883728], "ringResolutionList": [6], "branchesStartHeightGlobalList": [0.4652777314186096], "branchesEndHeightGlobalList": [0.8680555820465088], "branchesStartHeightClusterList": [0.0], "branchesEndHeightClusterList": [1.0], "showNoiseSettingsList": [true], "noiseAmplitudeHorizontalList": [0.0], "noiseAmplitudeVerticalList": [0.0], "noiseAmplitudeGradientList": [0.0], "noiseAmplitudeExponentList": [1.0], "noiseScaleList": [1.0], "showAngleSettingsList": [true], "verticalAngleCrownStartList": [-44.06999969482422], "verticalAngleCrownEndList": [-39.41999816894531], "verticalAngleBranchStartList": [0.0], "verticalAngleBranchEndList": [0.0], "branchAngleModeList": ["WINDING"], "useFibonacciAnglesList": [false], "fibonacciNr": [3], "rotateAngleRangeList": [210.66001892089844], "rotateAngleOffsetList": [-90.0], "rotateAngleCrownStartList": [254.72999572753906], "rotateAngleCrownEndList": [304.4700012207031], "rotateAngleBranchStartList": [0.0], "rotateAngleBranchEndList": [0.0], "reducedCurveStepCutoffList": [0.0], "reducedCurveStepFactorList": [0.0], "branchGlobalCurvatureStartList": [0.0], "branchGlobalCurvatureEndList": [0.0], "branchCurvatureStartList": [0.0], "branchCurvatureEndList": [-3.569999933242798], "branchCurvatureOffsetStrengthList": [0.0], "showSplitSettingsList": [true], "nrSplitsPerBranchList": [1.0], "branchSplitModeList": ["HORIZONTAL"], "branchSplitRotateAngleList": [0.0], "branchSplitAxisVariationList": [0.0], "branchSplitAngleList": [25.0], "branchSplitPointAngleList": [25.0], "splitsPerBranchVariationList": [0.0], "branchVarianceList": [0.0], "outwardAttractionList": [0.11510791629552841], "branchSplitHeightVariationList": [0.0], "branchSplitLengthVariationList": [0.17266187071800232], "showBranchSplitHeights": [true], "branchSplitHeightInLevelListIndex": 0, "branchSplitHeightInLevelList_0": [0.5, 0.5], "branchSplitHeightInLevelListIndex_0": 0, "branchSplitHeightInLevelList_1": [], "branchSplitHeightInLevelListIndex_1": 0, "branchSplitHeightInLevelList_2": [], "branchSplitHeightInLevelListIndex_2": 0, "branchSplitHeightInLevelList_3": [], "branchSplitHeightInLevelListIndex_3": 0, "branchSplitHeightInLevelList_4": [], "branchSplitHeightInLevelListIndex_4": 0, "branchSplitHeightInLevelList_5": [], "branchSplitHeightInLevelListIndex_5": 2, "branchSplitHeightInLevelList_6": [], "branchSplitHeightInLevelListIndex_6": 0, "branchSplitHeightInLevelList_7": [], "branchSplitHeightInLevelListIndex_7": 0, "branchSplitHeightInLevelList_8": [], "branchSplitHeightInLevelListIndex_8": 0, "branchSplitHeightInLevelList_9": [], "branchSplitHeightInLevelListIndex_9": 0, "branchSplitHeightInLevelList_10": [], "branchSplitHeightInLevelListIndex_10": 0, "branchSplitHeightInLevelList_11": [], "branchSplitHeightInLevelListIndex_11": 0, "branchSplitHeightInLevelList_12": [], "branchSplitHeightInLevelListIndex_12": 0, "branchSplitHeightInLevelList_13": [], "branchSplitHeightInLevelListIndex_13": 0, "branchSplitHeightInLevelList_14": [], "branchSplitHeightInLevelListIndex_14": 0, "branchSplitHeightInLevelList_15": [], "branchSplitHeightInLevelListIndex_15": 0, "branchSplitHeightInLevelList_16": [], "branchSplitHeightInLevelListIndex_16": 0, "branchSplitHeightInLevelList_17": [], "branchSplitHeightInLevelListIndex_17": 0, "branchSplitHeightInLevelList_18": [], "branchSplitHeightInLevelListIndex_18": 0, "branchSplitHeightInLevelList_19": [], "branchSplitHeightInLevelListIndex_19": 0, "showLeafSettings": [true], "leavesDensityList": [5.519999980926514], "leafSizeList": [0.25], "leafAspectRatioList": [0.5000001192092896], "leafStartHeightGlobalList": [0.0], "leafEndHeightGlobalList": [1.0], "leafStartHeightClusterList": [0.0], "leafEndHeightClusterList": [1.0], "leafTypeList": ["SINGLE"], "leafWhorlCountList": [5], "leafAngleModeList": ["ALTERNATING"], "leafVerticalAngleBranchStartList": [27.979999542236328], "leafVerticalAngleBranchEndList": [-9.399999618530273], "leafRotateAngleBranchStartList": [70.12999725341797], "leafRotateAngleBranchEndList": [38.000003814697266], "leafTiltAngleBranchStartList": [30.0], "leafTiltAngleBranchEndList": [40.0], "showLeafClusterList": [true], "leafParentClusterBoolListList": [[false, true]]}'
+        f = '{"treeHeight": 5.0, "treeGrowDir": [0.0, 0.0, 1.0], "taper": 0.15000000596046448, "taperCurvePoints": [[0.0, 1.0], [1.0, 0.0]], "taperCurveHandleTypes": ["VECTOR", "VECTOR"], "clusterTaperCurvePoints": [[[0.0, 0.0], [1.0, 1.0]]], "clusterTaperCurveHandleTypes": [["AUTO", "AUTO"]], "branchTipRadius": 0.0020000000949949026, "ringSpacing": 0.10000000149011612, "stemRingResolution": 16, "resampleDistance": 0.4599999785423279, "noiseAmplitudeVertical": 0.0, "noiseAmplitudeHorizontal": 0.0, "noiseAmplitudeGradient": 0.7799999713897705, "noiseAmplitudeExponent": 1.0299999713897705, "noiseScale": 1.0, "seed": 832, "curvatureStart": 0.0, "curvatureEnd": 0.03400000184774399, "nrSplits": 3, "variance": 0.0, "stemSplitMode": "ROTATE_ANGLE", "stemSplitRotateAngle": 1.5700000524520874, "curvOffsetStrength": 0.0, "stemSplitHeightInLevelList": [0.46694183349609375, 0.14462800323963165, 0.5], "stemSplitHeightInLevelListIndex": 0, "splitHeightVariation": 0.0, "splitLengthVariation": 0.030000001192092896, "stemSplitAngle": 0.33000001311302185, "stemSplitPointAngle": 0.25999999046325684, "branchClusters": 1, "showBranchClusterList": [true], "showParentClusterList": [true], "parentClusterBoolListList": [[true]], "nrBranchesList": [30], "treeShapeList": ["CONICAL"], "branchShapeList": ["INVERSE_CONICAL"], "branchTypeList": ["SINGLE"], "branchWhorlCountStartList": [3], "branchWhorlCountEndList": [3], "relBranchLengthList": [1.0], "relBranchLengthVariationList": [0.0], "taperFactorList": [0.7361111044883728], "useTaperCurveList": [false], "ringResolutionList": [6], "branchesStartHeightGlobalList": [0.4652777314186096], "branchesEndHeightGlobalList": [0.8680555820465088], "branchesStartHeightClusterList": [0.0], "branchesEndHeightClusterList": [1.0], "branchesStartPointVariationList": [0.0], "showNoiseSettingsList": [true], "noiseAmplitudeHorizontalList": [0.0], "noiseAmplitudeVerticalList": [0.0], "noiseAmplitudeGradientList": [0.0], "noiseAmplitudeExponentList": [1.0], "noiseScaleList": [1.0], "showAngleSettingsList": [true], "verticalAngleCrownStartList": [-0.7699999809265137], "verticalAngleCrownEndList": [-0.6800000071525574], "verticalAngleBranchStartList": [0.0], "verticalAngleBranchEndList": [0.0], "branchAngleModeList": ["WINDING"], "useFibonacciAnglesList": [false], "fibonacciNr": [3], "rotateAngleRangeList": [3.6600000858306885], "rotateAngleOffsetList": [-1.5700000524520874], "rotateAngleCrownStartList": [4.429999828338623], "rotateAngleCrownEndList": [5.300000190734863], "rotateAngleBranchStartList": [0.0], "rotateAngleBranchEndList": [0.0], "rotateAngleRangeFactorList": [1.0], "reducedCurveStepCutoffList": [0.0], "reducedCurveStepFactorList": [0.0], "branchGlobalCurvatureStartList": [0.0], "branchGlobalCurvatureEndList": [0.0], "branchCurvatureStartList": [0.0], "branchCurvatureEndList": [-0.061000000685453415], "branchCurvatureOffsetStrengthList": [0.0], "showSplitSettingsList": [true], "nrSplitsPerBranchList": [1.0], "branchSplitModeList": ["HORIZONTAL"], "branchSplitRotateAngleList": [0.0], "branchSplitAxisVariationList": [0.0], "branchSplitAngleList": [0.4359999895095825], "branchSplitPointAngleList": [0.4359999895095825], "splitsPerBranchVariationList": [0.0], "branchVarianceList": [0.0], "outwardAttractionList": [0.11510791629552841], "branchSplitHeightVariationList": [0.0], "branchSplitLengthVariationList": [0.17266187071800232], "showBranchSplitHeights": [true], "branchSplitHeightInLevelListIndex": 0, "branchSplitHeightInLevelList_0": [0.4166666567325592], "branchSplitHeightInLevelListIndex_0": 0, "branchSplitHeightInLevelList_1": [], "branchSplitHeightInLevelListIndex_1": 0, "branchSplitHeightInLevelList_2": [], "branchSplitHeightInLevelListIndex_2": 0, "branchSplitHeightInLevelList_3": [], "branchSplitHeightInLevelListIndex_3": 0, "branchSplitHeightInLevelList_4": [], "branchSplitHeightInLevelListIndex_4": 0, "branchSplitHeightInLevelList_5": [], "branchSplitHeightInLevelListIndex_5": 2, "branchSplitHeightInLevelList_6": [], "branchSplitHeightInLevelListIndex_6": 0, "branchSplitHeightInLevelList_7": [], "branchSplitHeightInLevelListIndex_7": 0, "branchSplitHeightInLevelList_8": [], "branchSplitHeightInLevelListIndex_8": 0, "branchSplitHeightInLevelList_9": [], "branchSplitHeightInLevelListIndex_9": 0, "branchSplitHeightInLevelList_10": [], "branchSplitHeightInLevelListIndex_10": 0, "branchSplitHeightInLevelList_11": [], "branchSplitHeightInLevelListIndex_11": 0, "branchSplitHeightInLevelList_12": [], "branchSplitHeightInLevelListIndex_12": 0, "branchSplitHeightInLevelList_13": [], "branchSplitHeightInLevelListIndex_13": 0, "branchSplitHeightInLevelList_14": [], "branchSplitHeightInLevelListIndex_14": 0, "branchSplitHeightInLevelList_15": [], "branchSplitHeightInLevelListIndex_15": 0, "branchSplitHeightInLevelList_16": [], "branchSplitHeightInLevelListIndex_16": 0, "branchSplitHeightInLevelList_17": [], "branchSplitHeightInLevelListIndex_17": 0, "branchSplitHeightInLevelList_18": [], "branchSplitHeightInLevelListIndex_18": 0, "branchSplitHeightInLevelList_19": [], "branchSplitHeightInLevelListIndex_19": 0, "branchSplitHeightInLevelListList": [], "showLeafSettings": [], "leavesDensityList": [], "leafSizeList": [], "leafAspectRatioList": [], "leafStartHeightGlobalList": [], "leafEndHeightGlobalList": [], "leafStartHeightClusterList": [], "leafEndHeightClusterList": [], "leafTypeList": [], "leafWhorlCountList": [], "leafAngleModeList": [], "leafVerticalAngleBranchStartList": [], "leafVerticalAngleBranchEndList": [], "leafRotateAngleBranchStartList": [], "leafRotateAngleBranchEndList": [], "leafTiltAngleBranchStartList": [], "leafTiltAngleBranchEndList": [], "showLeafClusterList": [true], "leafParentClusterBoolListList": [[false, true]]}'
         data = json.loads(f)
         props = context.scene
         init_properties(data, props)
         
     if preset == 'MAPLE':
-        f = '{"treeHeight": 10.0, "treeGrowDir": [0.0010000000474974513, 0.0, 1.0], "taper": 0.14000000059604645, "taperCurvePoints": [[0.0, 1.0], [1.0, 0.0]], "taperCurveHandleTypes": ["VECTOR", "VECTOR"], "branchTipRadius": 0.0020000000949949026, "ringSpacing": 2.0, "stemRingResolution": 16, "resampleDistance": 0.5, "noiseAmplitudeVertical": 1.2300000190734863, "noiseAmplitudeHorizontal": 1.2000000476837158, "noiseAmplitudeGradient": 0.35999998450279236, "noiseAmplitudeExponent": 1.0299999713897705, "noiseScale": 0.3100000321865082, "seed": 1549, "curvatureStart": 0.0, "curvatureEnd": 0.0, "nrSplits": 2, "variance": 0.0, "stemSplitMode": "ROTATE_ANGLE", "stemSplitRotateAngle": 90.0, "curvOffsetStrength": 0.0, "stemSplitHeightInLevelList": [0.15380950272083282, 0.5], "stemSplitHeightInLevelListIndex": 1, "splitHeightVariation": 0.0, "splitLengthVariation": 0.030000001192092896, "stemSplitAngle": 4.0800018310546875, "stemSplitPointAngle": 15.690000534057617, "branchClusters": 2, "showBranchClusterList": [true, true], "showParentClusterList": [true, true], "parentClusterBoolListList": [[true], [false, true]], "nrBranchesList": [37, 68], "treeShapeList": ["INVERSE_HEMISPHERICAL", "INVERSE_HEMISPHERICAL"], "branchShapeList": ["CYLINDRICAL", "CYLINDRICAL"], "branchTypeList": ["SINGLE", "SINGLE"], "branchWhorlCountStartList": [12, 3], "branchWhorlCountEndList": [3, 3], "relBranchLengthList": [0.5138890147209167, 0.2569444477558136], "relBranchLengthVariationList": [0.0694444477558136, 0.0], "taperFactorList": [0.8402778506278992, 0.8402777910232544], "ringResolutionList": [6, 5], "branchesStartHeightGlobalList": [0.19351230561733246, 0.0], "branchesEndHeightGlobalList": [0.9166666865348816, 1.0], "branchesStartHeightClusterList": [0.0, 0.05508948862552643], "branchesEndHeightClusterList": [0.875, 0.340277761220932], "branchesStartPointVariationList": [0.0, 0.0], "showNoiseSettingsList": [true, true], "noiseAmplitudeHorizontalList": [0.0, 0.0], "noiseAmplitudeVerticalList": [0.0, 0.0], "noiseAmplitudeGradientList": [0.0, 0.0], "noiseAmplitudeExponentList": [1.0, 1.0], "noiseScaleList": [1.0, 1.0], "showAngleSettingsList": [true, true], "verticalAngleCrownStartList": [50.410003662109375, 45.0], "verticalAngleCrownEndList": [31.21000099182129, 45.0], "verticalAngleBranchStartList": [0.0, 0.0], "verticalAngleBranchEndList": [0.0, 0.0], "branchAngleModeList": ["WINDING", "SYMMETRIC"], "useFibonacciAnglesList": [false, true], "fibonacciNr": [40, 5], "rotateAngleRangeList": [200.0399932861328, 180.0], "rotateAngleOffsetList": [90.0, 0.0], "rotateAngleCrownStartList": [70.87999725341797, -10.410000801086426], "rotateAngleCrownEndList": [71.18000030517578, -13.709999084472656], "rotateAngleBranchStartList": [0.0, 0.0], "rotateAngleBranchEndList": [0.0, 0.0], "rotateAngleRangeFactorList": [1.0, 1.0], "reducedCurveStepCutoffList": [0.010000020265579224, 0.0], "reducedCurveStepFactorList": [0.0, 0.0], "branchGlobalCurvatureStartList": [0.0, 0.0], "branchGlobalCurvatureEndList": [0.0, 0.0], "branchCurvatureStartList": [-3.330000162124634, 0.6599999666213989], "branchCurvatureEndList": [2.3399999141693115, 1.5], "branchCurvatureOffsetStrengthList": [0.0, 0.0], "showSplitSettingsList": [true, true], "nrSplitsPerBranchList": [7.980000019073486, 2.369999885559082], "branchSplitModeList": ["HORIZONTAL", "HORIZONTAL"], "branchSplitRotateAngleList": [0.0, 0.0], "branchSplitAxisVariationList": [0.5399997234344482, 0.44999998807907104], "branchSplitAngleList": [15.239999771118164, 15.300000190734863], "branchSplitPointAngleList": [10.530000686645508, 10.5], "splitsPerBranchVariationList": [0.0, 0.0], "branchVarianceList": [0.0, 0.0], "outwardAttractionList": [0.0, 0.0], "branchSplitHeightVariationList": [0.38129496574401855, 0.0], "branchSplitLengthVariationList": [0.1366906315088272, 0.0], "showBranchSplitHeights": [true, true], "branchSplitHeightInLevelListIndex": 0, "branchSplitHeightInLevelList_0": [0.2300613522529602, 0.4166666567325592, 0.2371794879436493, 0.2756410241127014, 0.5], "branchSplitHeightInLevelListIndex_0": 0, "branchSplitHeightInLevelList_1": [0.3205128014087677, 0.3205128014087677, 0.23076921701431274], "branchSplitHeightInLevelListIndex_1": 0, "branchSplitHeightInLevelList_2": [], "branchSplitHeightInLevelListIndex_2": 0, "branchSplitHeightInLevelList_3": [], "branchSplitHeightInLevelListIndex_3": 0, "branchSplitHeightInLevelList_4": [], "branchSplitHeightInLevelListIndex_4": 0, "branchSplitHeightInLevelList_5": [], "branchSplitHeightInLevelListIndex_5": 2, "branchSplitHeightInLevelList_6": [], "branchSplitHeightInLevelListIndex_6": 0, "branchSplitHeightInLevelList_7": [], "branchSplitHeightInLevelListIndex_7": 0, "branchSplitHeightInLevelList_8": [], "branchSplitHeightInLevelListIndex_8": 0, "branchSplitHeightInLevelList_9": [], "branchSplitHeightInLevelListIndex_9": 0, "branchSplitHeightInLevelList_10": [], "branchSplitHeightInLevelListIndex_10": 0, "branchSplitHeightInLevelList_11": [], "branchSplitHeightInLevelListIndex_11": 0, "branchSplitHeightInLevelList_12": [], "branchSplitHeightInLevelListIndex_12": 0, "branchSplitHeightInLevelList_13": [], "branchSplitHeightInLevelListIndex_13": 0, "branchSplitHeightInLevelList_14": [], "branchSplitHeightInLevelListIndex_14": 0, "branchSplitHeightInLevelList_15": [], "branchSplitHeightInLevelListIndex_15": 0, "branchSplitHeightInLevelList_16": [], "branchSplitHeightInLevelListIndex_16": 0, "branchSplitHeightInLevelList_17": [], "branchSplitHeightInLevelListIndex_17": 0, "branchSplitHeightInLevelList_18": [], "branchSplitHeightInLevelListIndex_18": 0, "branchSplitHeightInLevelList_19": [], "branchSplitHeightInLevelListIndex_19": 0, "branchSplitHeightInLevelListList": [], "showLeafSettings": [], "leavesDensityList": [], "leafSizeList": [], "leafAspectRatioList": [], "leafStartHeightGlobalList": [], "leafEndHeightGlobalList": [], "leafStartHeightClusterList": [], "leafEndHeightClusterList": [], "leafTypeList": [], "leafWhorlCountList": [], "leafAngleModeList": [], "leafVerticalAngleBranchStartList": [], "leafVerticalAngleBranchEndList": [], "leafRotateAngleBranchStartList": [], "leafRotateAngleBranchEndList": [], "leafTiltAngleBranchStartList": [], "leafTiltAngleBranchEndList": [], "showLeafClusterList": [true], "leafParentClusterBoolListList": [[false, true, false]]}'
+        f = '{"treeHeight": 10.0, "treeGrowDir": [0.0010000000474974513, 0.0, 1.0], "taper": 0.14000000059604645, "taperCurvePoints": [[0.0, 1.0], [1.0, 0.0]], "taperCurveHandleTypes": ["VECTOR", "VECTOR"], "clusterTaperCurvePoints": [[[0.0, 1.0], [1.0, 0.0]], [[0.0, 1.0], [1.0, 0.0]]], "clusterTaperCurveHandleTypes": [["VECTOR", "VECTOR"], ["VECTOR", "VECTOR"]], "branchTipRadius": 0.0020000000949949026, "ringSpacing": 2.0, "stemRingResolution": 16, "resampleDistance": 0.5, "noiseAmplitudeVertical": 1.2300000190734863, "noiseAmplitudeHorizontal": 1.2000000476837158, "noiseAmplitudeGradient": 0.35999998450279236, "noiseAmplitudeExponent": 1.0299999713897705, "noiseScale": 0.3100000321865082, "seed": 1550, "curvatureStart": 0.0, "curvatureEnd": 0.0, "nrSplits": 2, "variance": 0.0, "stemSplitMode": "ROTATE_ANGLE", "stemSplitRotateAngle": 1.5700000524520874, "curvOffsetStrength": 0.0, "stemSplitHeightInLevelList": [0.46694183349609375, 0.14462800323963165, 0.5, 0.46694183349609375, 0.14462800323963165, 0.5, 0.46694183349609375, 0.14462800323963165, 0.5, 0.46694183349609375, 0.14462800323963165, 0.5, 0.15380950272083282, 0.5, 0.15380950272083282, 0.5, 0.15380950272083282, 0.5], "stemSplitHeightInLevelListIndex": 1, "splitHeightVariation": 0.0, "splitLengthVariation": 0.030000001192092896, "stemSplitAngle": 0.07119999825954437, "stemSplitPointAngle": 0.27379998564720154, "branchClusters": 2, "showBranchClusterList": [true, true], "showParentClusterList": [true, true], "parentClusterBoolListList": [[true], [false, true]], "nrBranchesList": [37, 68], "treeShapeList": ["INVERSE_HEMISPHERICAL", "INVERSE_HEMISPHERICAL"], "branchShapeList": ["CYLINDRICAL", "CYLINDRICAL"], "branchTypeList": ["SINGLE", "SINGLE"], "branchWhorlCountStartList": [12, 3], "branchWhorlCountEndList": [3, 3], "relBranchLengthList": [0.5138890147209167, 0.2569444477558136], "relBranchLengthVariationList": [0.0694444477558136, 0.0], "taperFactorList": [0.8402778506278992, 0.8402777910232544], "useTaperCurveList": [false, false], "ringResolutionList": [6, 5], "branchesStartHeightGlobalList": [0.19351230561733246, 0.0], "branchesEndHeightGlobalList": [0.9166666865348816, 1.0], "branchesStartHeightClusterList": [0.0, 0.05508948862552643], "branchesEndHeightClusterList": [0.875, 0.340277761220932], "branchesStartPointVariationList": [0.0, 0.0], "showNoiseSettingsList": [true, true], "noiseAmplitudeHorizontalList": [0.0, 0.0], "noiseAmplitudeVerticalList": [0.0, 0.0], "noiseAmplitudeGradientList": [0.0, 0.0], "noiseAmplitudeExponentList": [1.0, 1.0], "noiseScaleList": [1.0, 1.0], "showAngleSettingsList": [true, true], "verticalAngleCrownStartList": [0.879800021648407, 0.7850000262260437], "verticalAngleCrownEndList": [0.5440000295639038, 0.7850000262260437], "verticalAngleBranchStartList": [0.0, 0.0], "verticalAngleBranchEndList": [0.0, 0.0], "branchAngleModeList": ["WINDING", "SYMMETRIC"], "useFibonacciAnglesList": [false, true], "fibonacciNr": [40, 5], "rotateAngleRangeList": [3.490000009536743, 3.1415927410125732], "rotateAngleOffsetList": [1.5700000524520874, 0.0], "rotateAngleCrownStartList": [1.2209999561309814, -0.1745000034570694], "rotateAngleCrownEndList": [1.2389999628067017, -0.22599999606609344], "rotateAngleBranchStartList": [0.0, 0.0], "rotateAngleBranchEndList": [0.0, 0.0], "rotateAngleRangeFactorList": [1.0, 1.0], "reducedCurveStepCutoffList": [0.010000020265579224, 0.0], "reducedCurveStepFactorList": [0.0, 0.0], "branchGlobalCurvatureStartList": [0.0, 0.0], "branchGlobalCurvatureEndList": [0.0, 0.0], "branchCurvatureStartList": [-0.05700000002980232, 0.011300000362098217], "branchCurvatureEndList": [0.040800001472234726, 0.026100000366568565], "branchCurvatureOffsetStrengthList": [0.0, 0.0], "showSplitSettingsList": [true, true], "nrSplitsPerBranchList": [7.980000019073486, 2.369999885559082], "branchSplitModeList": ["HORIZONTAL", "HORIZONTAL"], "branchSplitRotateAngleList": [0.0, 0.0], "branchSplitAxisVariationList": [0.5399997234344482, 0.44999998807907104], "branchSplitAngleList": [0.2660999894142151, 0.2661600112915039], "branchSplitPointAngleList": [0.17880000174045563, 0.17890000343322754], "splitsPerBranchVariationList": [0.0, 0.0], "branchVarianceList": [0.0, 0.0], "outwardAttractionList": [0.0, 0.0], "branchSplitHeightVariationList": [0.38129496574401855, 0.0], "branchSplitLengthVariationList": [0.1366906315088272, 0.0], "showBranchSplitHeights": [true, true], "branchSplitHeightInLevelListIndex": 0, "branchSplitHeightInLevelList_0": [0.4166666567325592, 0.2300613522529602, 0.4166666567325592, 0.2371794879436493, 0.2756410241127014], "branchSplitHeightInLevelListIndex_0": 0, "branchSplitHeightInLevelList_1": [0.5458715558052063, 0.3205128014087677, 0.23076921701431274], "branchSplitHeightInLevelListIndex_1": 0, "branchSplitHeightInLevelList_2": [], "branchSplitHeightInLevelListIndex_2": 0, "branchSplitHeightInLevelList_3": [], "branchSplitHeightInLevelListIndex_3": 0, "branchSplitHeightInLevelList_4": [], "branchSplitHeightInLevelListIndex_4": 0, "branchSplitHeightInLevelList_5": [], "branchSplitHeightInLevelListIndex_5": 2, "branchSplitHeightInLevelList_6": [], "branchSplitHeightInLevelListIndex_6": 0, "branchSplitHeightInLevelList_7": [], "branchSplitHeightInLevelListIndex_7": 0, "branchSplitHeightInLevelList_8": [], "branchSplitHeightInLevelListIndex_8": 0, "branchSplitHeightInLevelList_9": [], "branchSplitHeightInLevelListIndex_9": 0, "branchSplitHeightInLevelList_10": [], "branchSplitHeightInLevelListIndex_10": 0, "branchSplitHeightInLevelList_11": [], "branchSplitHeightInLevelListIndex_11": 0, "branchSplitHeightInLevelList_12": [], "branchSplitHeightInLevelListIndex_12": 0, "branchSplitHeightInLevelList_13": [], "branchSplitHeightInLevelListIndex_13": 0, "branchSplitHeightInLevelList_14": [], "branchSplitHeightInLevelListIndex_14": 0, "branchSplitHeightInLevelList_15": [], "branchSplitHeightInLevelListIndex_15": 0, "branchSplitHeightInLevelList_16": [], "branchSplitHeightInLevelListIndex_16": 0, "branchSplitHeightInLevelList_17": [], "branchSplitHeightInLevelListIndex_17": 0, "branchSplitHeightInLevelList_18": [], "branchSplitHeightInLevelListIndex_18": 0, "branchSplitHeightInLevelList_19": [], "branchSplitHeightInLevelListIndex_19": 0, "branchSplitHeightInLevelListList": [], "showLeafSettings": [], "leavesDensityList": [], "leafSizeList": [], "leafAspectRatioList": [], "leafStartHeightGlobalList": [], "leafEndHeightGlobalList": [], "leafStartHeightClusterList": [], "leafEndHeightClusterList": [], "leafTypeList": [], "leafWhorlCountList": [], "leafAngleModeList": [], "leafVerticalAngleBranchStartList": [], "leafVerticalAngleBranchEndList": [], "leafRotateAngleBranchStartList": [], "leafRotateAngleBranchEndList": [], "leafTiltAngleBranchStartList": [], "leafTiltAngleBranchEndList": [], "showLeafClusterList": [true], "leafParentClusterBoolListList": [[false, true, false]]}'
         data = json.loads(f)
         props = context.scene
         init_properties(data, props)
         
     if preset == 'SILVER_BIRCH':
-        f = '{"treeHeight": 10.0, "treeGrowDir": [0.0010000000474974513, 0.0, 1.0], "taper": 0.11999999731779099, "taperCurvePoints": [[0.0, 1.0], [1.0, 0.0]], "taperCurveHandleTypes": ["VECTOR", "VECTOR"], "branchTipRadius": 0.0020000000949949026, "ringSpacing": 2.0, "stemRingResolution": 16, "resampleDistance": 0.5, "noiseAmplitudeVertical": 0.0, "noiseAmplitudeHorizontal": 0.0, "noiseAmplitudeGradient": 0.0, "noiseAmplitudeExponent": 0.0, "noiseScale": 1.0, "seed": 1786, "curvatureStart": 0.0, "curvatureEnd": 0.0, "nrSplits": 0, "variance": 0.0, "stemSplitMode": "ROTATE_ANGLE", "stemSplitRotateAngle": 90.0, "curvOffsetStrength": 0.0, "stemSplitHeightInLevelList": [], "stemSplitHeightInLevelListIndex": 5, "splitHeightVariation": 0.11999999731779099, "splitLengthVariation": 0.030000001192092896, "stemSplitAngle": 16.950000762939453, "stemSplitPointAngle": 15.690000534057617, "branchClusters": 1, "showBranchClusterList": [false], "showParentClusterList": [true], "parentClusterBoolListList": [[true]], "nrBranchesList": [24], "treeShapeList": ["INVERSE_CONICAL"], "branchShapeList": ["CYLINDRICAL"], "branchTypeList": ["SINGLE"], "branchWhorlCountStartList": [3], "branchWhorlCountEndList": [3], "relBranchLengthList": [0.5838925838470459], "relBranchLengthVariationList": [0.0], "taperFactorList": [0.8120805621147156], "ringResolutionList": [6], "branchesStartHeightGlobalList": [0.24161073565483093], "branchesEndHeightGlobalList": [0.9127516746520996], "branchesStartHeightClusterList": [0.0], "branchesEndHeightClusterList": [1.0], "branchesStartPointVariationList": [0.0], "showNoiseSettingsList": [false], "noiseAmplitudeHorizontalList": [0.0], "noiseAmplitudeVerticalList": [0.0], "noiseAmplitudeGradientList": [0.0], "noiseAmplitudeExponentList": [1.0], "noiseScaleList": [1.0], "showAngleSettingsList": [false], "verticalAngleCrownStartList": [81.18000030517578], "verticalAngleCrownEndList": [-5.160000324249268], "verticalAngleBranchStartList": [0.0], "verticalAngleBranchEndList": [0.0], "branchAngleModeList": ["WINDING"], "useFibonacciAnglesList": [true], "fibonacciNr": [6], "rotateAngleRangeList": [180.0], "rotateAngleOffsetList": [0.0], "rotateAngleCrownStartList": [0.0], "rotateAngleCrownEndList": [0.0], "rotateAngleBranchStartList": [0.0], "rotateAngleBranchEndList": [0.0], "rotateAngleRangeFactorList": [1.0], "reducedCurveStepCutoffList": [0.0], "reducedCurveStepFactorList": [0.0], "branchGlobalCurvatureStartList": [1.0], "branchGlobalCurvatureEndList": [-6.119999885559082], "branchCurvatureStartList": [0.0], "branchCurvatureEndList": [0.0], "branchCurvatureOffsetStrengthList": [0.0], "showSplitSettingsList": [true], "nrSplitsPerBranchList": [1.5], "branchSplitModeList": ["HORIZONTAL"], "branchSplitRotateAngleList": [0.0], "branchSplitAxisVariationList": [0.23999999463558197], "branchSplitAngleList": [15.0], "branchSplitPointAngleList": [15.0], "splitsPerBranchVariationList": [0.0], "branchVarianceList": [0.0], "outwardAttractionList": [0.0], "branchSplitHeightVariationList": [0.2569444477558136], "branchSplitLengthVariationList": [0.2013888955116272], "showBranchSplitHeights": [true], "branchSplitHeightInLevelListIndex": 0, "branchSplitHeightInLevelList_0": [0.29754602909088135, 0.4018405079841614], "branchSplitHeightInLevelListIndex_0": 0, "branchSplitHeightInLevelList_1": [], "branchSplitHeightInLevelListIndex_1": 0, "branchSplitHeightInLevelList_2": [], "branchSplitHeightInLevelListIndex_2": 0, "branchSplitHeightInLevelList_3": [], "branchSplitHeightInLevelListIndex_3": 0, "branchSplitHeightInLevelList_4": [], "branchSplitHeightInLevelListIndex_4": 0, "branchSplitHeightInLevelList_5": [], "branchSplitHeightInLevelListIndex_5": 2, "branchSplitHeightInLevelList_6": [], "branchSplitHeightInLevelListIndex_6": 0, "branchSplitHeightInLevelList_7": [], "branchSplitHeightInLevelListIndex_7": 0, "branchSplitHeightInLevelList_8": [], "branchSplitHeightInLevelListIndex_8": 0, "branchSplitHeightInLevelList_9": [], "branchSplitHeightInLevelListIndex_9": 0, "branchSplitHeightInLevelList_10": [], "branchSplitHeightInLevelListIndex_10": 0, "branchSplitHeightInLevelList_11": [], "branchSplitHeightInLevelListIndex_11": 0, "branchSplitHeightInLevelList_12": [], "branchSplitHeightInLevelListIndex_12": 0, "branchSplitHeightInLevelList_13": [], "branchSplitHeightInLevelListIndex_13": 0, "branchSplitHeightInLevelList_14": [], "branchSplitHeightInLevelListIndex_14": 0, "branchSplitHeightInLevelList_15": [], "branchSplitHeightInLevelListIndex_15": 0, "branchSplitHeightInLevelList_16": [], "branchSplitHeightInLevelListIndex_16": 0, "branchSplitHeightInLevelList_17": [], "branchSplitHeightInLevelListIndex_17": 0, "branchSplitHeightInLevelList_18": [], "branchSplitHeightInLevelListIndex_18": 0, "branchSplitHeightInLevelList_19": [], "branchSplitHeightInLevelListIndex_19": 0, "branchSplitHeightInLevelListList": [], "showLeafSettings": [], "leavesDensityList": [], "leafSizeList": [], "leafAspectRatioList": [], "leafStartHeightGlobalList": [], "leafEndHeightGlobalList": [], "leafStartHeightClusterList": [], "leafEndHeightClusterList": [], "leafTypeList": [], "leafWhorlCountList": [], "leafAngleModeList": [], "leafVerticalAngleBranchStartList": [], "leafVerticalAngleBranchEndList": [], "leafRotateAngleBranchStartList": [], "leafRotateAngleBranchEndList": [], "leafTiltAngleBranchStartList": [], "leafTiltAngleBranchEndList": [], "showLeafClusterList": [true], "leafParentClusterBoolListList": [[true, false]]}'
+        f = '{"treeHeight": 10.0, "treeGrowDir": [0.0010000000474974513, 0.0, 1.0], "taper": 0.11999999731779099, "taperCurvePoints": [[0.0, 1.0], [1.0, 0.0]], "taperCurveHandleTypes": ["VECTOR", "VECTOR"], "clusterTaperCurvePoints": [[[0.0, 1.0], [1.0, 0.0]]], "clusterTaperCurveHandleTypes": [["VECTOR", "VECTOR"]], "branchTipRadius": 0.0020000000949949026, "ringSpacing": 2.0, "stemRingResolution": 16, "resampleDistance": 0.5, "noiseAmplitudeVertical": 0.0, "noiseAmplitudeHorizontal": 0.0, "noiseAmplitudeGradient": 0.0, "noiseAmplitudeExponent": 0.0, "noiseScale": 1.0, "seed": 1787, "curvatureStart": 0.0, "curvatureEnd": 0.0, "nrSplits": 0, "variance": 0.0, "stemSplitMode": "ROTATE_ANGLE", "stemSplitRotateAngle": 1.5700000524520874, "curvOffsetStrength": 0.0, "stemSplitHeightInLevelList": [0.46694183349609375, 0.14462800323963165, 0.5, 0.46694183349609375, 0.14462800323963165, 0.5, 0.46694183349609375, 0.14462800323963165, 0.5, 0.46694183349609375, 0.14462800323963165, 0.5, 0.15380950272083282, 0.5, 0.15380950272083282, 0.5, 0.15380950272083282, 0.5, 0.46694183349609375, 0.14462800323963165, 0.5, 0.5, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.46694183349609375, 0.14462800323963165, 0.5, 0.46694183349609375, 0.14462800323963165, 0.5, 0.46694183349609375, 0.14462800323963165, 0.5, 0.46694183349609375, 0.14462800323963165, 0.5, 0.15380950272083282, 0.5, 0.15380950272083282, 0.5, 0.15380950272083282, 0.5], "stemSplitHeightInLevelListIndex": 5, "splitHeightVariation": 0.11999999731779099, "splitLengthVariation": 0.030000001192092896, "stemSplitAngle": 0.29580000042915344, "stemSplitPointAngle": 0.27379998564720154, "branchClusters": 1, "showBranchClusterList": [true], "showParentClusterList": [true], "parentClusterBoolListList": [[true]], "nrBranchesList": [24], "treeShapeList": ["INVERSE_CONICAL"], "branchShapeList": ["CYLINDRICAL"], "branchTypeList": ["SINGLE"], "branchWhorlCountStartList": [3], "branchWhorlCountEndList": [3], "relBranchLengthList": [0.5838925838470459], "relBranchLengthVariationList": [0.0], "taperFactorList": [0.8120805621147156], "useTaperCurveList": [false], "ringResolutionList": [6], "branchesStartHeightGlobalList": [0.24161073565483093], "branchesEndHeightGlobalList": [0.9127516746520996], "branchesStartHeightClusterList": [0.0], "branchesEndHeightClusterList": [1.0], "branchesStartPointVariationList": [0.0], "showNoiseSettingsList": [true], "noiseAmplitudeHorizontalList": [0.0], "noiseAmplitudeVerticalList": [0.0], "noiseAmplitudeGradientList": [0.0], "noiseAmplitudeExponentList": [1.0], "noiseScaleList": [1.0], "showAngleSettingsList": [true], "verticalAngleCrownStartList": [1.417330026626587], "verticalAngleCrownEndList": [-0.09004999697208405], "verticalAngleBranchStartList": [0.0], "verticalAngleBranchEndList": [0.0], "branchAngleModeList": ["WINDING"], "useFibonacciAnglesList": [true], "fibonacciNr": [6], "rotateAngleRangeList": [3.1415927410125732], "rotateAngleOffsetList": [0.0], "rotateAngleCrownStartList": [0.0], "rotateAngleCrownEndList": [0.0], "rotateAngleBranchStartList": [0.0], "rotateAngleBranchEndList": [0.0], "rotateAngleRangeFactorList": [1.0], "reducedCurveStepCutoffList": [0.0], "reducedCurveStepFactorList": [0.0], "branchGlobalCurvatureStartList": [0.10000000149011612], "branchGlobalCurvatureEndList": [-0.10599999874830246], "branchCurvatureStartList": [0.0], "branchCurvatureEndList": [0.0], "branchCurvatureOffsetStrengthList": [0.0], "showSplitSettingsList": [true], "nrSplitsPerBranchList": [1.5], "branchSplitModeList": ["HORIZONTAL"], "branchSplitRotateAngleList": [0.0], "branchSplitAxisVariationList": [0.23999999463558197], "branchSplitAngleList": [0.26179999113082886], "branchSplitPointAngleList": [0.26179999113082886], "splitsPerBranchVariationList": [0.0], "branchVarianceList": [0.0], "outwardAttractionList": [0.0], "branchSplitHeightVariationList": [0.2569444477558136], "branchSplitLengthVariationList": [0.2013888955116272], "showBranchSplitHeights": [true], "branchSplitHeightInLevelListIndex": 0, "branchSplitHeightInLevelList_0": [0.4166666567325592, 0.2300613522529602], "branchSplitHeightInLevelListIndex_0": 0, "branchSplitHeightInLevelList_1": [], "branchSplitHeightInLevelListIndex_1": 0, "branchSplitHeightInLevelList_2": [], "branchSplitHeightInLevelListIndex_2": 0, "branchSplitHeightInLevelList_3": [], "branchSplitHeightInLevelListIndex_3": 0, "branchSplitHeightInLevelList_4": [], "branchSplitHeightInLevelListIndex_4": 0, "branchSplitHeightInLevelList_5": [], "branchSplitHeightInLevelListIndex_5": 2, "branchSplitHeightInLevelList_6": [], "branchSplitHeightInLevelListIndex_6": 0, "branchSplitHeightInLevelList_7": [], "branchSplitHeightInLevelListIndex_7": 0, "branchSplitHeightInLevelList_8": [], "branchSplitHeightInLevelListIndex_8": 0, "branchSplitHeightInLevelList_9": [], "branchSplitHeightInLevelListIndex_9": 0, "branchSplitHeightInLevelList_10": [], "branchSplitHeightInLevelListIndex_10": 0, "branchSplitHeightInLevelList_11": [], "branchSplitHeightInLevelListIndex_11": 0, "branchSplitHeightInLevelList_12": [], "branchSplitHeightInLevelListIndex_12": 0, "branchSplitHeightInLevelList_13": [], "branchSplitHeightInLevelListIndex_13": 0, "branchSplitHeightInLevelList_14": [], "branchSplitHeightInLevelListIndex_14": 0, "branchSplitHeightInLevelList_15": [], "branchSplitHeightInLevelListIndex_15": 0, "branchSplitHeightInLevelList_16": [], "branchSplitHeightInLevelListIndex_16": 0, "branchSplitHeightInLevelList_17": [], "branchSplitHeightInLevelListIndex_17": 0, "branchSplitHeightInLevelList_18": [], "branchSplitHeightInLevelListIndex_18": 0, "branchSplitHeightInLevelList_19": [], "branchSplitHeightInLevelListIndex_19": 0, "branchSplitHeightInLevelListList": [], "showLeafSettings": [], "leavesDensityList": [], "leafSizeList": [], "leafAspectRatioList": [], "leafStartHeightGlobalList": [], "leafEndHeightGlobalList": [], "leafStartHeightClusterList": [], "leafEndHeightClusterList": [], "leafTypeList": [], "leafWhorlCountList": [], "leafAngleModeList": [], "leafVerticalAngleBranchStartList": [], "leafVerticalAngleBranchEndList": [], "leafRotateAngleBranchStartList": [], "leafRotateAngleBranchEndList": [], "leafTiltAngleBranchStartList": [], "leafTiltAngleBranchEndList": [], "showLeafClusterList": [true], "leafParentClusterBoolListList": [[true, false]]}'
         data = json.loads(f)
         props = context.scene
         init_properties(data, props)
@@ -4973,17 +4977,17 @@ def load_preset(preset, context, self):
 
 def init_properties(data, props):
         props.treeSettings.treeHeight = data.get("treeHeight", props.treeSettings.treeHeight)
-        treeGrowDir = data.get("treeGrowDir", props.treeGrowDir)
+        treeGrowDir = data.get("treeGrowDir", props.treeSettings.treeGrowDir)
         if isinstance(treeGrowDir, list) and len(treeGrowDir) == 3:
-            props.treeGrowDir = treeGrowDir
-        props.taper = data.get("taper", props.taper)
+            props.treeSettings.treeGrowDir = treeGrowDir
+        props.treeSettings.taper = data.get("taper", props.treeSettings.taper)
         
         controlPts = []
         controlPts = data.get("taperCurvePoints", controlPts)
         handleTypes = []
         handleTypes = data.get("taperCurveHandleTypes", handleTypes)
         #nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
-        
+                
         ensure_stem_curve_node()
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup') #taperNodeGroup')
         curveElement = nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves[3] #'Stem'
@@ -5008,44 +5012,44 @@ def init_properties(data, props):
                 
         nodeGroups.nodes[curve_node_mapping['Stem']].mapping.update()
         
-        props.branchTipRadius = data.get("branchTipRadius", props.branchTipRadius)
-        props.ringSpacing = data.get("ringSpacing", props.ringSpacing)
-        props.stemRingResolution = data.get("stemRingResolution", props.stemRingResolution)
-        props.resampleDistance = data.get("resampleDistance", props.resampleDistance)
+        props.treeSettings.branchTipRadius = data.get("branchTipRadius", props.treeSettings.branchTipRadius)
+        props.treeSettings.ringSpacing = data.get("ringSpacing", props.treeSettings.ringSpacing)
+        props.treeSettings.stemRingResolution = data.get("stemRingResolution", props.treeSettings.stemRingResolution)
+        props.treeSettings.resampleDistance = data.get("resampleDistance", props.treeSettings.resampleDistance)
         
-        props.noiseAmplitudeVertical = data.get("noiseAmplitudeVertical", props.noiseAmplitudeVertical)
-        props.noiseAmplitudeHorizontal = data.get("noiseAmplitudeHorizontal", props.noiseAmplitudeHorizontal)
-        props.noiseAmplitudeGradient = data.get("noiseAmplitudeGradient", props.noiseAmplitudeGradient)
-        props.noiseAmplitudeExponent = data.get("noiseAmplitudeExponent", props.noiseAmplitudeExponent)
-        props.noiseScale = data.get("noiseScale", props.noiseScale)
-        props.seed = data.get("seed", props.seed)
+        props.treeSettings.noiseAmplitudeVertical = data.get("noiseAmplitudeVertical", props.treeSettings.noiseAmplitudeVertical)
+        props.treeSettings.noiseAmplitudeHorizontal = data.get("noiseAmplitudeHorizontal", props.treeSettings.noiseAmplitudeHorizontal)
+        props.treeSettings.noiseAmplitudeGradient = data.get("noiseAmplitudeGradient", props.treeSettings.noiseAmplitudeGradient)
+        props.treeSettings.noiseAmplitudeExponent = data.get("noiseAmplitudeExponent", props.treeSettings.noiseAmplitudeExponent)
+        props.treeSettings.noiseScale = data.get("noiseScale", props.treeSettings.noiseScale)
+        props.treeSettings.seed = data.get("seed", props.treeSettings.seed)
         
-        props.curvatureStart = data.get("curvatureStart", props.curvatureStart)
-        props.curvatureEnd = data.get("curvatureEnd", props.curvatureEnd)
+        props.treeSettings.curvatureStart = data.get("curvatureStart", props.treeSettings.curvatureStart)
+        props.treeSettings.curvatureEnd = data.get("curvatureEnd", props.treeSettings.curvatureEnd)
         
-        props.nrSplits = data.get("nrSplits", props.nrSplits)
-        props.variance = data.get("variance", props.variance)
-        props.stemSplitMode = data.get("stemSplitMode", props.stemSplitMode)
-        props.stemSplitRotateAngle = data.get("stemSplitRotateAngle", props.stemSplitRotateAngle)
-        props.curvOffsetStrength = data.get("curvOffsetStrength", props.curvOffsetStrength)
+        props.treeSettings.nrSplits = data.get("nrSplits", props.treeSettings.nrSplits)
+        props.treeSettings.variance = data.get("variance", props.treeSettings.variance)
+        props.treeSettings.stemSplitMode = data.get("stemSplitMode", props.treeSettings.stemSplitMode)
+        props.treeSettings.stemSplitRotateAngle = data.get("stemSplitRotateAngle", props.treeSettings.stemSplitRotateAngle)
+        props.treeSettings.curvOffsetStrength = data.get("curvOffsetStrength", props.treeSettings.curvOffsetStrength)
         
         for value in data.get("stemSplitHeightInLevelList", []):
-            item = props.stemSplitHeightInLevelList.add()
+            item = props.treeSettings.stemSplitHeightInLevelList.add()
             item.value = value
         props.treeSettings.stemSplitHeightInLevelListIndex = data.get("stemSplitHeightInLevelListIndex", props.treeSettings.stemSplitHeightInLevelListIndex)
                 
-        props.splitHeightVariation = data.get("splitHeightVariation", props.splitHeightVariation)
-        props.splitLengthVariation = data.get("splitLengthVariation", props.splitLengthVariation)
-        props.stemSplitAngle = data.get("stemSplitAngle", props.stemSplitAngle)
-        props.stemSplitPointAngle = data.get("stemSplitPointAngle", props.stemSplitPointAngle)
+        props.treeSettings.splitHeightVariation = data.get("splitHeightVariation", props.treeSettings.splitHeightVariation)
+        props.treeSettings.splitLengthVariation = data.get("splitLengthVariation", props.treeSettings.splitLengthVariation)
+        props.treeSettings.stemSplitAngle = data.get("stemSplitAngle", props.treeSettings.stemSplitAngle)
+        props.treeSettings.stemSplitPointAngle = data.get("stemSplitPointAngle", props.treeSettings.stemSplitPointAngle)
         
-        for outerList in props.parentClusterBoolListList:
+        for outerList in props.treeSettings.parentClusterBoolListList:
             while len(outerList.value) > 0:
                 outerList.value.clear()
         
-        props.parentClusterBoolListList.clear()
+        props.treeSettings.parentClusterBoolListList.clear()
         
-        props.branchClusters = data.get("branchClusters", props.branchClusters)
+        props.treeSettings.branchClusters = data.get("branchClusters", props.treeSettings.branchClusters)
         
         
         # nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
@@ -5066,7 +5070,11 @@ def init_properties(data, props):
         clusterHandleTypes = []
         clusterHandleTypes = data.get("clusterTaperCurveHandleTypes", handleTypes)
         
-        for clusterIndex in range(props.branchClusters):
+        for clusterIndex in range(props.treeSettings.branchClusters):
+            
+            bpy.ops.scene.reset_branch_cluster_curve(idx = clusterIndex)
+            
+            
             curve_name = ensure_branch_curve_node(clusterIndex)
             curveElement = nodeGroups.nodes[curve_node_mapping[curve_name]].mapping.curves[3]
             
@@ -5094,26 +5102,26 @@ def init_properties(data, props):
         
         nestedList = []
         nestedList = data.get("parentClusterBoolListList", nestedList)
-        for n in range(0, props.branchClusters):
+        for n in range(0, props.treeSettings.branchClusters):
             innerList = nestedList[n]
-            item = props.parentClusterBoolListList.add()
+            item = props.treeSettings.parentClusterBoolListList.add()
             for n in item.value:
                 item.remove(n)
             for b in innerList:
                 i = item.value.add()
                 i.value = b
                 
-        for outerList in props.leafParentClusterBoolListList:
+        for outerList in props.treeSettings.leafParentClusterBoolListList:
             while len(outerList.value) > 0:
                 outerList.value.clear()
         
-        props.leafParentClusterBoolListList.clear()
+        props.treeSettings.leafParentClusterBoolListList.clear()
         
         nestedLeafList = []
         nestedLeafList = data.get("leafParentClusterBoolListList", nestedLeafList)
         for n in range(0, len(nestedLeafList)):
             innerLeafList = nestedLeafList[n]
-            item = props.leafParentClusterBoolListList.add()
+            item = props.treeSettings.leafParentClusterBoolListList.add()
             for n in item.value:
                 item.remove(n)
             for b in innerLeafList:
@@ -5122,7 +5130,7 @@ def init_properties(data, props):
         
         props.branchClusterSettingsList.clear()
         
-        for i in range(0, props.branchClusters):
+        for i in range(0, props.treeSettings.branchClusters):
             props.branchClusterSettingsList.add()
         
         for i, value in enumerate(data.get("nrBranchesList", [])):
@@ -5150,7 +5158,7 @@ def init_properties(data, props):
             props.branchClusterSettingsList[i].relBranchLengthVariation = value
         
         props.taperFactorList.clear()
-        while len(props.taperFactorList) < props.branchClusters:
+        while len(props.taperFactorList) < props.treeSettings.branchClusters:
             props.taperFactorList.add()
         for i, value in enumerate(data.get("taperFactorList", [])):
             props.taperFactorList[i].taperFactor = value
@@ -5294,12 +5302,12 @@ def init_properties(data, props):
         for i, value in enumerate(data.get("branchSplitLengthVariationList", [])):
             props.branchClusterSettingsList[i].branchSplitLengthVariation = value
         
-        props.branchSplitHeightInLevelListList.clear()
+        props.treeSettings.branchSplitHeightInLevelListList.clear()
         nestedBranchSplitHeightInLevelList = []
         nestedBranchSplitHeightInLevelList = data.get("branchSplitHeightInLevelListList", nestedBranchSplitHeightInLevelList)
         for n in range(0, len(nestedBranchSplitHeightInLevelList)):
             innerList = nestedBranchSplitHeightInLevelList[n]
-            item = props.branchSplitHeightInLevelListList.add()
+            item = props.treeSettings.branchSplitHeightInLevelListList.add()
             for n in item.value:
                 item.remove(n)
             for h in innerList:
@@ -5514,14 +5522,14 @@ def save_properties(filePath, treeGen):
         handleTypes.append(curveElement.points[n].handle_type)
     
     nestedBranchList = []
-    for cluster in props.parentClusterBoolListList:
+    for cluster in props.treeSettings.parentClusterBoolListList:
         innerList = []
         for boolProp in cluster.value:
             innerList.append(boolProp.value)
         nestedBranchList.append(innerList)
         
     nestedLeafList = []
-    for cluster in props.leafParentClusterBoolListList:
+    for cluster in props.treeSettings.leafParentClusterBoolListList:
         innerLeafList = []
         for boolProp in cluster.value:
             innerLeafList.append(boolProp.value)
@@ -5699,7 +5707,7 @@ def save_properties(filePath, treeGen):
     
     nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
         
-    for clusterIndex in range(props.branchClusters):
+    for clusterIndex in range(props.treeSettings.branchClusters):
         curve_name = ensure_branch_curve_node(clusterIndex)
         curveElement = nodeGroups.nodes[curve_node_mapping[curve_name]].mapping.curves[3]
         clusterTaperControlPts.append([])
@@ -5749,80 +5757,80 @@ def save_properties(filePath, treeGen):
         "stemSplitPointAngle": props.treeSettings.stemSplitPointAngle,
     
         "branchClusters": props.treeSettings.branchClusters,
-        "showBranchClusterList": [props.branchClusterBoolListList[i].show_branch_cluster for i in range(props.branchClusters)],
-        "showParentClusterList": [props.parentClusterBoolListList[i].show_cluster for i in range(props.branchClusters)],
+        "showBranchClusterList": [props.branchClusterBoolListList[i].show_branch_cluster for i in range(props.treeSettings.branchClusters)],
+        "showParentClusterList": [props.treeSettings.parentClusterBoolListList[i].show_cluster for i in range(props.treeSettings.branchClusters)],
     
         "parentClusterBoolListList": nestedBranchList,
         
-        "nrBranchesList": [props.branchClusterSettingsList[i].nrBranches for i in range(props.branchClusters)],
-        "treeShapeList": [props.branchClusterSettingsList[i].treeShape.value for i in range(props.branchClusters)],
-        "branchShapeList": [props.branchClusterSettingsList[i].branchShape.value for i in range(props.branchClusters)],
-        "branchTypeList": [props.branchClusterSettingsList[i].branchType.value for i in range(props.branchClusters)],
-        "branchWhorlCountStartList": [props.branchClusterSettingsList[i].branchWhorlCountStart for i in range(props.branchClusters)],
-        "branchWhorlCountEndList": [props.branchClusterSettingsList[i].branchWhorlCountEnd for i in range(props.branchClusters)],
-        "relBranchLengthList": [props.branchClusterSettingsList[i].relBranchLength for i in range(props.branchClusters)],
-        "relBranchLengthVariationList": [props.branchClusterSettingsList[i].relBranchLengthVariation for i in range(props.branchClusters)],
-        "taperFactorList": [props.taperFactorList[i].taperFactor for i in range(props.branchClusters)],
-        "useTaperCurveList": [props.branchClusterSettingsList[i].useTaperCurve for i in range(props.branchClusters)],
-        "ringResolutionList": [props.branchClusterSettingsList[i].ringResolution for i in range(props.branchClusters)],
-        "branchesStartHeightGlobalList": [props.branchClusterSettingsList[i].branchesStartHeightGlobal for i in range(props.branchClusters)],
-        "branchesEndHeightGlobalList": [props.branchClusterSettingsList[i].branchesEndHeightGlobal for i in range(props.branchClusters)],
-        "branchesStartHeightClusterList": [props.branchClusterSettingsList[i].branchesStartHeightCluster for i in range(props.branchClusters)],
-        "branchesEndHeightClusterList": [props.branchClusterSettingsList[i].branchesEndHeightCluster for i in range(props.branchClusters)],
-        "branchesStartPointVariationList": [props.branchClusterSettingsList[i].branchesStartPointVariation for i in range(props.branchClusters)],
+        "nrBranchesList": [props.branchClusterSettingsList[i].nrBranches for i in range(props.treeSettings.branchClusters)],
+        "treeShapeList": [props.branchClusterSettingsList[i].treeShape.value for i in range(props.treeSettings.branchClusters)],
+        "branchShapeList": [props.branchClusterSettingsList[i].branchShape.value for i in range(props.treeSettings.branchClusters)],
+        "branchTypeList": [props.branchClusterSettingsList[i].branchType.value for i in range(props.treeSettings.branchClusters)],
+        "branchWhorlCountStartList": [props.branchClusterSettingsList[i].branchWhorlCountStart for i in range(props.treeSettings.branchClusters)],
+        "branchWhorlCountEndList": [props.branchClusterSettingsList[i].branchWhorlCountEnd for i in range(props.treeSettings.branchClusters)],
+        "relBranchLengthList": [props.branchClusterSettingsList[i].relBranchLength for i in range(props.treeSettings.branchClusters)],
+        "relBranchLengthVariationList": [props.branchClusterSettingsList[i].relBranchLengthVariation for i in range(props.treeSettings.branchClusters)],
+        "taperFactorList": [props.taperFactorList[i].taperFactor for i in range(props.treeSettings.branchClusters)],
+        "useTaperCurveList": [props.branchClusterSettingsList[i].useTaperCurve for i in range(props.treeSettings.branchClusters)],
+        "ringResolutionList": [props.branchClusterSettingsList[i].ringResolution for i in range(props.treeSettings.branchClusters)],
+        "branchesStartHeightGlobalList": [props.branchClusterSettingsList[i].branchesStartHeightGlobal for i in range(props.treeSettings.branchClusters)],
+        "branchesEndHeightGlobalList": [props.branchClusterSettingsList[i].branchesEndHeightGlobal for i in range(props.treeSettings.branchClusters)],
+        "branchesStartHeightClusterList": [props.branchClusterSettingsList[i].branchesStartHeightCluster for i in range(props.treeSettings.branchClusters)],
+        "branchesEndHeightClusterList": [props.branchClusterSettingsList[i].branchesEndHeightCluster for i in range(props.treeSettings.branchClusters)],
+        "branchesStartPointVariationList": [props.branchClusterSettingsList[i].branchesStartPointVariation for i in range(props.treeSettings.branchClusters)],
         
-        "showNoiseSettingsList": [props.branchClusterSettingsList[i].showNoiseSettings for i in range(props.branchClusters)],
+        "showNoiseSettingsList": [props.branchClusterSettingsList[i].showNoiseSettings for i in range(props.treeSettings.branchClusters)],
         
-        "noiseAmplitudeHorizontalList": [props.branchClusterSettingsList[i].noiseAmplitudeHorizontalBranch for i in range(props.branchClusters)],
-        "noiseAmplitudeVerticalList": [props.branchClusterSettingsList[i].noiseAmplitudeVerticalBranch for i in range(props.branchClusters)],
-        "noiseAmplitudeGradientList": [props.branchClusterSettingsList[i].noiseAmplitudeBranchGradient for i in range(props.branchClusters)],
-        "noiseAmplitudeExponentList": [props.branchClusterSettingsList[i].noiseAmplitudeBranchExponent for i in range(props.branchClusters)],
-        "noiseScaleList": [props.branchClusterSettingsList[i].noiseScale for i in range(props.branchClusters)],
+        "noiseAmplitudeHorizontalList": [props.branchClusterSettingsList[i].noiseAmplitudeHorizontalBranch for i in range(props.treeSettings.branchClusters)],
+        "noiseAmplitudeVerticalList": [props.branchClusterSettingsList[i].noiseAmplitudeVerticalBranch for i in range(props.treeSettings.branchClusters)],
+        "noiseAmplitudeGradientList": [props.branchClusterSettingsList[i].noiseAmplitudeBranchGradient for i in range(props.treeSettings.branchClusters)],
+        "noiseAmplitudeExponentList": [props.branchClusterSettingsList[i].noiseAmplitudeBranchExponent for i in range(props.treeSettings.branchClusters)],
+        "noiseScaleList": [props.branchClusterSettingsList[i].noiseScale for i in range(props.treeSettings.branchClusters)],
         
-        "showAngleSettingsList": [props.branchClusterSettingsList[i].showAngleSettings for i in range(props.branchClusters)],
+        "showAngleSettingsList": [props.branchClusterSettingsList[i].showAngleSettings for i in range(props.treeSettings.branchClusters)],
         
-        "verticalAngleCrownStartList": [props.branchClusterSettingsList[i].verticalAngleCrownStart for i in range(props.branchClusters)],
-        "verticalAngleCrownEndList": [props.branchClusterSettingsList[i].verticalAngleCrownEnd for i in range(props.branchClusters)],
-        "verticalAngleBranchStartList": [props.branchClusterSettingsList[i].verticalAngleBranchStart for i in range(props.branchClusters)],
-        "verticalAngleBranchEndList": [props.branchClusterSettingsList[i].verticalAngleBranchEnd for i in range(props.branchClusters)],
-        "branchAngleModeList": [props.branchClusterSettingsList[i].branchAngleMode.value for i in range(props.branchClusters)],
-        "useFibonacciAnglesList": [props.branchClusterSettingsList[i].useFibonacciAngles for i in range(props.branchClusters)],
-        "fibonacciNr": [props.branchClusterSettingsList[i].fibonacciNr.fibonacci_nr for i in range(props.branchClusters)],
-        "rotateAngleRangeList": [props.branchClusterSettingsList[i].rotateAngleRange for i in range(props.branchClusters)],
-        "rotateAngleOffsetList": [props.branchClusterSettingsList[i].rotateAngleOffset for i in range(props.branchClusters)],
+        "verticalAngleCrownStartList": [props.branchClusterSettingsList[i].verticalAngleCrownStart for i in range(props.treeSettings.branchClusters)],
+        "verticalAngleCrownEndList": [props.branchClusterSettingsList[i].verticalAngleCrownEnd for i in range(props.treeSettings.branchClusters)],
+        "verticalAngleBranchStartList": [props.branchClusterSettingsList[i].verticalAngleBranchStart for i in range(props.treeSettings.branchClusters)],
+        "verticalAngleBranchEndList": [props.branchClusterSettingsList[i].verticalAngleBranchEnd for i in range(props.treeSettings.branchClusters)],
+        "branchAngleModeList": [props.branchClusterSettingsList[i].branchAngleMode.value for i in range(props.treeSettings.branchClusters)],
+        "useFibonacciAnglesList": [props.branchClusterSettingsList[i].useFibonacciAngles for i in range(props.treeSettings.branchClusters)],
+        "fibonacciNr": [props.branchClusterSettingsList[i].fibonacciNr.fibonacci_nr for i in range(props.treeSettings.branchClusters)],
+        "rotateAngleRangeList": [props.branchClusterSettingsList[i].rotateAngleRange for i in range(props.treeSettings.branchClusters)],
+        "rotateAngleOffsetList": [props.branchClusterSettingsList[i].rotateAngleOffset for i in range(props.treeSettings.branchClusters)],
         
-        "rotateAngleCrownStartList": [props.branchClusterSettingsList[i].rotateAngleCrownStart for i in range(props.branchClusters)],
-        "rotateAngleCrownEndList": [props.branchClusterSettingsList[i].rotateAngleCrownEnd for i in range(props.branchClusters)],
-        "rotateAngleBranchStartList": [props.branchClusterSettingsList[i].rotateAngleBranchStart for i in range(props.branchClusters)],
-        "rotateAngleBranchEndList": [props.branchClusterSettingsList[i].rotateAngleBranchEnd for i in range(props.branchClusters)],
-        "rotateAngleRangeFactorList": [props.branchClusterSettingsList[i].rotateAngleRangeFactor for i in range(props.branchClusters)],
+        "rotateAngleCrownStartList": [props.branchClusterSettingsList[i].rotateAngleCrownStart for i in range(props.treeSettings.branchClusters)],
+        "rotateAngleCrownEndList": [props.branchClusterSettingsList[i].rotateAngleCrownEnd for i in range(props.treeSettings.branchClusters)],
+        "rotateAngleBranchStartList": [props.branchClusterSettingsList[i].rotateAngleBranchStart for i in range(props.treeSettings.branchClusters)],
+        "rotateAngleBranchEndList": [props.branchClusterSettingsList[i].rotateAngleBranchEnd for i in range(props.treeSettings.branchClusters)],
+        "rotateAngleRangeFactorList": [props.branchClusterSettingsList[i].rotateAngleRangeFactor for i in range(props.treeSettings.branchClusters)],
         
-        "reducedCurveStepCutoffList": [props.branchClusterSettingsList[i].reducedCurveStepCutoff for i in range(props.branchClusters)],
-        "reducedCurveStepFactorList": [props.branchClusterSettingsList[i].reducedCurveStepFactor for i in range(props.branchClusters)],
+        "reducedCurveStepCutoffList": [props.branchClusterSettingsList[i].reducedCurveStepCutoff for i in range(props.treeSettings.branchClusters)],
+        "reducedCurveStepFactorList": [props.branchClusterSettingsList[i].reducedCurveStepFactor for i in range(props.treeSettings.branchClusters)],
         
-        "branchGlobalCurvatureStartList": [props.branchClusterSettingsList[i].branchGlobalCurvatureStart for i in range(props.branchClusters)],
-        "branchGlobalCurvatureEndList": [props.branchClusterSettingsList[i].branchGlobalCurvatureEnd for i in range(props.branchClusters)],
-        "branchCurvatureStartList": [props.branchClusterSettingsList[i].branchCurvatureStart for i in range(props.branchClusters)],
-        "branchCurvatureEndList": [props.branchClusterSettingsList[i].branchCurvatureEnd for i in range(props.branchClusters)],
-        "branchCurvatureOffsetStrengthList": [props.branchClusterSettingsList[i].branchCurvatureOffsetStrength for i in     range(props.branchClusters)],
+        "branchGlobalCurvatureStartList": [props.branchClusterSettingsList[i].branchGlobalCurvatureStart for i in range(props.treeSettings.branchClusters)],
+        "branchGlobalCurvatureEndList": [props.branchClusterSettingsList[i].branchGlobalCurvatureEnd for i in range(props.treeSettings.branchClusters)],
+        "branchCurvatureStartList": [props.branchClusterSettingsList[i].branchCurvatureStart for i in range(props.treeSettings.branchClusters)],
+        "branchCurvatureEndList": [props.branchClusterSettingsList[i].branchCurvatureEnd for i in range(props.treeSettings.branchClusters)],
+        "branchCurvatureOffsetStrengthList": [props.branchClusterSettingsList[i].branchCurvatureOffsetStrength for i in     range(props.treeSettings.branchClusters)],
         
-        "showSplitSettingsList": [props.branchClusterSettingsList[i].showSplitSettings for i in range(props.branchClusters)],
+        "showSplitSettingsList": [props.branchClusterSettingsList[i].showSplitSettings for i in range(props.treeSettings.branchClusters)],
         
-        "nrSplitsPerBranchList": [props.branchClusterSettingsList[i].nrSplitsPerBranch for i in range(props.branchClusters)],
-        "branchSplitModeList": [props.branchClusterSettingsList[i].branchSplitMode.value for i in range(props.branchClusters)],
-        "branchSplitRotateAngleList": [props.branchClusterSettingsList[i].branchSplitRotateAngle for i in range(props.branchClusters)],
-        "branchSplitAxisVariationList": [props.branchClusterSettingsList[i].branchSplitAxisVariation for i in range(props.branchClusters)],
+        "nrSplitsPerBranchList": [props.branchClusterSettingsList[i].nrSplitsPerBranch for i in range(props.treeSettings.branchClusters)],
+        "branchSplitModeList": [props.branchClusterSettingsList[i].branchSplitMode.value for i in range(props.treeSettings.branchClusters)],
+        "branchSplitRotateAngleList": [props.branchClusterSettingsList[i].branchSplitRotateAngle for i in range(props.treeSettings.branchClusters)],
+        "branchSplitAxisVariationList": [props.branchClusterSettingsList[i].branchSplitAxisVariation for i in range(props.treeSettings.branchClusters)],
         
-        "branchSplitAngleList": [props.branchClusterSettingsList[i].branchSplitAngle for i in range(props.branchClusters)],
-        "branchSplitPointAngleList": [props.branchClusterSettingsList[i].branchSplitPointAngle for i in range(props.branchClusters)],
+        "branchSplitAngleList": [props.branchClusterSettingsList[i].branchSplitAngle for i in range(props.treeSettings.branchClusters)],
+        "branchSplitPointAngleList": [props.branchClusterSettingsList[i].branchSplitPointAngle for i in range(props.treeSettings.branchClusters)],
         
-        "splitsPerBranchVariationList": [props.branchClusterSettingsList[i].splitsPerBranchVariation for i in range(props.branchClusters)],
-        "branchVarianceList": [props.branchClusterSettingsList[i].branchVariance for i in range(props.branchClusters)],
-        "outwardAttractionList": [props.branchClusterSettingsList[i].outwardAttraction for i in range(props.branchClusters)],
-        "branchSplitHeightVariationList": [props.branchClusterSettingsList[i].branchSplitHeightVariation for i in range(props.branchClusters)],
-        "branchSplitLengthVariationList": [props.branchClusterSettingsList[i].branchSplitLengthVariation for i in range(props.branchClusters)],
+        "splitsPerBranchVariationList": [props.branchClusterSettingsList[i].splitsPerBranchVariation for i in range(props.treeSettings.branchClusters)],
+        "branchVarianceList": [props.branchClusterSettingsList[i].branchVariance for i in range(props.treeSettings.branchClusters)],
+        "outwardAttractionList": [props.branchClusterSettingsList[i].outwardAttraction for i in range(props.treeSettings.branchClusters)],
+        "branchSplitHeightVariationList": [props.branchClusterSettingsList[i].branchSplitHeightVariation for i in range(props.treeSettings.branchClusters)],
+        "branchSplitLengthVariationList": [props.branchClusterSettingsList[i].branchSplitLengthVariation for i in range(props.treeSettings.branchClusters)],
         
-        "showBranchSplitHeights": [props.branchClusterSettingsList[i].showBranchSplitHeights for i in range(props.branchClusters)],
+        "showBranchSplitHeights": [props.branchClusterSettingsList[i].showBranchSplitHeights for i in range(props.treeSettings.branchClusters)],
         
         "branchSplitHeightInLevelListIndex": props.treeSettings.branchSplitHeightInLevelListIndex,
         #------
@@ -5888,27 +5896,27 @@ def save_properties(filePath, treeGen):
         
         "branchSplitHeightInLevelListList": nestedBranchSplitHeightInLevelList,
         
-        "showLeafSettings": [props.leafClusterSettingsList[i].showLeafSettings for i in range(props.leafClusters)],
+        "showLeafSettings": [props.leafClusterSettingsList[i].showLeafSettings for i in range(props.treeSettings.leafClusters)],
         #------------
-        "leavesDensityList": [props.leafClusterSettingsList[i].leavesDensity for i in range(props.leafClusters)],
-        "leafSizeList": [props.leafClusterSettingsList[i].leafSize for i in range(props.leafClusters)],
-        "leafAspectRatioList": [props.leafClusterSettingsList[i].leafAspectRatio for i in range(props.leafClusters)],
-        "leafStartHeightGlobalList": [props.leafClusterSettingsList[i].leafStartHeightGlobal for i in range(props.leafClusters)],
-        "leafEndHeightGlobalList": [props.leafClusterSettingsList[i].leafEndHeightGlobal for i in range(props.leafClusters)],
-        "leafStartHeightClusterList": [props.leafClusterSettingsList[i].leafStartHeightCluster for i in range(props.leafClusters)],
-        "leafEndHeightClusterList": [props.leafClusterSettingsList[i].leafEndHeightCluster for i in range(props.leafClusters)],
-        "leafTypeList": [props.leafClusterSettingsList[i].leafType.value for i in range(props.leafClusters)],
-        "leafWhorlCountList": [props.leafClusterSettingsList[i].leafWhorlCount for i in range(props.leafClusters)],
-        "leafAngleModeList": [props.leafClusterSettingsList[i].leafAngleMode.value for i in range(props.leafClusters)],
+        "leavesDensityList": [props.leafClusterSettingsList[i].leavesDensity for i in range(props.treeSettings.leafClusters)],
+        "leafSizeList": [props.leafClusterSettingsList[i].leafSize for i in range(props.treeSettings.leafClusters)],
+        "leafAspectRatioList": [props.leafClusterSettingsList[i].leafAspectRatio for i in range(props.treeSettings.leafClusters)],
+        "leafStartHeightGlobalList": [props.leafClusterSettingsList[i].leafStartHeightGlobal for i in range(props.treeSettings.leafClusters)],
+        "leafEndHeightGlobalList": [props.leafClusterSettingsList[i].leafEndHeightGlobal for i in range(props.treeSettings.leafClusters)],
+        "leafStartHeightClusterList": [props.leafClusterSettingsList[i].leafStartHeightCluster for i in range(props.treeSettings.leafClusters)],
+        "leafEndHeightClusterList": [props.leafClusterSettingsList[i].leafEndHeightCluster for i in range(props.treeSettings.leafClusters)],
+        "leafTypeList": [props.leafClusterSettingsList[i].leafType.value for i in range(props.treeSettings.leafClusters)],
+        "leafWhorlCountList": [props.leafClusterSettingsList[i].leafWhorlCount for i in range(props.treeSettings.leafClusters)],
+        "leafAngleModeList": [props.leafClusterSettingsList[i].leafAngleMode.value for i in range(props.treeSettings.leafClusters)],
         
-        "leafVerticalAngleBranchStartList": [props.leafClusterSettingsList[i].leafVerticalAngleBranchStart for i in range(props.leafClusters)],
-        "leafVerticalAngleBranchEndList": [props.leafClusterSettingsList[i].leafVerticalAngleBranchEnd for i in range(props.leafClusters)],
-        "leafRotateAngleBranchStartList": [props.leafClusterSettingsList[i].leafRotateAngleBranchStart for i in range(props.leafClusters)],
-        "leafRotateAngleBranchEndList": [props.leafClusterSettingsList[i].leafRotateAngleBranchEnd for i in range(props.leafClusters)],
-        "leafTiltAngleBranchStartList": [props.leafClusterSettingsList[i].leafTiltAngleBranchStart for i in range(props.leafClusters)],
-        "leafTiltAngleBranchEndList": [props.leafClusterSettingsList[i].leafTiltAngleBranchEnd for i in range(props.leafClusters)],
+        "leafVerticalAngleBranchStartList": [props.leafClusterSettingsList[i].leafVerticalAngleBranchStart for i in range(props.treeSettings.leafClusters)],
+        "leafVerticalAngleBranchEndList": [props.leafClusterSettingsList[i].leafVerticalAngleBranchEnd for i in range(props.treeSettings.leafClusters)],
+        "leafRotateAngleBranchStartList": [props.leafClusterSettingsList[i].leafRotateAngleBranchStart for i in range(props.treeSettings.leafClusters)],
+        "leafRotateAngleBranchEndList": [props.leafClusterSettingsList[i].leafRotateAngleBranchEnd for i in range(props.treeSettings.leafClusters)],
+        "leafTiltAngleBranchStartList": [props.leafClusterSettingsList[i].leafTiltAngleBranchStart for i in range(props.treeSettings.leafClusters)],
+        "leafTiltAngleBranchEndList": [props.leafClusterSettingsList[i].leafTiltAngleBranchEnd for i in range(props.treeSettings.leafClusters)],
         
-        "showLeafClusterList": [props.leafParentClusterBoolListList[i].show_leaf_cluster for  i in range(len(props.leafParentClusterBoolListList))],
+        "showLeafClusterList": [props.treeSettings.leafParentClusterBoolListList[i].show_leaf_cluster for  i in range(len(props.treeSettings.leafParentClusterBoolListList))],
         "leafParentClusterBoolListList": nestedLeafList
     }
 
@@ -5917,7 +5925,7 @@ def save_properties(filePath, treeGen):
 
 
 def draw_leaf_cluster_bools(layout, scene, cluster_index, leafParentClusterBool):
-    boolListItem = scene.leafParentClusterBoolListList[cluster_index].value
+    boolListItem = scene.treeSettings.leafParentClusterBoolListList[cluster_index].value
     
     row = layout.row()
     row.prop(leafParentClusterBool, "show_leaf_cluster", icon="TRIA_DOWN" if leafParentClusterBool.show_leaf_cluster else "TRIA_RIGHT", emboss=False, text="Parent clusters", toggle=True)
@@ -5939,7 +5947,7 @@ def draw_leaf_cluster_bools(layout, scene, cluster_index, leafParentClusterBool)
             
             
 def draw_parent_cluster_bools(layout, scene, cluster_index):
-    boolListItem = scene.parentClusterBoolListList[cluster_index].value
+    boolListItem = scene.treeSettings.parentClusterBoolListList[cluster_index].value
     
     boolCount = 0
     for j, boolItem in enumerate(boolListItem):
@@ -5968,7 +5976,7 @@ class toggleBool(bpy.types.Operator):
     bool_index: bpy.props.IntProperty()
     
     def execute(self, context):
-        boolList = context.scene.parentClusterBoolListList[self.list_index].value
+        boolList = context.scene.treeSettings.parentClusterBoolListList[self.list_index].value
         boolItem = boolList[self.bool_index]
         boolItem.value = not boolItem.value
         
@@ -5986,7 +5994,7 @@ class toggleLeafBool(bpy.types.Operator):
     bool_index: bpy.props.IntProperty()
     
     def execute(self, context):
-        boolList = context.scene.leafParentClusterBoolListList[self.list_index].value
+        boolList = context.scene.treeSettings.leafParentClusterBoolListList[self.list_index].value
         boolItem = boolList[self.bool_index]
         boolItem.value = not boolItem.value
         
@@ -6012,7 +6020,7 @@ class addItem(bpy.types.Operator): # add branch cluster
         context.scene.treeSettings.branchClusters += 1
         branchSettings = context.scene.branchClusterSettingsList.add()
         
-        parentClusterBoolListList = context.scene.parentClusterBoolListList.add()
+        parentClusterBoolListList = context.scene.treeSettings.parentClusterBoolListList.add()
         for b in range(0, context.scene.treeSettings.branchClusters):
             parentClusterBoolListList.value.add()
         parentClusterBoolListList.value[0].value = True
@@ -6028,7 +6036,7 @@ class addItem(bpy.types.Operator): # add branch cluster
         taperFactorItem = context.scene.taperFactorList.add()
         taperFactorItem.taperFactor = 1.0
         
-        for leafParentClusterList in context.scene.leafParentClusterBoolListList:
+        for leafParentClusterList in context.scene.treeSettings.leafParentClusterBoolListList:
             leafParentClusterList.value.add()
         
         return {'FINISHED'}
@@ -6041,13 +6049,25 @@ class removeItem(bpy.types.Operator):
         if len(context.scene.branchClusterSettingsList) > 0:
             context.scene.treeSettings.branchClusters -= 1
             context.scene.branchClusterSettingsList.remove(len(context.scene.branchClusterSettingsList) - 1)
-            
-        if len(context.scene.parentClusterBoolListList) > 0:
-            listToClear = context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value
+        
+        #TEMP
+        #context.scene.treeSettings.branchClusters = 0
+        #while len(context.scene.treeSettings.parentClusterBoolListList) > 0:
+        #    self.report({'INFO'}, "removing item")
+        #    listItem = context.scene.treeSettings.parentClusterBoolListList[0].value
+        #    while len(listItem) > 0:
+        #        listItem.remove(len(listItem) - 1)
+        #        self.report({'INFO'}, "removing list item")
+        #    context.scene.treeSettings.parentClusterBoolListList.remove(len(context.scene.treeSettings.parentClusterBoolListList) - 1)
+        
+        if len(context.scene.treeSettings.parentClusterBoolListList) > 0:
+            listToClear = context.scene.treeSettings.parentClusterBoolListList[len(context.scene.treeSettings.parentClusterBoolListList) - 1].value
             lenToClear = len(listToClear)
+            
             for i in range(0, lenToClear):
-                context.scene.parentClusterBoolListList[len(context.scene.parentClusterBoolListList) - 1].value.remove(len(context.scene.parentClusterBoolListList[i].value) - 1)
-            context.scene.parentClusterBoolListList.remove(len(context.scene.parentClusterBoolListList) - 1)
+                listToClear.remove(len(listToClear) - 1)
+                
+            context.scene.treeSettings.parentClusterBoolListList.remove(len(context.scene.treeSettings.parentClusterBoolListList) - 1)
             
         if len(context.scene.branchSplitHeightInLevelListList) > 0 and context.scene.treeSettings.branchClusters > 5:
             context.scene.branchSplitHeightInLevelListList.remove(len(context.scene.branchSplitHeightInLevelListList) - 1)
@@ -6055,7 +6075,7 @@ class removeItem(bpy.types.Operator):
         if len(context.scene.taperFactorList) > 0:
             context.scene.taperFactorList.remove(len(context.scene.taperFactorList) - 1)
           
-        for leafParentClusterList in context.scene.leafParentClusterBoolListList:
+        for leafParentClusterList in context.scene.treeSettings.leafParentClusterBoolListList:
             if len(leafParentClusterList.value) > 1:
                 leafParentClusterList.value.remove(len(leafParentClusterList.value) - 1)
                 
@@ -6073,15 +6093,15 @@ class addLeafItem(bpy.types.Operator):
     bl_idname = "scene.add_leaf_item"
     bl_label = "Add Item"
     def execute(self, context):
-        context.scene.leafClusters += 1
+        context.scene.treeSettings.leafClusters += 1
         context.scene.leafClusterSettingsList.add()
         
-        leafParentClusterBoolListList = context.scene.leafParentClusterBoolListList.add()
-        stemBool = context.scene.leafParentClusterBoolListList[len(context.scene.leafParentClusterBoolListList) - 1].value.add()
+        leafParentClusterBoolListList = context.scene.treeSettings.leafParentClusterBoolListList.add()
+        stemBool = context.scene.treeSettings.leafParentClusterBoolListList[len(context.scene.treeSettings.leafParentClusterBoolListList) - 1].value.add()
         stemBool = True
                 
         for b in range(0, len(context.scene.branchClusterSettingsList)):
-            context.scene.leafParentClusterBoolListList[len(context.scene.leafParentClusterBoolListList) - 1].value.add()
+            context.scene.treeSettings.leafParentClusterBoolListList[len(context.scene.treeSettings.leafParentClusterBoolListList) - 1].value.add()
         
         leafParentClusterBoolListList.value[0].value = True
         return {'FINISHED'}
@@ -6091,12 +6111,12 @@ class removeLeafItem(bpy.types.Operator):
     bl_label = "Remove Item"
     index: bpy.props.IntProperty()
     def execute(self, context):
-        if context.scene.leafClusters > 0:
-            context.scene.leafClusters -= 1
+        if context.scene.treeSettings.leafClusters > 0:
+            context.scene.treeSettings.leafClusters -= 1
         if len(context.scene.leafClusterSettingsList) > 0:
             context.scene.leafClusterSettingsList.remove(len(context.scene.leafClusterSettingsList) - 1)
-        if len(context.scene.leafParentClusterBoolListList) > 0:
-            context.scene.leafParentClusterBoolListList.remove(len(context.scene.leafParentClusterBoolListList) - 1)
+        if len(context.scene.treeSettings.leafParentClusterBoolListList) > 0:
+            context.scene.treeSettings.leafParentClusterBoolListList.remove(len(context.scene.treeSettings.leafParentClusterBoolListList) - 1)
        
         return {'FINISHED'}
 
@@ -6191,7 +6211,7 @@ class leafSettings(bpy.types.Panel):
                 split.prop(scene.leafClusterSettingsList[i], "leafTiltAngleBranchEnd", text="")
                 
                 box1 = box.box()
-                draw_leaf_cluster_bools(box1, scene, i, scene.leafParentClusterBoolListList[i])
+                draw_leaf_cluster_bools(box1, scene, i, scene.treeSettings.leafParentClusterBoolListList[i])
 
 
         
@@ -6307,7 +6327,7 @@ def register():
     bpy.types.Scene.file_name = bpy.props.StringProperty(name="File Name", default="")
         
     bpy.types.Scene.parentClusterBoolList = bpy.props.CollectionProperty(type=boolProp)
-    bpy.types.Scene.parentClusterBoolListList = bpy.props.CollectionProperty(type=parentClusterBoolListProp)
+    #bpy.types.Scene.parentClusterBoolListList = bpy.props.CollectionProperty(type=parentClusterBoolListProp)
     bpy.types.Scene.branchClusterBoolListList = bpy.props.CollectionProperty(type=branchClusterBoolListProp)
     bpy.types.Scene.nrBranchesListIndex = bpy.props.IntProperty(default=0)
     bpy.types.Scene.taperFactorList = bpy.props.CollectionProperty(type=posFloatPropSoftMax1)
@@ -6324,7 +6344,7 @@ def register():
     
     bpy.types.Scene.maxSplitHeightUsed = bpy.props.IntProperty(default = 0)
     
-    bpy.types.Scene.leafParentClusterBoolListList = bpy.props.CollectionProperty(type=leafParentClusterBoolListProp)
+    #bpy.types.Scene.leafParentClusterBoolListList = bpy.props.CollectionProperty(type=leafParentClusterBoolListProp)
             
     bpy.types.Scene.treeSettings = bpy.props.PointerProperty(type=treeSettings)
     
@@ -6662,58 +6682,17 @@ def unregister():
     del bpy.types.Scene.folder_path
     del bpy.types.Scene.treePreset
     del bpy.types.Scene.parentClusterBoolList
-    del bpy.types.Scene.parentClusterBoolListList
+    #del bpy.types.Scene.parentClusterBoolListList
     del bpy.types.Scene.branchClusterBoolListList
     del bpy.types.Scene.nrBranchesListIndex
     del bpy.types.Scene.taperFactorList
     del bpy.types.Scene.branchSplitHeightInLevelListList
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex
-#    del bpy.types.Scene.branchSplitHeightInLevelList_0
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_0
-#    del bpy.types.Scene.branchSplitHeightInLevelList_1
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_1
-#    del bpy.types.Scene.branchSplitHeightInLevelList_2
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_2
-#    del bpy.types.Scene.branchSplitHeightInLevelList_3
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_3
-#    del bpy.types.Scene.branchSplitHeightInLevelList_4
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_4
-#    del bpy.types.Scene.branchSplitHeightInLevelList_5
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_5
-#    del bpy.types.Scene.branchSplitHeightInLevelList_6
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_6
-#    del bpy.types.Scene.branchSplitHeightInLevelList_7
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_7
-#    del bpy.types.Scene.branchSplitHeightInLevelList_8
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_8
-#    del bpy.types.Scene.branchSplitHeightInLevelList_9
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_9
-#    del bpy.types.Scene.branchSplitHeightInLevelList_10
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_10
-#    del bpy.types.Scene.branchSplitHeightInLevelList_11
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_11
-#    del bpy.types.Scene.branchSplitHeightInLevelList_12
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_12
-#    del bpy.types.Scene.branchSplitHeightInLevelList_13
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_13
-#    del bpy.types.Scene.branchSplitHeightInLevelList_14
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_14
-#    del bpy.types.Scene.branchSplitHeightInLevelList_15
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_15
-#    del bpy.types.Scene.branchSplitHeightInLevelList_16
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_16
-#    del bpy.types.Scene.branchSplitHeightInLevelList_17
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_17
-#    del bpy.types.Scene.branchSplitHeightInLevelList_18
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_18
-#    del bpy.types.Scene.branchSplitHeightInLevelList_19
-#    del bpy.types.Scene.branchSplitHeightInLevelListIndex_19
     del bpy.types.Scene.leafClusterSettingsList
     del bpy.types.Scene.leavesDensityListIndex
     del bpy.types.Scene.bark_material
     del bpy.types.Scene.leaf_material
     del bpy.types.Scene.maxSplitHeightUsed
-    del bpy.types.Scene.leafParentClusterBoolListList
+    #del bpy.types.Scene.leafParentClusterBoolListList
 #    del bpy.types.Scene.treeHeight
 #    del bpy.types.Scene.taper
 #    del bpy.types.Scene.branchTipRadius
