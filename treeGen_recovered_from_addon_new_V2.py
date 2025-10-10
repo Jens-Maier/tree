@@ -6425,6 +6425,7 @@ def register():
                 
     bpy.types.Scene.treeSettings = bpy.props.PointerProperty(type=treeSettings)
     
+    ensure_stem_curve_node()
     bpy.ops.scene.init_button()
     
     
