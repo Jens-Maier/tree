@@ -480,7 +480,8 @@ class node():
         prevNode = None, 
         firstVertical = True
     ):
-                
+        treeGen.report({'INFO'}, f"in applyCurvature: clusterIndex: {self.clusterIndex}, curvatureStartBranch: {curvatureStartBranch}")
+        treeGen.report({'INFO'}, f"in applyCurvature: clusterIndex: {self.clusterIndex}, curvatureEndBranch: {curvatureEndBranch}")
         if rotationSteps is None:
             rotationSteps = []
                 
@@ -507,17 +508,18 @@ class node():
         branchCurvature = lerp(curvatureStartBranch, curvatureEndBranch, self.tValBranch)
         
         curvature = globalCurvature + branchCurvature
+        treeGen.report({'INFO'}, f"self.tValBranch: {self.tValBranch}, interpolated curvature: {curvature}")
                 
         for step in rotationSteps:
-            self.point = step.rotationPoint + Quaternion(step.curveAxis, math.radians(step.curvature)) @ (self.point - step.rotationPoint)
+            self.point = step.rotationPoint + Quaternion(step.curveAxis, step.curvature) @ (self.point - step.rotationPoint)
             if step.isLast == False:
                 for tangentIndex in range(0, len(self.tangent)):
-                    self.tangent[tangentIndex] = Quaternion(step.curveAxis, math.radians(step.curvature)) @ self.tangent[tangentIndex]
-                self.cotangent = Quaternion(step.curveAxis, math.radians(step.curvature)) @ self.cotangent
+                    self.tangent[tangentIndex] = Quaternion(step.curveAxis, step.curvature) @ self.tangent[tangentIndex]
+                self.cotangent = Quaternion(step.curveAxis, step.curvature) @ self.cotangent
             else:
                 for tangentIndex in range(0, len(self.tangent)):
-                    self.tangent[tangentIndex] = Quaternion(step.curveAxis, math.radians(step.curvature / 1.0)) @ self.tangent[tangentIndex]
-                    self.cotangent = Quaternion(step.curveAxis, math.radians(step.curvature / 1.0)) @ self.cotangent
+                    self.tangent[tangentIndex] = Quaternion(step.curveAxis, step.curvature / 1.0) @ self.tangent[tangentIndex]
+                    self.cotangent = Quaternion(step.curveAxis, step.curvature / 1.0) @ self.cotangent
             
         if len(rotationSteps) > 0:
             rotationSteps[len(rotationSteps) - 1].isLast = False
@@ -527,10 +529,12 @@ class node():
             if len(self.next[0].next) == 0:
                 isLast = True
                 
+            sectionLength = (self.next[0].point - self.point).length
+            
             if Vector((self.tangent[0].x, self.tangent[0].y, 0.0)).dot(Vector((self.next[0].tangent[0].x, self.next[0].tangent[0].y, 0.0))) < reducedCurveStepCutoff:
-                rotationSteps.append(rotationStep(self.point, curvature * reducedCurveStepFactor, curveAxis, isLast))
+                rotationSteps.append(rotationStep(self.point, curvature * sectionLength * reducedCurveStepFactor, curveAxis, isLast))
             else:
-                rotationSteps.append(rotationStep(self.point, curvature, curveAxis, isLast))
+                rotationSteps.append(rotationStep(self.point, curvature * sectionLength, curveAxis, isLast))
         
         
         for n in self.next:
@@ -696,9 +700,9 @@ class generateTree(bpy.types.Operator):
             nodes[1].cotangent = Vector((1.0,0.0,0.0))
             nodes[0].next.append(nodes[1])
             nodes[0].outwardDir.append(nodes[0].cotangent)
-            nodes[0].rotateAngleRange.append(180.0)
+            nodes[0].rotateAngleRange.append(math.pi)
             nodes[1].outwardDir.append(nodes[0].cotangent)
-            nodes[1].rotateAngleRange.append(180.0)
+            nodes[1].rotateAngleRange.append(math.pi)
             
             if context.scene.treeSettings.nrSplits > 0:
                 maxSplitHeightUsed = splitRecursive(nodes[0], 
@@ -2462,15 +2466,15 @@ def calculateSplitData(splitNode,
 
     elif sMode == "ROTATE_ANGLE":
         splitAxis = splitNode.cotangent.normalized()
-        splitAxis = (Quaternion(splitNode.tangent[0], math.radians(rotationAngle) * level) @ splitAxis).normalized()
+        splitAxis = (Quaternion(splitNode.tangent[0], rotationAngle * level) @ splitAxis).normalized()
     else:
         self.report({'INFO'}, f"ERROR: invalid splitMode: {sMode}")
         splitAxis = splitNode.cotangent.normalized()
         if level % 2 == 1:
             splitAxis = (Quaternion(splitNode.tangent[0], math.radians(90)) @ splitAxis).normalized()
 
-    splitDirA = (Quaternion(splitAxis, math.radians(splitPointAngle)) @ splitNode.tangent[0]).normalized()
-    splitDirB = (Quaternion(splitAxis, -math.radians(splitPointAngle)) @ splitNode.tangent[0]).normalized()
+    splitDirA = (Quaternion(splitAxis, splitPointAngle) @ splitNode.tangent[0]).normalized()
+    splitDirB = (Quaternion(splitAxis, -splitPointAngle) @ splitNode.tangent[0]).normalized()
 
     splitNode.tangent.append(splitDirA)
     splitNode.tangent.append(splitDirB)
@@ -2486,14 +2490,14 @@ def calculateSplitData(splitNode,
         rel_pos = s.point - splitNode.point
         s.outwardDir = outwardDir
 
-        tangent_a = (Quaternion(splitAxis, math.radians(splitAngle)) @ s.tangent[0]).normalized()
-        tangent_b = (Quaternion(splitAxis, -math.radians(splitAngle)) @ s.tangent[0]).normalized()
-        cotangent_a = (Quaternion(splitAxis, math.radians(splitAngle)) @ s.cotangent).normalized()
-        cotangent_b = (Quaternion(splitAxis, -math.radians(splitAngle)) @ s.cotangent).normalized()
+        tangent_a = (Quaternion(splitAxis, splitAngle) @ s.tangent[0]).normalized()
+        tangent_b = (Quaternion(splitAxis, -splitAngle) @ s.tangent[0]).normalized()
+        cotangent_a = (Quaternion(splitAxis, splitAngle) @ s.cotangent).normalized()
+        cotangent_b = (Quaternion(splitAxis, -splitAngle) @ s.cotangent).normalized()
 
-        offset_a = (Quaternion(splitAxis, math.radians(splitAngle)) @ rel_pos)
+        offset_a = (Quaternion(splitAxis, splitAngle) @ rel_pos)
         offset_a = offset_a * (1.0 + random.uniform(-1.0, 1.0) * splitLengthVariation)
-        offset_b = (Quaternion(splitAxis, -math.radians(splitAngle)) @ rel_pos)
+        offset_b = (Quaternion(splitAxis, -splitAngle) @ rel_pos)
         offset_b = offset_b * (1.0 + random.uniform(-1.0, 1.0) * splitLengthVariation)
         
         ring_resolution = stemRingResolution
@@ -2717,7 +2721,7 @@ def addLeaves(self, treeGen, rootNode,
                 tiltAngle = lerp(leafClusterSettingsList[leafClusterIndex].leafTiltAngleBranchStart, leafClusterSettingsList[leafClusterIndex].leafTiltAngleBranchEnd, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
     
                 offset = 0.0
-                factor = math.cos(math.radians(verticalAngle))
+                factor = math.cos(verticalAngle)
                 offset = startPointRadius
                                 
                 right = startPointTangent.cross(Vector((0.0,0.0,1.0)))
@@ -2727,26 +2731,26 @@ def addLeaves(self, treeGen, rootNode,
                     #vertical
                     right = data.outwardDir
                     
-                leafTangent = Quaternion(right, math.radians(verticalAngle)) @ startPointTangent
+                leafTangent = Quaternion(right, verticalAngle) @ startPointTangent
                 leafCotangent = right
                 
                 if leafClusterSettingsList[leafClusterIndex].leafType.value == "SINGLE":
                     if leafClusterSettingsList[leafClusterIndex].leafAngleMode.value == "ALTERNATING":
                         axis = right.cross(startPointTangent)
                         if leafIndex % 2 == 0:
-                            leafTangent = Quaternion(axis, math.radians(rotateAngle)) @ leafTangent
-                            leafCotangent = Quaternion(axis, math.radians(rotateAngle)) @ leafCotangent
-                            leafCotangent = Quaternion(leafTangent, math.radians(tiltAngle)) @ leafCotangent
+                            leafTangent = Quaternion(axis, rotateAngle) @ leafTangent
+                            leafCotangent = Quaternion(axis, rotateAngle) @ leafCotangent
+                            leafCotangent = Quaternion(leafTangent, tiltAngle) @ leafCotangent
                         else:
-                            leafTangent = Quaternion(axis, math.radians(-rotateAngle)) @ leafTangent
-                            leafCotangent = Quaternion(axis, math.radians(-rotateAngle)) @ leafCotangent
-                            leafCotangent = Quaternion(leafTangent, math.radians(-tiltAngle)) @ leafCotangent
+                            leafTangent = Quaternion(axis, -rotateAngle) @ leafTangent
+                            leafCotangent = Quaternion(axis, -rotateAngle) @ leafCotangent
+                            leafCotangent = Quaternion(leafTangent, -tiltAngle) @ leafCotangent
                     
                     if leafClusterSettingsList[leafClusterIndex].leafAngleMode.value == "WINDING":
                         axis = startPointTangent
-                        leafTangent = Quaternion(axis, math.radians(windingAngle)) @ leafTangent
-                        leafCotangent = Quaternion(axis, math.radians(windingAngle)) @ leafCotangent
-                        leafCotangent = Quaternion(leafTangent, math.radians(-tiltAngle) * math.sin(math.radians(windingAngle))) @ leafCotangent
+                        leafTangent = Quaternion(axis, windingAngle) @ leafTangent
+                        leafCotangent = Quaternion(axis, windingAngle) @ leafCotangent
+                        leafCotangent = Quaternion(leafTangent, -tiltAngle * math.sin(windingAngle)) @ leafCotangent
                     
                     leafVertices.append(startPoint - leafCotangent *  leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + leafTangent * offset)
                     leafVertices.append(startPoint - leafCotangent *  leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + leafTangent   * (leafClusterSettingsList[leafClusterIndex].leafSize + offset))
@@ -2763,24 +2767,24 @@ def addLeaves(self, treeGen, rootNode,
                     if leafClusterSettingsList[leafClusterIndex].leafAngleMode.value == "ALTERNATING":
                         axis = right.cross(startPointTangent)
                         
-                        leafTangentA = Quaternion(axis, math.radians(rotateAngle)) @ leafTangent
-                        leafCotangentA = Quaternion(axis, math.radians(rotateAngle)) @ leafCotangent
-                        leafCotangentA = Quaternion(leafTangent, math.radians(tiltAngle)) @ leafCotangentA
+                        leafTangentA = Quaternion(axis, rotateAngle) @ leafTangent
+                        leafCotangentA = Quaternion(axis, rotateAngle) @ leafCotangent
+                        leafCotangentA = Quaternion(leafTangent, tiltAngle) @ leafCotangentA
                         
-                        leafTangentB = Quaternion(axis, math.radians(-rotateAngle)) @ leafTangent
-                        leafCotangentB = Quaternion(axis, math.radians(-rotateAngle)) @ leafCotangent
-                        leafCotangentB = Quaternion(leafTangent, math.radians(-tiltAngle)) @ leafCotangentB
+                        leafTangentB = Quaternion(axis, -rotateAngle) @ leafTangent
+                        leafCotangentB = Quaternion(axis, -rotateAngle) @ leafCotangent
+                        leafCotangentB = Quaternion(leafTangent, -tiltAngle) @ leafCotangentB
                     
                     if leafClusterSettingsList[leafClusterIndex].leafAngleMode.value == "WINDING":
                         axis = startPointTangent
                         
-                        leafTangentA = Quaternion(axis, math.radians(windingAngle)) @ leafTangent
-                        leafCotangentA = Quaternion(axis, math.radians(windingAngle)) @ leafCotangent
-                        leafCotangentA = Quaternion(leafTangentA, math.radians(tiltAngle) * math.sin(math.radians(windingAngle))) @ leafCotangentA
+                        leafTangentA = Quaternion(axis, windingAngle) @ leafTangent
+                        leafCotangentA = Quaternion(axis, windingAngle) @ leafCotangent
+                        leafCotangentA = Quaternion(leafTangentA, tiltAngle * math.sin(windingAngle)) @ leafCotangentA
                         
                         leafTangentB = Quaternion(axis, math.radians(180)) @ leafTangentA
                         leafCotangentB = Quaternion(axis, math.radians(180)) @ leafCotangentA
-                        leafCotangentB = Quaternion(leafTangentB, math.radians(tiltAngle) * math.sin(math.radians(windingAngle + 180))) @ leafCotangentB
+                        leafCotangentB = Quaternion(leafTangentB, tiltAngle * math.sin(windingAngle + math.radians(180))) @ leafCotangentB
                         
                     leafVertices.append(startPoint - leafCotangentA * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + leafTangentA * offset)
                     leafVertices.append(startPoint - leafCotangentA * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + leafTangentA * (leafClusterSettingsList[leafClusterIndex].leafSize + offset))
@@ -2807,12 +2811,12 @@ def addLeaves(self, treeGen, rootNode,
                     
                 if leafClusterSettingsList[leafClusterIndex].leafType.value == "WHORLED":
                     axis = startPointTangent
-                    whorlAngle = 360.0 / leafClusterSettingsList[leafClusterIndex].leafWhorlCount
+                    whorlAngle = 2.0 * math.pi / leafClusterSettingsList[leafClusterIndex].leafWhorlCount
                     
                     for i in range(0, leafClusterSettingsList[leafClusterIndex].leafWhorlCount):
-                        whorledLeafTangent = Quaternion(axis, math.radians(windingAngle + i * whorlAngle)) @ leafTangent
-                        whorledLeafCotangent = Quaternion(axis, math.radians(windingAngle + i * whorlAngle)) @ leafCotangent
-                        whorledLeafCotangent = Quaternion(whorledLeafTangent, math.radians(tiltAngle) * math.sin(math.radians(windingAngle + i * whorlAngle))) @ whorledLeafCotangent
+                        whorledLeafTangent = Quaternion(axis, windingAngle + i * whorlAngle) @ leafTangent
+                        whorledLeafCotangent = Quaternion(axis, windingAngle + i * whorlAngle) @ leafCotangent
+                        whorledLeafCotangent = Quaternion(whorledLeafTangent, tiltAngle * math.sin(windingAngle + i * whorlAngle)) @ whorledLeafCotangent
                         
                         leafVertices.append(startPoint - whorledLeafCotangent *  leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + whorledLeafTangent * offset)
                         leafVertices.append(startPoint - whorledLeafCotangent * leafClusterSettingsList[leafClusterIndex].leafSize * leafClusterSettingsList[leafClusterIndex].leafAspectRatio / 2.0 + whorledLeafTangent * (leafClusterSettingsList[leafClusterIndex].leafSize + offset))
@@ -2868,8 +2872,7 @@ def findClosestVectors(treeGen, vectors, target_vector):
     
     def get_angle(v):
         angle = math.atan2(v[1], v[0])
-        angle = math.degrees(angle)
-        return (angle + 360) % 360
+        return (angle + 2.0 * math.pi) % (2.0 * math.pi)
     
     target_angle = get_angle(target_vector)
     
@@ -2884,14 +2887,14 @@ def findClosestVectors(treeGen, vectors, target_vector):
 
         # Calculate clockwise difference
         # This handles the wrap-around from 0 to 360
-        clockwise_diff = (target_angle - vector_angle + 360) % 360
+        clockwise_diff = (target_angle - vector_angle + 2.0 * math.pi) % (2.0 * math.pi)
         if clockwise_diff < min_clockwise_diff and clockwise_diff != 0:
             min_clockwise_diff = clockwise_diff
             closest_clockwise_vector = v
 
         # Calculate anticlockwise difference
         # This also handles the wrap-around
-        anticlockwise_diff = (vector_angle - target_angle + 360) % 360
+        anticlockwise_diff = (vector_angle - target_angle + 2.0 * math.pi) % (2.0 * math.pi)
         if anticlockwise_diff < min_anticlockwise_diff and anticlockwise_diff != 0:
             min_anticlockwise_diff = anticlockwise_diff
             closest_anticlockwise_vector = v
@@ -2910,8 +2913,8 @@ def findClosestVectors(treeGen, vectors, target_vector):
     #treeGen.report({'INFO'}, f"clockwise_angle_range: {clockwise_angle_range}")
     #treeGen.report({'INFO'}, f"anticlockwise_angle_range: {anticlockwise_angle_range}")
     
-    half_closest_clockwise_vector = Quaternion(Vector((0.0,0.0,1.0)), -math.radians(clockwise_angle_range)) @ target_vector
-    half_closest_anticlockwise_vector = Quaternion(Vector((0.0,0.0,1.0)), math.radians(anticlockwise_angle_range)) @ target_vector
+    half_closest_clockwise_vector = Quaternion(Vector((0.0,0.0,1.0)), -clockwise_angle_range) @ target_vector
+    half_closest_anticlockwise_vector = Quaternion(Vector((0.0,0.0,1.0)), anticlockwise_angle_range) @ target_vector
     
     return closest_clockwise_vector, closest_anticlockwise_vector, half_closest_clockwise_vector, half_closest_anticlockwise_vector, clockwise_angle_range, anticlockwise_angle_range
 
@@ -3078,7 +3081,7 @@ noiseGenerator):
                 branchRotateAngle = lerp(branchClusterSettingsList[clusterIndex].rotateAngleBranchStart, branchClusterSettingsList[clusterIndex].rotateAngleBranchEnd, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t)) # tValBranch == 0 !!!
                 
                 if branchClusterSettingsList[clusterIndex].rotateAngleRange == 0.0:
-                    branchClusterSettingsList[clusterIndex].rotateAngleRange = 180.0
+                    branchClusterSettingsList[clusterIndex].rotateAngleRange = math.pi
                     
                 if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "ADAPTIVE":
                     centerDir = data.outwardDir
@@ -3093,8 +3096,8 @@ noiseGenerator):
                         
                     right = startPointData[branchIndex].outwardDir.cross(startPointTangent)
                     axis = -centerDir.cross(startPointTangent)
-                    branchDir = Quaternion(axis, math.radians(verticalAngle)) @ startPointTangent
-                    branchDir = Quaternion(startPointTangent, math.radians(angle)) @ branchDir
+                    branchDir = Quaternion(axis, verticalAngle) @ startPointTangent
+                    branchDir = Quaternion(startPointTangent, angle) @ branchDir
                     
                 if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "WINDING":
                     
@@ -3105,7 +3108,7 @@ noiseGenerator):
                         right = startPointTangent.cross(Vector((1.0,0.0,0.0))).normalized() # -> most likely vertical
                     else:
                         if branchClusterSettingsList[clusterIndex].rotateAngleRange <= 0.0:
-                            branchClusterSettingsList[clusterIndex].rotateAngleRange = 180.0
+                            branchClusterSettingsList[clusterIndex].rotateAngleRange = math.pi
                         angle = windingAngle % branchClusterSettingsList[clusterIndex].rotateAngleRange + branchClusterSettingsList[clusterIndex].rotateAngleOffset - branchClusterSettingsList[clusterIndex].rotateAngleRange / 2.0
                         right = data.outwardDir.cross(startPointTangent)
                         
@@ -3120,11 +3123,11 @@ noiseGenerator):
                             right = right.normalized()
                         
                     axis = right.cross(startPointTangent).normalized()
-                    branchDir = Quaternion(axis, math.radians(-verticalAngle)) @ startPointTangent
-                    branchDir = Quaternion(startPointTangent, math.radians(angle)) @ branchDir
+                    branchDir = Quaternion(axis, -verticalAngle) @ startPointTangent
+                    branchDir = Quaternion(startPointTangent, angle) @ branchDir
                     
                 if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "SYMMETRIC":
-                    centerDir = Quaternion(startPointTangent.cross(data.outwardDir), math.radians(-verticalAngle)) @ data.outwardDir
+                    centerDir = Quaternion(startPointTangent.cross(data.outwardDir), -verticalAngle) @ data.outwardDir
                     centerDirs.append(centerDir)
                     axis = startPointTangent.cross(centerDir).normalized()
                     
@@ -3133,13 +3136,13 @@ noiseGenerator):
                     if branchIndex % 2 == 0:
                         right = startPointTangent.cross(Vector((0.0,0.0,1.0))).normalized()
                         axis = right.cross(startPointTangent).normalized()
-                        branchDir = Quaternion(axis, math.radians(-verticalAngle)) @ startPointTangent
-                        branchDir = Quaternion(startPointTangent, math.radians(-rotateAngle)) @ branchDir
+                        branchDir = Quaternion(axis, -verticalAngle) @ startPointTangent
+                        branchDir = Quaternion(startPointTangent, -rotateAngle) @ branchDir
                     else:
                         right = startPointTangent.cross(Vector((0.0,0.0,1.0))).normalized()
                         axis = right.cross(startPointTangent).normalized()
-                        branchDir = Quaternion(axis, math.radians(verticalAngle)) @ startPointTangent
-                        branchDir = Quaternion(startPointTangent, math.radians(rotateAngle)) @ branchDir
+                        branchDir = Quaternion(axis, verticalAngle) @ startPointTangent
+                        branchDir = Quaternion(startPointTangent, rotateAngle) @ branchDir
                 
                 branchCotangent = Vector((0.0, 0.0, 0.0))            
                 #There is no single continuous function that can generate a vector in R3 that is orthogonal to a given one for all vector inputs. https://en.wikipedia.org/wiki/Hairy_ball_theorem
@@ -3213,9 +3216,9 @@ noiseGenerator):
                     
                     if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "SYMMETRIC":
                         if branchIndex % 2 == 0:
-                            oppositeBranchDir = Quaternion(startPointTangent, 2.0 * math.radians(rotateAngle)) @ oppositeBranchDir
+                            oppositeBranchDir = Quaternion(startPointTangent, 2.0 * rotateAngle) @ oppositeBranchDir
                         else:
-                            oppositeBranchDir = Quaternion(startPointTangent, -2.0 * math.radians(rotateAngle)) @ oppositeBranchDir
+                            oppositeBranchDir = Quaternion(startPointTangent, -2.0 * rotateAngle) @ oppositeBranchDir
                     
                     oppositeBranchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * random.uniform(-1.0, 1.0)) * treeShapeRatioValue * branchShapeRatioValue
                          
@@ -3378,6 +3381,7 @@ noiseGenerator):
         
         for i, branchNode in enumerate(branchNodes):
             
+            treeGen.report({'INFO'}, f"branchCurvatueEnd: {branchClusterSettingsList[clusterIndex].branchCurvatureEnd}")
             branchNode.resampleSpline(rootNode, treeGen, resampleDistance)
             branchNode.applyCurvature(treeGen, 
                                       rootNode, 
@@ -4194,26 +4198,26 @@ class toggleUseTaperCurveOperator(bpy.types.Operator):
  
 
 class treeSettings(bpy.types.PropertyGroup):
-    treeHeight: bpy.props.FloatProperty(name = "Tree height", default = 10.0, min = 0)
+    treeHeight: bpy.props.FloatProperty(name = "Tree height", default = 10.0, min = 0, unit = 'LENGTH')
     taper: bpy.props.FloatProperty(name = "taper", default = 0.1, min = 0, soft_max = 0.5)
-    branchTipRadius:bpy.props.FloatProperty(name = "branch tip radius", default = 0, min = 0, soft_max = 0.1)
-    ringSpacing: bpy.props.FloatProperty(name = "Ring Spacing", default = 0.1, min = 0.001)
+    branchTipRadius:bpy.props.FloatProperty(name = "branch tip radius", default = 0, min = 0, soft_max = 0.1, unit = 'LENGTH')
+    ringSpacing: bpy.props.FloatProperty(name = "Ring Spacing", default = 0.1, min = 0.001, unit = 'LENGTH')
     noiseAmplitudeHorizontal: bpy.props.FloatProperty(name = "Noise Amplitude Horizontal", default = 0.0, min = 0.0)
     noiseAmplitudeVertical: bpy.props.FloatProperty(name = "Noise Amplitude Vertical", default = 0.0, min = 0.0)
     noiseAmplitudeGradient: bpy.props.FloatProperty(name = "Noise Amplitude Gradient", default = 0.1, min = 0.0)
     noiseAmplitudeExponent: bpy.props.FloatProperty(name = "Noise Amplitude Exponent", default = 1.0, min = 0.0)
     noiseScale: bpy.props.FloatProperty(name = "Noise Scale", default = 1.0, min = 0.0)
     seed: bpy.props.IntProperty(name = "Seed")
-    curvatureStart: bpy.props.FloatProperty(name = "Curvature Start", default = 0.0)
-    curvatureEnd: bpy.props.FloatProperty(name = "Curvature End", default = 0.0)
-    stemSplitRotateAngle: bpy.props.FloatProperty(name = "Stem Split Rotate Angle", default = 0.0, min = 0.0, max = 360.0)
+    curvatureStart: bpy.props.FloatProperty(name = "Curvature Start", default = 0.0, unit = 'ROTATION')
+    curvatureEnd: bpy.props.FloatProperty(name = "Curvature End", default = 0.0, unit = 'ROTATION')
+    stemSplitRotateAngle: bpy.props.FloatProperty(name = "Stem Split Rotate Angle", default = 0.0, min = 0.0, max = 2.0 * math.pi, unit = 'ROTATION')
     variance: bpy.props.FloatProperty(name = "Variance", default = 0.0, min = 0.0, max = 1.0)
     curvOffsetStrength: bpy.props.FloatProperty(name = "Curvature Offset Strength", default = 0.0, min = 0.0)
-    stemSplitAngle: bpy.props.FloatProperty(name = "Stem Split Angle", default = 0.0, min = 0.0, max = 360.0)
+    stemSplitAngle: bpy.props.FloatProperty(name = "Stem Split Angle", default = 0.0, min = 0.0, max = 2.0 * math.pi, unit = 'ROTATION')
     stemSplitHeightInLevelList: bpy.props.CollectionProperty(type=floatProp01)
     stemSplitHeightInLevelListIndex: bpy.props.IntProperty(default = 0, min = 0)
     
-    stemSplitPointAngle: bpy.props.FloatProperty(name = "Stem Split Point Angle", default = 0.0, min = 0.0, max = 360.0)
+    stemSplitPointAngle: bpy.props.FloatProperty(name = "Stem Split Point Angle", default = 0.0, min = 0.0, max = 2.0 * math.pi, unit = 'ROTATION')
     splitHeightVariation: bpy.props.FloatProperty(name = "Split Height Variation", default = 0.0, min = 0.0)
     splitLengthVariation: bpy.props.FloatProperty(name = "Split Length Variation", default = 0.0, min = 0.0)
     treeShape: bpy.props.EnumProperty(
@@ -4234,7 +4238,7 @@ class treeSettings(bpy.types.PropertyGroup):
     )
     
     stemRingResolution: bpy.props.IntProperty(name = "Stem Ring Resolution", default = 16, min = 3)
-    resampleDistance: bpy.props.FloatProperty( name = "Resample Distance", default = 10.0, min = 0.0)
+    resampleDistance: bpy.props.FloatProperty( name = "Resample Distance", default = 10.0, min = 0.0, unit = 'LENGTH')
     nrSplits: bpy.props.IntProperty(name = "Number of Splits", default = 0, min = 0)
     showStemSplitHeights: bpy.props.BoolProperty(name = "Show/hide stem split heights", default = True)
     stemSplitMode: bpy.props.EnumProperty(
@@ -4333,39 +4337,39 @@ class branchClusterSettings(bpy.types.PropertyGroup):
         
     showAngleSettings: bpy.props.BoolProperty(name = "Show/hide angle settings", default=True)
     
-    verticalAngleCrownStart: bpy.props.FloatProperty(name = "Vertical angle crown start", default = 45.0)
-    verticalAngleCrownEnd: bpy.props.FloatProperty(name = "Vertical angle crown end", default = 45.0)
-    verticalAngleBranchStart: bpy.props.FloatProperty(name = "Vertical angle branch start")
-    verticalAngleBranchEnd: bpy.props.FloatProperty(name = "Vertical angle branch end")
+    verticalAngleCrownStart: bpy.props.FloatProperty(name = "Vertical angle crown start", default = math.pi / 4.0, unit = 'ROTATION')
+    verticalAngleCrownEnd: bpy.props.FloatProperty(name = "Vertical angle crown end", default = math.pi / 4.0, unit = 'ROTATION')
+    verticalAngleBranchStart: bpy.props.FloatProperty(name = "Vertical angle branch start", default = 0.0, unit = 'ROTATION')
+    verticalAngleBranchEnd: bpy.props.FloatProperty(name = "Vertical angle branch end", default = 0.0, unit = 'ROTATION')
     branchAngleMode: bpy.props.PointerProperty(type = angleModeEnumProp)
     useFibonacciAngles: bpy.props.BoolProperty(name = "Use Fibonacci angles")
     fibonacciNr: bpy.props.PointerProperty(type = fibonacciProps)
-    rotateAngleRange: bpy.props.FloatProperty(name = "Rotate angle range")
-    rotateAngleOffset: bpy.props.FloatProperty(name = "Rotate angle offset")
+    rotateAngleRange: bpy.props.FloatProperty(name = "Rotate angle range", default = math.pi, unit = 'ROTATION')
+    rotateAngleOffset: bpy.props.FloatProperty(name = "Rotate angle offset", default = 0.0, unit = 'ROTATION')
     
-    rotateAngleCrownStart: bpy.props.FloatProperty(name = "Rotate angle crown start")
-    rotateAngleCrownEnd: bpy.props.FloatProperty(name = "Rotate angle crown end")
-    rotateAngleBranchStart: bpy.props.FloatProperty(name = "Rotate angle branch start")
-    rotateAngleBranchEnd: bpy.props.FloatProperty(name = "Rotate angle branch end")
+    rotateAngleCrownStart: bpy.props.FloatProperty(name = "Rotate angle crown start", default = 0.0, unit = 'ROTATION')
+    rotateAngleCrownEnd: bpy.props.FloatProperty(name = "Rotate angle crown end", default = 0.0, unit = 'ROTATION')
+    rotateAngleBranchStart: bpy.props.FloatProperty(name = "Rotate angle branch start", default = 0.0, unit = 'ROTATION')
+    rotateAngleBranchEnd: bpy.props.FloatProperty(name = "Rotate angle branch end", default = 0.0, unit = 'ROTATION')
     rotateAngleRangeFactor: bpy.props.FloatProperty(name = "Rotate angle range factor", default = 1.0, min = 0.0, soft_max = 2.0)
     
     reducedCurveStepCutoff: bpy.props.FloatProperty(name = "Reduced curve step cutoff", min = 0.0, soft_max = 1.0)
     reducedCurveStepFactor: bpy.props.FloatProperty(name = "Reduced curve step factor", min = 0.0, max = 1.0)
-    branchGlobalCurvatureStart: bpy.props.FloatProperty(name = "Branch global curvature start")
-    branchGlobalCurvatureEnd: bpy.props.FloatProperty(name = "Branch global curvature end")
-    branchCurvatureStart: bpy.props.FloatProperty(name = "Branch curvature start")
-    branchCurvatureEnd: bpy.props.FloatProperty(name = "Branch curvature end")
+    branchGlobalCurvatureStart: bpy.props.FloatProperty(name = "Branch global curvature start", default = 0.0, unit = 'ROTATION')
+    branchGlobalCurvatureEnd: bpy.props.FloatProperty(name = "Branch global curvature end", default = 0.0, unit = 'ROTATION')
+    branchCurvatureStart: bpy.props.FloatProperty(name = "Branch curvature start", default = 0.0, unit = 'ROTATION')
+    branchCurvatureEnd: bpy.props.FloatProperty(name = "Branch curvature end", default = 0.0, unit = 'ROTATION')
     branchCurvatureOffsetStrength: bpy.props.FloatProperty(name = "Branch curvature offset", min = 0.0)
             
     showSplitSettings: bpy.props.BoolProperty(name = "Show/hide split settings", default=True)
     
     nrSplitsPerBranch: bpy.props.FloatProperty(name = "Nr splits per branch", default = 0.0, min = 0.0)
     branchSplitMode: bpy.props.PointerProperty(type=splitModeEnumProp)
-    branchSplitRotateAngle: bpy.props.FloatProperty(name = "Branch split rotate angle")
+    branchSplitRotateAngle: bpy.props.FloatProperty(name = "Branch split rotate angle", default = 0.0, unit = 'ROTATION')
     branchSplitAxisVariation: bpy.props.FloatProperty(name = "Branch split axis variation", min = 0.0)
     
-    branchSplitAngle: bpy.props.FloatProperty(name = "Branch split angle", min = 0.0)
-    branchSplitPointAngle: bpy.props.FloatProperty(name = "Branch split point angle", min = 0.0)
+    branchSplitAngle: bpy.props.FloatProperty(name = "Branch split angle", min = 0.0, default = 0.0, unit = 'ROTATION')
+    branchSplitPointAngle: bpy.props.FloatProperty(name = "Branch split point angle", min = 0.0, default = 0.0, unit = 'ROTATION')
     
     splitsPerBranchVariation: bpy.props.FloatProperty(name = "Splits per branch variation", min = 0.0, max = 1.0)
     branchVariance: bpy.props.FloatProperty(name = "Branch varianace", default = 0.0, min = 0.0, max = 1.0)
@@ -4391,12 +4395,12 @@ class leafClusterSettings(bpy.types.PropertyGroup):
     leafEndHeightGlobal: bpy.props.FloatProperty(name = "Leaf end height global", default = 1.0, min = 0.0, max = 1.0)
     leafStartHeightCluster: bpy.props.FloatProperty(name = "Leaf start height cluster", default = 0.0, min = 0.0, max = 1.0)
     leafEndHeightCluster: bpy.props.FloatProperty(name = "Leaf end height global", default = 1.0, min = 0.0, max = 1.0)
-    leafVerticalAngleBranchStart: bpy.props.FloatProperty(name = "Leaf vertical angle branch start")
-    leafVerticalAngleBranchEnd: bpy.props.FloatProperty(name = "Leaf vertical angle branch end")
-    leafRotateAngleBranchStart: bpy.props.FloatProperty(name = "Leaf rotate angle branch start")
-    leafRotateAngleBranchEnd: bpy.props.FloatProperty(name = "Leaf rotate angle branch end")
-    leafTiltAngleBranchStart: bpy.props.FloatProperty(name = "Leaf tilt angle branch start")
-    leafTiltAngleBranchEnd: bpy.props.FloatProperty(name = "Leaf tilt angle branch end")
+    leafVerticalAngleBranchStart: bpy.props.FloatProperty(name = "Leaf vertical angle branch start", default = 0.0, unit = 'ROTATION')
+    leafVerticalAngleBranchEnd: bpy.props.FloatProperty(name = "Leaf vertical angle branch end", default = 0.0, unit = 'ROTATION')
+    leafRotateAngleBranchStart: bpy.props.FloatProperty(name = "Leaf rotate angle branch start", default = 0.0, unit = 'ROTATION')
+    leafRotateAngleBranchEnd: bpy.props.FloatProperty(name = "Leaf rotate angle branch end", default = 0.0, unit = 'ROTATION')
+    leafTiltAngleBranchStart: bpy.props.FloatProperty(name = "Leaf tilt angle branch start", default = 0.0, unit = 'ROTATION')
+    leafTiltAngleBranchEnd: bpy.props.FloatProperty(name = "Leaf tilt angle branch end", default = 0.0, unit = 'ROTATION')
     
     
 class UL_stemSplitLevelList(bpy.types.UIList): #template for UIList
