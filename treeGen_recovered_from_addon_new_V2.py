@@ -3068,13 +3068,8 @@ noiseGenerator):
                     data.outwardDir = data.startPoint - centerPoints[n]
                     treeGen.report({'INFO'}, f"re-asigning data.outwardDir: {data.outwardDir}")
                 else:
-                    treeGen.report({'INFO'}, f"???????? setting data.outwardDir = (1,0,0)")
-                    data.outwardDir = Vector((1.0,0.0,0.0)) # TEMP !!!
-                
-                # ERROR HERE !!! -> re-assigning (0,0,0) !!! (???)
-                
-                
-                
+                    treeGen.report({'INFO'}, f"setting data.outwardDir = data.startNode.cotangent")
+                    data.outwardDir = data.startNode.cotangent
                 
                 
                 
@@ -3113,48 +3108,23 @@ noiseGenerator):
                 if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "ADAPTIVE":
                     centerDir = data.outwardDir
                     centerDirs.append(centerDir)
-                                        
-                    angle = windingAngle % (rightRotationRange[branchIndex] + leftRotationRange[branchIndex])  - leftRotationRange[branchIndex] 
                     
-                    treeGen.report({'WARNING'}, f"rightRotationRange[branchIndex = {branchIndex}]: {rightRotationRange[branchIndex]}, leftRotationRange[branchIndex = {branchIndex}]: {leftRotationRange[branchIndex]}")
+                    if rightRotationRange[branchIndex] + leftRotationRange[branchIndex] < 2.0 * math.pi:
+                        angle = windingAngle % ((rightRotationRange[branchIndex] + leftRotationRange[branchIndex]) * branchClusterSettingsList[clusterIndex].rotateAngleRangeFactor)  - leftRotationRange[branchIndex] * branchClusterSettingsList[clusterIndex].rotateAngleRangeFactor 
+                    else:
+                        angle = windingAngle % (rightRotationRange[branchIndex] + leftRotationRange[branchIndex])  - leftRotationRange[branchIndex]
                     
                     if angle > maxAngle:
                         maxAngle = angle
                     if angle < minAngle:
                         minAngle = angle
-                    treeGen.report({'INFO'}, "---------------------------------------------")
-                    treeGen.report({'INFO'}, f"data.outwardDir: {data.outwardDir}") # ???
-                    if startPointData[branchIndex].outwardDir == Vector((0.0,0.0,0.0)):
-                        treeGen.report({'ERROR'}, f"outwardDir: {startPointData[branchIndex].outwardDir}")
-                        treeGen.report({'INFO'}, f"branchIndex: {branchIndex}, len(startPointData): {len(startPointData)}")
-                        
-                        for i, data in enumerate(startPointData):
-                            treeGen.report({'INFO'}, f"outwardDir[{i}]: {data.outwardDir}")
-                        # (0,0,0) !!! ERROR HERE !!!
-                    else:
-                        treeGen.report({'INFO'}, f"outwardDir: {startPointData[branchIndex].outwardDir}")
-                    treeGen.report({'INFO'}, f"startPointTangent: {startPointTangent}")
                     
                     right = startPointData[branchIndex].outwardDir.cross(startPointTangent)
-                    treeGen.report({'INFO'}, f"right: {right}") # (0,0,0) !!! ERROR HERE !!!
-                    
                     axis = -centerDir.cross(startPointTangent)
-                    treeGen.report({'INFO'}, f"axis: {axis}") #OK
-                    
-                    treeGen.report({'INFO'}, f"verticalAngle: {verticalAngle}")
                     
                     branchDir = Quaternion(axis, verticalAngle) @ startPointTangent
-                    
-                    treeGen.report({'INFO'}, f"adaptive: branchDir: beore rot angle: {branchDir}") # OK
-                    treeGen.report({'INFO'}, f"adaptive: startPointTangent: beore rot angle: {startPointTangent}")
-                    treeGen.report({'INFO'}, f"adaptive: angle: beore rot angle: {angle}") # ERROR HERE ! -inf !!!
-                        
                     branchDir = Quaternion(startPointTangent, angle) @ branchDir
                     
-                    if math.isnan(branchDir.x):
-                        treeGen.report({'ERROR'}, f"adaptive: branchDir: {branchDir}") # ERROR HERE!
-                    else:
-                        treeGen.report({'INFO'}, f"adaptive: branchDir: {branchDir}")
                     
                 if branchClusterSettingsList[clusterIndex].branchAngleMode.value == "WINDING":
                     
