@@ -6358,9 +6358,10 @@ def register():
     bpy.utils.register_class(noiseSettings)
     bpy.utils.register_class(angleSettings)
     bpy.utils.register_class(splitSettings)
-    bpy.utils.register_class(leafSettings)
+    
     
     bpy.utils.register_class(BranchSettings)
+    bpy.utils.register_class(leafSettings)
     
     
     #UILists
@@ -6425,6 +6426,9 @@ def register():
                 
     bpy.types.Scene.treeSettings = bpy.props.PointerProperty(type=treeSettings)
     
+    bpy.app.timers.register(delayed_init, first_interval=0.1)
+
+def delayed_init():
     ensure_stem_curve_node()
     bpy.ops.scene.init_button()
     
