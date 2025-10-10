@@ -659,6 +659,20 @@ class splitMode:
     ALTERNATING = 2
 
 
+class packUVs(bpy.types.Operator):
+    bl_label = "packUVs"
+    bl_idname = "object.pack_uvs"
+    
+    def execute(self, context):
+        bpy.ops.object.editmode_toggle()
+        bpy.ops.uv.unwrap(method='ANGLE_BASED', fill_holes=False, correct_aspect=True, use_subsurf_data=False, margin=0.1, no_flip=False, iterations=5, use_weights=True, weight_group="uv_importance", weight_factor=1)
+    
+        bpy.ops.uv.pack_islands(shape_method='CONVEX', scale=True, rotate=True, rotate_method='AXIS_ALIGNED', margin_method='FRACTION', margin=context.scene.treeSettings.uvMargin, pin=False, merge_overlap=False, udim_source='CLOSEST_UDIM')
+    
+        bpy.ops.object.editmode_toggle()
+        
+        return {'FINISHED'}
+
 class generateTree(bpy.types.Operator):
     bl_label = "generateTree"
     bl_idname = "object.generate_tree"
@@ -3844,11 +3858,14 @@ def generateVerticesAndTriangles(self,
     vertexTvalGlobal = []
     ringAngle = []
     faces = []
+    #faceUVs = []
     
     offset = 0
     counter = 0
     
     startSection = 0
+    
+    uvStartOffset = 0.0
     
     for s in range(0, len(segments)):
         segmentLength = (segments[s].end - segments[s].start).length
@@ -3916,22 +3933,51 @@ def generateVerticesAndTriangles(self,
                     
                     counter += 1
             
+            startRadius = 0.0
             for c in range(0, sections): 
+                tVal = segments[s].startTvalGlobal + (segments[s].endTvalGlobal - segments[s].startTvalGlobal) * (c / sections)
+                nextTval = segments[s].startTvalGlobal + (segments[s].endTvalGlobal - segments[s].startTvalGlobal) * ((c + 1) / sections)
+                
+                pos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, c / sections)
+                nextPos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, (c + 1) / sections)
+                
+                linearRadius = lerp(segments[s].startRadius, segments[s].endRadius, c / (segmentLength / branchRingSpacing))
+                normalizedCurve = (1.0 - branchTipRadius) * tVal + sampleCurveStem(treeGen, tVal)
+                
+                radius = linearRadius * normalizedCurve
+                
+                if c == 0:
+                    startRadius = radius
+                
+                nextLinearRadius = lerp(segments[s].startRadius, segments[s].endRadius, (c + 1) / (segmentLength / branchRingSpacing))
+                nextNormalizedCurve = (1.0 - branchTipRadius) * nextTval + sampleCurveStem(treeGen, nextTval)
+                nextRadius = nextLinearRadius * nextNormalizedCurve
+                
                 for j in range(0, segments[s].ringResolution):
                     faces.append((offset + c * (segments[s].ringResolution + 1) + j,
                                   offset + c * (segments[s].ringResolution + 1) + (j + 1) % (segments[s].ringResolution + 1), 
                                   offset + c * (segments[s].ringResolution + 1) + segments[s].ringResolution + 1 + (j + 1) % (segments[s].ringResolution + 1), 
                                   offset + c * (segments[s].ringResolution + 1) + segments[s].ringResolution + 1 + j))
-                        
+                    
+                    #faceUVdata = []
+                    #faceUVdata.append((uvStartOffset + ( j      * radius + (segments[s].ringResolution / 2.0) * (startRadius - radius)) / segmentLength , (0 + c) / sections)) # 0
+                    
+                    #faceUVdata.append((uvStartOffset + ((j + 1) * radius + (segments[s].ringResolution / 2.0) * (startRadius - radius)) / segmentLength, (0 + c) / sections)) # 1
+                    
+                    #faceUVdata.append((uvStartOffset + ((j + 1) * nextRadius + (segments[s].ringResolution / 2.0) * (startRadius - nextRadius)) / segmentLength, (1 + c) / sections)) # 7
+                    
+                    #faceUVdata.append((uvStartOffset + ( j      * nextRadius + (segments[s].ringResolution / 2.0) * (startRadius - nextRadius)) / segmentLength, (1 + c) / sections)) # 6
+                    
+                    #faceUVs.append(faceUVdata)
+            
+            #uvStartOffset += segments[s].startRadius * segments[s].ringResolution / segmentLength
             offset += counter
             counter = 0
         
     meshData = bpy.data.meshes.new("treeMesh")
     meshData.from_pydata(vertices, [], faces)
     
-    ############################################################
-    #mesh.calc_normals_split()
-    
+    ############################################################    
     custom_normals = [None] * len(meshData.loops)
     
     for poly in meshData.polygons:
@@ -3952,6 +3998,23 @@ def generateVerticesAndTriangles(self,
     bmesh_obj.to_mesh(meshData)
     bmesh_obj.free()
     meshData.update()
+    
+    
+    #if len(meshData.uv_layers) == 0:
+    #    meshData.uv_layers.new()
+    
+    uvLayer = meshData.uv_layers.active
+    
+    #for i, face in enumerate(faces):
+    #    uvLayer.data[meshData.polygons[i].loop_indices[0]].uv = (faceUVs[i][0][0], faceUVs[i][0][1])
+    #    uvLayer.data[meshData.polygons[i].loop_indices[1]].uv = (faceUVs[i][1][0], faceUVs[i][1][1])
+    #    uvLayer.data[meshData.polygons[i].loop_indices[2]].uv = (faceUVs[i][2][0], faceUVs[i][2][1])
+    #    uvLayer.data[meshData.polygons[i].loop_indices[3]].uv = (faceUVs[i][3][0], faceUVs[i][3][1])
+    
+    
+    
+    meshData.update()
+    
     
     for polygon in meshData.polygons:
         polygon.use_smooth = True
@@ -3989,6 +4052,8 @@ def generateVerticesAndTriangles(self,
     
     treeObject.data.materials.clear()
     treeObject.data.materials.append(barkMaterial)
+    
+    
 
 def update_fibonacci_numbers(self):
     fn0 = 1.0
@@ -4241,6 +4306,7 @@ class toggleUseTaperCurveOperator(bpy.types.Operator):
  
 
 class treeSettings(bpy.types.PropertyGroup):
+    uvMargin: bpy.props.FloatProperty(name = "UV margin", default = 0.1, min = 0)
     treeHeight: bpy.props.FloatProperty(name = "Tree height", default = 10.0, min = 0, unit = 'LENGTH')
     taper: bpy.props.FloatProperty(name = "taper", default = 0.1, min = 0, soft_max = 0.5)
     branchTipRadius:bpy.props.FloatProperty(name = "branch tip radius", default = 0, min = 0, soft_max = 0.1, unit = 'LENGTH')
@@ -4604,6 +4670,10 @@ class treeGenPanel(bpy.types.Panel):
         row = layout.row()
         row.label(icon = 'COLORSET_12_VEC')
         row.operator("object.generate_tree", text="Generate Tree")
+        
+        layout.prop(context.scene.treeSettings, "uvMargin")
+        row = layout.row()
+        row.operator("object.pack_uvs", text="Pack UVs")
         
     
 class treeSettingsPanel(bpy.types.Panel):
@@ -6306,6 +6376,7 @@ def register():
     bpy.utils.register_class(addBranchSplitLevel)
     bpy.utils.register_class(removeBranchSplitLevel)
     bpy.utils.register_class(generateTree)
+    bpy.utils.register_class(packUVs)
     bpy.utils.register_class(addLeafItem)
     bpy.utils.register_class(removeLeafItem)
     bpy.utils.register_class(toggleUseTaperCurveOperator)
@@ -6662,6 +6733,7 @@ def unregister():
     bpy.utils.unregister_class(addBranchSplitLevel)
     bpy.utils.unregister_class(removeBranchSplitLevel)
     bpy.utils.unregister_class(generateTree)
+    bpy.utils.unregister_class(packUVs)
     bpy.utils.unregister_class(resetCurvesButton)
     bpy.utils.unregister_class(resetCurvesClusterButton)
     bpy.utils.unregister_class(addLeafItem)
