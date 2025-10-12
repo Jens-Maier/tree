@@ -1,32 +1,33 @@
 import bpy
 import sys
 import os
-import importlib
-
-
-# for testing...
-#addon_dir = "/home/j/Downloads/treeGen_v5"
-
-# for creating addon...
-addon_dir = os.path.dirname(os.path.realpath(__file__))
 
 
 
 
 # Dynamically add current folder to sys.path
-if addon_dir not in sys.path:
-    sys.path.append(addon_dir)
 
-if 'my_property' in sys.modules:  # For reliable reload during development
-    del sys.modules['my_property']
-    
-import my_property
+# for testing...
+#
+# import importlib
+# addon_dir = "/home/j/Downloads/treeGen_v5"
+# if addon_dir not in sys.path:
+#     sys.path.append(addon_dir)
+# if 'my_property' in sys.modules:  # For reliable reload during development
+#     del sys.modules['my_property']
+# import my_property
+# # Import property class from another file
+# from my_property import MyProperties
+# importlib.reload(my_property)
+
+# for addon
+from .my_property import MyProperties
 
 
-importlib.reload(my_property)
 
-# Import property class from another file
-from my_property import MyProperties
+
+
+
 
 
 

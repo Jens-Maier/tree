@@ -1,14 +1,13 @@
 schema_version = "1.0.0"
 
-id = "treeGen"
-version = "1.0.0"
-name = "treeGen"
-tagline = "Generate a parametric tree"
+id = "minimalAddon"
+version = "1.0.2"
+name = "treeGen_v5_minimal_addon" # has to be exactly the same name as the folder that contains __init__.py, ...py, blender_manifest.toml
+tagline = "minimal addon"
 maintainer = "Jens Maier"
 type = "add-on"
 location = "View3d > Sidebar"
 
-website = "https://github.com/Jens-Maier/tree"
 support = "COMMUNITY"
 tags = ["Add Mesh", ]
 
