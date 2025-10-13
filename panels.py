@@ -1,4 +1,46 @@
 import bpy.types
+import property_groups
+import math
+
+def myNodeTree():
+    if 'CurveNodeGroup' not in bpy.data.node_groups:
+        ng = bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
+    return bpy.data.node_groups['CurveNodeGroup'].nodes
+
+
+
+def myCurveData(curve_name):
+    if curve_name not in property_groups.curve_node_mapping: # #in propertyGroups !!! (???)
+        cn = myNodeTree().new('ShaderNodeRGBCurve')
+        property_groups.curve_node_mapping[curve_name] = cn.name
+    nodeTree = myNodeTree()[property_groups.curve_node_mapping[curve_name]]
+    return nodeTree
+
+def ensure_stem_curve_node():
+    #self.report({'INFO'}, "in ensure_stem_curve_node()")
+    curve_name = "Stem"
+    if 'CurveNodeGroup' not in bpy.data.node_groups:
+        bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
+    if curve_name not in property_groups.curve_node_mapping:
+        cn = myNodeTree().new('ShaderNodeRGBCurve')
+        propertyGroups.curve_node_mapping[curve_name] = cn.name
+    return curve_name
+
+def ensure_branch_curve_node(idx):
+    curve_name = f"BranchCluster_{idx}"
+    if 'CurveNodeGroup' not in bpy.data.node_groups:
+        bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
+    if curve_name not in property_groups.curve_node_mapping:
+        cn = myNodeTree().new('ShaderNodeRGBCurve')
+        #cn.label = curve_name
+        property_groups.curve_node_mapping[curve_name] = cn.name
+    return curve_name
+
+
+def drawDebugPoint(pos, size, name="debugPoint"):
+    bpy.ops.object.empty_add(type='SPHERE', location=pos)
+    bpy.context.active_object.empty_display_size = size
+    bpy.context.active_object.name=name
 
 class treeGenPanel(bpy.types.Panel):
     bl_label = "Tree Generator"
@@ -20,7 +62,7 @@ class treeGenPanel(bpy.types.Panel):
         
         row = layout.row()
         row.label(text="Preset: ")
-        row.prop(context.scene.treePreset, "value", text="")
+        row.prop(context.scene.treeSettings.treePreset, "value", text="")
         row = layout.row()
         row.operator("export.load_preset", text="Load Preset")
         
@@ -59,8 +101,8 @@ class treeSettingsPanel(bpy.types.Panel):
         layout.prop(context.scene.treeSettings, "taper")
         
         row = layout.row()
-        #layout.template_curve_mapping(taperCurveData('taperMapping'), "mapping")
-        layout.template_curve_mapping(myCurveData('Stem'), "mapping")
+        
+        layout.template_curve_mapping(myCurveData('Stem'), "mapping") # TODO! TEMP OFF ...
         
         #layout.prop(context.scene, "evaluate", slider=True)
         #layout.operator("scene.evaluate_button", text="Evaluate").x = context.scene.evaluate
@@ -159,10 +201,10 @@ class splitSettings(bpy.types.Panel):
         row.prop(context.scene.treeSettings, "showStemSplitHeights", icon="TRIA_DOWN" if context.scene.treeSettings.showStemSplitHeights else "TRIA_RIGHT", emboss=False, text="")
         
         row.operator("scene.add_stem_split_level", text="Add split level")
-        row.operator("scene.remove_stem_split_level", text="Remove").index = scene.treeSettings.stemSplitHeightInLevelListIndex
+        row.operator("scene.remove_stem_split_level", text="Remove").index = context.scene.treeSettings.stemSplitHeightInLevelListIndex
         if context.scene.treeSettings.showStemSplitHeights == True:
             row = layout.row()
-            row.template_list("UL_stemSplitLevelList", "", scene.treeSettings, "stemSplitHeightInLevelList", scene.treeSettings, "stemSplitHeightInLevelListIndex")
+            row.template_list("UL_stemSplitLevelList", "", context.scene.treeSettings, "stemSplitHeightInLevelList", context.scene.treeSettings, "stemSplitHeightInLevelListIndex")
         
         row = layout.row()
         layout.prop(context.scene.treeSettings, "splitHeightVariation")
@@ -174,6 +216,27 @@ class splitSettings(bpy.types.Panel):
         layout.prop(context.scene.treeSettings, "stemSplitPointAngle")
         row = layout.row()
 
+
+def draw_parent_cluster_bools(layout, scene, cluster_index):
+    boolListItem = scene.treeSettings.parentClusterBoolListList[cluster_index].value
+    
+    boolCount = 0
+    for j, boolItem in enumerate(boolListItem):
+        split = layout.split(factor=0.6)
+        if boolCount == 0:
+            split.label(text=f"Stem")
+            boolCount += 1
+        else:
+            split.label(text=f"Branch cluster {boolCount - 1}")
+            boolCount += 1
+            
+        rightColumn = split.column(align=True)
+        row = rightColumn.row(align=True)
+        row.alignment = 'CENTER'
+        
+        op = row.operator("scene.toggle_bool", text="", depress=boolItem.value)
+        op.list_index = cluster_index
+        op.bool_index = j
 
 class branchSettings(bpy.types.Panel):
     bl_label = "Branch Settings"
@@ -193,8 +256,8 @@ class branchSettings(bpy.types.Panel):
         
         
         row = layout.row(align = True)
-        row.operator("scene.add_list_item", text="Add")
-        row.operator("scene.remove_list_item", text="Remove")
+        row.operator("scene.add_branch_cluster", text="Add")
+        row.operator("scene.remove_branch_cluster", text="Remove")
         
         row = layout.row()
         for i, outer in enumerate(scene.treeSettings.parentClusterBoolListList):
@@ -499,6 +562,7 @@ class branchSettings(bpy.types.Panel):
                     row.operator("scene.add_branch_split_level", text="Add split level").level = i
                     row.operator("scene.remove_branch_split_level", text="Remove").level = i
                     
+                    
                     if context.scene.branchClusterSettingsList[i].showBranchSplitHeights == True:
                         row = box2.row()
                         if i == 0:
@@ -565,7 +629,7 @@ class leafSettings(bpy.types.Panel):
         
         row = layout.row(align = True)
         row.operator("scene.add_leaf_item", text="Add")
-        row.operator("scene.remove_leaf_item", text="Remove").index = context.scene.treeSettings.leavesDensityListIndex
+        row.operator("scene.remove_leaf_item", text="Remove").index = treeSettings.leavesDensityListIndex
         row = layout.row()
         
         for i, leaves in enumerate(scene.leafClusterSettingsList):

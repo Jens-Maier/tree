@@ -1,8 +1,22 @@
 import bpy.props
 import math
 
+curve_node_mapping = {}
+taper_node_mapping = {}
+
 class floatProp(bpy.types.PropertyGroup):
     value: bpy.props.FloatProperty(name = "floatValue", default=0)
+    
+def update_fibonacci_numbers(self):
+    fn0 = 1.0
+    fn1 = 1.0
+    self.rotate_angle_range = 2.0 * math.pi
+    if self.fibonacci_nr > 2:
+        for n in range(2, self.fibonacci_nr + 1):
+            temp = fn0 + fn1
+            fn0 = fn1
+            fn1 = temp
+    self.fibonacci_angle = 2.0 * math.pi * (1.0 - fn0 / fn1)
     
 class fibonacciProps(bpy.types.PropertyGroup):
     fibonacci_nr: bpy.props.IntProperty(name = "fibonacciNr", default=3, min=3, 
@@ -245,6 +259,7 @@ class toggleUseTaperCurveOperator(bpy.types.Operator):
  
 
 class treeSettings(bpy.types.PropertyGroup):
+    treePreset: bpy.props.PointerProperty(type = treePresetEnumProp)
     uvMargin: bpy.props.FloatProperty(name = "UV margin", default = 0.1, min = 0, precision = 3)
     treeHeight: bpy.props.FloatProperty(name = "Tree height", default = 10.0, min = 0, unit = 'LENGTH')
     taper: bpy.props.FloatProperty(name = "taper", default = 0.1, min = 0, soft_max = 0.5)
