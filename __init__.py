@@ -20,8 +20,6 @@ if 'node_info' in sys.modules:
     del sys.modules['node_info']
 if 'start_point_data' in sys.modules:
     del sys.modules['start_point_data']
-if 'dummy_start_point_data' in sys.modules:
-    del sys.modules['dummy_start_point_data']
 if 'rotation_step' in sys.modules:
     del sys.modules['rotation_step']
 if 'node_' in sys.modules:
@@ -36,6 +34,9 @@ if 'panels' in sys.modules:
     del sys.modules['panels']
 if 'tree_generator' in sys.modules:
     del sys.modules['tree_generator']
+if 'utils_' in sys.modules:
+    del sys.modules['utils_']
+
 
 
 # Import property class from another file
@@ -53,12 +54,9 @@ from node_info import nodeInfo
 importlib.reload(node_info)
 
 import start_point_data
-from start_point_data import startPointData
+from start_point_data import StartPointData
+from start_point_data import DummyStartPointData
 importlib.reload(start_point_data)
-
-import dummy_start_point_data
-from dummy_start_point_data import dummyStartPointData
-importlib.reload(dummy_start_point_data)
 
 import rotation_step
 from rotation_step import rotationStep
@@ -84,27 +82,31 @@ import panels
 from panels import treeGenPanel, treeSettingsPanel, noiseSettings, angleSettings, splitSettings, branchSettings, leafSettings
 importlib.reload(panels)
 
-#import noise_generator
-#from noise_generator import SimplexNoiseGenerator
-#importlib.reload(noise_generator)
+import noise_generator
+from noise_generator import SimplexNoiseGenerator
+importlib.reload(noise_generator)
 
 import tree_generator
-#from tree_generator import .....
+from tree_generator import treeGenerator
 importlib.reload(tree_generator)
+
+import utils_
+from utils_ import utils
 
 # for addon.......................................................................................................
 #from .my_property import MyProperties
 #from .start_node_info import startNodeInfo
 #from .node_info import nodeInfo
 #from .start_point_data import startPointData
-#from .dummy_start_point_data import dummyStartPointData
+#from .start_point_data import dummyStartPointData
 #from .rotation_step import rotationStep
 #from .node_ import node
 #from .segment_ import segment
 #from .property_groups import floatProp, fibonacciProps, intProp, intPropL, posIntProp3, floatProp, posFloatProp, posFloatPropDefault1, posFloatPropSoftMax2, posFloatPropSoftMax1, posFloatPropSoftMax1taperFactor, posFloatPropSoftMax1Default0, floatProp01, floatProp01default0p5,  floatListProp, floatListProp01, boolProp, showSplitLevelsProp, splitHeightFloatListProp, parentClusterBoolListProp, leafParentClusterBoolListProp, branchClusterBoolListProp, leafClusterBoolListProp, treeShapeEnumProp, treePresetEnumProp, splitModeEnumProp, angleModeEnumProp,  branchTypeEnumProp, toggleBool, toggleLeafBool, leafAngleModeEnumProp, leafTypeEnumProp, toggleUseTaperCurveOperator, treeSettings, branchClusterSettings, leafClusterSettings, UL_stemSplitLevelList, UL_branchSplitLevelListLevel_0, UL_branchSplitLevelListLevel_1, UL_branchSplitLevelListLevel_2, UL_branchSplitLevelListLevel_3, UL_branchSplitLevelListLevel_4, UL_branchSplitLevelListLevel_5, UL_branchSplitLevelListLevel_6, UL_branchSplitLevelListLevel_7, UL_branchSplitLevelListLevel_8, UL_branchSplitLevelListLevel_9, UL_branchSplitLevelListLevel_10, UL_branchSplitLevelListLevel_11, UL_branchSplitLevelListLevel_12, UL_branchSplitLevelListLevel_13, UL_branchSplitLevelListLevel_14, UL_branchSplitLevelListLevel_15, UL_branchSplitLevelListLevel_16, UL_branchSplitLevelListLevel_17, UL_branchSplitLevelListLevel_18, UL_branchSplitLevelListLevel_19
 #from .operators import generateTree, packUVs, BranchClusterResetButton, BranchClusterEvaluateButton, initButton, evaluateButton, addBranchCluster, removeBranchCluster, addLeafItem, removeLeafItem, toggleBool, toggleLeafBool, toggleUseTaperCurveOperator, addStemSplitLevel, removeStemSplitLevel, addBranchSplitLevel, removeBranchSplitLevel, exportProperties, importProperties, loadPreset
-#from .tree_generator import .....
-
+#from .noise_generator import SimplexNoiseGenerator
+#from .tree_generator import treeGenerator
+#from .utils_ import utils
 
 # Create a Blender PropertyGroup using the imported class value
 class MinimalProps(bpy.types.PropertyGroup):
@@ -274,7 +276,7 @@ def register():
     bpy.app.timers.register(delayed_init, first_interval=0.1) # TODO
     
 def delayed_init():
-    panels.ensure_stem_curve_node()
+    panels.ensure_stem_curve_node(curve_node_mapping = {}, taper_node_mapping = {})
     bpy.ops.scene.init_button()
 
 
