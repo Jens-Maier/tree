@@ -38,7 +38,26 @@ class packUVs(bpy.types.Operator):
     
         bpy.ops.object.editmode_toggle()
         
+        # Check UV bounds after packing
+        if check_uv_bounds():
+            self.report({'WARNING'}, "Warning: UVs out of bounds! Reduce UV margin.")
+        
         return {'FINISHED'}
+    
+def check_uv_bounds():
+    obj = bpy.context.active_object
+    uv_layer = obj.data.uv_layers.active.data
+    
+    out_of_bounds = False
+    for loop in obj.data.loops:
+        uv = uv_layer[loop.index].uv
+        if uv.x < 0.0 or uv.x > 1.0 or uv.y < 0.0 or uv.y > 1.0:
+            out_of_bounds = True
+            break
+    
+    return out_of_bounds
+            
+    
     
 
 class BranchClusterResetButton(bpy.types.Operator):
