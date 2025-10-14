@@ -1,11 +1,14 @@
-import utils_
-import rotation_step
-import start_node_info
-import segment_
-import noise_generator
+from mathutils import Vector, Quaternion
+
+from . import treegen_utils_
+from . import rotation_step
+from . import start_node_info
+from . import segment_
+from . import noise_generator
+
 from segment_ import segment
 
-from mathutils import Vector, Quaternion
+
 
 class node():
     def __init__(self, Point, Radius, Cotangent, ClusterIndex, RingResolution, Taper, TvalGlobal, TvalBranch, BranchLength):
@@ -218,10 +221,10 @@ class node():
                         tVal = (startPointTvalGlobal - self.tValGlobal) / (n.tValGlobal - self.tValGlobal)
                         if len(self.next) == 2:
                             #treeGen.report({'INFO'}, "in getAllParallelStartPoints() appinding point 2")
-                            parallelPoints.append(utils_.utils.sampleSplineT(self.point, n.point, self.tangent[i + 1], n.tangent[0], tVal))
+                            parallelPoints.append(treegen_utils_.treegen_utils.sampleSplineT(self.point, n.point, self.tangent[i + 1], n.tangent[0], tVal))
                         if len(self.next) == 1:
                             #treeGen.report({'INFO'}, "in getAllParallelStartPoints() appinding point 1")
-                            parallelPoints.append(utils_.utils.sampleSplineT(self.point, n.point, self.tangent[0], n.tangent[0], tVal))
+                            parallelPoints.append(treegen_utils_.treegen_utils.sampleSplineT(self.point, n.point, self.tangent[0], n.tangent[0], tVal))
                     else:
                         n.getAllParallelStartPoints(treeGen, startPointTvalGlobal, startNode, parallelPoints)
         else:
@@ -259,7 +262,7 @@ class node():
             # For stem nodes, position = absolute height; 
             # for branch nodes, position = normalized branch position
             if position < gradient and gradient > 0:
-                return pow(utils_.utils.lerp(0.0, amplitude, position / gradient), exponent)
+                return pow(treegen_utils_.treegen_utils.lerp(0.0, amplitude, position / gradient), exponent)
             else:
                 if gradient > 0:
                     return pow(amplitude, exponent)
@@ -450,7 +453,7 @@ class node():
         if clusterIndex == -1:
             nextTangent = (treeGrowDir.normalized() * treeHeight - (rootNode.point + rootNode.tangent[0] * (treeGrowDir.normalized() * treeHeight - rootNode.point).length * (1.5 / 3.0))).normalized()
             
-            centerPoint = utils_.utils.sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, Vector((0.0,0.0,1.0)), nextTangent, self.tValGlobal)
+            centerPoint = treegen_utils_.treegen_utils.sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, Vector((0.0,0.0,1.0)), nextTangent, self.tValGlobal)
         else:
             centerPoint = branchStartPoint
         
@@ -466,8 +469,8 @@ class node():
         else:
             curveAxis = right.normalized()
             
-        globalCurvature = utils_.utils.lerp(curvatureStartGlobal, curvatureEndGlobal, self.tValGlobal)
-        branchCurvature = utils_.utils.lerp(curvatureStartBranch, curvatureEndBranch, self.tValBranch)
+        globalCurvature = treegen_utils_.treegen_utils.lerp(curvatureStartGlobal, curvatureEndGlobal, self.tValGlobal)
+        branchCurvature = treegen_utils_.treegen_utils.lerp(curvatureStartBranch, curvatureEndBranch, self.tValBranch)
         
         curvature = globalCurvature + branchCurvature
         #treeGen.report({'INFO'}, f"self.tValBranch: {self.tValBranch}, interpolated curvature: {curvature}")
@@ -497,7 +500,7 @@ class node():
                 rotationSteps.append(rotation_step.rotationStep(self.point, curvature * sectionLength * reducedCurveStepFactor, curveAxis, isLast))
             else:
                 rotationSteps.append(rotation_step.rotationStep(self.point, curvature * sectionLength, curveAxis, isLast))
-            # utils_.utils.sampleSplineT(
+            # treegen_utils_.treegen_utils.sampleSplineT(
         
         for n in self.next:
                 n.applyCurvature(
@@ -544,16 +547,16 @@ class node():
             if resampleNr > 1:
                 for n in range(1, resampleNr):
                     if len(self.next) > 1:
-                        samplePoint = utils_.utils.sampleSplineT(startNode.point, nextNode.point, startNode.tangent[i + 1], nextNode.tangent[0], n / resampleNr)
-                        sampleTangent = utils_.utils.sampleSplineTangentT(startNode.point, nextNode.point, startNode.tangent[i + 1], nextNode.tangent[0], n / resampleNr)
+                        samplePoint = treegen_utils_.treegen_utils.sampleSplineT(startNode.point, nextNode.point, startNode.tangent[i + 1], nextNode.tangent[0], n / resampleNr)
+                        sampleTangent = treegen_utils_.treegen_utils.sampleSplineTangentT(startNode.point, nextNode.point, startNode.tangent[i + 1], nextNode.tangent[0], n / resampleNr)
                     else:
-                        samplePoint = utils_.utils.sampleSplineT(startNode.point, nextNode.point, startNode.tangent[0], nextNode.tangent[0], n / resampleNr)
-                        sampleTangent = utils_.utils.sampleSplineTangentT(startNode.point, nextNode.point, startNode.tangent[0], nextNode.tangent[0], n / resampleNr)
+                        samplePoint = treegen_utils_.treegen_utils.sampleSplineT(startNode.point, nextNode.point, startNode.tangent[0], nextNode.tangent[0], n / resampleNr)
+                        sampleTangent = treegen_utils_.treegen_utils.sampleSplineTangentT(startNode.point, nextNode.point, startNode.tangent[0], nextNode.tangent[0], n / resampleNr)
                         
-                    sampleCotangent = utils_.utils.lerp(startNode.cotangent, nextNode.cotangent, n / resampleNr)
-                    sampleRadius = utils_.utils.lerp(startNode.radius, nextNode.radius, n / resampleNr)
-                    sampleTvalGlobal = utils_.utils.lerp(startNode.tValGlobal, nextNode.tValGlobal, n / resampleNr)
-                    sampleTvalBranch = utils_.utils.lerp(startNode.tValBranch, nextNode.tValBranch, n / resampleNr)
+                    sampleCotangent = treegen_utils_.treegen_utils.lerp(startNode.cotangent, nextNode.cotangent, n / resampleNr)
+                    sampleRadius = treegen_utils_.treegen_utils.lerp(startNode.radius, nextNode.radius, n / resampleNr)
+                    sampleTvalGlobal = treegen_utils_.treegen_utils.lerp(startNode.tValGlobal, nextNode.tValGlobal, n / resampleNr)
+                    sampleTvalBranch = treegen_utils_.treegen_utils.lerp(startNode.tValBranch, nextNode.tValBranch, n / resampleNr)
                     #drawDebugPoint(samplePoint, 0.4)
                     
                     newNode = node(samplePoint, sampleRadius, sampleCotangent, startNode.clusterIndex, startNode.ringResolution, self.taper, sampleTvalGlobal, sampleTvalBranch, startNode.branchLength)
@@ -588,3 +591,21 @@ def drawArrow(a, b):
     empty.scale = (distance, distance, distance)  # Scale uniformly along all axes
     
     return empty
+
+
+        
+    def register():
+        print("in node: register")
+    
+    def unregister():
+        print("in node: unregister")
+        
+        
+        
+def register():
+    print("register node")
+    node.register()
+    
+def unregister():
+    node.unregister()
+    print("unregister node")

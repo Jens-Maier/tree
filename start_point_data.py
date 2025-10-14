@@ -1,6 +1,8 @@
-import utils_
 from mathutils import Vector, Quaternion
 import math
+
+from . import treegen_utils_
+
 
 class StartPointData():
     def __init__(self, StartPoint, StartPointTvalGlobal, OutwardDir, StartNode, StartNodeIndex, StartNodeNextIndex, T, Tangent, Cotangent):
@@ -58,7 +60,7 @@ class StartPointData():
         else:
             tangent = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tangent[0]
         
-        startPoint = utils_.utils.sampleSplineT(
+        startPoint = treegen_utils_.treegen_utils.sampleSplineT(
             startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point,
             startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point,
             tangent,
@@ -67,12 +69,12 @@ class StartPointData():
         
         nextTangent = (treeGrowDir.normalized() * treeHeight - (rootNode.point + rootNode.tangent[0] *  (treeGrowDir.normalized() * treeHeight - rootNode.point).length * (1.5 / 3.0))).normalized()
         
-        centerPoint = utils_.utils.sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, Vector((0.0, 0.0, 1.0)), nextTangent, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal);
+        centerPoint = treegen_utils_.treegen_utils.sampleSplineT(rootNode.point, treeGrowDir.normalized() * treeHeight, Vector((0.0, 0.0, 1.0)), nextTangent, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal);
         
-        startPointCotangent = utils_.utils.lerp(startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.cotangent,            
+        startPointCotangent = treegen_utils_.treegen_utils.lerp(startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.cotangent,            
             startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent, tVal)
         
-        outwardDir = utils_.utils.lerp(
+        outwardDir = treegen_utils_.treegen_utils.lerp(
         startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point,
         startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal) - centerPoint
         
@@ -164,3 +166,21 @@ class DummyStartPointData():
             dummyStartPointData.append(StartPointData(p, startPointDatum.startPointTvalGlobal, Vector((0.0,0.0,0.0)), None, 0, 0, 0, Vector((0.0,0.0,0.0)), Vector((0.0,0.0,0.0))))
         
         return (dummyStartPointData, centerPoint)
+
+
+        
+    def register():
+        print("in nodeInfo: register")
+    
+    def unregister():
+        print("in nodeInfo: unregister")
+        
+        
+        
+def register():
+    print("register StartPointData")
+    StartPointData.register()
+    
+def unregister():
+    StartPointData.unregister()
+    print("unregister StartPointData")

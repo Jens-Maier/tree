@@ -20,3 +20,20 @@ class segment():
         self.longestBranchLengthInCluster = LongestBranchLengthInCluster
         self.startTaper = StartTaper
         self.endTaper = EndTaper
+        
+        
+    def register():
+        print("in segment: register")
+    
+    def unregister():
+        print("in segment: unregister")
+        
+        
+        
+def register():
+    print("register segment")
+    segment.register()
+    
+def unregister():
+    segment.unregister()
+    print("unregister segment")

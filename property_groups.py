@@ -1,8 +1,7 @@
 import bpy.props
 import math
 
-curve_node_mapping = {}
-taper_node_mapping = {}
+
 
 class floatProp(bpy.types.PropertyGroup):
     value: bpy.props.FloatProperty(name = "floatValue", default=0)
@@ -596,3 +595,13 @@ class UL_branchSplitLevelListLevel_19(bpy.types.UIList): #template for UIList
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
+        
+        
+      
+        
+        
+def register():
+    print("register propertyGroups")
+    
+def unregister():
+    print("unregister propertyGroups")

@@ -1,6 +1,8 @@
 import bpy.types
-import property_groups
 import math
+
+from . import property_groups
+
 
 def myNodeTree():
     if 'CurveNodeGroup' not in bpy.data.node_groups:
@@ -730,3 +732,14 @@ class leafSettings(bpy.types.Panel):
                 
                 box1 = box.box()
                 draw_leaf_cluster_bools(box1, scene, i, scene.treeSettings.leafParentClusterBoolListList[i])
+
+
+        
+        
+def register():
+    print("register panels (TODO??)")
+    segment.register()
+    
+def unregister():
+    segment.unregister()
+    print("unregister panels (TODO??)")

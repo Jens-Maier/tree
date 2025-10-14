@@ -1,9 +1,11 @@
 import bpy.types
-import panels
-import property_groups
-import tree_generator
 import os
 import json
+
+from . import panels
+from . import property_groups
+from . import tree_generator
+
 
 class generateTree(bpy.types.Operator):
     bl_label = "generateTree"
@@ -39,23 +41,23 @@ class packUVs(bpy.types.Operator):
         bpy.ops.object.editmode_toggle()
         
         # Check UV bounds after packing
-        if check_uv_bounds():
+        if checkUVbounds():
             self.report({'WARNING'}, "Warning: UVs out of bounds! Reduce UV margin.")
         
         return {'FINISHED'}
     
-def check_uv_bounds():
+def checkUVbounds():
     obj = bpy.context.active_object
     uv_layer = obj.data.uv_layers.active.data
     
-    out_of_bounds = False
+    outOfBounds = False
     for loop in obj.data.loops:
         uv = uv_layer[loop.index].uv
         if uv.x < 0.0 or uv.x > 1.0 or uv.y < 0.0 or uv.y > 1.0:
-            out_of_bounds = True
+            outOfBounds = True
             break
     
-    return out_of_bounds
+    return outOfBounds
             
     
     
@@ -1835,3 +1837,12 @@ def init_properties(data, props, operator):
         for value in data.get("leafTiltAngleBranchEndList", []):
             props.leafClusterSettingsList[i].leafTiltAngleBranchEnd = value
             i += 1
+            
+            
+        
+        
+def register():
+    print("register operators (TODO???)")
+    
+def unregister():
+    print("unregister operators(TODO???)")

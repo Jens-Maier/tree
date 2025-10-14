@@ -124,3 +124,21 @@ class SimplexNoiseGenerator():
 
     def fastfloor(self, n):
         return int(n) if n > 0 else int(n) - 1
+    
+
+        
+    def register():
+        print("in noiseGenerator: register")
+    
+    def unregister():
+        print("in noiseGenerator: unregister")
+        
+        
+        
+def register():
+    print("register noiseGenerator")
+    noiseGenerator.register()
+    
+def unregister():
+    node.unregister()
+    noiseGenerator("unregister noiseGenerator")
