@@ -810,7 +810,8 @@ class exportProperties(bpy.types.Operator):
         controlPts = []
         handleTypes = []
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
-        curveElement = nodeGroups.nodes[propertyGroups.curve_node_mapping['Stem']].mapping.curves[3]
+        curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3]
+        
         for n in range(0, len(curveElement.points)):
             controlPts.append(list(curveElement.points[n].location))
             handleTypes.append(curveElement.points[n].handle_type)
@@ -1214,7 +1215,7 @@ class exportProperties(bpy.types.Operator):
             "leafParentClusterBoolListList": nestedLeafList
         }
 
-        with open(filePath, 'w') as f:
+        with open(filepath, 'w') as f:
             json.dump(data, f)
         
         self.report({'INFO'}, f'Saved properties to {filepath}')

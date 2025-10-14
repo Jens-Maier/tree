@@ -2,6 +2,7 @@ import utils_
 import rotation_step
 import start_node_info
 import segment_
+import noise_generator
 from segment_ import segment
 
 from mathutils import Vector, Quaternion

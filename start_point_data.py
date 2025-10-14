@@ -161,6 +161,6 @@ class DummyStartPointData():
         centerPoint = centerPoint / n
         
         for p in parallelPoints:
-            dummyStartPointData.append(startPointData(p, startPointDatum.startPointTvalGlobal, Vector((0.0,0.0,0.0)), None, 0, 0, 0, Vector((0.0,0.0,0.0)), Vector((0.0,0.0,0.0))))
+            dummyStartPointData.append(StartPointData(p, startPointDatum.startPointTvalGlobal, Vector((0.0,0.0,0.0)), None, 0, 0, 0, Vector((0.0,0.0,0.0)), Vector((0.0,0.0,0.0))))
         
         return (dummyStartPointData, centerPoint)

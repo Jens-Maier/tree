@@ -1,3 +1,7 @@
+import random
+import mathutils
+from mathutils import Vector
+
 class SimplexNoiseGenerator():
     def __init__(self, treeGen, seed=None):
         self.onethird = 1.0 / 3.0

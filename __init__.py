@@ -1,7 +1,7 @@
 import bpy
 import sys
 import os
-
+import random
 
 
 
@@ -152,7 +152,7 @@ def register():
     #save and load #  TEST OFF
     bpy.utils.register_class(operators.importProperties)
     bpy.utils.register_class(operators.exportProperties)
-#    bpy.utils.register_class(loadPreset)
+    bpy.utils.register_class(loadPreset)
     
 #    #data types
     bpy.utils.register_class(property_groups.treePresetEnumProp)
@@ -230,12 +230,9 @@ def register():
     bpy.utils.register_class(panels.angleSettings)
     bpy.utils.register_class(panels.splitSettings)
     
-    
     bpy.utils.register_class(branchSettings)
     bpy.utils.register_class(leafSettings) # TODO
-#    
-#    
-#    
+    
     bpy.utils.register_class(evaluateButton)
     bpy.utils.register_class(initButton)
     bpy.utils.register_class(BranchClusterEvaluateButton)

@@ -1,4 +1,5 @@
 import noise_generator
+from noise_generator import SimplexNoiseGenerator
 import bpy
 import node_
 from node_ import node
@@ -27,7 +28,7 @@ class treeGenerator:
         context.scene.treeSettings.maxSplitHeightUsed = 0
         
         context.scene.treeSettings.seed += 1
-        #noise_generator = noise_generator(self, context.scene.treeSettings.seed)
+        noise_generator = SimplexNoiseGenerator(self, context.scene.treeSettings.seed)
         
         if context.active_object is None:
             treeMesh = bpy.data.meshes.new("treeMesh")
@@ -54,7 +55,7 @@ class treeGenerator:
             nodes[1].rotateAngleRange.append(math.pi)
             
             if context.scene.treeSettings.nrSplits > 0:
-                maxSplitHeightUsed = splitRecursive(nodes[0], 
+                maxSplitHeightUsed = treeGenerator.splitRecursive(nodes[0], 
                                                     context.scene.treeSettings.nrSplits, 
                                                     context.scene.treeSettings.stemSplitAngle, 
                                                     context.scene.treeSettings.stemSplitPointAngle, 
@@ -356,7 +357,123 @@ class treeGenerator:
                     for i in range(context.scene.branchClusterSettingsList[19].maxSplitHeightUsed + 1, len(context.scene.treeSettings.branchSplitHeightInLevelList_19)):
                         h = context.scene.treeSettings.branchSplitHeightInLevelList_19.add()
             
+    
+    def splitRecursive(startNode, 
+                       nrSplits, 
+                       splitAngle, 
+                       splitPointAngle, 
+                       variance, 
+                       splitHeightInLevel, 
+                       splitHeightVariation, 
+                       splitLengthVariation, 
+                       stemSplitMode, 
+                       stemSplitRotateAngle, 
+                       root_node, 
+                       stemRingResolution, 
+                       curvOffsetStrength, 
+                       self, 
+                       rootNode):
+        self.report({'INFO'}, f"nrSplits: {nrSplits}")
+        while len(splitHeightInLevel) < nrSplits:
+            newHeight = splitHeightInLevel.add()
+            newHeight.value = 0.5
+        
+        minSegments = math.ceil(math.log(nrSplits + 1, 2))
+    
+        splitProbabilityInLevel = [0.0] * nrSplits
+        expectedSplitsInLevel = [0] * nrSplits
+        
+        meanLevel = int(math.log(nrSplits, 2))
+        if meanLevel == 0:
+            meanLevel = 1
+        if nrSplits > 0:
+            splitProbabilityInLevel[0] = 1.0
+            expectedSplitsInLevel[0] = 1
+        else:
+            splitProbabilityInLevel[0] = 0.0
+            expectedSplitsInLevel[0] = 0
+    
+        for i in range(1, int(round(meanLevel - variance * meanLevel))):
+            splitProbabilityInLevel[i] = 1.0
+            expectedSplitsInLevel[i] = int(splitProbabilityInLevel[i] * 2.0 * expectedSplitsInLevel[i - 1])
+    
+        if int(round(meanLevel - variance * meanLevel)) > 0:
+            for i in range(int(round(meanLevel - variance * meanLevel)), int(round(meanLevel + variance * meanLevel))):
+                splitProbabilityInLevel[i] = 1.0 - (7.0 / 8.0) * (i - int(round(meanLevel - variance * meanLevel))) / (
+                    round(meanLevel + variance * meanLevel) - round(meanLevel - variance * meanLevel))
+                expectedSplitsInLevel[i] = int(splitProbabilityInLevel[i] * 2.0 * expectedSplitsInLevel[i - 1])
+            for i in range(int(round(meanLevel + variance * meanLevel)), nrSplits):
+                splitProbabilityInLevel[i] = 1.0 / 8.0
+                expectedSplitsInLevel[i] = int(splitProbabilityInLevel[i] * 2.0 * expectedSplitsInLevel[i - 1])
+    
+        if nrSplits == 2:
+            expectedSplitsInLevel[0] = 1
+            expectedSplitsInLevel[1] = 1
+    
+        addToLevel = 0
+        maxPossibleSplits = 1
+        totalExpectedSplits = 0
+        for i in range(nrSplits):
+            totalExpectedSplits += expectedSplitsInLevel[i]
+            if expectedSplitsInLevel[i] < maxPossibleSplits:
+                addToLevel = i
+                break
+            maxPossibleSplits *= 2
+        addAmount = nrSplits - totalExpectedSplits
+        
+        if addAmount > 0: 
+            expectedSplitsInLevel[addToLevel] += min(addAmount, maxPossibleSplits - expectedSplitsInLevel[addToLevel])
+    
+        splitProbabilityInLevel[addToLevel] = float(expectedSplitsInLevel[addToLevel]) / float(maxPossibleSplits)
+    
+        nodesInLevelNextIndex = [[] for _ in range(nrSplits + 1)]
+        for n in range(len(startNode.next)):
+            nodesInLevelNextIndex[0].append((startNode, n))
             
+        maxSplitHeightUsed = 0
+    
+        totalSplitCounter = 0
+        for level in range(nrSplits):
+            splitsInLevel = 0
+            safetyCounter = 0
+    
+            nodeIndices = list(range(len(nodesInLevelNextIndex[level])))
+    
+            while splitsInLevel < expectedSplitsInLevel[level]:
+                if not nodeIndices:
+                    break
+                if totalSplitCounter == nrSplits:
+                    break
+                r = random.random()
+                h = random.random() - 0.5
+                if r <= splitProbabilityInLevel[level]:
+                    indexToSplit = random.randint(0, len(nodeIndices) - 1)
+                    if len(nodeIndices) > indexToSplit:
+                        splitHeight = splitHeightInLevel[level].value
+                        if h * splitHeight < 0:
+                            splitHeight = max(splitHeight + h * splitHeightVariation, 0.05)
+                        else:
+                            splitHeight = min(splitHeight + h * splitHeightVariation, 0.95)
+                        
+                        maxSplitHeightUsed = max(maxSplitHeightUsed, level)
+                        splitNode = split(
+                            nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0],
+                            nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][1],
+                            splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, stemSplitMode, stemSplitRotateAngle, 0.0, stemRingResolution, curvOffsetStrength, self, rootNode)
+                        
+                        nodeIndices.pop(indexToSplit)
+                        nodesInLevelNextIndex[level + 1].append((splitNode, 0))
+                        nodesInLevelNextIndex[level + 1].append((splitNode, 1))
+                        splitsInLevel += 1
+                        totalSplitCounter += 1
+                safetyCounter += 1
+                if safetyCounter > 100:
+                    self.report({'INFO'}, f"iteration 100 reached -> break!")
+                    break
+        return maxSplitHeightUsed
+
+    
+    
     def addBranches(
         self, 
         treeGen, 
@@ -1370,7 +1487,9 @@ def calculateSegmentLengthsAndTotalLength(self,
             
             # t-global only influences segmentLengths if segment is in stem! -> else only use t-branch !!!
         return totalLength
-    
+
+
+
 def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
     if len(activeNode.next) > 0 or len(activeNode.branches) > 0:
         
