@@ -2,7 +2,7 @@ schema_version = "1.0.0"
 
 id = "minimalAddon"
 version = "1.0.2"
-name = "treeGen_v5_minimal_addon" # has to be exactly the same name as the folder that contains __init__.py, ...py, blender_manifest.toml
+name = "minimal_addon" # has to be exactly the same name as the folder that contains __init__.py, ...py, blender_manifest.toml
 tagline = "minimal addon"
 maintainer = "Jens Maier"
 type = "add-on"
