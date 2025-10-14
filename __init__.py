@@ -231,8 +231,8 @@ def register():
     bpy.utils.register_class(panels.splitSettings)
     
     
-    bpy.utils.register_class(branchSettings) # TODO...
-#    bpy.utils.register_class(leafSettings) # TODO
+    bpy.utils.register_class(branchSettings)
+    bpy.utils.register_class(leafSettings) # TODO
 #    
 #    
 #    

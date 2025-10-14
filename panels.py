@@ -617,7 +617,27 @@ class branchSettings(bpy.types.Panel):
                                 box2.prop(splitLevel, "value", text=f"Split height level {j}", slider=True)
                                 j += 1
                                 
-                                
+def draw_leaf_cluster_bools(layout, scene, cluster_index, leafParentClusterBool):
+    boolListItem = scene.treeSettings.leafParentClusterBoolListList[cluster_index].value
+    
+    row = layout.row()
+    row.prop(leafParentClusterBool, "show_leaf_cluster", icon="TRIA_DOWN" if leafParentClusterBool.show_leaf_cluster else "TRIA_RIGHT", emboss=False, text="Parent clusters", toggle=True)
+    
+    if leafParentClusterBool.show_leaf_cluster == True:
+        for j, boolItem in enumerate(boolListItem):
+            split = layout.split(factor=0.6)
+            if j == 0:
+                split.label(text=f"Stem")
+            else:
+                split.label(text=f"Branch cluster {j - 1}")
+            rightColumn = split.column(align=True)
+            row = rightColumn.row(align=True)
+            row.alignment = 'CENTER'
+            
+            op = row.operator("scene.toggle_leaf_bool", text="", depress=boolItem.value)
+            op.list_index = cluster_index
+            op.bool_index = j
+                     
 class leafSettings(bpy.types.Panel):
     bl_label = "Leaf Settings"
     bl_idname = "PT_LeafSettings"
@@ -633,8 +653,8 @@ class leafSettings(bpy.types.Panel):
         bl_optione = {'DEFAULT_CLOSED'}
         
         row = layout.row(align = True)
-        row.operator("scene.add_leaf_item", text="Add")
-        row.operator("scene.remove_leaf_item", text="Remove").index = treeSettings.leavesDensityListIndex
+        row.operator("scene.add_leaf_cluster", text="Add")
+        row.operator("scene.remove_leaf_cluster", text="Remove").index = context.scene.treeSettings.leavesDensityListIndex
         row = layout.row()
         
         for i, leaves in enumerate(scene.leafClusterSettingsList):

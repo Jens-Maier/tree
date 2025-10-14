@@ -143,18 +143,18 @@ class treeGenerator:
                 
                 noise_generator)
               
-            treeGenerator.calculateRadius(self, nodes[0], 100.0, context.scene.treeSettings.branchTipRadius)
+            calculateRadius(self, nodes[0], 100.0, context.scene.treeSettings.branchTipRadius)
             segments = []
             nodes[0].getAllSegments(self, nodes[0], segments, False)
             
-            treeGenerator.addLeaves(self, self, nodes[0], 
+            addLeaves(self, self, nodes[0], 
                 context.scene.treeSettings.treeGrowDir, 
                 context.scene.treeSettings.treeHeight, 
                 context.scene.leafClusterSettingsList,
                 context.scene.treeSettings.leafParentClusterBoolListList, 
                 context.scene.leaf_material)
             
-            treeGenerator.generateVerticesAndTriangles(self, self, context, 
+            generateVerticesAndTriangles(self, self, context, 
                 segments, 
                 dir, 
                 context.scene.treeSettings.taper, 
@@ -439,7 +439,7 @@ class treeGenerator:
                 if len(startNodesNextIndexStartTvalEndTval) > 0:
                     segmentLengths = []
                     
-                    totalLength = treeGenerator.calculateSegmentLengthsAndTotalLength(self, treeGen, startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster)
+                    totalLength = calculateSegmentLengthsAndTotalLength(self, treeGen, startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster)
                     
                     treeGen.report({'INFO'}, f"in addBranches(): totalLength: {totalLength}")
             
@@ -899,8 +899,416 @@ class treeGenerator:
             else:
                 return 0.5 + 0.5 * (1.0 - tValGlobal) / 0.3
     
+def splitBranches(treeGen, 
+                      rootNode, 
+                      branchCluster, 
+                      nrBranchSplits, # = int(nrSplitsPerBranch[clusterIndex].value * nrBranchesList[clusterIndex].value)
+                                      # used because branchSplitHeightInLevel needs max possible nrBranchSplits!
+                      
+                      splitAngle, 
+                      splitPointAngle, 
+                      nrSplitsPerBranch, 
+                      
+                      splitsPerBranchVariation, 
+                      branchSplitHeightInLevel, # == branchSplitHeightInLevelList_0
+                      branchSplitHeightVariation, 
+                      branchSplitLengthVariation, 
+                      
+                      branchSplitMode, 
+                      branchSplitRotateAngle, 
+                      
+                      stemRingResolution, 
+                      curvOffsetStrength, 
+                      variance, 
+                      
+                      branchSplitAxisVariation, 
+                      
+                      curvatureStartGlobal, 
+                      curvatureEndGlobal):
+                          
+        allBranchNodes = []
+        
+        maxSplitHeightInLevelUsed = 0
+        
+        rootNode.getAllBranchStartNodes(treeGen, allBranchNodes, branchCluster)
+        
+        splitsForBranch = [0 for i in range(len(allBranchNodes))]
+            
+        branchLengths = []
+        branchWeights = []
+        totalLength = 0.0
+        totalWeight = 0.0
+        for i in range(len(allBranchNodes)):
+            length = allBranchNodes[i].lengthToTip(treeGen)
+            branchLengths.append(length)
+            totalLength += length
+            
+            treeGen.report({'INFO'}, f"adding length: {length}")
+            weight = pow(length, 2.0)
+            branchWeights.append(weight)
+            totalWeight += weight
+            treeGen.report({'INFO'}, f"adding {weight} to totalWeight: {totalWeight}")
+        for i in range(len(allBranchNodes)):
+            treeGen.report({'INFO'}, f"len(allBranchNodes): {len(allBranchNodes)}")
+            treeGen.report({'INFO'}, f"nrBranchSplits: {nrBranchSplits}")
+            treeGen.report({'INFO'}, f"branchWeights[{i}]: {branchWeights[i]}")
+            treeGen.report({'INFO'}, f"totalWeight: {totalWeight}")
+            treeGen.report({'INFO'}, f"splitsPerBranchVariation: {splitsPerBranchVariation}")
+            treeGen.report({'INFO'}, f"nrSplitsPerBranch: {nrSplitsPerBranch}")
+            
+            
+            splitsForBranch[i] = int(round(nrBranchSplits * branchWeights[i] / totalWeight + random.uniform(-splitsPerBranchVariation * nrSplitsPerBranch, splitsPerBranchVariation * nrSplitsPerBranch)))
+            
+            if splitsForBranch[i] < 1:
+                splitsForBranch[i] = 1
+            
+            splitProbabilityInLevel = [0.0 for j in range(splitsForBranch[i])]
+            expectedSplitsInLevel = [0 for j in range(splitsForBranch[i])]
+            
+            if splitsForBranch[i] > 0:
+                meanLevel = int(math.log(splitsForBranch[i], 2))
+            else:
+                meanLevel = 0
+                
+            if meanLevel < 0:
+                meanLevel = 0
+            
+            if splitsForBranch[i] > 0:
+                splitProbabilityInLevel[0] = 1.0
+                expectedSplitsInLevel[0] = 1
+            else:
+                splitProbabilityInLevel[0] = 0.0
+                expectedSplitsInLevel[0] = 0
+            
+            for j in range(1, int(round(meanLevel - variance * meanLevel))):
+                splitProbabilityInLevel[j] = 1.0
+                expectedSplitsInLevel[j] = int(splitProbabilityInLevel[j] * 2.0 * expectedSplitsInLevel[j - 1])
+                
+            if int(round(meanLevel - variance * meanLevel)) > 0:
+                for k in range(int(round(meanLevel - variance * meanLevel)), int(round(meanLevel + variance * meanLevel))):
+                    splitProbabilityInLevel[k] = 1.0 - (7.0 / 8.0) * (k - int(round(meanLevel - variance * meanLevel))) / (
+                        round(meanLevel + variance * meanLevel) - round(meanLevel - variance * meanLevel))
+                    expectedSplitsInLevel[k] = int(splitProbabilityInLevel[k] * 2.0 * expectedSplitsInLevel[k - 1])
+                for m in range(int(round(meanLevel + variance * meanLevel)), int(round(splitsForBranch[i]))):
+                    splitProbabilityInLevel[m] = 1.0 / 8.0
+                    expectedSplitsInLevel[m] = int(splitProbabilityInLevel[m] * 2.0 * expectedSplitsInLevel[m - 1])
+            if splitsForBranch[i] == 2:
+                expectedSplitsInLevel[0] = 1
+                expectedSplitsInLevel[1] = 1
+    
+            addToLevel = 0
+            maxPossibleSplits = 1
+            totalExpectedSplits = 0
+            for j in range(splitsForBranch[i]):
+                totalExpectedSplits += expectedSplitsInLevel[j]
+                if expectedSplitsInLevel[j] < maxPossibleSplits:
+                    addToLevel = j
+                    break
+                maxPossibleSplits *= 2
+            addAmount = splitsForBranch[i] - totalExpectedSplits
+            if addAmount > 0:
+                expectedSplitsInLevel[addToLevel] += min(addAmount, maxPossibleSplits - expectedSplitsInLevel[addToLevel])
+    
+            splitProbabilityInLevel[addToLevel] = float(expectedSplitsInLevel[addToLevel]) / float(maxPossibleSplits)
+            
+            nodesInLevelNextIndex = [[] for _ in range(splitsForBranch[i] + 1)]
+            
+            for n in range(len(allBranchNodes[i].next)):
+                nodesInLevelNextIndex[0].append((allBranchNodes[i], n))
+                
+            splitCounter = 0
+            for level in range(splitsForBranch[i]):
+                splitsInLevel = 0
+                safetyCounter = 0
+                
+                nodeIndices = list(range(len(nodesInLevelNextIndex[level])))
+                
+                while splitsInLevel < expectedSplitsInLevel[level]:
+                    if not nodeIndices:
+                        break
+                    if splitCounter == splitsForBranch[i]:
+                        break
+                    r = random.random()
+                    h = random.random() - 0.5
+                    if r <= splitProbabilityInLevel[level]:
+                        indexToSplit = random.randint(0, len(nodeIndices) - 1)
+                        if len(nodeIndices) > indexToSplit:
+                            splitHeight = branchSplitHeightInLevel[level].value
+                            treeGen.report({'INFO'}, f"branch splitHeight before: {splitHeight}")
+                            treeGen.report({'INFO'}, f"branchSplitHeightVariation: {branchSplitHeightVariation}")
+                            treeGen.report({'INFO'}, f"h: {h}")
+                            if h * splitHeight < 0:
+                                splitHeight = max(splitHeight + h * branchSplitHeightVariation, 0.05)
+                            else:
+                                splitHeight = min(splitHeight + h * branchSplitHeightVariation, 0.95)
+                            treeGen.report({'INFO'}, f"branch splitHeight: {splitHeight}")
+                            splitNode = split(
+                                nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0],
+                                nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][1], 
+                                splitHeight, 
+                                branchSplitLengthVariation,
+                                splitAngle,
+                                splitPointAngle, 
+                                level, 
+                                branchSplitMode, 
+                                branchSplitRotateAngle, 
+                                branchSplitAxisVariation, 
+                                stemRingResolution,
+                                curvOffsetStrength,
+                                treeGen, 
+                                rootNode
+                                )
+                            
+                            if splitNode == nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0]:
+                                #did not split
+                                totalWeight -= branchWeights[indexToSplit]
+                                del branchWeights[indexToSplit]
+                                del nodeIndices[indexToSplit]
+                            else:
+                                if maxSplitHeightInLevelUsed < level:
+                                    maxSplitHeightInLevelUsed = level
+                                
+                                nodesInLevelNextIndex[level + 1].append((splitNode, 0))
+                                nodesInLevelNextIndex[level + 1].append((splitNode, 1))
+                                
+                                del nodeIndices[indexToSplit]
+                                
+                                splitsInLevel += 1
+                                
+        return maxSplitHeightInLevelUsed
 
-    def calculateSegmentLengthsAndTotalLength(self, 
+def split(startNode, 
+          nextIndex, 
+          splitHeight, 
+          splitLengthVariation,
+          splitAngle, 
+          splitPointAngle, 
+          level, 
+          mode, 
+          rotationAngle, 
+          branchSplitAxisVariation, 
+          stemRingResolution, 
+          curvOffsetStrength, 
+          self, 
+          rootNode):
+    if len(startNode.next) > 0 and nextIndex < len(startNode.next):
+        nrNodesToTip = nodesToTip(startNode.next[nextIndex], 0)
+        splitHeight = min(splitHeight, 0.999)
+        splitAfterNodeNr = int(nrNodesToTip * splitHeight)
+
+        if nrNodesToTip > 0:
+            # Split at existing node if close enough
+            if nrNodesToTip * splitHeight - splitAfterNodeNr < 0.1:
+                splitNode = startNode
+                for i in range(splitAfterNodeNr):
+                    if i == 0:
+                        splitNode = splitNode.next[nextIndex]
+                        nextIndex = 0
+                    else:
+                        splitNode = splitNode.next[0]
+                        
+                if splitNode != startNode:
+                    calculateSplitData(splitNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, splitNode.outwardDir)
+                else:
+                    # -> split at new node!!!
+                    return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, mode, rotationAngle, branchSplitAxisVariation, stemRingResolution, curvOffsetStrength, self, rootNode)
+                    
+            else:
+                return splitAtNewNode(nrNodesToTip, splitAfterNodeNr, startNode, nextIndex, splitHeight, splitLengthVariation, splitAngle, splitPointAngle, level, mode, rotationAngle, branchSplitAxisVariation, stemRingResolution, curvOffsetStrength, self, rootNode) # clusterIndex???
+    
+    return startNode
+
+
+def splitAtNewNode(nrNodesToTip, 
+                   splitAfterNodeNr, 
+                   startNode, 
+                   nextIndex, 
+                   splitHeight, 
+                   splitLengthVariation, 
+                   splitAngle, 
+                   splitPointAngle, 
+                   level, 
+                   mode, 
+                   rotationAngle, 
+                   branchSplitAxisVariation, 
+                   stemRingResolution, 
+                   curvOffsetStrength, 
+                   self, 
+                   rootNode):
+    # Split at new node between two nodes
+    
+    splitAfterNode = startNode
+    splitAtStartNode = True
+    for i in range(splitAfterNodeNr):
+        if i == 0:
+            splitAfterNode = splitAfterNode.next[nextIndex]
+            splitAtStartNode = False
+            nextIndex = 0
+        else:
+            splitAfterNode = splitAfterNode.next[0]
+            splitAtStartNode = False
+                        
+    tangentIndex = 0
+    if splitAtStartNode == True and len(startNode.next) > 1:
+        tangentIndex = nextIndex + 1
+    else:
+        tangentIndex = nextIndex
+
+    # Interpolate position and attributes for the new node
+    t = nrNodesToTip * splitHeight - splitAfterNodeNr
+    p0 = splitAfterNode.point
+    p1 = splitAfterNode.next[nextIndex].point
+    t0 = splitAfterNode.tangent[tangentIndex]
+    t1 = splitAfterNode.next[nextIndex].tangent[0]
+    c0 = splitAfterNode.cotangent
+    c1 = splitAfterNode.next[nextIndex].cotangent
+    r0 = splitAfterNode.radius
+    r1 = splitAfterNode.next[nextIndex].radius
+    ring_res = splitAfterNode.ringResolution
+    taper = splitAfterNode.taper
+    
+    newPoint = utils_.utils.sampleSplineT(p0, p1, t0, t1, t)
+    newTangent = utils_.utils.sampleSplineTangentT(p0, p1, t0, t1, t)
+    newCotangent = utils_.utils.lerp(c0, c1, t)
+    newRadius = utils_.utils.lerp(r0, r1, t)
+    newTvalGlobal = utils_.utils.lerp(splitAfterNode.tValGlobal, splitAfterNode.next[nextIndex].tValGlobal, nrNodesToTip * splitHeight - splitAfterNodeNr)
+    
+    newTvalBranch = utils_.utils.lerp(splitAfterNode.tValBranch, splitAfterNode.next[nextIndex].tValBranch, splitHeight);
+        
+    newNode = node(newPoint, newRadius, newCotangent, splitAfterNode.clusterIndex, ring_res, taper, newTvalGlobal, newTvalBranch, splitAfterNode.branchLength)
+    newNode.tangent.append(newTangent)
+    
+    # Insert new node in the chain
+    newNode.next.append(splitAfterNode.next[nextIndex])
+    splitAfterNode.next[nextIndex] = newNode
+    
+    newNode.outwardDir = splitAfterNode.outwardDir
+    
+    calculateSplitData(newNode, splitAngle, splitPointAngle, splitLengthVariation, branchSplitAxisVariation, level, mode, rotationAngle, stemRingResolution, curvOffsetStrength, self, newNode.outwardDir)
+    return newNode
+
+
+def calculateSplitData(splitNode, 
+                       splitAngle, 
+                       splitPointAngle, 
+                       splitLengthVariation, 
+                       branchSplitAxisVariation, 
+                       level, 
+                       sMode, 
+                       rotationAngle, 
+                       stemRingResolution, 
+                       curvOffsetStrength, 
+                       self, 
+                       outwardDir):
+    
+    n = splitNode
+    nodesAfterSplitNode = 0
+    
+    while n.next:
+        nodesAfterSplitNode += 1
+        n = n.next[0]
+
+    # Initialize splitAxis
+    splitAxis = Vector((0, 0, 0))
+
+    if sMode == "HORIZONTAL":
+        right = splitNode.tangent[0].cross(Vector((0.0, 0.0, 1.0)))
+        splitAxis = right.cross(splitNode.tangent[0]).normalized()
+        splitAxis = Quaternion(splitNode.tangent[0], random.uniform(-branchSplitAxisVariation, branchSplitAxisVariation)) @ splitAxis
+
+    elif sMode == "ROTATE_ANGLE":
+        splitAxis = splitNode.cotangent.normalized()
+        splitAxis = (Quaternion(splitNode.tangent[0], rotationAngle * level) @ splitAxis).normalized()
+    else:
+        self.report({'INFO'}, f"ERROR: invalid splitMode: {sMode}")
+        splitAxis = splitNode.cotangent.normalized()
+        if level % 2 == 1:
+            splitAxis = (Quaternion(splitNode.tangent[0], math.radians(90)) @ splitAxis).normalized()
+
+    splitDirA = (Quaternion(splitAxis, splitPointAngle) @ splitNode.tangent[0]).normalized()
+    splitDirB = (Quaternion(splitAxis, -splitPointAngle) @ splitNode.tangent[0]).normalized()
+
+    splitNode.tangent.append(splitDirA)
+    splitNode.tangent.append(splitDirB)
+
+    s = splitNode
+    previousNodeA = splitNode
+    previousNodeB = splitNode
+    curv_offset = splitNode.tangent[0].normalized() * (s.next[0].point - s.point).length * (splitAngle / 360.0) * curvOffsetStrength
+    s.outwardDir = outwardDir
+
+    for i in range(nodesAfterSplitNode):
+        s = s.next[0]
+        rel_pos = s.point - splitNode.point
+        s.outwardDir = outwardDir
+
+        tangent_a = (Quaternion(splitAxis, splitAngle) @ s.tangent[0]).normalized()
+        tangent_b = (Quaternion(splitAxis, -splitAngle) @ s.tangent[0]).normalized()
+        cotangent_a = (Quaternion(splitAxis, splitAngle) @ s.cotangent).normalized()
+        cotangent_b = (Quaternion(splitAxis, -splitAngle) @ s.cotangent).normalized()
+
+        offset_a = (Quaternion(splitAxis, splitAngle) @ rel_pos)
+        offset_a = offset_a * (1.0 + random.uniform(-1.0, 1.0) * splitLengthVariation)
+        offset_b = (Quaternion(splitAxis, -splitAngle) @ rel_pos)
+        offset_b = offset_b * (1.0 + random.uniform(-1.0, 1.0) * splitLengthVariation)
+        
+        ring_resolution = stemRingResolution
+
+        nodeA = node(splitNode.point + offset_a + curv_offset, 1.0, cotangent_a, s.clusterIndex, ring_resolution, s.taper, s.tValGlobal, s.tValBranch, s.branchLength)
+        nodeA.tangent.append(tangent_a)
+        nodeB = node(splitNode.point + offset_b + curv_offset, 1.0, cotangent_b, s.clusterIndex, ring_resolution, s.taper, s.tValGlobal, s.tValBranch, s.branchLength)
+        nodeB.tangent.append(tangent_b)
+
+        if i == 0:
+            splitNode.next[0] = nodeA
+            splitNode.next.append(nodeB)
+            previousNodeA = nodeA
+            previousNodeB = nodeB
+        else:
+            previousNodeA.next.append(nodeA)
+            previousNodeB.next.append(nodeB)
+            previousNodeA = nodeA
+            previousNodeB = nodeB
+
+
+def nodesToTip(n, i):
+    if len(n.next) > 0:
+        if i > 500:
+            self.report({'INFO'}, f"ERROR: in nodesToTip(): max iteration reached!")
+            return i
+        return 1 + nodesToTip(n.next[0], i + 1)
+    else:
+        return 1
+
+
+def shapeRatio(self, context, tValGlobal, treeShape):
+    if treeShape == "CONICAL":
+        return 0.2 + 0.8 * tValGlobal
+    if treeShape == "SPHERICAL":
+        return 0.2 + 0.8 * math.sin(math.pi * tValGlobal)
+    if treeShape == "HEMISPHERICAL":
+        return 0.2 + 0.8 * math.sin(0.5 * math.pi * tValGlobal)
+    if treeShape == "INVERSE_HEMISPHERICAL":
+        return 0.2 + 0.8 * math.sin(0.5 * math.pi * (1.0 - tValGlobal))
+    if treeShape == "CYLINDRICAL":
+        return 1.0;
+    if treeShape == "TAPERED_CYLINDRICAL":
+        return 0.5 + 0.5 * tValGlobal
+    if treeShape == "FLAME":
+        if tValGlobal <= 0.7:
+            return tValGlobal / 0.7
+        else:
+            return (1 - tValGlobal) / 0.3
+    if treeShape == "INVERSE_CONICAL":
+        return 1.0 - 0.8 * tValGlobal
+    if treeShape == "TEND_FLAME":
+        if tValGlobal <= 0.7:
+            return 0.5 + 0.5 * tValGlobal / 0.7
+        else:
+            return 0.5 + 0.5 * (1.0 - tValGlobal) / 0.3
+    
+    
+def calculateSegmentLengthsAndTotalLength(self, 
                                           treeGen, 
                                           startNodesNextIndexStartTvalEndTval, 
                                           segmentLengths, 
@@ -963,34 +1371,34 @@ class treeGenerator:
             # t-global only influences segmentLengths if segment is in stem! -> else only use t-branch !!!
         return totalLength
     
-    def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
-        if len(activeNode.next) > 0 or len(activeNode.branches) > 0:
-            
-            sum = 0.0
-            if len(activeNode.next) > 0:
-                max = 0.0
-                for n in activeNode.next:
-                    s = treeGenerator.calculateRadius(self, n, maxRadius, branchTipRadius)
-                    s += (n.point - activeNode.point).length * activeNode.taper * activeNode.taper
-                    if s > max:
-                        max = s
-                sum = max
-            
-            if len(activeNode.branches) > 0:
-                for c in activeNode.branches:
-                    for n in c:
-                        treeGenerator.calculateRadius(self, n, sum, branchTipRadius)
-                        
-            if sum < maxRadius:
-                activeNode.radius = sum
-            else:
-                activeNode.radius = maxRadius
-            return sum
-        else:
-            activeNode.radius = branchTipRadius
-            return branchTipRadius
+def calculateRadius(self, activeNode, maxRadius, branchTipRadius):
+    if len(activeNode.next) > 0 or len(activeNode.branches) > 0:
         
-    def generateVerticesAndTriangles(self, 
+        sum = 0.0
+        if len(activeNode.next) > 0:
+            max = 0.0
+            for n in activeNode.next:
+                s = calculateRadius(self, n, maxRadius, branchTipRadius)
+                s += (n.point - activeNode.point).length * activeNode.taper * activeNode.taper
+                if s > max:
+                    max = s
+            sum = max
+        
+        if len(activeNode.branches) > 0:
+            for c in activeNode.branches:
+                for n in c:
+                    calculateRadius(self, n, sum, branchTipRadius)
+                    
+        if sum < maxRadius:
+            activeNode.radius = sum
+        else:
+            activeNode.radius = maxRadius
+        return sum
+    else:
+        activeNode.radius = branchTipRadius
+        return branchTipRadius
+        
+def generateVerticesAndTriangles(self, 
                                  treeGen, 
                                  context, 
                                  segments, 
@@ -1204,7 +1612,7 @@ class treeGenerator:
     
     
     
-    def addLeaves(self, treeGen, rootNode,
+def addLeaves(self, treeGen, rootNode,
         treeGrowDir, 
         treeHeight, 
         leafClusterSettingsList, 
@@ -1249,7 +1657,7 @@ class treeGenerator:
                 for leafIndex in range(0, int(nrLeaves)):
                     leafPos = leafIndex * totalLength / nrLeaves
                     
-                    data = generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, leafPos, treeGrowDir, rootNode, treeHeight,    False)
+                    data = StartPointData.generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, leafPos, treeGrowDir, rootNode, treeHeight,    False)
                     
                     startPoint = data.startPoint
                     

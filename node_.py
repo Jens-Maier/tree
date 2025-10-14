@@ -258,7 +258,7 @@ class node():
             # For stem nodes, position = absolute height; 
             # for branch nodes, position = normalized branch position
             if position < gradient and gradient > 0:
-                return pow(utils_.lerp(0.0, amplitude, position / gradient), exponent)
+                return pow(utils_.utils.lerp(0.0, amplitude, position / gradient), exponent)
             else:
                 if gradient > 0:
                     return pow(amplitude, exponent)
@@ -543,16 +543,16 @@ class node():
             if resampleNr > 1:
                 for n in range(1, resampleNr):
                     if len(self.next) > 1:
-                        samplePoint = utils_.sampleSplineT(startNode.point, nextNode.point, startNode.tangent[i + 1], nextNode.tangent[0], n / resampleNr)
-                        sampleTangent = utils_.sampleSplineTangentT(startNode.point, nextNode.point, startNode.tangent[i + 1], nextNode.tangent[0], n / resampleNr)
+                        samplePoint = utils_.utils.sampleSplineT(startNode.point, nextNode.point, startNode.tangent[i + 1], nextNode.tangent[0], n / resampleNr)
+                        sampleTangent = utils_.utils.sampleSplineTangentT(startNode.point, nextNode.point, startNode.tangent[i + 1], nextNode.tangent[0], n / resampleNr)
                     else:
-                        samplePoint = utils_.sampleSplineT(startNode.point, nextNode.point, startNode.tangent[0], nextNode.tangent[0], n / resampleNr)
-                        sampleTangent = utils_.sampleSplineTangentT(startNode.point, nextNode.point, startNode.tangent[0], nextNode.tangent[0], n / resampleNr)
+                        samplePoint = utils_.utils.sampleSplineT(startNode.point, nextNode.point, startNode.tangent[0], nextNode.tangent[0], n / resampleNr)
+                        sampleTangent = utils_.utils.sampleSplineTangentT(startNode.point, nextNode.point, startNode.tangent[0], nextNode.tangent[0], n / resampleNr)
                         
-                    sampleCotangent = utils_.lerp(startNode.cotangent, nextNode.cotangent, n / resampleNr)
-                    sampleRadius = utils_.lerp(startNode.radius, nextNode.radius, n / resampleNr)
-                    sampleTvalGlobal = utils_.lerp(startNode.tValGlobal, nextNode.tValGlobal, n / resampleNr)
-                    sampleTvalBranch = utils_.lerp(startNode.tValBranch, nextNode.tValBranch, n / resampleNr)
+                    sampleCotangent = utils_.utils.lerp(startNode.cotangent, nextNode.cotangent, n / resampleNr)
+                    sampleRadius = utils_.utils.lerp(startNode.radius, nextNode.radius, n / resampleNr)
+                    sampleTvalGlobal = utils_.utils.lerp(startNode.tValGlobal, nextNode.tValGlobal, n / resampleNr)
+                    sampleTvalBranch = utils_.utils.lerp(startNode.tValBranch, nextNode.tValBranch, n / resampleNr)
                     #drawDebugPoint(samplePoint, 0.4)
                     
                     newNode = node(samplePoint, sampleRadius, sampleCotangent, startNode.clusterIndex, startNode.ringResolution, self.taper, sampleTvalGlobal, sampleTvalBranch, startNode.branchLength)
@@ -569,7 +569,7 @@ class node():
                 #treeGen.report({'INFO'}, f"in resampleSpline: len(Next.next): {len(Next.next)}")
                 
             if len(nextNode.next) > 0:
-                nextNode.resampleSpline(rootNode, treeGen, resampleDistance)
+                nextNode.resampleSpline(rootNode, resampleDistance)
  
 def drawDebugPoint(pos, size, name="debugPoint"):
     bpy.ops.object.empty_add(type='SPHERE', location=pos)

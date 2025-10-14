@@ -538,7 +538,7 @@ class removeBranchCluster(bpy.types.Operator):
         return {'FINISHED'}
     
 class addLeafItem(bpy.types.Operator):
-    bl_idname = "scene.add_leaf_item"
+    bl_idname = "scene.add_leaf_cluster"
     bl_label = "Add Item"
     def execute(self, context):
         context.scene.treeSettings.leafClusters += 1
@@ -555,7 +555,7 @@ class addLeafItem(bpy.types.Operator):
         return {'FINISHED'}
     
 class removeLeafItem(bpy.types.Operator):
-    bl_idname = "scene.remove_leaf_item"
+    bl_idname = "scene.remove_leaf_cluster"
     bl_label = "Remove Item"
     index: bpy.props.IntProperty()
     def execute(self, context):
