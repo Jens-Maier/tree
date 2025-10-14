@@ -48,7 +48,7 @@ class BranchClusterResetButton(bpy.types.Operator):
     idx: bpy.props.IntProperty()
     
     def execute(self, context):
-        curve_name = panels.ensure_branch_curve_node(self.idx)
+        curve_name = panels.ensure_branch_curve_node(tree_generator, self.idx)
         self.report({'INFO'}, f"curve_name: {curve_name}")
         
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
@@ -104,7 +104,7 @@ class BranchClusterEvaluateButton(bpy.types.Operator):
         return self.f0b(t) * p0 + self.f1b(t) * p1 + self.f2b(t) * p2 + self.f3b(t) * p3
     
     def execute(self, context):
-        curve_name = panels.ensure_branch_curve_node(self.idx)
+        curve_name = panels.ensure_branch_curve_node(tree_generator, self.idx)
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
         curveElement = nodeGroups.nodes[property_groups.curve_node_mapping[curve_name]].mapping.curves[3]
         y = 0.0
@@ -247,7 +247,7 @@ class initButton(bpy.types.Operator):
     bl_label="Reset"
         
     def execute(self, context):
-        panels.ensure_stem_curve_node()
+        panels.ensure_stem_curve_node(tree_generator)
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
         nrCurves = len(nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves)
         self.report({'INFO'}, f"nrCurves: {nrCurves}")
@@ -1002,7 +1002,7 @@ class exportProperties(bpy.types.Operator):
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
             
         for clusterIndex in range(props.treeSettings.branchClusters):
-            curve_name = panels.ensure_branch_curve_node(clusterIndex)
+            curve_name = panels.ensure_branch_curve_node(tree_generator, clusterIndex)
             curveElement = nodeGroups.nodes[property_groups.curve_node_mapping[curve_name]].mapping.curves[3]
             clusterTaperControlPts.append([])
             clusterTaperCurveHandleTypes.append([])
@@ -1288,7 +1288,7 @@ def init_properties(data, props):
         handleTypes = data.get("taperCurveHandleTypes", handleTypes)
         #nodeGroups = bpy.data.node_groups.get('taperNodeGroup')
                 
-        panels.ensure_stem_curve_node()
+        panels.ensure_stem_curve_node(tree_generator)
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup') #taperNodeGroup')
         curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3]
     
@@ -1375,7 +1375,7 @@ def init_properties(data, props):
             bpy.ops.scene.reset_branch_cluster_curve(idx = clusterIndex)
             
             
-            curve_name = panels.ensure_branch_curve_node(clusterIndex)
+            curve_name = panels.ensure_branch_curve_node(tree_generator, clusterIndex)
             curveElement = nodeGroups.nodes[property_groups.curve_node_mapping[curve_name]].mapping.curves[3]
             
             

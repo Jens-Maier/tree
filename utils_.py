@@ -1,4 +1,7 @@
 import bpy
+import property_groups
+import mathutils
+from mathutils import Vector
 
 def myNodeTree():
     if 'CurveNodeGroup' not in bpy.data.node_groups:
@@ -42,11 +45,17 @@ class utils():
     def lerp(a, b, t):
         return a + (b - a) * t
     
+    #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!!!!!!!!!!!!!!!!!!!
+    #curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves#!!!!!!!!!!!!!!!!!!!!
+    
     
     def sampleCurveStem(treeGeneratorInstance, x):
         curve_name = "Stem"
-        mapping_dict= treeGeneratorInstance.curve_node_mapping
-        curveElement = treeGeneratorInstance.curve_node_mapping # ... s. gemini...
+        mapping_dict = property_groups.curve_node_mapping
+        curveElement = property_groups.curve_node_mapping 
+        
+        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!!!!!!!!!!!!!!!!!!!
+        nrCurves = len(nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves)#!!!!!!!!!!!!!!!!!!!!
         
         utils.ensure_stem_curve_node()
         
@@ -65,9 +74,14 @@ class utils():
             return f0(t) * p0 + f1(t) * p1 + f2(t) * p2 + f3(t) * p3
         
         utils.ensure_stem_curve_node()
-        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup') #taperNodeGroup')
-        curveElement = nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves[3] #'Stem'
-        #self.report({'INFO'}, "sample spline: ")
+        
+        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!!!!!!!!!!!!!!!!!!!
+        curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3]#!!!!!!!!!!!!!!!!!!!!
+        
+        
+        #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup') #taperNodeGroup')
+        #curveElement = nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves[3] #'Stem'
+        
         #for p in curveElement.points:
         #    self.report({'INFO'}, f"stem: point: {p.location}")
             
@@ -207,8 +221,13 @@ class utils():
         
         curve_name = utils.ensure_branch_curve_node(clusterIndex)
         
-        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
-        curveElement = nodeGroups.nodes[curve_node_mapping[curve_name]].mapping.curves[3]
+        #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
+        #curveElement = nodeGroups.nodes[curve_node_mapping[curve_name]].mapping.curves[3]
+        
+        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!!!!!!!!!!!!!!!!!!!
+        curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3]#!!!!!!!!!!!!!!!!!!!!
+        
+        
         y = 0.0
         
         for n in range(0, len(curveElement.points) - 1):
@@ -334,21 +353,28 @@ class utils():
     #     curve_node_mapping = {}
     #     taper_node_mapping = {}
     
+    #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!!!!!!!!!!!!!!!!!!!
+    #curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves#!!!!!!!!!!!!!!!!!!!!
+        
+    
     def ensure_stem_curve_node():
         curve_name = "Stem"
         if 'CurveNodeGroup' not in bpy.data.node_groups:
             bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
-        if curve_name not in curve_node_mapping:
+        if curve_name not in property_groups.curve_node_mapping:
             cn = myNodeTree().new('ShaderNodeRGBCurve')
-            curve_node_mapping[curve_name] = cn.name
+            property_groups.curve_node_mapping[curve_name] = cn.name
         return curve_name
+    
+    #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!!!!!!!!!!!!!!!!!!!
+    #curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves#!!!!!!!!!!!!!!!!!!!!
     
     def ensure_branch_curve_node(idx):
         curve_name = f"BranchCluster_{idx}"
         if 'CurveNodeGroup' not in bpy.data.node_groups:
             bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
-        if curve_name not in curve_node_mapping:
+        if curve_name not in property_groups.curve_node_mapping:
             cn = myNodeTree().new('ShaderNodeRGBCurve')
             #cn.label = curve_name
-            curve_node_mapping[curve_name] = cn.name
+            property_groups.curve_node_mapping[curve_name] = cn.name
         return curve_name

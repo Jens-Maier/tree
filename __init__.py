@@ -276,7 +276,7 @@ def register():
     bpy.app.timers.register(delayed_init, first_interval=0.1) # TODO
     
 def delayed_init():
-    panels.ensure_stem_curve_node(curve_node_mapping = {}, taper_node_mapping = {})
+    panels.ensure_stem_curve_node()
     bpy.ops.scene.init_button()
 
 

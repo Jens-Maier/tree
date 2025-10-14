@@ -11,11 +11,11 @@ import random
 import utils_
 from start_point_data import StartPointData
 from start_point_data import DummyStartPointData
+import bmesh
 
 class treeGenerator:
     def __init__():
-        curve_node_mapping = {}
-        taper_node_mapping = {}
+        pass
     
     def generate_tree(self, context):
         dir = context.scene.treeSettings.treeGrowDir
@@ -1032,7 +1032,7 @@ class treeGenerator:
                         
                     if segments[s].connectedToPrevious == False:
                         startSection = 0
-                        offset = len(verticess)
+                        offset = len(vertices)
                         
                 controlPt1 = segments[s].start + segments[s].startTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0
                 controlPt2 = segments[s].end - segments[s].endTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0

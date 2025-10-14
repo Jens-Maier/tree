@@ -16,8 +16,6 @@ def myCurveData(curve_name):
     nodeTree = myNodeTree()[property_groups.curve_node_mapping[curve_name]]
     return nodeTree
 
-# class treeGenerator:
-#    def __init__():
 #        curve_node_mapping = {}
 #        taper_node_mapping = {}
 
@@ -25,19 +23,19 @@ def ensure_stem_curve_node(treeGeneratorInstance): # called from operators
     curve_name = "Stem"
     if 'CurveNodeGroup' not in bpy.data.node_groups:
         bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
-    if curve_name not in treeGeneratorInstance.curve_node_mapping:
+    if curve_name not in property_groups.curve_node_mapping:
         cn = myNodeTree().new('ShaderNodeRGBCurve')
-        treeGeneratorInstance.curve_node_mapping[curve_name] = cn.name
+        property_groups.curve_node_mapping[curve_name] = cn.name
     return curve_name
 
 def ensure_branch_curve_node(treeGeneratorInstance, idx):
     curve_name = f"BranchCluster_{idx}"
     if 'CurveNodeGroup' not in bpy.data.node_groups:
         bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
-    if curve_name not in treeGeneratorInstance.curve_node_mapping:
+    if curve_name not in property_groups.curve_node_mapping:
         cn = myNodeTree().new('ShaderNodeRGBCurve')
         #cn.label = curve_name
-        treeGeneratorInstance.curve_node_mapping[curve_name] = cn.name
+        property_groups.curve_node_mapping[curve_name] = cn.name
     return curve_name
 
 
@@ -248,6 +246,9 @@ class branchSettings(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'treeGen'
+    
+    curve_node_mapping = {}
+    taper_node_mapping = {}
     
     def draw(self, context):
         layout = self.layout
