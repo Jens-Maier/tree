@@ -1,18 +1,21 @@
-import noise_generator
-from noise_generator import SimplexNoiseGenerator
 import bpy
-import node_
-from node_ import node
-import segment_
-from segment_ import segment
 import math
 import mathutils
 from mathutils import Vector, Quaternion, Matrix
 import random
-import treegen_utils_
+import bmesh
+
+from . import noise_generator
+from noise_generator import SimplexNoiseGenerator
+from . import node_
+from node_ import node
+from . import segment_
+from segment_ import segment
+from . import treegen_utils_
+from . import start_point_data
 from start_point_data import StartPointData
 from start_point_data import DummyStartPointData
-import bmesh
+
 
 class treeGenerator:
     def __init__():
@@ -68,7 +71,7 @@ class treeGenerator:
                                                     nodes[0], 
                                                     context.scene.treeSettings.stemRingResolution, 
                                                     context.scene.treeSettings.curvOffsetStrength, self, nodes[0])
-                self.report({'INFO'}, f"maxSplitHeightUsed: {maxSplitHeightUsed}")
+                #self.report({'INFO'}, f"maxSplitHeightUsed: {maxSplitHeightUsed}")
                 context.scene.treeSettings.maxSplitHeightUsed = max(context.scene.treeSettings.maxSplitHeightUsed, maxSplitHeightUsed)
             
             nodes[0].resampleSpline(nodes[0], context.scene.treeSettings.resampleDistance)
@@ -373,7 +376,7 @@ class treeGenerator:
                        curvOffsetStrength, 
                        self, 
                        rootNode):
-        self.report({'INFO'}, f"nrSplits: {nrSplits}")
+        #self.report({'INFO'}, f"nrSplits: {nrSplits}")
         while len(splitHeightInLevel) < nrSplits:
             newHeight = splitHeightInLevel.add()
             newHeight.value = 0.5
@@ -468,7 +471,7 @@ class treeGenerator:
                         totalSplitCounter += 1
                 safetyCounter += 1
                 if safetyCounter > 100:
-                    self.report({'INFO'}, f"iteration 100 reached -> break!")
+                    self.report({'INFO'}, f"iteration 100 reached in splitRecursive() -> break!")
                     break
         return maxSplitHeightUsed
 
@@ -516,7 +519,7 @@ class treeGenerator:
         branchSplitHeightInLevelListList,
         noiseGenerator):
     
-            treeGen.report({'INFO'}, f"in addBranches(): branchClusters: {branchClusters}")
+            #treeGen.report({'INFO'}, f"in addBranches(): branchClusters: {branchClusters}")
             
             for clusterIndex in range(0, branchClusters):
                 nrBranches = branchClusterSettingsList[clusterIndex].nrBranches      
@@ -552,13 +555,13 @@ class treeGenerator:
                         parentClusterBoolListList, 
                         clusterIndex)
                 
-                treeGen.report({'INFO'}, f"in addBranches(): len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}")   
+                #treeGen.report({'INFO'}, f"in addBranches(): len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}")   
                 if len(startNodesNextIndexStartTvalEndTval) > 0:
                     segmentLengths = []
                     
                     totalLength = calculateSegmentLengthsAndTotalLength(self, treeGen, startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster)
                     
-                    treeGen.report({'INFO'}, f"in addBranches(): totalLength: {totalLength}")
+                    #treeGen.report({'INFO'}, f"in addBranches(): totalLength: {totalLength}")
             
                     startPointData = []
                     branchPositions = []
@@ -572,15 +575,15 @@ class treeGenerator:
                         branchPositions.append(branchPos)
                         startPointData.append(StartPointData.generateStartPointData(self, startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, False))
                     
-                    treeGen.report({'INFO'}, "before sorting:")
-                    for data in startPointData:
-                        treeGen.report({'INFO'}, f"outwardDir: {data.outwardDir}")
+                    #treeGen.report({'INFO'}, "before sorting:")
+                    #for data in startPointData:
+                    #    #treeGen.report({'INFO'}, f"outwardDir: {data.outwardDir}")
                         
                     startPointData.sort(key=lambda x: x.startPointTvalGlobal)
             
-                    treeGen.report({'INFO'}, "after sorting:")
-                    for n, data in enumerate(startPointData):
-                        treeGen.report({'INFO'}, f"startPointData[{n}].outwardDir: {data.outwardDir}")
+                    #treeGen.report({'INFO'}, "after sorting:")
+                    #for n, data in enumerate(startPointData):
+                    #    #treeGen.report({'INFO'}, f"startPointData[{n}].outwardDir: {data.outwardDir}")
                     
                     dummyStartPointData = []
                     centerPoints = []
@@ -613,13 +616,13 @@ class treeGenerator:
                         leftRotationRange.append(halfAngleACW)
                         
                     for n, data in enumerate(startPointData):
-                        treeGen.report({'INFO'}, f"data.startPoint: {data.startPoint}")
-                        treeGen.report({'INFO'}, f"centerPoints[{n}]: {centerPoints[n]}")
+                        #treeGen.report({'INFO'}, f"data.startPoint: {data.startPoint}")
+                        #treeGen.report({'INFO'}, f"centerPoints[{n}]: {centerPoints[n]}")
                         if (data.startPoint - centerPoints[n]).length > 0.0001:
                             data.outwardDir = data.startPoint - centerPoints[n]
-                            treeGen.report({'INFO'}, f"re-asigning data.outwardDir: {data.outwardDir}")
+                            #treeGen.report({'INFO'}, f"re-asigning data.outwardDir: {data.outwardDir}")
                         else:
-                            treeGen.report({'INFO'}, f"setting data.outwardDir = data.startNode.cotangent")
+                            #treeGen.report({'INFO'}, f"setting data.outwardDir = data.startNode.cotangent")
                             data.outwardDir = data.startNode.cotangent
                         
                         
@@ -958,7 +961,7 @@ class treeGenerator:
                 
                 for i, branchNode in enumerate(branchNodes):
                     
-                    treeGen.report({'INFO'}, f"branchCurvatueEnd: {branchClusterSettingsList[clusterIndex].branchCurvatureEnd}")
+                    #treeGen.report({'INFO'}, f"branchCurvatueEnd: {branchClusterSettingsList[clusterIndex].branchCurvatureEnd}")
                     branchNode.resampleSpline(rootNode, resampleDistance)
                     branchNode.applyCurvature(treeGen, 
                                       rootNode, 
@@ -1060,18 +1063,18 @@ def splitBranches(treeGen,
             branchLengths.append(length)
             totalLength += length
             
-            treeGen.report({'INFO'}, f"adding length: {length}")
+            #treeGen.report({'INFO'}, f"adding length: {length}")
             weight = pow(length, 2.0)
             branchWeights.append(weight)
             totalWeight += weight
-            treeGen.report({'INFO'}, f"adding {weight} to totalWeight: {totalWeight}")
+            #treeGen.report({'INFO'}, f"adding {weight} to totalWeight: {totalWeight}")
         for i in range(len(allBranchNodes)):
-            treeGen.report({'INFO'}, f"len(allBranchNodes): {len(allBranchNodes)}")
-            treeGen.report({'INFO'}, f"nrBranchSplits: {nrBranchSplits}")
-            treeGen.report({'INFO'}, f"branchWeights[{i}]: {branchWeights[i]}")
-            treeGen.report({'INFO'}, f"totalWeight: {totalWeight}")
-            treeGen.report({'INFO'}, f"splitsPerBranchVariation: {splitsPerBranchVariation}")
-            treeGen.report({'INFO'}, f"nrSplitsPerBranch: {nrSplitsPerBranch}")
+            #treeGen.report({'INFO'}, f"len(allBranchNodes): {len(allBranchNodes)}")
+            #treeGen.report({'INFO'}, f"nrBranchSplits: {nrBranchSplits}")
+            #treeGen.report({'INFO'}, f"branchWeights[{i}]: {branchWeights[i]}")
+            #treeGen.report({'INFO'}, f"totalWeight: {totalWeight}")
+            #treeGen.report({'INFO'}, f"splitsPerBranchVariation: {splitsPerBranchVariation}")
+            #treeGen.report({'INFO'}, f"nrSplitsPerBranch: {nrSplitsPerBranch}")
             
             
             splitsForBranch[i] = int(round(nrBranchSplits * branchWeights[i] / totalWeight + random.uniform(-splitsPerBranchVariation * nrSplitsPerBranch, splitsPerBranchVariation * nrSplitsPerBranch)))
@@ -1151,14 +1154,14 @@ def splitBranches(treeGen,
                         indexToSplit = random.randint(0, len(nodeIndices) - 1)
                         if len(nodeIndices) > indexToSplit:
                             splitHeight = branchSplitHeightInLevel[level].value
-                            treeGen.report({'INFO'}, f"branch splitHeight before: {splitHeight}")
-                            treeGen.report({'INFO'}, f"branchSplitHeightVariation: {branchSplitHeightVariation}")
-                            treeGen.report({'INFO'}, f"h: {h}")
+                            #treeGen.report({'INFO'}, f"branch splitHeight before: {splitHeight}")
+                            #treeGen.report({'INFO'}, f"branchSplitHeightVariation: {branchSplitHeightVariation}")
+                            #treeGen.report({'INFO'}, f"h: {h}")
                             if h * splitHeight < 0:
                                 splitHeight = max(splitHeight + h * branchSplitHeightVariation, 0.05)
                             else:
                                 splitHeight = min(splitHeight + h * branchSplitHeightVariation, 0.95)
-                            treeGen.report({'INFO'}, f"branch splitHeight: {splitHeight}")
+                            #treeGen.report({'INFO'}, f"branch splitHeight: {splitHeight}")
                             splitNode = split(
                                 nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][0],
                                 nodesInLevelNextIndex[level][nodeIndices[indexToSplit]][1], 
@@ -1337,7 +1340,7 @@ def calculateSplitData(splitNode,
         splitAxis = splitNode.cotangent.normalized()
         splitAxis = (Quaternion(splitNode.tangent[0], rotationAngle * level) @ splitAxis).normalized()
     else:
-        self.report({'INFO'}, f"ERROR: invalid splitMode: {sMode}")
+        #self.report({'INFO'}, f"ERROR: invalid splitMode: {sMode}")
         splitAxis = splitNode.cotangent.normalized()
         if level % 2 == 1:
             splitAxis = (Quaternion(splitNode.tangent[0], math.radians(90)) @ splitAxis).normalized()
@@ -1700,12 +1703,12 @@ def generateVerticesAndTriangles(self,
             bpy.data.objects[name].data = meshData
             treeObject = bpy.data.objects[name]
             treeObject.select_set(True)
-            self.report({'INFO'}, "Found object 'tree'!")
+            #self.report({'INFO'}, "Found object 'tree'!")
         else:
             treeObject = bpy.data.objects.new("tree", meshData)
             bpy.context.collection.objects.link(treeObject)
             treeObject.select_set(True)
-            self.report({'INFO'}, "Created new object!")
+            #self.report({'INFO'}, "Created new object!")
         
         bpy.context.view_layer.objects.active = treeObject
         
@@ -1941,3 +1944,21 @@ def addLeaves(self, treeGen, rootNode,
                 
                 leafObject.data.materials.clear()
                 leafObject.data.materials.append(leafMaterial)
+                
+                
+        
+    def register():
+        print("in treeGenerator: register")
+    
+    def unregister():
+        print("in treeGenerator: unregister")
+        
+        
+        
+def register():
+    print("register treeGenerator")
+    treeGenerator.register()
+    
+def unregister():
+    node.unregister()
+    treeGenerator("unregister treeGenerator")

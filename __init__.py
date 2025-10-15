@@ -164,9 +164,9 @@ class MinimalOperator(bpy.types.Operator):
     bl_label = "My Operator"
     
     def execute(self, context):
-        self.report({'INFO'}, "setting value in imported class to 4: ")
+        #self.report({'INFO'}, "setting value in imported class to 4: ")
         MyProperties().default_value = 4
-        self.report({'INFO'}, f"imported from MyProperties(): MyProperties().default_value: {MyProperties().default_value}")
+        #self.report({'INFO'}, f"imported from MyProperties(): MyProperties().default_value: {MyProperties().default_value}")
         # only updated after reopening .blend file
         return {'FINISHED'}
 

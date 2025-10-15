@@ -237,9 +237,9 @@ class node():
     def lengthToTip(self, treeGen):        
         if len(self.next) > 0:
             length_added = (self.next[0].point - self.point).length
-            treeGen.report({'INFO'}, f"self.point: {self.point}")
-            treeGen.report({'INFO'}, f"next.point: {self.next[0].point}")
-            treeGen.report({'INFO'}, f"length added: {length_added}")
+            #treeGen.report({'INFO'}, f"self.point: {self.point}")
+            #treeGen.report({'INFO'}, f"next.point: {self.next[0].point}")
+            #treeGen.report({'INFO'}, f"length added: {length_added}")
             return self.next[0].lengthToTip(treeGen) + (self.next[0].point - self.point).length
         else:
             return 0.0

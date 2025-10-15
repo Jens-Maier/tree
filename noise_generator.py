@@ -26,7 +26,7 @@ class SimplexNoiseGenerator():
             
 
     def coherent_noise(self, x, y, z, octaves=2, multiplier=25, amplitude=0.5, lacunarity=2, persistence=0.9):
-        v3 = mathutils.Vector([x, y, z]) / multiplier
+        v3 = Vector([x, y, z]) / multiplier
         val = 0.0
         for n in range(octaves):
             val += self.noise(v3.x, v3.y, v3.z) * amplitude
@@ -128,17 +128,19 @@ class SimplexNoiseGenerator():
 
         
     def register():
-        print("in noiseGenerator: register")
+        pass
+        #print("in noiseGenerator: register")
     
     def unregister():
-        print("in noiseGenerator: unregister")
+        pass
+        #print("in noiseGenerator: unregister")
         
         
         
 def register():
-    print("register noiseGenerator")
+    #print("register noiseGenerator")
     noiseGenerator.register()
     
 def unregister():
     node.unregister()
-    noiseGenerator("unregister noiseGenerator")
+    #noiseGenerator("unregister noiseGenerator")

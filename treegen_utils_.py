@@ -1,7 +1,8 @@
 import bpy
-import property_groups
-import math
-from math import Vector
+import mathutils
+from mathutils import Vector
+
+from . import property_groups
 
 
 class treegen_utils():
@@ -101,7 +102,7 @@ class treegen_utils():
                         if len(curveElement.points) > 2:
                             slope2 = 2.0 * (p2.y - p1.y) / (p2.x - p1.x)
                             #n = 0, n -> 2 * slope
-                            p0 = mathtreegen_utils.Vector((p1.x - (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y - slope2 * (p2.x - p1.x)))
+                            p0 = Vector((p1.x - (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y - slope2 * (p2.x - p1.x)))
                         else: # only 2 points -> linear
                             p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
                         
@@ -113,7 +114,7 @@ class treegen_utils():
                     else:
                         #n = 0, reflected == 1 * slope
                         slope1 = 1.0 * (p2.y - p1.y) / (p2.x - p1.x)
-                        p0 = mathtreegen_utils.Vector((p2.x + (p2.x - p1.x), p1.y + slope1 * (p2.x - p1.x)))
+                        p0 = Vector((p2.x + (p2.x - p1.x), p1.y + slope1 * (p2.x - p1.x)))
                         # [0] -> reflected
                         if len(curveElement.points) > 2:
                             # cubic
@@ -142,7 +143,7 @@ class treegen_utils():
                         #n = last, n -> 2 * slope
                         slope2 = 2.0 * (p3.y - p2.y) / (p3.x - p2.x)
                         if len(curveElement.points) > 2:
-                            p3 = mathtreegen_utils.Vector((p2.x + (p2.x - p1.x) / (1.0 + abs(slope2)), p3.y + slope2 * (p2.x - p1.x)))  
+                            p3 = Vector((p2.x + (p2.x - p1.x) / (1.0 + abs(slope2)), p3.y + slope2 * (p2.x - p1.x)))  
                         else:
                             p3 = p2 + (p2 - p1)
                             #n = last, p3: mirror
@@ -245,7 +246,7 @@ class treegen_utils():
                         if len(curveElement.points) > 2:
                             slope2 = 2.0 * (p2.y - p1.y) / (p2.x - p1.x)
                             #n = 0, n -> 2 * slope
-                            p0 = mathtreegen_utils.Vector((p1.x - (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y - slope2 * (p2.x - p1.x)))
+                            p0 = Vector((p1.x - (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y - slope2 * (p2.x - p1.x)))
                         else: # only 2 points -> linear
                             p0 = curveElement.points[0].location - (curveElement.points[1].location -   curveElement.points[0].location)
                         
@@ -257,7 +258,7 @@ class treegen_utils():
                     else:
                         #n = 0, reflected == 1 * slope
                         slope1 = 1.0 * (p2.y - p1.y) / (p2.x - p1.x)
-                        p0 = mathtreegen_utils.Vector((p2.x + (p2.x - p1.x), p1.y + slope1 * (p2.x - p1.x)))
+                        p0 = Vector((p2.x + (p2.x - p1.x), p1.y + slope1 * (p2.x - p1.x)))
                         # [0] -> reflected
                         if len(curveElement.points) > 2:
                             # cubic
@@ -286,7 +287,7 @@ class treegen_utils():
                         #n = last, n -> 2 * slope
                         slope2 = 2.0 * (p3.y - p2.y) / (p3.x - p2.x)
                         if len(curveElement.points) > 2:
-                            p3 = mathtreegen_utils.Vector((p2.x + (p2.x - p1.x) / (1.0 + abs(slope2)), p3.y + slope2 * (p2.x - p1.x)))  
+                            p3 = Vector((p2.x + (p2.x - p1.x) / (1.0 + abs(slope2)), p3.y + slope2 * (p2.x - p1.x)))  
                         else:
                             p3 = p2 + (p2 - p1)
                             #n = last, p3: mirror
@@ -374,8 +375,26 @@ class treegen_utils():
             property_groups.curve_node_mapping[curve_name] = cn.name
         return curve_name
     
+    def register():
+        print("in treegen_utils: register")
+    
+    def unregister():
+        print("in treegen_utils: unregister")
+        
+        
     
 def myNodeTree():
     if 'CurveNodeGroup' not in bpy.data.node_groups:
         ng = bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
     return bpy.data.node_groups['CurveNodeGroup'].nodes
+
+
+
+        
+def register():
+    print("register treegen_utils")
+    treegen_utils.register()
+    
+def unregister():
+    treegen_utils.unregister()
+    treeGenerator("unregister treegen_utils")

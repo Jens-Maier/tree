@@ -26,8 +26,8 @@ class StartPointData():
                            rootNode, 
                            treeHeight, 
                            calledFromAddLeaves):
-        self.report({'INFO'}, "---------------------------------------------")
-        self.report({'INFO'}, "in generateStartPointData()")
+        #self.report({'INFO'}, "---------------------------------------------")
+        #self.report({'INFO'}, "in generateStartPointData()")
         accumLength = 0.0
         startNodeIndex = 0
         tVal = 0.0
@@ -88,7 +88,7 @@ class StartPointData():
             
         outwardDir = outwardDir.normalized()
         
-        self.report({'INFO'}, f"in generateStartPointData(): outwardDir: {outwardDir}")
+        #self.report({'INFO'}, f"in generateStartPointData(): outwardDir: {outwardDir}")
         return StartPointData(startPoint, startPointTvalGlobal, outwardDir, nStart, startNodeIndex, startNodeNextIndex, tVal, tangent, startPointCotangent)
     
     @staticmethod
