@@ -1256,6 +1256,22 @@ class EXPORT_OT_importProperties(bpy.types.Operator):
             data = json.load(f)
             props = context.scene
             init_properties(data, props, self)
+
+        # --- Synchronize Branch Clusters ---
+        nrBranchClusters = len(context.scene.branchClusterSettingsList)
+        context.scene.branchClusterSettingsList.clear()
+        for i in range(nrBranchClusters):
+            context.scene.branchClusterSettingsList.add()
+        #if nrBranchClusters > 0:
+        #    context.scene.branchClusterSettingsListIndex = 0 # ??? TODO
+        
+        # --- Synchronize Leaf Clusters ---
+        nrLeafClusters = len(context.scene.treeSettings.leafClusterSettingsList)
+        context.scene.leafClusterSettingsList.clear()
+        for i in range(nrLeafClusters):
+            context.scene.leafClusterSettingsList.add()
+        if nrLeafClusters > 0:
+            context.scene.leafClusterSettingsListIndex = 0
         
         return {'FINISHED'}
 
@@ -1269,6 +1285,23 @@ class EXPORT_OT_loadPreset(bpy.types.Operator):
         props = context.scene.treeSettings
         self.report({'INFO'}, "in operator loadPreset")
         load_preset(props.treePreset.value, context, self)
+
+        # --- Synchronize Branch Clusters ---
+        nrBranchClusters = len(context.scene.branchClusterSettingsList)
+        context.scene.branchClusterSettingsList.clear()
+        for i in range(nrBranchClusters):
+            context.scene.branchClusterSettingsList.add()
+        #if nrBranchClusters > 0:
+        #    context.scene.branchClusterSettingsListIndex = 0 # ??? TODO
+        
+        # --- Synchronize Leaf Clusters ---
+        nrLeafClusters = len(context.scene.leafClusterSettingsList)
+        context.scene.leafClusterSettingsList.clear()
+        for i in range(nrLeafClusters):
+            context.scene.leafClusterSettingsList.add()
+        if nrLeafClusters > 0:
+            context.scene.leafClusterSettingsListIndex = 0
+        
         return {'FINISHED'}
     
 def load_preset(preset, context, self):

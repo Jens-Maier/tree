@@ -1,113 +1,5 @@
 import importlib
 import bpy
-import sys
-import os
-import random
-
-
-
-# Dynamically add current folder to sys.path
-
-# for testing.......................................................................................................
-#import importlib
-#addon_dir = "/home/j/Downloads/treeGen_v5_minimal_addon"
-#if addon_dir not in sys.path:
-#    sys.path.append(addon_dir)
-#if 'my_property' in sys.modules:  # For reliable reload during development
-#    del sys.modules['my_property']
-#if 'start_node_info' in sys.modules:
-#    del sys.modules['start_node_info']
-#if 'node_info' in sys.modules:
-#    del sys.modules['node_info']
-#if 'start_point_data' in sys.modules:
-#    del sys.modules['start_point_data']
-#if 'rotation_step' in sys.modules:
-#    del sys.modules['rotation_step']
-#if 'node_' in sys.modules:
-#    del sys.modules['node_']
-#if 'segment_' in sys.modules:
-#    del sys.modules['segment_']
-#if 'property_groups' in sys.modules:
-#    del sys.modules['property_groups']
-#if 'operators' in sys.modules:
-#    del sys.modules['operators']
-#if 'panels' in sys.modules:
-#    del sys.modules['panels']
-#if 'tree_generator' in sys.modules:
-#    del sys.modules['tree_generator']
-#if 'treegen_utils_' in sys.modules:
-#    del sys.modules['treegen_utils_']
-#
-#
-#
-## Import property class from another file
-#
-#import my_property
-#from my_property import MyProperties
-#importlib.reload(my_property)
-#
-#import start_node_info
-#from start_node_info import startNodeInfo
-#importlib.reload(start_node_info)
-#
-#import node_info
-#from node_info import nodeInfo
-#importlib.reload(node_info)
-#
-#import start_point_data
-#from start_point_data import StartPointData
-#from start_point_data import DummyStartPointData
-#importlib.reload(start_point_data)
-#
-#import rotation_step
-#from rotation_step import rotationStep
-#importlib.reload(rotation_step)
-#
-#import node_
-#from node_ import node
-#importlib.reload(node_)
-#
-#import segment_
-#from segment_ import segment
-#importlib.reload(segment_)
-#
-#import property_groups
-#from property_groups import floatProp, fibonacciProps, intProp, intPropL, posIntProp3, floatProp, posFloatProp, posFloatPropDefault1, posFloatPropSoftMax2, posFloatPropSoftMax1, posFloatPropSoftMax1taperFactor, posFloatPropSoftMax1Default0, floatProp01, floatProp01default0p5,  floatListProp, floatListProp01, boolProp, showSplitLevelsProp, splitHeightFloatListProp, parentClusterBoolListProp, leafParentClusterBoolListProp, branchClusterBoolListProp, leafClusterBoolListProp, treeShapeEnumProp, treePresetEnumProp, splitModeEnumProp, angleModeEnumProp,  branchTypeEnumProp, toggleBool, toggleLeafBool, leafAngleModeEnumProp, leafTypeEnumProp, toggleUseTaperCurveOperator, treeSettings, branchClusterSettings, leafClusterSettings, TREEGEN_UL_stemSplitLevelList, TREEGEN_UL_branchSplitLevelListLevel_0, TREEGEN_UL_branchSplitLevelListLevel_1, TREEGEN_UL_branchSplitLevelListLevel_2, TREEGEN_UL_branchSplitLevelListLevel_3, TREEGEN_UL_branchSplitLevelListLevel_4, TREEGEN_UL_branchSplitLevelListLevel_5, TREEGEN_UL_branchSplitLevelListLevel_6, TREEGEN_UL_branchSplitLevelListLevel_7, TREEGEN_UL_branchSplitLevelListLevel_8, TREEGEN_UL_branchSplitLevelListLevel_9, TREEGEN_UL_branchSplitLevelListLevel_10, TREEGEN_UL_branchSplitLevelListLevel_11, TREEGEN_UL_branchSplitLevelListLevel_12, TREEGEN_UL_branchSplitLevelListLevel_13, TREEGEN_UL_branchSplitLevelListLevel_14, TREEGEN_UL_branchSplitLevelListLevel_15, TREEGEN_UL_branchSplitLevelListLevel_16, TREEGEN_UL_branchSplitLevelListLevel_17, TREEGEN_UL_branchSplitLevelListLevel_18, TREEGEN_UL_branchSplitLevelListLevel_19
-#importlib.reload(property_groups)
-#
-#import operators
-#from operators import generateTree, packUVs, BranchClusterResetButton, BranchClusterEvaluateButton, initButton, evaluateButton, addBranchCluster, removeBranchCluster, addLeafItem, removeLeafItem, toggleBool, toggleLeafBool, toggleUseTaperCurveOperator, addStemSplitLevel, removeStemSplitLevel, addBranchSplitLevel, removeBranchSplitLevel, exportProperties, importProperties, loadPreset
-#importlib.reload(operators)
-#
-#import panels
-#from panels import treeGenPanel, treeSettingsPanel, noiseSettings, angleSettings, splitSettings, branchSettings, leafSettings
-#importlib.reload(panels)
-#
-#import noise_generator
-#from noise_generator import SimplexNoiseGenerator
-#importlib.reload(noise_generator)
-#
-#import tree_generator
-#from tree_generator import treeGenerator
-#importlib.reload(tree_generator)
-#
-#import treegen_utils_
-#from treegen_utils_ import treegen_utils
-
-# for addon.......................................................................................................
-
-#from . import start_node_info
-#from . import node_info
-#from . import start_point_data
-#from . import rotation_step
-#from . import node_
-#from . import segment_
-#from . import property_groups
-#from . import operators
-#from . import panels
-#from . import noise_generator
-#from . import tree_generator
-#from . import treegen_utils_
 
 import_modules = [
 'property_groups', # import first!
@@ -193,9 +85,9 @@ def register():
     bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_18)
     bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_19)
     
-    bpy.utils.register_class(property_groups.treeSettings) # -> in property_groups.py
-    bpy.utils.register_class(property_groups.branchClusterSettings) # -> in property_groups.py
-    bpy.utils.register_class(property_groups.leafClusterSettings) # -> in property_groups.py
+    bpy.utils.register_class(property_groups.treeSettings)
+    bpy.utils.register_class(property_groups.branchClusterSettings)
+    bpy.utils.register_class(property_groups.leafClusterSettings)
     
     #operators
     bpy.utils.register_class(operators.SCENE_OT_addBranchCluster)
@@ -224,7 +116,7 @@ def register():
     bpy.utils.register_class(panels.splitSettings)
     
     bpy.utils.register_class(panels.branchSettings)
-    bpy.utils.register_class(panels.leafSettings) # TODO
+    bpy.utils.register_class(panels.leafSettings)
     
     
     
