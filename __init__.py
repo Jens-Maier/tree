@@ -72,7 +72,7 @@ import random
 #importlib.reload(segment_)
 #
 #import property_groups
-#from property_groups import floatProp, fibonacciProps, intProp, intPropL, posIntProp3, floatProp, posFloatProp, posFloatPropDefault1, posFloatPropSoftMax2, posFloatPropSoftMax1, posFloatPropSoftMax1taperFactor, posFloatPropSoftMax1Default0, floatProp01, floatProp01default0p5,  floatListProp, floatListProp01, boolProp, showSplitLevelsProp, splitHeightFloatListProp, parentClusterBoolListProp, leafParentClusterBoolListProp, branchClusterBoolListProp, leafClusterBoolListProp, treeShapeEnumProp, treePresetEnumProp, splitModeEnumProp, angleModeEnumProp,  branchTypeEnumProp, toggleBool, toggleLeafBool, leafAngleModeEnumProp, leafTypeEnumProp, toggleUseTaperCurveOperator, treeSettings, branchClusterSettings, leafClusterSettings, UL_stemSplitLevelList, UL_branchSplitLevelListLevel_0, UL_branchSplitLevelListLevel_1, UL_branchSplitLevelListLevel_2, UL_branchSplitLevelListLevel_3, UL_branchSplitLevelListLevel_4, UL_branchSplitLevelListLevel_5, UL_branchSplitLevelListLevel_6, UL_branchSplitLevelListLevel_7, UL_branchSplitLevelListLevel_8, UL_branchSplitLevelListLevel_9, UL_branchSplitLevelListLevel_10, UL_branchSplitLevelListLevel_11, UL_branchSplitLevelListLevel_12, UL_branchSplitLevelListLevel_13, UL_branchSplitLevelListLevel_14, UL_branchSplitLevelListLevel_15, UL_branchSplitLevelListLevel_16, UL_branchSplitLevelListLevel_17, UL_branchSplitLevelListLevel_18, UL_branchSplitLevelListLevel_19
+#from property_groups import floatProp, fibonacciProps, intProp, intPropL, posIntProp3, floatProp, posFloatProp, posFloatPropDefault1, posFloatPropSoftMax2, posFloatPropSoftMax1, posFloatPropSoftMax1taperFactor, posFloatPropSoftMax1Default0, floatProp01, floatProp01default0p5,  floatListProp, floatListProp01, boolProp, showSplitLevelsProp, splitHeightFloatListProp, parentClusterBoolListProp, leafParentClusterBoolListProp, branchClusterBoolListProp, leafClusterBoolListProp, treeShapeEnumProp, treePresetEnumProp, splitModeEnumProp, angleModeEnumProp,  branchTypeEnumProp, toggleBool, toggleLeafBool, leafAngleModeEnumProp, leafTypeEnumProp, toggleUseTaperCurveOperator, treeSettings, branchClusterSettings, leafClusterSettings, TREEGEN_UL_stemSplitLevelList, TREEGEN_UL_branchSplitLevelListLevel_0, TREEGEN_UL_branchSplitLevelListLevel_1, TREEGEN_UL_branchSplitLevelListLevel_2, TREEGEN_UL_branchSplitLevelListLevel_3, TREEGEN_UL_branchSplitLevelListLevel_4, TREEGEN_UL_branchSplitLevelListLevel_5, TREEGEN_UL_branchSplitLevelListLevel_6, TREEGEN_UL_branchSplitLevelListLevel_7, TREEGEN_UL_branchSplitLevelListLevel_8, TREEGEN_UL_branchSplitLevelListLevel_9, TREEGEN_UL_branchSplitLevelListLevel_10, TREEGEN_UL_branchSplitLevelListLevel_11, TREEGEN_UL_branchSplitLevelListLevel_12, TREEGEN_UL_branchSplitLevelListLevel_13, TREEGEN_UL_branchSplitLevelListLevel_14, TREEGEN_UL_branchSplitLevelListLevel_15, TREEGEN_UL_branchSplitLevelListLevel_16, TREEGEN_UL_branchSplitLevelListLevel_17, TREEGEN_UL_branchSplitLevelListLevel_18, TREEGEN_UL_branchSplitLevelListLevel_19
 #importlib.reload(property_groups)
 #
 #import operators
@@ -136,24 +136,12 @@ for name in names:
 
 # TODO: reload logic...
 
-## TEST: 
-#try:
-#    importlib.import_module('treegen_utils_')
-#    print("treegen_utils_ imported successfully")
-#except ImportError as e:
-#    print(f"Error importing treegen_utils_: {e}")
-
-
-    
-
-
-
 
 def register():
     #save and load
-    bpy.utils.register_class(operators.importProperties)
-    bpy.utils.register_class(operators.exportProperties)
-    bpy.utils.register_class(operators.loadPreset)
+    bpy.utils.register_class(operators.EXPORT_OT_importProperties)
+    bpy.utils.register_class(operators.EXPORT_OT_exportProperties)
+    bpy.utils.register_class(operators.EXPORT_OT_loadPreset)
     
 #    #data types
     bpy.utils.register_class(property_groups.treePresetEnumProp)
@@ -183,47 +171,51 @@ def register():
     bpy.utils.register_class(property_groups.leafTypeEnumProp)
     
     #UILists
-    bpy.utils.register_class(property_groups.UL_stemSplitLevelList)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_0)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_1)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_2)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_3)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_4)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_5)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_6)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_7)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_8)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_9)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_10)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_11)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_12)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_13)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_14)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_15)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_16)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_17)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_18)
-    bpy.utils.register_class(property_groups.UL_branchSplitLevelListLevel_19)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_stemSplitLevelList)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_0)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_1)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_2)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_3)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_4)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_5)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_6)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_7)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_8)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_9)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_10)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_11)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_12)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_13)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_14)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_15)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_16)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_17)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_18)
+    bpy.utils.register_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_19)
     
     bpy.utils.register_class(property_groups.treeSettings) # -> in property_groups.py
     bpy.utils.register_class(property_groups.branchClusterSettings) # -> in property_groups.py
     bpy.utils.register_class(property_groups.leafClusterSettings) # -> in property_groups.py
     
     #operators
-    bpy.utils.register_class(operators.addBranchCluster)
-    bpy.utils.register_class(operators.removeBranchCluster)
-    bpy.utils.register_class(operators.toggleBool)
-    bpy.utils.register_class(operators.toggleLeafBool)
-    bpy.utils.register_class(operators.addStemSplitLevel)
-    bpy.utils.register_class(operators.removeStemSplitLevel)
-    bpy.utils.register_class(operators.addBranchSplitLevel)
-    bpy.utils.register_class(operators.removeBranchSplitLevel)
-    bpy.utils.register_class(operators.generateTree)
-    bpy.utils.register_class(operators.packUVs)
-    bpy.utils.register_class(operators.addLeafItem)
-    bpy.utils.register_class(operators.removeLeafItem)
-    bpy.utils.register_class(operators.toggleUseTaperCurveOperator)
-    
+    bpy.utils.register_class(operators.SCENE_OT_addBranchCluster)
+    bpy.utils.register_class(operators.SCENE_OT_removeBranchCluster)
+    bpy.utils.register_class(operators.SCENE_OT_toggleBool)
+    bpy.utils.register_class(operators.SCENE_OT_toggleLeafBool)
+    bpy.utils.register_class(operators.SCENE_OT_addStemSplitLevel)
+    bpy.utils.register_class(operators.SCENE_OT_removeStemSplitLevel)
+    bpy.utils.register_class(operators.SCENE_OT_addBranchSplitLevel)
+    bpy.utils.register_class(operators.SCENE_OT_removeBranchSplitLevel)
+    bpy.utils.register_class(operators.OBJECT_OT_generateTree)
+    bpy.utils.register_class(operators.OBJECT_OT_packUVs)
+    bpy.utils.register_class(operators.SCENE_OT_addLeafItem)
+    bpy.utils.register_class(operators.SCENE_OT_removeLeafItem)
+    bpy.utils.register_class(operators.SCENE_OT_toggleUseTaperCurveOperator)
+    bpy.utils.register_class(operators.SCENE_OT_evaluateButton)
+    bpy.utils.register_class(operators.SCENE_OT_initButton)
+    bpy.utils.register_class(operators.SCENE_OT_BranchClusterEvaluateButton)
+    bpy.utils.register_class(operators.SCENE_OT_BranchClusterResetButton)
+
     #panels
     bpy.utils.register_class(panels.treeGenPanel)
     bpy.utils.register_class(panels.treeSettingsPanel)
@@ -234,10 +226,7 @@ def register():
     bpy.utils.register_class(panels.branchSettings)
     bpy.utils.register_class(panels.leafSettings) # TODO
     
-    bpy.utils.register_class(operators.evaluateButton)
-    bpy.utils.register_class(operators.initButton)
-    bpy.utils.register_class(operators.BranchClusterEvaluateButton)
-    bpy.utils.register_class(operators.BranchClusterResetButton)
+    
     
     
     #collections    
@@ -274,100 +263,99 @@ def register():
     bpy.app.timers.register(delayed_init, first_interval=0.1) # TODO
     
 def delayed_init():
-    panels.ensure_stem_curve_node()
+    panels.ensure_stem_curve_node(None)
     bpy.ops.scene.init_button()
 
 
 def unregister():
     #save and load
-    #bpy.utils.unregister_class(importProperties)
-    bpy.utils.unregister_class(exportProperties)
-    bpy.utils.unregister_class(loadPreset)
+    bpy.utils.unregister_class(operators.EXPORT_OT_importProperties)
+    bpy.utils.unregister_class(operators.EXPORT_OT_exportProperties)
+    bpy.utils.unregister_class(operators.EXPORT_OT_loadPreset)
         
     #data types
-    bpy.utils.unregister_class(treeShapeEnumProp)
-    bpy.utils.unregister_class(treePresetEnumProp)
-    bpy.utils.unregister_class(splitModeEnumProp)
-    bpy.utils.unregister_class(angleModeEnumProp)
-    bpy.utils.unregister_class(branchTypeEnumProp)
-    bpy.utils.unregister_class(intProp)
-    bpy.utils.unregister_class(intPropL)
-    bpy.utils.unregister_class(posIntProp3)
-    bpy.utils.unregister_class(fibonacciProps)
-    bpy.utils.unregister_class(floatProp)
-    bpy.utils.unregister_class(posFloatProp)
-    bpy.utils.unregister_class(posFloatPropDefault1)
-    bpy.utils.unregister_class(floatProp01)
-    bpy.utils.unregister_class(floatProp01default0p5)
-    bpy.utils.unregister_class(posFloatPropSoftMax1)
-    bpy.utils.unregister_class(posFloatPropSoftMax1Default0)
-    bpy.utils.unregister_class(posFloatPropSoftMax2)
-    bpy.utils.unregister_class(floatListProp)
-    bpy.utils.unregister_class(floatListProp01)
-    bpy.utils.unregister_class(boolProp)
-    bpy.utils.unregister_class(parentClusterBoolListProp)
-    bpy.utils.unregister_class(branchClusterBoolListProp)
-    bpy.utils.unregister_class(leafParentClusterBoolListProp)
-    bpy.utils.unregister_class(leafAngleModeEnumProp)
-    bpy.utils.unregister_class(leafTypeEnumProp)
+    bpy.utils.unregister_class(property_groups.treeShapeEnumProp)
+    bpy.utils.unregister_class(property_groups.treePresetEnumProp)
+    bpy.utils.unregister_class(property_groups.splitModeEnumProp)
+    bpy.utils.unregister_class(property_groups.angleModeEnumProp)
+    bpy.utils.unregister_class(property_groups.branchTypeEnumProp)
+    bpy.utils.unregister_class(property_groups.intProp)
+    bpy.utils.unregister_class(property_groups.intPropL)
+    bpy.utils.unregister_class(property_groups.posIntProp3)
+    bpy.utils.unregister_class(property_groups.fibonacciProps)
+    bpy.utils.unregister_class(property_groups.floatProp)
+    bpy.utils.unregister_class(property_groups.posFloatProp)
+    bpy.utils.unregister_class(property_groups.posFloatPropDefault1)
+    bpy.utils.unregister_class(property_groups.floatProp01)
+    bpy.utils.unregister_class(property_groups.floatProp01default0p5)
+    bpy.utils.unregister_class(property_groups.posFloatPropSoftMax1)
+    bpy.utils.unregister_class(property_groups.posFloatPropSoftMax1Default0)
+    bpy.utils.unregister_class(property_groups.posFloatPropSoftMax2)
+    bpy.utils.unregister_class(property_groups.floatListProp)
+    bpy.utils.unregister_class(property_groups.floatListProp01)
+    bpy.utils.unregister_class(property_groups.boolProp)
+    bpy.utils.unregister_class(property_groups.parentClusterBoolListProp)
+    bpy.utils.unregister_class(property_groups.branchClusterBoolListProp)
+    bpy.utils.unregister_class(property_groups.leafParentClusterBoolListProp)
+    bpy.utils.unregister_class(property_groups.leafAngleModeEnumProp)
+    bpy.utils.unregister_class(property_groups.leafTypeEnumProp)
     
-    bpy.utils.unregister_class(treeSettings)
-    bpy.utils.unregister_class(branchClusterSettings)
-    bpy.utils.unregister_class(leafClusterSettings)
+    bpy.utils.unregister_class(property_groups.treeSettings)
+    bpy.utils.unregister_class(property_groups.branchClusterSettings)
+    bpy.utils.unregister_class(property_groups.leafClusterSettings)
     
     #operators
-    bpy.utils.unregister_class(addBranchCluster)
-    bpy.utils.unregister_class(removeBranchCluster)
-    bpy.utils.unregister_class(toggleBool)
-    bpy.utils.unregister_class(toggleLeafBool)
-    bpy.utils.unregister_class(addStemSplitLevel)
-    bpy.utils.unregister_class(removeStemSplitLevel)
-    bpy.utils.unregister_class(addBranchSplitLevel)
-    bpy.utils.unregister_class(removeBranchSplitLevel)
-    bpy.utils.unregister_class(generateTree)
-    bpy.utils.unregister_class(packUVs)
-    bpy.utils.unregister_class(addLeafItem)
-    bpy.utils.unregister_class(removeLeafItem)
-    
-    bpy.utils.unregister_class(evaluateButton)
-    bpy.utils.unregister_class(BranchClusterEvaluateButton)
-    bpy.utils.unregister_class(BranchClusterResetButton)
-    bpy.utils.unregister_class(initButton)
-    bpy.utils.unregister_class(toggleUseTaperCurveOperator)
+    bpy.utils.unregister_class(operators.SCENE_OT_addBranchCluster)
+    bpy.utils.unregister_class(operators.SCENE_OT_removeBranchCluster)
+    bpy.utils.unregister_class(operators.SCENE_OT_toggleBool)
+    bpy.utils.unregister_class(operators.SCENE_OT_toggleLeafBool)
+    bpy.utils.unregister_class(operators.SCENE_OT_addStemSplitLevel)
+    bpy.utils.unregister_class(operators.SCENE_OT_removeStemSplitLevel)
+    bpy.utils.unregister_class(operators.SCENE_OT_addBranchSplitLevel)
+    bpy.utils.unregister_class(operators.SCENE_OT_removeBranchSplitLevel)
+    bpy.utils.unregister_class(operators.OBJECT_OT_generateTree)
+    bpy.utils.unregister_class(operators.OBJECT_OT_packUVs)
+    bpy.utils.unregister_class(operators.SCENE_OT_addLeafItem)
+    bpy.utils.unregister_class(operators.SCENE_OT_removeLeafItem)
+    bpy.utils.unregister_class(operators.SCENE_OT_evaluateButton)
+    bpy.utils.unregister_class(operators.SCENE_OT_BranchClusterEvaluateButton)
+    bpy.utils.unregister_class(operators.SCENE_OT_BranchClusterResetButton)
+    bpy.utils.unregister_class(operators.SCENE_OT_initButton)
+    bpy.utils.unregister_class(operators.SCENE_OT_toggleUseTaperCurveOperator)
     
     
     #panels
-    bpy.utils.unregister_class(treeGenPanel)
-    bpy.utils.unregister_class(treeSettingsPanel)
-    bpy.utils.unregister_class(noiseSettings)
-    bpy.utils.unregister_class(angleSettings)
-    bpy.utils.unregister_class(splitSettings)
-    bpy.utils.unregister_class(leafSettings)
+    bpy.utils.unregister_class(panels.treeGenPanel)
+    bpy.utils.unregister_class(panels.treeSettingsPanel)
+    bpy.utils.unregister_class(panels.noiseSettings)
+    bpy.utils.unregister_class(panels.angleSettings)
+    bpy.utils.unregister_class(panels.splitSettings)
     
-    bpy.utils.unregister_class(BranchSettings)
+    bpy.utils.unregister_class(panels.branchSettings)
+    bpy.utils.unregister_class(panels.leafSettings)
     
     #UILists
-    bpy.utils.unregister_class(UL_stemSplitLevelList)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_0)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_1)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_2)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_3)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_4)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_5)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_6)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_7)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_8)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_9)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_10)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_11)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_12)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_13)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_14)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_15)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_16)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_17)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_18)
-    bpy.utils.unregister_class(UL_branchSplitLevelListLevel_19)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_stemSplitLevelList)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_0)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_1)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_2)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_3)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_4)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_5)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_6)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_7)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_8)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_9)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_10)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_11)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_12)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_13)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_14)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_15)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_16)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_17)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_18)
+    bpy.utils.unregister_class(property_groups.TREEGEN_UL_branchSplitLevelListLevel_19)
     
     
     # Unregister collections

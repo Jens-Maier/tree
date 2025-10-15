@@ -7,7 +7,7 @@ from . import property_groups
 from . import tree_generator
 
 
-class generateTree(bpy.types.Operator):
+class OBJECT_OT_generateTree(bpy.types.Operator):
     bl_label = "generateTree"
     bl_idname = "object.generate_tree"
     
@@ -28,7 +28,7 @@ class generateTree(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class packUVs(bpy.types.Operator):
+class OBJECT_OT_packUVs(bpy.types.Operator):
     bl_label = "packUVs"
     bl_idname = "object.pack_uvs"
     
@@ -62,7 +62,7 @@ def checkUVbounds():
     
     
 
-class BranchClusterResetButton(bpy.types.Operator):
+class SCENE_OT_BranchClusterResetButton(bpy.types.Operator):
     bl_idname = "scene.reset_branch_cluster_curve"
     bl_label = "Reset Branch Cluster"
     
@@ -90,7 +90,7 @@ class BranchClusterResetButton(bpy.types.Operator):
         
         return {'FINISHED'}
 
-class BranchClusterEvaluateButton(bpy.types.Operator):
+class SCENE_OT_BranchClusterEvaluateButton(bpy.types.Operator):
     bl_idname = "scene.evaluate_branch_cluster"
     bl_label = "Evaluate Branch Cluster"
     
@@ -263,7 +263,7 @@ class BranchClusterEvaluateButton(bpy.types.Operator):
                     bpy.context.active_object.empty_display_size = 0.01
         return {'FINISHED'}
 
-class initButton(bpy.types.Operator):
+class SCENE_OT_initButton(bpy.types.Operator):
     bl_idname="scene.init_button"
     bl_label="Reset"
         
@@ -288,7 +288,7 @@ class initButton(bpy.types.Operator):
         return {'FINISHED'}
     
     
-class evaluateButton(bpy.types.Operator):
+class SCENE_OT_evaluateButton(bpy.types.Operator):
     bl_idname="scene.evaluate_button"
     bl_label="evaluate"
     
@@ -480,7 +480,7 @@ class evaluateButton(bpy.types.Operator):
                     bpy.context.active_object.empty_display_size = 0.01
         return {'FINISHED'} 
 
-class addBranchCluster(bpy.types.Operator): # add branch cluster
+class SCENE_OT_addBranchCluster(bpy.types.Operator): # add branch cluster
     bl_idname = "scene.add_branch_cluster"
     bl_label = "Add Branch Cluster"
     def execute(self, context):
@@ -511,7 +511,7 @@ class addBranchCluster(bpy.types.Operator): # add branch cluster
         
         return {'FINISHED'}
     
-class removeBranchCluster(bpy.types.Operator):
+class SCENE_OT_removeBranchCluster(bpy.types.Operator):
     bl_idname = "scene.remove_branch_cluster"
     bl_label = "Remove Item"
     index: bpy.props.IntProperty()
@@ -558,7 +558,7 @@ class removeBranchCluster(bpy.types.Operator):
             
         return {'FINISHED'}
     
-class addLeafItem(bpy.types.Operator):
+class SCENE_OT_addLeafItem(bpy.types.Operator):
     bl_idname = "scene.add_leaf_cluster"
     bl_label = "Add Item"
     def execute(self, context):
@@ -575,7 +575,7 @@ class addLeafItem(bpy.types.Operator):
         leafParentClusterBoolListList.value[0].value = True
         return {'FINISHED'}
     
-class removeLeafItem(bpy.types.Operator):
+class SCENE_OT_removeLeafItem(bpy.types.Operator):
     bl_idname = "scene.remove_leaf_cluster"
     bl_label = "Remove Item"
     index: bpy.props.IntProperty()
@@ -590,7 +590,7 @@ class removeLeafItem(bpy.types.Operator):
         return {'FINISHED'}
 
     
-class toggleBool(bpy.types.Operator):
+class SCENE_OT_toggleBool(bpy.types.Operator):
     bl_idname = "scene.toggle_bool"
     bl_label = "Toggle Bool"
     bl_description = "At least one item has to be true"
@@ -608,7 +608,7 @@ class toggleBool(bpy.types.Operator):
             
         return {'FINISHED'}
 
-class toggleLeafBool(bpy.types.Operator):
+class SCENE_OT_toggleLeafBool(bpy.types.Operator):
     bl_idname = "scene.toggle_leaf_bool"
     bl_label = "Toggle Leaf Bool"
     bl_description = "At least one item has to be true"
@@ -626,7 +626,7 @@ class toggleLeafBool(bpy.types.Operator):
             
         return {'FINISHED'}
 
-class toggleUseTaperCurveOperator(bpy.types.Operator):
+class SCENE_OT_toggleUseTaperCurveOperator(bpy.types.Operator):
     bl_idname = "scene.toggle_use_taper_curve"
     bl_label = "Use Taper Curve"
     bl_description = "resets taper curve"
@@ -643,7 +643,7 @@ class toggleUseTaperCurveOperator(bpy.types.Operator):
         return {'FINISHED'}
     
 
-class addStemSplitLevel(bpy.types.Operator):
+class SCENE_OT_addStemSplitLevel(bpy.types.Operator):
     bl_idname = "scene.add_stem_split_level"
     bl_label = "Add split level"
     
@@ -654,7 +654,7 @@ class addStemSplitLevel(bpy.types.Operator):
         context.scene.treeSettings.stemSplitHeightInLevelListIndex = len(context.scene.treeSettings.stemSplitHeightInLevelList) - 1
         return {'FINISHED'}
     
-class removeStemSplitLevel(bpy.types.Operator):
+class SCENE_OT_removeStemSplitLevel(bpy.types.Operator):
     bl_idname = "scene.remove_stem_split_level"
     bl_label = "Remove split level"
     index: bpy.props.IntProperty()
@@ -665,7 +665,7 @@ class removeStemSplitLevel(bpy.types.Operator):
             context.scene.treeSettings.stemSplitHeightInLevelList.remove(len(context.scene.treeSettings.stemSplitHeightInLevelList) - 1)
         return {'FINISHED'}
     
-class addBranchSplitLevel(bpy.types.Operator):
+class SCENE_OT_addBranchSplitLevel(bpy.types.Operator):
     bl_idname = "scene.add_branch_split_level"
     bl_label = "Add split level"
     level: bpy.props.IntProperty()
@@ -742,7 +742,7 @@ class addBranchSplitLevel(bpy.types.Operator):
         
         return {'FINISHED'}
     
-class removeBranchSplitLevel(bpy.types.Operator):
+class SCENE_OT_removeBranchSplitLevel(bpy.types.Operator):
     bl_idname = "scene.remove_branch_split_level"
     bl_label = "Remove split level"
     level: bpy.props.IntProperty()
@@ -815,7 +815,7 @@ class removeBranchSplitLevel(bpy.types.Operator):
         
         return {'FINISHED'}
     
-class exportProperties(bpy.types.Operator):
+class EXPORT_OT_exportProperties(bpy.types.Operator):
     bl_idname = "export.save_properties_file"
     bl_label = "Save Properties"
     
@@ -1242,7 +1242,7 @@ class exportProperties(bpy.types.Operator):
         self.report({'INFO'}, f'Saved properties to {filepath}')
         return {'FINISHED'}
     
-class importProperties(bpy.types.Operator):
+class EXPORT_OT_importProperties(bpy.types.Operator):
     bl_idname = "export.load_properties_file"
     bl_label = "Load Properties"
     
@@ -1261,7 +1261,7 @@ class importProperties(bpy.types.Operator):
 
         
         
-class loadPreset(bpy.types.Operator):
+class EXPORT_OT_loadPreset(bpy.types.Operator):
     bl_idname = "export.load_preset"
     bl_label = "Load Preset"
     

@@ -1,7 +1,8 @@
 import bpy.props
 import math
 
-
+curve_node_mapping = {}
+taper_node_mapping = {}
 
 class floatProp(bpy.types.PropertyGroup):
     value: bpy.props.FloatProperty(name = "floatValue", default=0)
@@ -470,127 +471,127 @@ class leafClusterSettings(bpy.types.PropertyGroup):
     leafTiltAngleBranchStart: bpy.props.FloatProperty(name = "Leaf tilt angle branch start", default = 0.0, unit = 'ROTATION')
     leafTiltAngleBranchEnd: bpy.props.FloatProperty(name = "Leaf tilt angle branch end", default = 0.0, unit = 'ROTATION')
 
-class UL_stemSplitLevelList(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_stemSplitLevelList(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
         
-class UL_branchSplitLevelListLevel_0(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_0(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
         
-class UL_branchSplitLevelListLevel_1(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_1(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
         
-class UL_branchSplitLevelListLevel_2(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_2(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
         
-class UL_branchSplitLevelListLevel_3(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_3(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
         
-class UL_branchSplitLevelListLevel_4(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_4(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
         
-class UL_branchSplitLevelListLevel_5(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_5(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
 
-class UL_branchSplitLevelListLevel_6(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_6(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
 
-class UL_branchSplitLevelListLevel_7(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_7(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
 
-class UL_branchSplitLevelListLevel_8(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_8(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
 
-class UL_branchSplitLevelListLevel_9(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_9(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
 
-class UL_branchSplitLevelListLevel_10(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_10(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
 
-class UL_branchSplitLevelListLevel_11(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_11(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
 
-class UL_branchSplitLevelListLevel_12(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_12(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
 
-class UL_branchSplitLevelListLevel_13(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_13(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
 
-class UL_branchSplitLevelListLevel_14(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_14(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
 
-class UL_branchSplitLevelListLevel_15(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_15(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
 
-class UL_branchSplitLevelListLevel_16(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_16(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
 
-class UL_branchSplitLevelListLevel_17(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_17(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
 
-class UL_branchSplitLevelListLevel_18(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_18(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()
         layout.prop(item, "value", text="", slider=True)
 
-class UL_branchSplitLevelListLevel_19(bpy.types.UIList): #template for UIList
+class TREEGEN_UL_branchSplitLevelListLevel_19(bpy.types.UIList): #template for UIList
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         layout.label(text=f"Level {index}")
         row = layout.row()

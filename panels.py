@@ -21,7 +21,7 @@ def myCurveData(curve_name):
 #        curve_node_mapping = {}
 #        taper_node_mapping = {}
 
-def ensure_stem_curve_node(treeGeneratorInstance): # called from operators
+def ensure_stem_curve_node(treeGeneratorInstance = None): # called from operators
     curve_name = "Stem"
     if 'CurveNodeGroup' not in bpy.data.node_groups:
         bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
@@ -48,7 +48,7 @@ def drawDebugPoint(pos, size, name="debugPoint"):
 
 class treeGenPanel(bpy.types.Panel):
     bl_label = "Tree Generator"
-    bl_idname = "PT_TreeGen"
+    bl_idname = "TREEGEN_PT_TreeGen"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'treeGen'
@@ -80,7 +80,7 @@ class treeGenPanel(bpy.types.Panel):
         
 class treeSettingsPanel(bpy.types.Panel):
     bl_label = "Tree Settings"
-    bl_idname = "PT_TreeSettings"
+    bl_idname = "TREEGEN_PT_TreeSettings"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'treeGen'
@@ -123,7 +123,7 @@ class treeSettingsPanel(bpy.types.Panel):
         
 class noiseSettings(bpy.types.Panel):
     bl_label = "Noise Settings"
-    bl_idname = "PT_NoiseSettings"
+    bl_idname = "TREEGEN_PT_NoiseSettings"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'treeGen'
@@ -131,7 +131,7 @@ class noiseSettings(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         obj = context.object
-        bl_parent_id = 'PT_TreeGen'
+        bl_parent_id = 'TREEGEN_PT_TreeGen'
         bl_optione = {'DEFAULT_CLOSED'}
         
         row = layout.row()
@@ -149,7 +149,7 @@ class noiseSettings(bpy.types.Panel):
         
 class angleSettings(bpy.types.Panel):
     bl_label = "Angle Settings"
-    bl_idname = "PT_AngleSettings"
+    bl_idname = "TREEGEN_PT_AngleSettings"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'treeGen'
@@ -158,7 +158,7 @@ class angleSettings(bpy.types.Panel):
         layout = self.layout
         obj = context.object
         scene = context.scene
-        bl_parent_id = 'PT_TreeGen'
+        bl_parent_id = 'TREEGEN_PT_TreeGen'
         bl_optione = {'DEFAULT_CLOSED'}
         
         
@@ -169,7 +169,7 @@ class angleSettings(bpy.types.Panel):
         
 class splitSettings(bpy.types.Panel):
     bl_label = "Split Settings"
-    bl_idname = "PT_SplitSettings"
+    bl_idname = "TREEGEN_PT_SplitSettings"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'treeGen'
@@ -178,7 +178,7 @@ class splitSettings(bpy.types.Panel):
         layout = self.layout
         obj = context.object
         scene = context.scene
-        bl_parent_id = 'PT_TreeGen'
+        bl_parent_id = 'TREEGEN_PT_TreeGen'
         bl_optione = {'DEFAULT_CLOSED'}
         
         row = layout.row()
@@ -208,7 +208,7 @@ class splitSettings(bpy.types.Panel):
         row.operator("scene.remove_stem_split_level", text="Remove").index = context.scene.treeSettings.stemSplitHeightInLevelListIndex
         if context.scene.treeSettings.showStemSplitHeights == True:
             row = layout.row()
-            row.template_list("UL_stemSplitLevelList", "", context.scene.treeSettings, "stemSplitHeightInLevelList", context.scene.treeSettings, "stemSplitHeightInLevelListIndex")
+            row.template_list("TREEGEN_UL_stemSplitLevelList", "", context.scene.treeSettings, "stemSplitHeightInLevelList", context.scene.treeSettings, "stemSplitHeightInLevelListIndex")
         
         row = layout.row()
         layout.prop(context.scene.treeSettings, "splitHeightVariation")
@@ -244,7 +244,7 @@ def draw_parent_cluster_bools(layout, scene, cluster_index):
 
 class branchSettings(bpy.types.Panel):
     bl_label = "Branch Settings"
-    bl_idname = "PT_branchSettings"
+    bl_idname = "TREEGEN_PT_branchSettings"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'treeGen'
@@ -254,11 +254,9 @@ class branchSettings(bpy.types.Panel):
     
     def draw(self, context):
         layout = self.layout
-                
-        #layout = self.layout
-        #obj = context.object
+        
         scene = context.scene
-        bl_parent_id = 'PT_TreeGen'
+        bl_parent_id = 'TREEGEN_PT_TreeGen'
         bl_optione = {'DEFAULT_CLOSED'}
         
         
@@ -573,45 +571,45 @@ class branchSettings(bpy.types.Panel):
                     if context.scene.branchClusterSettingsList[i].showBranchSplitHeights == True:
                         row = box2.row()
                         if i == 0:
-                            row.template_list("UL_branchSplitLevelListLevel_0", "", scene.treeSettings, "branchSplitHeightInLevelList_0", scene.treeSettings, "branchSplitHeightInLevelListIndex_0")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_0", "", scene.treeSettings, "branchSplitHeightInLevelList_0", scene.treeSettings, "branchSplitHeightInLevelListIndex_0")
                         if i == 1:
-                            row.template_list("UL_branchSplitLevelListLevel_1", "", scene.treeSettings, "branchSplitHeightInLevelList_1", scene.treeSettings, "branchSplitHeightInLevelListIndex_1")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_1", "", scene.treeSettings, "branchSplitHeightInLevelList_1", scene.treeSettings, "branchSplitHeightInLevelListIndex_1")
                         if i == 2:
-                            row.template_list("UL_branchSplitLevelListLevel_2", "", scene.treeSettings, "branchSplitHeightInLevelList_2", scene.treeSettings, "branchSplitHeightInLevelListIndex_2")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_2", "", scene.treeSettings, "branchSplitHeightInLevelList_2", scene.treeSettings, "branchSplitHeightInLevelListIndex_2")
                         if i == 3:
-                            row.template_list("UL_branchSplitLevelListLevel_3", "", scene.treeSettings, "branchSplitHeightInLevelList_3", scene.treeSettings, "branchSplitHeightInLevelListIndex_3")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_3", "", scene.treeSettings, "branchSplitHeightInLevelList_3", scene.treeSettings, "branchSplitHeightInLevelListIndex_3")
                         if i == 4:
-                            row.template_list("UL_branchSplitLevelListLevel_4", "", scene.treeSettings, "branchSplitHeightInLevelList_4", scene.treeSettings, "branchSplitHeightInLevelListIndex_4")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_4", "", scene.treeSettings, "branchSplitHeightInLevelList_4", scene.treeSettings, "branchSplitHeightInLevelListIndex_4")
                         if i == 5:
-                            row.template_list("UL_branchSplitLevelListLevel_5", "", scene.treeSettings, "branchSplitHeightInLevelList_5", scene.treeSettings, "branchSplitHeightInLevelListIndex_5")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_5", "", scene.treeSettings, "branchSplitHeightInLevelList_5", scene.treeSettings, "branchSplitHeightInLevelListIndex_5")
                         if i == 6:
-                            row.template_list("UL_branchSplitLevelListLevel_6", "", scene.treeSettings, "branchSplitHeightInLevelList_6", scene.treeSettings, "branchSplitHeightInLevelListIndex_6")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_6", "", scene.treeSettings, "branchSplitHeightInLevelList_6", scene.treeSettings, "branchSplitHeightInLevelListIndex_6")
                         if i == 7:
-                            row.template_list("UL_branchSplitLevelListLevel_7", "", scene.treeSettings, "branchSplitHeightInLevelList_7", scene.treeSettings, "branchSplitHeightInLevelListIndex_7")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_7", "", scene.treeSettings, "branchSplitHeightInLevelList_7", scene.treeSettings, "branchSplitHeightInLevelListIndex_7")
                         if i == 8:
-                            row.template_list("UL_branchSplitLevelListLevel_8", "", scene.treeSettings, "branchSplitHeightInLevelList_8", scene.treeSettings, "branchSplitHeightInLevelListIndex_8")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_8", "", scene.treeSettings, "branchSplitHeightInLevelList_8", scene.treeSettings, "branchSplitHeightInLevelListIndex_8")
                         if i == 9:
-                            row.template_list("UL_branchSplitLevelListLevel_9", "", scene.treeSettings, "branchSplitHeightInLevelList_9", scene.treeSettings, "branchSplitHeightInLevelListIndex_9")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_9", "", scene.treeSettings, "branchSplitHeightInLevelList_9", scene.treeSettings, "branchSplitHeightInLevelListIndex_9")
                         if i == 10:
-                            row.template_list("UL_branchSplitLevelListLevel_10", "", scene.treeSettings, "branchSplitHeightInLevelList_10", scene.treeSettings, "branchSplitHeightInLevelListIndex_10")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_10", "", scene.treeSettings, "branchSplitHeightInLevelList_10", scene.treeSettings, "branchSplitHeightInLevelListIndex_10")
                         if i == 11:
-                            row.template_list("UL_branchSplitLevelListLevel_11", "", scene.treeSettings, "branchSplitHeightInLevelList_11", scene.treeSettings, "branchSplitHeightInLevelListIndex_11")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_11", "", scene.treeSettings, "branchSplitHeightInLevelList_11", scene.treeSettings, "branchSplitHeightInLevelListIndex_11")
                         if i == 12:
-                            row.template_list("UL_branchSplitLevelListLevel_12", "", scene.treeSettings, "branchSplitHeightInLevelList_12", scene.treeSettings, "branchSplitHeightInLevelListIndex_12")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_12", "", scene.treeSettings, "branchSplitHeightInLevelList_12", scene.treeSettings, "branchSplitHeightInLevelListIndex_12")
                         if i == 13:
-                            row.template_list("UL_branchSplitLevelListLevel_13", "", scene.treeSettings, "branchSplitHeightInLevelList_13", scene.treeSettings, "branchSplitHeightInLevelListIndex_13")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_13", "", scene.treeSettings, "branchSplitHeightInLevelList_13", scene.treeSettings, "branchSplitHeightInLevelListIndex_13")
                         if i == 14:
-                            row.template_list("UL_branchSplitLevelListLevel_14", "", scene.treeSettings, "branchSplitHeightInLevelList_14", scene.treeSettings, "branchSplitHeightInLevelListIndex_14")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_14", "", scene.treeSettings, "branchSplitHeightInLevelList_14", scene.treeSettings, "branchSplitHeightInLevelListIndex_14")
                         if i == 15:
-                            row.template_list("UL_branchSplitLevelListLevel_15", "", scene.treeSettings, "branchSplitHeightInLevelList_15", scene.treeSettings, "branchSplitHeightInLevelListIndex_15")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_15", "", scene.treeSettings, "branchSplitHeightInLevelList_15", scene.treeSettings, "branchSplitHeightInLevelListIndex_15")
                         if i == 16:
-                            row.template_list("UL_branchSplitLevelListLevel_16", "", scene.treeSettings, "branchSplitHeightInLevelList_16", scene.treeSettings, "branchSplitHeightInLevelListIndex_16")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_16", "", scene.treeSettings, "branchSplitHeightInLevelList_16", scene.treeSettings, "branchSplitHeightInLevelListIndex_16")
                         if i == 17:
-                            row.template_list("UL_branchSplitLevelListLevel_17", "", scene.treeSettings, "branchSplitHeightInLevelList_17", scene.treeSettings, "branchSplitHeightInLevelListIndex_17")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_17", "", scene.treeSettings, "branchSplitHeightInLevelList_17", scene.treeSettings, "branchSplitHeightInLevelListIndex_17")
                         if i == 18:
-                            row.template_list("UL_branchSplitLevelListLevel_18", "", scene.treeSettings, "branchSplitHeightInLevelList_18", scene.treeSettings, "branchSplitHeightInLevelListIndex_18")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_18", "", scene.treeSettings, "branchSplitHeightInLevelList_18", scene.treeSettings, "branchSplitHeightInLevelListIndex_18")
                         if i == 19:
-                            row.template_list("UL_branchSplitLevelListLevel_19", "", scene.treeSettings, "branchSplitHeightInLevelList_19", scene.treeSettings, "branchSplitHeightInLevelListIndex_19")
+                            row.template_list("TREEGEN_UL_branchSplitLevelListLevel_19", "", scene.treeSettings, "branchSplitHeightInLevelList_19", scene.treeSettings, "branchSplitHeightInLevelListIndex_19")
                         if i > 19:
                             j = 0
                             splitLevelList = scene.treeSettings.branchSplitHeightInLevelListList[i - 6].value
@@ -642,7 +640,7 @@ def draw_leaf_cluster_bools(layout, scene, cluster_index, leafParentClusterBool)
                      
 class leafSettings(bpy.types.Panel):
     bl_label = "Leaf Settings"
-    bl_idname = "PT_LeafSettings"
+    bl_idname = "TREEGEN_PT_LeafSettings"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'treeGen'
@@ -651,7 +649,7 @@ class leafSettings(bpy.types.Panel):
         layout = self.layout
         obj = context.object
         scene = context.scene
-        bl_parent_id = 'PT_TreeGen'
+        bl_parent_id = 'TREEGEN_PT_TreeGen'
         bl_optione = {'DEFAULT_CLOSED'}
         
         row = layout.row(align = True)

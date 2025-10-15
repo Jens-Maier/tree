@@ -635,23 +635,23 @@ class treeGenerator:
                         
                         startPoint = data.startPoint
                         startNodeNextIndex = data.startNodeNextIndex
-                        startPointTangent = treegen_utils_.treegen_utils.sampleSplineTangentT(data.startNode.point, 
+                        startPointTangent = treegen_utils.sampleSplineTangentT(data.startNode.point, 
                                                                 data.startNode.next[startNodeNextIndex].point, 
                                                                 data.tangent, 
                                                                 data.startNode.next[startNodeNextIndex].tangent[0], 
                                                                 data.t)
                                                                 
-                        branchStartTvalGlobal = treegen_utils_.treegen_utils.lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
+                        branchStartTvalGlobal = treegen_utils.lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
                         
-                        globalVerticalAngle = treegen_utils_.treegen_utils.lerp(branchClusterSettingsList[clusterIndex].verticalAngleCrownStart, branchClusterSettingsList[clusterIndex].verticalAngleCrownEnd, data.startNode.tValGlobal)
+                        globalVerticalAngle = treegen_utils.lerp(branchClusterSettingsList[clusterIndex].verticalAngleCrownStart, branchClusterSettingsList[clusterIndex].verticalAngleCrownEnd, data.startNode.tValGlobal)
                         
-                        branchVerticalAngle = treegen_utils_.treegen_utils.lerp(branchClusterSettingsList[clusterIndex].verticalAngleBranchStart, branchClusterSettingsList[clusterIndex].verticalAngleBranchEnd, treegen_utils_.treegen_utils.lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
+                        branchVerticalAngle = treegen_utils.lerp(branchClusterSettingsList[clusterIndex].verticalAngleBranchStart, branchClusterSettingsList[clusterIndex].verticalAngleBranchEnd, treegen_utils.lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
                         
                         verticalAngle = globalVerticalAngle + branchVerticalAngle
                         
-                        globalRotateAngle = treegen_utils_.treegen_utils.lerp(branchClusterSettingsList[clusterIndex].rotateAngleCrownStart, branchClusterSettingsList[clusterIndex].rotateAngleCrownEnd, branchStartTvalGlobal)
+                        globalRotateAngle = treegen_utils.lerp(branchClusterSettingsList[clusterIndex].rotateAngleCrownStart, branchClusterSettingsList[clusterIndex].rotateAngleCrownEnd, branchStartTvalGlobal)
                         
-                        branchRotateAngle = treegen_utils_.treegen_utils.lerp(branchClusterSettingsList[clusterIndex].rotateAngleBranchStart, branchClusterSettingsList[clusterIndex].rotateAngleBranchEnd, treegen_utils_.treegen_utils.lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t)) # tValBranch == 0 !!!
+                        branchRotateAngle = treegen_utils.lerp(branchClusterSettingsList[clusterIndex].rotateAngleBranchStart, branchClusterSettingsList[clusterIndex].rotateAngleBranchEnd, treegen_utils.lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t)) # tValBranch == 0 !!!
                         
                         if branchClusterSettingsList[clusterIndex].rotateAngleRange == 0.0:
                             branchClusterSettingsList[clusterIndex].rotateAngleRange = math.pi
@@ -732,8 +732,8 @@ class treeGenerator:
                             else:
                                 branchCotangent = Vector((branchDir.z, 0.0, -branchDir.y))
                         
-                        startTvalGlobal = treegen_utils_.treegen_utils.lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
-                        startTvalBranch = treegen_utils_.treegen_utils.lerp(data.startNode.tValBranch, data.startNode.next[startNodeNextIndex].tValBranch, data.t)
+                        startTvalGlobal = treegen_utils.lerp(data.startNode.tValGlobal, data.startNode.next[startNodeNextIndex].tValGlobal, data.t)
+                        startTvalBranch = treegen_utils.lerp(data.startNode.tValBranch, data.startNode.next[startNodeNextIndex].tValBranch, data.t)
                         treeShapeRatioValue = treeGenerator.shapeRatio(startTvalGlobal, branchClusterSettingsList[clusterIndex].treeShape.value)
                         
                         branchShapeRatioValue = treeGenerator.shapeRatio(startTvalBranch, branchClusterSettingsList[clusterIndex].branchShape.value)
@@ -833,7 +833,7 @@ class treeGenerator:
                             branchNodes.append(oppositeBranch)
                             
                         if branchClusterSettingsList[clusterIndex].branchType.value == "WHORLED":
-                            whorlCount = int(round(treegen_utils_.treegen_utils.lerp(branchClusterSettingsList[clusterIndex].branchWhorlCountStart, branchClusterSettingsList[clusterIndex].branchWhorlCountEnd, startTvalGlobal)))
+                            whorlCount = int(round(treegen_utils.lerp(branchClusterSettingsList[clusterIndex].branchWhorlCountStart, branchClusterSettingsList[clusterIndex].branchWhorlCountEnd, startTvalGlobal)))
                             
                             for n in range(1, whorlCount):
                                 centerDirs.append(centerDirs[len(centerDirs) - 1])
@@ -1284,13 +1284,13 @@ def splitAtNewNode(nrNodesToTip,
     ring_res = splitAfterNode.ringResolution
     taper = splitAfterNode.taper
     
-    newPoint = treegen_utils_.treegen_utils.sampleSplineT(p0, p1, t0, t1, t)
-    newTangent = treegen_utils_.treegen_utils.sampleSplineTangentT(p0, p1, t0, t1, t)
-    newCotangent = treegen_utils_.treegen_utils.lerp(c0, c1, t)
-    newRadius = treegen_utils_.treegen_utils.lerp(r0, r1, t)
-    newTvalGlobal = treegen_utils_.treegen_utils.lerp(splitAfterNode.tValGlobal, splitAfterNode.next[nextIndex].tValGlobal, nrNodesToTip * splitHeight - splitAfterNodeNr)
+    newPoint = treegen_utils.sampleSplineT(p0, p1, t0, t1, t)
+    newTangent = treegen_utils.sampleSplineTangentT(p0, p1, t0, t1, t)
+    newCotangent = treegen_utils.lerp(c0, c1, t)
+    newRadius = treegen_utils.lerp(r0, r1, t)
+    newTvalGlobal = treegen_utils.lerp(splitAfterNode.tValGlobal, splitAfterNode.next[nextIndex].tValGlobal, nrNodesToTip * splitHeight - splitAfterNodeNr)
     
-    newTvalBranch = treegen_utils_.treegen_utils.lerp(splitAfterNode.tValBranch, splitAfterNode.next[nextIndex].tValBranch, splitHeight);
+    newTvalBranch = treegen_utils.lerp(splitAfterNode.tValBranch, splitAfterNode.next[nextIndex].tValBranch, splitHeight);
         
     newNode = node(newPoint, newRadius, newCotangent, splitAfterNode.clusterIndex, ring_res, taper, newTvalGlobal, newTvalBranch, splitAfterNode.branchLength)
     newNode.tangent.append(newTangent)
@@ -1565,13 +1565,13 @@ def generateVerticesAndTriangles(self,
                 controlPt2 = segments[s].end - segments[s].endTangent.normalized() * (segments[s].end - segments[s].start).length / 3.0
             
                 for section in range(startSection, sections + 1):
-                    pos = treegen_utils_.treegen_utils.sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / sections)
-                    tangent = treegen_utils_.treegen_utils.sampleSplineTangentC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / sections).normalized()
+                    pos = treegen_utils.sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / sections)
+                    tangent = treegen_utils.sampleSplineTangentC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / sections).normalized()
                     
                     if section == 0:
                         tangent = segments[s].firstTangent
                     
-                    dirA = treegen_utils_.treegen_utils.lerp(segments[s].startCotangent, segments[s].endCotangent, section / sections)
+                    dirA = treegen_utils.lerp(segments[s].startCotangent, segments[s].endCotangent, section / sections)
                     dirB = (tangent.cross(dirA)).normalized()
                     dirA = (dirB.cross(tangent)).normalized()
                     
@@ -1580,19 +1580,19 @@ def generateVerticesAndTriangles(self,
                     tValBranch = segments[s].startTvalBranch + (segments[s].endTvalBranch - segments[s].startTvalBranch) * (section / sections)
                     tValGlobal = segments[s].startTvalGlobal + (segments[s].endTvalGlobal - segments[s].endTvalGlobal) * (section / sections)
                     if segments[s].clusterIndex == -1:
-                        taper = treegen_utils_.treegen_utils.lerp(segments[s].startTaper, segments[s].endTaper, section / sections)
+                        taper = treegen_utils.lerp(segments[s].startTaper, segments[s].endTaper, section / sections)
                         startRadius = segments[s].startRadius
                         endRadius = segments[s].endRadius
-                        linearRadius = treegen_utils_.treegen_utils.lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing))
-                        normalizedCurve = (1.0 - branchTipRadius) * tVal + treegen_utils_.treegen_utils.sampleCurveStem(treeGen, tVal)
+                        linearRadius = treegen_utils.lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing))
+                        normalizedCurve = (1.0 - branchTipRadius) * tVal + treegen_utils.sampleCurveStem(treeGen, tVal)
                         
                         radius = linearRadius * normalizedCurve
                     else:
-                        taper = treegen_utils_.treegen_utils.lerp(segments[s].startTaper, segments[s].endTaper, section / sections)
+                        taper = treegen_utils.lerp(segments[s].startTaper, segments[s].endTaper, section / sections)
                         startRadius = segments[s].startRadius
                         endRadius = segments[s].endRadius
-                        linearRadius = treegen_utils_.treegen_utils.lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing))
-                        normalizedCurve = (1.0 - branchTipRadius) * tValBranch + treegen_utils_.treegen_utils.sampleCurveBranch(treeGen, tValBranch, segments[s].clusterIndex) * context.scene.taperFactorList[segments[s].clusterIndex].taperFactor 
+                        linearRadius = treegen_utils.lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing))
+                        normalizedCurve = (1.0 - branchTipRadius) * tValBranch + treegen_utils.sampleCurveBranch(treeGen, tValBranch, segments[s].clusterIndex) * context.scene.taperFactorList[segments[s].clusterIndex].taperFactor 
                         radius = linearRadius * normalizedCurve
                     
                     for i in range(0, segments[s].ringResolution + 1):
@@ -1614,19 +1614,19 @@ def generateVerticesAndTriangles(self,
                     tVal = segments[s].startTvalGlobal + (segments[s].endTvalGlobal - segments[s].startTvalGlobal) * (c / sections)
                     nextTval = segments[s].startTvalGlobal + (segments[s].endTvalGlobal - segments[s].startTvalGlobal) * ((c + 1) / sections)
                     
-                    pos = treegen_utils_.treegen_utils.sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, c / sections)
-                    nextPos = treegen_utils_.treegen_utils.sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, (c + 1) / sections)
+                    pos = treegen_utils.sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, c / sections)
+                    nextPos = treegen_utils.sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, (c + 1) / sections)
                     
-                    linearRadius = treegen_utils_.treegen_utils.lerp(segments[s].startRadius, segments[s].endRadius, c / (segmentLength / branchRingSpacing))
-                    normalizedCurve = (1.0 - branchTipRadius) * tVal + treegen_utils_.treegen_utils.sampleCurveStem(treeGen, tVal)
+                    linearRadius = treegen_utils.lerp(segments[s].startRadius, segments[s].endRadius, c / (segmentLength / branchRingSpacing))
+                    normalizedCurve = (1.0 - branchTipRadius) * tVal + treegen_utils.sampleCurveStem(treeGen, tVal)
                     
                     radius = linearRadius * normalizedCurve
                     
                     if c == 0:
                         startRadius = radius
                     
-                    nextLinearRadius = treegen_utils_.treegen_utils.lerp(segments[s].startRadius, segments[s].endRadius, (c + 1) / (segmentLength / branchRingSpacing))
-                    nextNormalizedCurve = (1.0 - branchTipRadius) * nextTval + treegen_utils_.treegen_utils.sampleCurveStem(treeGen, nextTval)
+                    nextLinearRadius = treegen_utils.lerp(segments[s].startRadius, segments[s].endRadius, (c + 1) / (segmentLength / branchRingSpacing))
+                    nextNormalizedCurve = (1.0 - branchTipRadius) * nextTval + treegen_utils.sampleCurveStem(treeGen, nextTval)
                     nextRadius = nextLinearRadius * nextNormalizedCurve
                     
                     for j in range(0, segments[s].ringResolution):
@@ -1781,19 +1781,19 @@ def addLeaves(self, treeGen, rootNode,
                     startPoint = data.startPoint
                     
                     startNodeNextIndex = data.startNodeNextIndex
-                    startPointTangent = treegen_utils_.treegen_utils.sampleSplineTangentT(data.startNode.point, 
+                    startPointTangent = treegen_utils.sampleSplineTangentT(data.startNode.point, 
                                                              data.startNode.next[startNodeNextIndex].point, 
                                                              data.tangent, 
                                                              data.startNode.next[startNodeNextIndex].tangent[0], 
                                                              data.t)
                                                              
-                    startPointRadius = treegen_utils_.treegen_utils.lerp(data.startNode.radius, data.startNode.next[startNodeNextIndex].radius, data.t)
+                    startPointRadius = treegen_utils.lerp(data.startNode.radius, data.startNode.next[startNodeNextIndex].radius, data.t)
                     
-                    verticalAngle = treegen_utils_.treegen_utils.lerp(leafClusterSettingsList[leafClusterIndex].leafVerticalAngleBranchStart, leafClusterSettingsList[leafClusterIndex].leafVerticalAngleBranchEnd, treegen_utils_.treegen_utils.lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
+                    verticalAngle = treegen_utils.lerp(leafClusterSettingsList[leafClusterIndex].leafVerticalAngleBranchStart, leafClusterSettingsList[leafClusterIndex].leafVerticalAngleBranchEnd, treegen_utils.lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
                  
-                    rotateAngle = treegen_utils_.treegen_utils.lerp(leafClusterSettingsList[leafClusterIndex].leafRotateAngleBranchStart, leafClusterSettingsList[leafClusterIndex].leafRotateAngleBranchEnd, treegen_utils_.treegen_utils.lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
+                    rotateAngle = treegen_utils.lerp(leafClusterSettingsList[leafClusterIndex].leafRotateAngleBranchStart, leafClusterSettingsList[leafClusterIndex].leafRotateAngleBranchEnd, treegen_utils.lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
                     
-                    tiltAngle = treegen_utils_.treegen_utils.lerp(leafClusterSettingsList[leafClusterIndex].leafTiltAngleBranchStart, leafClusterSettingsList[leafClusterIndex].leafTiltAngleBranchEnd, treegen_utils_.treegen_utils.lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
+                    tiltAngle = treegen_utils.lerp(leafClusterSettingsList[leafClusterIndex].leafTiltAngleBranchStart, leafClusterSettingsList[leafClusterIndex].leafTiltAngleBranchEnd, treegen_utils.lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t))
                     
                     offset = 0.0
                     factor = math.cos(verticalAngle)
