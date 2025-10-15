@@ -128,19 +128,17 @@ class SimplexNoiseGenerator():
 
         
     def register():
-        pass
-        #print("in noiseGenerator: register")
+        print("in noiseGenerator: register")
     
     def unregister():
-        pass
-        #print("in noiseGenerator: unregister")
+        print("in noiseGenerator: unregister")
         
         
         
 def register():
-    #print("register noiseGenerator")
-    noiseGenerator.register()
+    print("register noiseGenerator")
+    SimplexNoiseGenerator.register()
     
 def unregister():
-    node.unregister()
-    #noiseGenerator("unregister noiseGenerator")
+    SimplexNoiseGenerator.unregister()
+    print("unregister noiseGenerator")

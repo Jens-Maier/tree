@@ -96,36 +96,45 @@ import random
 
 # for addon.......................................................................................................
 
-from . import start_node_info
-from . import node_info
-from . import start_point_data
-from . import rotation_step
-from . import node_
-from . import segment_
-from . import property_groups
-from . import operators
-from . import panels
-from . import noise_generator
-from . import tree_generator
-from . import treegen_utils_
+#from . import start_node_info
+#from . import node_info
+#from . import start_point_data
+#from . import rotation_step
+#from . import node_
+#from . import segment_
+#from . import property_groups
+#from . import operators
+#from . import panels
+#from . import noise_generator
+#from . import tree_generator
+#from . import treegen_utils_
 
-#import_modules = [
-#'start_node_info',
-#'node_info',
-#'start_point_data',
-#'rotation_step',
-#'node_',
-#'segment_',
-#'property_groups',
-#'operators',
-#'panels',
-#'noise_generator',
-#'tree_generator',
-#'treegen_utils_'] # ??? _']
-##'utils_.utils']
+import_modules = [
+'property_groups', # import first!
+'noise_generator', # import first!
 
-## TODO: reload logic...
-#names = [__name__ + '.' + name for name in import_modules]
+'start_node_info',
+'node_info',
+'start_point_data',
+'rotation_step',
+'node_',
+'segment_',
+'operators',
+'panels',
+'tree_generator',
+'treegen_utils_']
+
+names = [__name__ + '.' + name for name in import_modules]
+
+for name in names:
+    try:
+        importlib.import_module(name)
+        print(f"{name} imported successfully")
+    except ImportError as e:
+        print(f"Error importing {name}: {e}")
+              
+
+# TODO: reload logic...
 
 ## TEST: 
 #try:
@@ -135,56 +144,16 @@ from . import treegen_utils_
 #    print(f"Error importing treegen_utils_: {e}")
 
 
-#for name in names:
-#    importlib.import_module(name)
     
 
-    
-
-class MinimalProps(bpy.types.PropertyGroup):
-    my_int: bpy.props.IntProperty(
-        name="My Int",
-        default=MyProperties().default_value
-    )
-
-class MinimalPanel(bpy.types.Panel):
-    bl_label = "Minimal Panel"
-    bl_idname = "PT_MinimalPanel"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'Minimal'
-
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(context.scene.minimal_props, "my_int")
-        layout.operator("object.my_operator", text="my Operator")
-        
-class MinimalOperator(bpy.types.Operator):
-    bl_idname = "object.my_operator"
-    bl_label = "My Operator"
-    
-    def execute(self, context):
-        #self.report({'INFO'}, "setting value in imported class to 4: ")
-        MyProperties().default_value = 4
-        #self.report({'INFO'}, f"imported from MyProperties(): MyProperties().default_value: {MyProperties().default_value}")
-        # only updated after reopening .blend file
-        return {'FINISHED'}
 
 
 
 def register():
-    bpy.utils.register_class(MinimalProps)
-    bpy.types.Scene.minimal_props = bpy.props.PointerProperty(type=MinimalProps)
-    bpy.utils.register_class(MinimalPanel)
-    
-    bpy.utils.register_class(MinimalOperator)
-    
-    #----------------------------------------
-    
-    #save and load #  TEST OFF
+    #save and load
     bpy.utils.register_class(operators.importProperties)
     bpy.utils.register_class(operators.exportProperties)
-    bpy.utils.register_class(loadPreset)
+    bpy.utils.register_class(operators.loadPreset)
     
 #    #data types
     bpy.utils.register_class(property_groups.treePresetEnumProp)
@@ -243,17 +212,17 @@ def register():
     #operators
     bpy.utils.register_class(operators.addBranchCluster)
     bpy.utils.register_class(operators.removeBranchCluster)
-    bpy.utils.register_class(toggleBool)
-    bpy.utils.register_class(toggleLeafBool)
-    bpy.utils.register_class(addStemSplitLevel)
-    bpy.utils.register_class(removeStemSplitLevel)
-    bpy.utils.register_class(addBranchSplitLevel)
-    bpy.utils.register_class(removeBranchSplitLevel)
-    bpy.utils.register_class(generateTree)
-    bpy.utils.register_class(packUVs)
-    bpy.utils.register_class(addLeafItem)
-    bpy.utils.register_class(removeLeafItem)
-    bpy.utils.register_class(toggleUseTaperCurveOperator)
+    bpy.utils.register_class(operators.toggleBool)
+    bpy.utils.register_class(operators.toggleLeafBool)
+    bpy.utils.register_class(operators.addStemSplitLevel)
+    bpy.utils.register_class(operators.removeStemSplitLevel)
+    bpy.utils.register_class(operators.addBranchSplitLevel)
+    bpy.utils.register_class(operators.removeBranchSplitLevel)
+    bpy.utils.register_class(operators.generateTree)
+    bpy.utils.register_class(operators.packUVs)
+    bpy.utils.register_class(operators.addLeafItem)
+    bpy.utils.register_class(operators.removeLeafItem)
+    bpy.utils.register_class(operators.toggleUseTaperCurveOperator)
     
     #panels
     bpy.utils.register_class(panels.treeGenPanel)
@@ -262,13 +231,13 @@ def register():
     bpy.utils.register_class(panels.angleSettings)
     bpy.utils.register_class(panels.splitSettings)
     
-    bpy.utils.register_class(branchSettings)
-    bpy.utils.register_class(leafSettings) # TODO
+    bpy.utils.register_class(panels.branchSettings)
+    bpy.utils.register_class(panels.leafSettings) # TODO
     
-    bpy.utils.register_class(evaluateButton)
-    bpy.utils.register_class(initButton)
-    bpy.utils.register_class(BranchClusterEvaluateButton)
-    bpy.utils.register_class(BranchClusterResetButton)
+    bpy.utils.register_class(operators.evaluateButton)
+    bpy.utils.register_class(operators.initButton)
+    bpy.utils.register_class(operators.BranchClusterEvaluateButton)
+    bpy.utils.register_class(operators.BranchClusterResetButton)
     
     
     #collections    
@@ -310,14 +279,6 @@ def delayed_init():
 
 
 def unregister():
-    bpy.utils.unregister_class(MinimalPanel)
-    del bpy.types.Scene.minimal_props
-    bpy.utils.unregister_class(MinimalProps)
-    
-    bpy.utils.unregister_class(MinimalOperator)
-    
-    #------------------------------------------
-    
     #save and load
     #bpy.utils.unregister_class(importProperties)
     bpy.utils.unregister_class(exportProperties)

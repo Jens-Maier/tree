@@ -7,19 +7,16 @@ class nodeInfo():
         
         
     def register():
-        pass
-        #print("in nodeInfo: register")
-    
+        print("in nodeInfo: register")
+
     def unregister():
-        pass
-        #print("in nodeInfo: unregister")
-        
-        
-        
+        print("in nodeInfo: unregister")
+
+      
 def register():
-    #print("register nodeInfo")
+    print("register nodeInfo")
     nodeInfo.register()
     
 def unregister():
     nodeInfo.unregister()
-    #print("unregister nodeInfo")
+    print("unregister nodeInfo")

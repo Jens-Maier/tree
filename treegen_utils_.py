@@ -1,8 +1,6 @@
 import bpy
-import mathutils
-from mathutils import Vector
-
 from . import property_groups
+from mathutils import Vector
 
 
 class treegen_utils():
@@ -377,11 +375,10 @@ class treegen_utils():
     
     def register():
         print("in treegen_utils: register")
-    
+
     def unregister():
         print("in treegen_utils: unregister")
-        
-        
+    
     
 def myNodeTree():
     if 'CurveNodeGroup' not in bpy.data.node_groups:
@@ -389,12 +386,10 @@ def myNodeTree():
     return bpy.data.node_groups['CurveNodeGroup'].nodes
 
 
-
-        
 def register():
-    print("register treegen_utils")
+    print("register node")
     treegen_utils.register()
     
 def unregister():
     treegen_utils.unregister()
-    treeGenerator("unregister treegen_utils")
+    print("unregister node")

@@ -738,8 +738,6 @@ class leafSettings(bpy.types.Panel):
         
 def register():
     print("register panels (TODO??)")
-    segment.register()
     
 def unregister():
-    segment.unregister()
     print("unregister panels (TODO??)")

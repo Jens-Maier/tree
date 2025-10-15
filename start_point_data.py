@@ -26,8 +26,8 @@ class StartPointData():
                            rootNode, 
                            treeHeight, 
                            calledFromAddLeaves):
-        #self.report({'INFO'}, "---------------------------------------------")
-        #self.report({'INFO'}, "in generateStartPointData()")
+        self.report({'INFO'}, "---------------------------------------------")
+        self.report({'INFO'}, "in generateStartPointData()")
         accumLength = 0.0
         startNodeIndex = 0
         tVal = 0.0
@@ -88,7 +88,7 @@ class StartPointData():
             
         outwardDir = outwardDir.normalized()
         
-        #self.report({'INFO'}, f"in generateStartPointData(): outwardDir: {outwardDir}")
+        self.report({'INFO'}, f"in generateStartPointData(): outwardDir: {outwardDir}")
         return StartPointData(startPoint, startPointTvalGlobal, outwardDir, nStart, startNodeIndex, startNodeNextIndex, tVal, tangent, startPointCotangent)
     
     @staticmethod
@@ -141,6 +141,12 @@ class StartPointData():
         half_closest_anticlockwise_vector = Quaternion(Vector((0.0,0.0,1.0)), anticlockwise_angle_range) @ target_vector
         
         return closest_clockwise_vector, closest_anticlockwise_vector, half_closest_clockwise_vector, half_closest_anticlockwise_vector, clockwise_angle_range, anticlockwise_angle_range
+    
+    def register():
+        print("in startPointData: register")
+
+    def unregister():
+        print("in startPointData: unregister")
 
     
     
@@ -170,17 +176,18 @@ class DummyStartPointData():
 
         
     def register():
-        print("in nodeInfo: register")
+        print("in DummyStartPointData: register")
     
     def unregister():
-        print("in nodeInfo: unregister")
-        
+        print("in DummyStartPointData: unregister")
         
         
 def register():
     print("register StartPointData")
     StartPointData.register()
+    DummyStartPointData.register()
     
 def unregister():
     StartPointData.unregister()
+    DummyStartPointData.unregister()
     print("unregister StartPointData")

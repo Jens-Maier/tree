@@ -4,9 +4,7 @@ from . import treegen_utils_
 from . import rotation_step
 from . import start_node_info
 from . import segment_
-from . import noise_generator
 
-from segment_ import segment
 
 
 
@@ -65,7 +63,7 @@ class node():
             longestBranchLengthInCluster = 1.0
             
             if len(self.next) > 1:
-                segments.append(segment(self.clusterIndex, 
+                segments.append(segment_.segment(self.clusterIndex, 
                                         self.point, 
                                         nextNode.point, 
                                         self.tangent[0], # -> firstTangent = self.tangent[0] 
@@ -85,7 +83,7 @@ class node():
                                         self.taper, 
                                         nextNode.taper))
             else:
-                segments.append(segment(self.clusterIndex, 
+                segments.append(segment_.segment(self.clusterIndex, 
                                         self.point, 
                                         nextNode.point, 
                                         self.tangent[0], # -> firstTangent = self.tangent[0] 
@@ -237,9 +235,9 @@ class node():
     def lengthToTip(self, treeGen):        
         if len(self.next) > 0:
             length_added = (self.next[0].point - self.point).length
-            #treeGen.report({'INFO'}, f"self.point: {self.point}")
-            #treeGen.report({'INFO'}, f"next.point: {self.next[0].point}")
-            #treeGen.report({'INFO'}, f"length added: {length_added}")
+            treeGen.report({'INFO'}, f"self.point: {self.point}")
+            treeGen.report({'INFO'}, f"next.point: {self.next[0].point}")
+            treeGen.report({'INFO'}, f"length added: {length_added}")
             return self.next[0].lengthToTip(treeGen) + (self.next[0].point - self.point).length
         else:
             return 0.0
@@ -574,6 +572,13 @@ class node():
                 
             if len(nextNode.next) > 0:
                 nextNode.resampleSpline(rootNode, resampleDistance)
+
+
+    def register():
+        print("in node: register")
+
+    def unregister():
+        print("in node: unregister")
  
 def drawDebugPoint(pos, size, name="debugPoint"):
     bpy.ops.object.empty_add(type='SPHERE', location=pos)
@@ -594,13 +599,7 @@ def drawArrow(a, b):
 
 
         
-    def register():
-        print("in node: register")
-    
-    def unregister():
-        print("in node: unregister")
-        
-        
+
         
 def register():
     print("register node")

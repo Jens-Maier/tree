@@ -19,7 +19,7 @@ class generateTree(bpy.types.Operator):
                 if obj.type == 'EMPTY':
                     obj.select_set(True)
             bpy.ops.object.delete()
-        #self.report({'INFO'}, "deleted all empties")
+        self.report({'INFO'}, "deleted all empties")
         
         tree_generator.treeGenerator.generate_tree(self, context)
         
@@ -70,13 +70,13 @@ class BranchClusterResetButton(bpy.types.Operator):
     
     def execute(self, context):
         curve_name = panels.ensure_branch_curve_node(tree_generator, self.idx)
-        #self.report({'INFO'}, f"curve_name: {curve_name}")
+        self.report({'INFO'}, f"curve_name: {curve_name}")
         
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
         curveNodeMapping = nodeGroups.nodes[property_groups.curve_node_mapping[curve_name]].mapping
         curveElement = nodeGroups.nodes[property_groups.curve_node_mapping[curve_name]].mapping.curves[3]
         
-        #self.report({'INFO'}, f"in reset: length: {len(curveElement.points)}")
+        self.report({'INFO'}, f"in reset: length: {len(curveElement.points)}")
         
         curveElement.points[0].location = (0.0, 1.0)
         curveElement.points[1].location = (1.0, 0.0)
@@ -130,9 +130,9 @@ class BranchClusterEvaluateButton(bpy.types.Operator):
         curveElement = nodeGroups.nodes[property_groups.curve_node_mapping[curve_name]].mapping.curves[3]
         y = 0.0
         nrSamplePoints = 20
-        #self.report({'INFO'}, f"length: {len(curveElement.points)}")
+        self.report({'INFO'}, f"length: {len(curveElement.points)}")
         for i in range(0, nrSamplePoints):  
-            #self.report({'INFO'}, f"begin of sample point {i}")
+            self.report({'INFO'}, f"begin of sample point {i}")
             x = i / nrSamplePoints
             
             for n in range(0, len(curveElement.points) - 1):
@@ -271,7 +271,7 @@ class initButton(bpy.types.Operator):
         panels.ensure_stem_curve_node(tree_generator)
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
         nrCurves = len(nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves)
-        #self.report({'INFO'}, f"nrCurves: {nrCurves}")
+        self.report({'INFO'}, f"nrCurves: {nrCurves}")
         curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3] 
         
         #initialise values
@@ -283,7 +283,7 @@ class initButton(bpy.types.Operator):
         if len(curveElement.points) > 2:
             for i in range(2, len(curveElement.points)):
                 curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
-                #self.report({'INFO'}, "removing point")
+                self.report({'INFO'}, "removing point")
         nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.update()
         return {'FINISHED'}
     
@@ -328,26 +328,26 @@ class evaluateButton(bpy.types.Operator):
         curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3] 
         y = 0.0
         nrSamplePoints = 20
-        #self.report({'INFO'}, f"length: {len(curveElement.points)}")
+        self.report({'INFO'}, f"length: {len(curveElement.points)}")
         
         for i in range(0, nrSamplePoints):  
-            #self.report({'INFO'}, f"begin of sample point {i}")
+            self.report({'INFO'}, f"begin of sample point {i}")
             x = i / nrSamplePoints
             
             for n in range(0, len(curveElement.points) - 1):
                 px = curveElement.points[n].location.x
                 py = curveElement.points[n].location.y
-                #self.report({'INFO'}, f"begin of loop: n = {n}")
+                self.report({'INFO'}, f"begin of loop: n = {n}")
                 
                 #first segment
                 if n == 0:
                     if curveElement.points[1].handle_type == "VECTOR":
-                        #self.report({'INFO'}, "n = 0, linear") 
+                        self.report({'INFO'}, "n = 0, linear") 
                         p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
                         p1 = curveElement.points[0].location
                         p2 = curveElement.points[1].location
                         p3 = curveElement.points[1].location + (curveElement.points[1].location - curveElement.points[0].location)
-                        #self.report({'INFO'}, f"n = 0, linear: p0: {p0}, p1: {p1}, p2: {p2}, p3: {p3}")
+                        self.report({'INFO'}, f"n = 0, linear: p0: {p0}, p1: {p1}, p2: {p2}, p3: {p3}")
                     else:
                         
                         p1 = curveElement.points[0].location
@@ -355,13 +355,13 @@ class evaluateButton(bpy.types.Operator):
                         if curveElement.points[0].handle_type == "AUTO" or curveElement.points[0].handle_type == "AUTO_CLAMPED":
                             if len(curveElement.points) > 2:
                                 slope2 = 2.0 * (p2.y - p1.y) / (p2.x - p1.x)
-                                #self.report({'INFO'}, f"n = 0, n -> 2 * slope2: {slope2}")
-                                #self.report({'INFO'}, f"in n = 0, AUTO: p1: {p1}, p2: {p2}")
+                                self.report({'INFO'}, f"n = 0, n -> 2 * slope2: {slope2}")
+                                self.report({'INFO'}, f"in n = 0, AUTO: p1: {p1}, p2: {p2}")
                                 p0 = mathutils.Vector((p1.x - (p2.x - p1.x) / (1.0 + abs(slope2)), p1.y - slope2 * (p2.x - p1.x)))
-                                #self.report({'INFO'}, f"in n = 0, AUTO: p0: {p0}")
+                                self.report({'INFO'}, f"in n = 0, AUTO: p0: {p0}")
                             else: #only 2 points -> linear
                                 p0 = curveElement.points[0].location - (curveElement.points[1].location - curveElement.points[0].location)
-                                #self.report({'INFO'}, f"in n = 0: only 2 points -> linear, p0.x: {p0.x}, p0.y: {p0.y}")
+                                self.report({'INFO'}, f"in n = 0: only 2 points -> linear, p0.x: {p0.x}, p0.y: {p0.y}")
                                                             
                             if len(curveElement.points) > 2:                            
                                 p3 = curveElement.points[2].location
@@ -369,13 +369,13 @@ class evaluateButton(bpy.types.Operator):
                                 p3 = p2 + (p2 - p1)
                                 p0 = p1 - (p2 - p1)
                                 
-                                #self.report({'INFO'}, f"in n = 0, AUTO: p0: {p0}")
-                                #self.report({'INFO'}, f"in n = 0, AUTO: p3: {p3}")
-                            #self.report({'INFO'}, f"in n = 0, AUTO: p3: {p3}")
+                                self.report({'INFO'}, f"in n = 0, AUTO: p0: {p0}")
+                                self.report({'INFO'}, f"in n = 0, AUTO: p3: {p3}")
+                            self.report({'INFO'}, f"in n = 0, AUTO: p3: {p3}")
                         else:
-                            #self.report({'INFO'}, "n = 0, reflected == 1 * slope")
+                            self.report({'INFO'}, "n = 0, reflected == 1 * slope")
                             slope1 = 1.0 * (p2.y - p1.y) / (p2.x - p1.x)
-                            #self.report({'INFO'}, f"n = 0, n -> 2 * slope1: {slope1}")
+                            self.report({'INFO'}, f"n = 0, n -> 2 * slope1: {slope1}")
                             p0 = mathutils.Vector((p2.x + (p2.x - p1.x), p1.y + slope1 * (p2.x - p1.x)))
                             # [0] -> reflected
                             if len(curveElement.points) > 2:
@@ -389,7 +389,7 @@ class evaluateButton(bpy.types.Operator):
                 #last segment
                 if n == len(curveElement.points) - 2:
                     if curveElement.points[len(curveElement.points) - 2].handle_type == "VECTOR":
-                        #self.report({'INFO'}, "n = last, linear")
+                        self.report({'INFO'}, "n = last, linear")
                         p0 = curveElement.points[len(curveElement.points) - 2].location - (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
                         p1 = curveElement.points[len(curveElement.points) - 2].location
                         p2 = curveElement.points[len(curveElement.points) - 1].location
@@ -400,14 +400,14 @@ class evaluateButton(bpy.types.Operator):
                         p3 = curveElement.points[len(curveElement.points) - 1].location + (curveElement.points[len(curveElement.points) - 1].location - curveElement.points[len(curveElement.points) - 2].location)
                         if curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO" or curveElement.points[len(curveElement.points) - 1].handle_type == "AUTO_CLAMPED":
                             p0 = curveElement.points[len(curveElement.points) - 3].location
-                            #self.report({'INFO'}, "n = last, n -> 2 * slope")
+                            self.report({'INFO'}, "n = last, n -> 2 * slope")
                             slope2 = 2.0 * (p3.y - p2.y) / (p3.x - p2.x)
                             if len(curveElement.points) > 2:
                                 p3 = mathutils.Vector((p2.x + (p2.x - p1.x) / (1.0 + abs(slope2)), p3.y + slope2 * (p2.x - p1.x)))
                             else:
                                 p3 = p2 + (p2 - p1)
                         else:
-                            #self.report({'INFO'}, "n = last, slope")
+                            self.report({'INFO'}, "n = last, slope")
                             if len(curveElement.points) > 2:
                                 # cubic
                                 p0 = curveElement.points[0].location
@@ -420,13 +420,13 @@ class evaluateButton(bpy.types.Operator):
                 if n > 0 and n < len(curveElement.points) - 2:
                     if curveElement.points[n].handle_type == "AUTO" or curveElement.points[n].handle_type == "AUTO_CLAMPED":
                         if curveElement.points[n + 1].handle_type == "VECTOR":
-                            #self.report({'INFO'}, "n = middle, n + 1 -> reflected")
+                            self.report({'INFO'}, "n = middle, n + 1 -> reflected")
                             p0 = curveElement.points[n - 1].location
                             p1 = curveElement.points[n].location
                             p2 = curveElement.points[n + 1].location
                             p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
                         else:
-                            #self.report({'INFO'}, "n = middle, (cubic (clamped)) -> spline!")
+                            self.report({'INFO'}, "n = middle, (cubic (clamped)) -> spline!")
                             p0 = curveElement.points[n - 1].location
                             p1 = curveElement.points[n].location
                             p2 = curveElement.points[n + 1].location
@@ -434,20 +434,20 @@ class evaluateButton(bpy.types.Operator):
                             
                     if curveElement.points[n].handle_type == "VECTOR":
                         if curveElement.points[n + 1].handle_type == "VECTOR":
-                            #self.report({'INFO'}, "linear")
+                            self.report({'INFO'}, "linear")
                             p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
                             p1 = curveElement.points[n].location
                             p2 = curveElement.points[n + 1].location
                             p3 = curveElement.points[n + 1].location + (curveElement.points[n + 1].location - curveElement.points[n].location)
                         else:
-                            #self.report({'INFO'}, "n = middle, n -> reflected")
+                            self.report({'INFO'}, "n = middle, n -> reflected")
                             p0 = curveElement.points[n].location - (curveElement.points[n + 1].location - curveElement.points[n].location)
                             p1 = curveElement.points[n].location
                             p2 = curveElement.points[n + 1].location
                             p3 = curveElement.points[n + 2].location
             
                 if p1.x <= x and p2.x >= x:
-                    #self.report({'INFO'}, f"found segment n={n}: p0.x: {p0.x}, p1.x: {p1.x}, p2.x: {p2.x}, p3.x: {p3.x}, x: {x}")
+                    self.report({'INFO'}, f"found segment n={n}: p0.x: {p0.x}, p1.x: {p1.x}, p2.x: {p2.x}, p3.x: {p3.x}, x: {x}")
                     
                     
                     
@@ -458,7 +458,7 @@ class evaluateButton(bpy.types.Operator):
                     
                     tx = (x - p1.x) / (p2.x - p1.x)  #AI
                     
-                    #self.report({'INFO'}, f"tx: {tx}")
+                    self.report({'INFO'}, f"tx: {tx}")
                     #py = self.sampleSpline(p0.y, p1.y, p2.y, p3.y, tx)
                     
                     px = self.sampleSplineB(p0.x, p1.x, p2.x, p3.x, tx) # tx (not x) (AI)
@@ -1239,7 +1239,7 @@ class exportProperties(bpy.types.Operator):
         with open(filepath, 'w') as f:
             json.dump(data, f)
         
-        #self.report({'INFO'}, f'Saved properties to {filepath}')
+        self.report({'INFO'}, f'Saved properties to {filepath}')
         return {'FINISHED'}
     
 class importProperties(bpy.types.Operator):
@@ -1267,12 +1267,12 @@ class loadPreset(bpy.types.Operator):
     
     def execute(self, context):
         props = context.scene.treeSettings
-        #self.report({'INFO'}, "in operator loadPreset")
+        self.report({'INFO'}, "in operator loadPreset")
         load_preset(props.treePreset.value, context, self)
         return {'FINISHED'}
     
 def load_preset(preset, context, self):
-    #self.report({'INFO'}, f"in load_preset(): preset: {preset}")
+    self.report({'INFO'}, f"in load_preset(): preset: {preset}")
     if preset == 'TREE1':
         f = '{"treeHeight": 10.0, "treeGrowDir": [0.0010000000474974513, 0.0, 1.0], "taper": 0.14000000059604645, "taperCurvePoints": [[0.0, 1.0], [1.0, 0.0]], "taperCurveHandleTypes": ["VECTOR", "VECTOR"], "clusterTaperCurvePoints": [[[0.0, 1.0], [1.0, 0.0]], [[0.0, 1.0], [1.0, 0.0]]], "clusterTaperCurveHandleTypes": [["VECTOR", "VECTOR"], ["VECTOR", "VECTOR"]], "branchTipRadius": 0.0020000000949949026, "ringSpacing": 2.0, "stemRingResolution": 16, "resampleDistance": 0.5, "noiseAmplitudeVertical": 1.2300000190734863, "noiseAmplitudeHorizontal": 1.2000000476837158, "noiseAmplitudeGradient": 0.35999998450279236, "noiseAmplitudeExponent": 1.0299999713897705, "noiseScale": 0.3100000321865082, "seed": 1484, "curvatureStart": 0.0, "curvatureEnd": 0.0, "nrSplits": 1, "variance": 0.0, "stemSplitMode": "ROTATE_ANGLE", "stemSplitRotateAngle": 1.5700000524520874, "curvOffsetStrength": 0.0, "stemSplitHeightInLevelList": [0.46694183349609375, 0.14462800323963165, 0.5, 0.5, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125], "stemSplitHeightInLevelListIndex": 0, "splitHeightVariation": 0.0, "splitLengthVariation": 0.030000001192092896, "stemSplitAngle": 0.07000000029802322, "stemSplitPointAngle": 0.25999999046325684, "branchClusters": 2, "showBranchClusterList": [true, true], "showParentClusterList": [true, true], "parentClusterBoolListList": [[true], [false, true]], "nrBranchesList": [37, 68], "treeShapeList": ["INVERSE_HEMISPHERICAL", "INVERSE_HEMISPHERICAL"], "branchShapeList": ["CYLINDRICAL", "CYLINDRICAL"], "branchTypeList": ["SINGLE", "SINGLE"], "branchWhorlCountStartList": [12, 3], "branchWhorlCountEndList": [3, 3], "relBranchLengthList": [0.5138890147209167, 0.2569444477558136], "relBranchLengthVariationList": [0.0694444477558136, 0.0], "taperFactorList": [0.8402778506278992, 0.8402777910232544], "useTaperCurveList": [false, false], "ringResolutionList": [6, 5], "branchesStartHeightGlobalList": [0.1666666716337204, 0.0], "branchesEndHeightGlobalList": [0.9166666865348816, 1.0], "branchesStartHeightClusterList": [0.0, 0.0416666679084301], "branchesEndHeightClusterList": [0.875, 0.340277761220932], "branchesStartPointVariationList": [0.0, 0.0], "showNoiseSettingsList": [true, true], "noiseAmplitudeHorizontalList": [0.0, 0.0], "noiseAmplitudeVerticalList": [0.0, 0.0], "noiseAmplitudeGradientList": [0.0, 0.0], "noiseAmplitudeExponentList": [1.0, 1.0], "noiseScaleList": [1.0, 1.0], "showAngleSettingsList": [true, true], "verticalAngleCrownStartList": [1.2400000095367432, 0.7850000262260437], "verticalAngleCrownEndList": [0.44999998807907104, 0.7850000262260437], "verticalAngleBranchStartList": [0.0, 0.0], "verticalAngleBranchEndList": [0.0, 0.0], "branchAngleModeList": ["WINDING", "SYMMETRIC"], "useFibonacciAnglesList": [false, true], "fibonacciNr": [40, 5], "rotateAngleRangeList": [6.2831854820251465, 3.140000104904175], "rotateAngleOffsetList": [1.5700000524520874, 0.0], "rotateAngleCrownStartList": [2.480001211166382, -0.17000000178813934], "rotateAngleCrownEndList": [2.480001211166382, -0.23999999463558197], "rotateAngleBranchStartList": [0.0, 0.0], "rotateAngleBranchEndList": [0.0, 0.0], "rotateAngleRangeFactorList": [1.0, 1.0], "reducedCurveStepCutoffList": [0.0, 0.0], "reducedCurveStepFactorList": [0.0, 0.0], "branchGlobalCurvatureStartList": [0.0, 0.0], "branchGlobalCurvatureEndList": [0.0, 0.0], "branchCurvatureStartList": [-0.057999998331069946, 0.012000000104308128], "branchCurvatureEndList": [0.03999999910593033, 0.024000000208616257], "branchCurvatureOffsetStrengthList": [0.0, 0.0], "showSplitSettingsList": [true, true], "nrSplitsPerBranchList": [7.980000019073486, 2.369999885559082], "branchSplitModeList": ["HORIZONTAL", "HORIZONTAL"], "branchSplitRotateAngleList": [0.0, 0.0], "branchSplitAxisVariationList": [0.5399997234344482, 0.44999998807907104], "branchSplitAngleList": [0.25999999046325684, 0.27000001072883606], "branchSplitPointAngleList": [0.17000000178813934, 0.17000000178813934], "splitsPerBranchVariationList": [0.0, 0.0], "branchVarianceList": [0.0, 0.0], "outwardAttractionList": [0.0, 0.0], "branchSplitHeightVariationList": [0.38129496574401855, 0.0], "branchSplitLengthVariationList": [0.1366906315088272, 0.0], "showBranchSplitHeights": [false, true], "branchSplitHeightInLevelListIndex": 0, "branchSplitHeightInLevelList_0": [0.4166666567325592, 0.2371794879436493, 0.2756410241127014, 0.3333333134651184, 0.5], "branchSplitHeightInLevelListIndex_0": 0, "branchSplitHeightInLevelList_1": [0.5458715558052063, 0.3205128014087677, 0.23076921701431274], "branchSplitHeightInLevelListIndex_1": 0, "branchSplitHeightInLevelList_2": [], "branchSplitHeightInLevelListIndex_2": 0, "branchSplitHeightInLevelList_3": [], "branchSplitHeightInLevelListIndex_3": 0, "branchSplitHeightInLevelList_4": [], "branchSplitHeightInLevelListIndex_4": 0, "branchSplitHeightInLevelList_5": [], "branchSplitHeightInLevelListIndex_5": 2, "branchSplitHeightInLevelList_6": [], "branchSplitHeightInLevelListIndex_6": 0, "branchSplitHeightInLevelList_7": [], "branchSplitHeightInLevelListIndex_7": 0, "branchSplitHeightInLevelList_8": [], "branchSplitHeightInLevelListIndex_8": 0, "branchSplitHeightInLevelList_9": [], "branchSplitHeightInLevelListIndex_9": 0, "branchSplitHeightInLevelList_10": [], "branchSplitHeightInLevelListIndex_10": 0, "branchSplitHeightInLevelList_11": [], "branchSplitHeightInLevelListIndex_11": 0, "branchSplitHeightInLevelList_12": [], "branchSplitHeightInLevelListIndex_12": 0, "branchSplitHeightInLevelList_13": [], "branchSplitHeightInLevelListIndex_13": 0, "branchSplitHeightInLevelList_14": [], "branchSplitHeightInLevelListIndex_14": 0, "branchSplitHeightInLevelList_15": [], "branchSplitHeightInLevelListIndex_15": 0, "branchSplitHeightInLevelList_16": [], "branchSplitHeightInLevelListIndex_16": 0, "branchSplitHeightInLevelList_17": [], "branchSplitHeightInLevelListIndex_17": 0, "branchSplitHeightInLevelList_18": [], "branchSplitHeightInLevelListIndex_18": 0, "branchSplitHeightInLevelList_19": [], "branchSplitHeightInLevelListIndex_19": 0, "branchSplitHeightInLevelListList": [], "showLeafSettings": [], "leavesDensityList": [], "leafSizeList": [], "leafAspectRatioList": [], "leafStartHeightGlobalList": [], "leafEndHeightGlobalList": [], "leafStartHeightClusterList": [], "leafEndHeightClusterList": [], "leafTypeList": [], "leafWhorlCountList": [], "leafAngleModeList": [], "leafVerticalAngleBranchStartList": [], "leafVerticalAngleBranchEndList": [], "leafRotateAngleBranchStartList": [], "leafRotateAngleBranchEndList": [], "leafTiltAngleBranchStartList": [], "leafTiltAngleBranchEndList": [], "showLeafClusterList": [true], "leafParentClusterBoolListList": [[false, true, false]]}'
         data = json.loads(f)
@@ -1300,16 +1300,16 @@ def load_preset(preset, context, self):
 
 
 def init_properties(data, props, operator):
-        #operator.report({'INFO'}, "in init_properties()")
+        operator.report({'INFO'}, "in init_properties()")
         
-        #operator.report({'INFO'}, f"treeHeight before loading: {props.treeSettings.treeHeight}")
+        operator.report({'INFO'}, f"treeHeight before loading: {props.treeSettings.treeHeight}")
         dataTreeHeight = 0.0
         dataTreeHeight = data.get("treeHeight", dataTreeHeight)
-        #operator.report({'INFO'}, f"data.treeHeight: {dataTreeHeight}")
+        operator.report({'INFO'}, f"data.treeHeight: {dataTreeHeight}")
         
         props.treeSettings.treeHeight = data.get("treeHeight", props.treeSettings.treeHeight)
         
-        #operator.report({'INFO'}, f"treeHeight after loading: {props.treeSettings.treeHeight}")
+        operator.report({'INFO'}, f"treeHeight after loading: {props.treeSettings.treeHeight}")
         
         
         treeGrowDir = data.get("treeGrowDir", props.treeSettings.treeGrowDir)
@@ -1842,7 +1842,7 @@ def init_properties(data, props, operator):
         
         
 def register():
-    #print("register operators (TODO???)")
+    print("register operators (TODO???)")
     
 def unregister():
-    #print("unregister operators(TODO???)")
+    print("unregister operators(TODO???)")
