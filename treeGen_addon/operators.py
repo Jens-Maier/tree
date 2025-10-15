@@ -1247,32 +1247,24 @@ class EXPORT_OT_importProperties(bpy.types.Operator):
     bl_label = "Load Properties"
     
     def execute(self, context):
-        props = context.scene  
-        filename = props.file_name + ".json"  # Automatically append .json  
+        scene = context.scene
+        filename = scene.file_name + ".json"  # Automatically append .json  
         
-        filepath = os.path.join(props.folder_path, filename)
+        filepath = os.path.join(scene.folder_path, filename)
         
+        scene.branchClusterSettingsList.clear() 
+        scene.treeSettings.branchClusterSettingsListIndex = 0 
+
+        scene.leafClusterSettingsList.clear()
+        scene.treeSettings.leafClusterSettingsListIndex = 0
+
         with open(filepath, 'r') as f:
             data = json.load(f)
-            props = context.scene
-            init_properties(data, props, self)
+            scene = context.scene
+            init_properties(data, scene, self)
+        
 
-        # --- Synchronize Branch Clusters ---
-        nrBranchClusters = len(context.scene.branchClusterSettingsList)
-        context.scene.branchClusterSettingsList.clear()
-        for i in range(nrBranchClusters):
-            context.scene.branchClusterSettingsList.add()
-        #if nrBranchClusters > 0:
-        #    context.scene.branchClusterSettingsListIndex = 0 # ??? TODO
-        
-        # --- Synchronize Leaf Clusters ---
-        nrLeafClusters = len(context.scene.treeSettings.leafClusterSettingsList)
-        context.scene.leafClusterSettingsList.clear()
-        for i in range(nrLeafClusters):
-            context.scene.leafClusterSettingsList.add()
-        if nrLeafClusters > 0:
-            context.scene.leafClusterSettingsListIndex = 0
-        
+
         return {'FINISHED'}
 
         
@@ -1282,26 +1274,17 @@ class EXPORT_OT_loadPreset(bpy.types.Operator):
     bl_label = "Load Preset"
     
     def execute(self, context):
-        props = context.scene.treeSettings
+        scene = context.scene
         self.report({'INFO'}, "in operator loadPreset")
-        load_preset(props.treePreset.value, context, self)
+        
+        scene.branchClusterSettingsList.clear() 
+        scene.treeSettings.branchClusterSettingsListIndex = 0 
 
-        # --- Synchronize Branch Clusters ---
-        nrBranchClusters = len(context.scene.branchClusterSettingsList)
-        context.scene.branchClusterSettingsList.clear()
-        for i in range(nrBranchClusters):
-            context.scene.branchClusterSettingsList.add()
-        #if nrBranchClusters > 0:
-        #    context.scene.branchClusterSettingsListIndex = 0 # ??? TODO
-        
-        # --- Synchronize Leaf Clusters ---
-        nrLeafClusters = len(context.scene.leafClusterSettingsList)
-        context.scene.leafClusterSettingsList.clear()
-        for i in range(nrLeafClusters):
-            context.scene.leafClusterSettingsList.add()
-        if nrLeafClusters > 0:
-            context.scene.leafClusterSettingsListIndex = 0
-        
+        scene.leafClusterSettingsList.clear()
+        scene.treeSettings.leafClusterSettingsListIndex = 0
+
+        load_preset(scene.treeSettings.treePreset.value, context, self)
+
         return {'FINISHED'}
     
 def load_preset(preset, context, self):
@@ -1332,7 +1315,7 @@ def load_preset(preset, context, self):
         init_properties(data, props, self)
 
 
-def init_properties(data, props, operator):
+def init_properties(data, props, operator): # props = context.scene
         operator.report({'INFO'}, "in init_properties()")
         
         operator.report({'INFO'}, f"treeHeight before loading: {props.treeSettings.treeHeight}")
@@ -1417,9 +1400,11 @@ def init_properties(data, props, operator):
         
         props.treeSettings.parentClusterBoolListList.clear()
         
-        props.treeSettings.branchClusters = data.get("branchClusters", props.treeSettings.branchClusters)
         
-        
+        nrBranchClusters = data.get("branchClusters", props.treeSettings.branchClusters)
+        props.treeSettings.branchClusters = 0 # gets incremented by add_branch_cluster()
+
+
         # nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
         #
         # for clusterIndex in range(props.branchClusters):
@@ -1438,7 +1423,9 @@ def init_properties(data, props, operator):
         clusterHandleTypes = []
         clusterHandleTypes = data.get("clusterTaperCurveHandleTypes", handleTypes)
         
-        for clusterIndex in range(props.treeSettings.branchClusters):
+        for clusterIndex in range(nrBranchClusters):
+
+            bpy.ops.scene.add_branch_cluster()
             
             bpy.ops.scene.reset_branch_cluster_curve(idx = clusterIndex)
             
@@ -1806,7 +1793,9 @@ def init_properties(data, props, operator):
         
         props.leafClusterSettingsList.clear()
         
+        
         for value in data.get("leavesDensityList", []):
+            bpy.ops.scene.add_leaf_cluster()
             item = props.leafClusterSettingsList.add()
             item.leavesDensity = value
         
