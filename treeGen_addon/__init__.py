@@ -1,3 +1,16 @@
+bl_info = {
+    "name": "treeGen_v5",
+    "author": "Jens Maier",
+    "version": (1, 0, 2),
+    "blender": (4, 5, 3),
+    "location": "View3D > Sidebar",
+    "description": "Procedural tree generator",
+    "warning": "",
+    "doc_url": "",
+    "category": "3D View",
+}
+
+
 import importlib
 import bpy
 
