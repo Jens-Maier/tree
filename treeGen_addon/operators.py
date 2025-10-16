@@ -1462,9 +1462,12 @@ def init_properties(data, props, operator): # props = context.scene
             item = props.treeSettings.parentClusterBoolListList.add()
             for n in item.value:
                 item.remove(n)
+            boolIndex = 0
             for b in innerList:
-                i = item.value.add()
-                i.value = b
+                item.value.add() # TODO...
+                if b == True:
+                    bpy.context.scene.toggle_bool(list_index = n, bool_index = boolIndex)
+                boolIndex += 1
                 
         for outerList in props.treeSettings.leafParentClusterBoolListList:
             while len(outerList.value) > 0:
@@ -1479,9 +1482,11 @@ def init_properties(data, props, operator): # props = context.scene
             item = props.treeSettings.leafParentClusterBoolListList.add()
             for n in item.value:
                 item.remove(n)
+            boolIndex = 0
             for b in innerLeafList:
-                i = item.value.add()
-                i.value = b
+                item.value.add() # TODO...
+                if b == True:
+                    bpy.context.scene.toggle_leaf_bool(list_index = n, bool_index = boolIndex)
         
         props.branchClusterSettingsList.clear()
         
