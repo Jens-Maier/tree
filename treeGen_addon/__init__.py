@@ -1,6 +1,22 @@
 import importlib
 import bpy
 
+# only for tooltips
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    import property_groups
+    import noise_generator
+    import start_node_info
+    import node_info
+    import start_point_data
+    import rotation_step
+    import node_
+    import segment_
+    import operators
+    import panels
+    import tree_generator
+    import treegen_utils_
+
 import_modules = [
 'property_groups', # import first!
 'noise_generator', # import first!
@@ -18,12 +34,20 @@ import_modules = [
 
 names = [__name__ + '.' + name for name in import_modules]
 
-for name in names:
+for module_name in import_modules:
+    full_name = __name__+ '.' + module_name
     try:
-        importlib.import_module(name)
-        print(f"{name} imported successfully")
+        globals()[module_name] = importlib.import_module(full_name)
+        print(f"{full_name} imported successfully")
     except ImportError as e:
-        print(f"Error importing {name}: {e}")
+        print(f"Error importing {full_name}")
+
+#for name in names:
+#    try:
+#        importlib.import_module(name)
+#        print(f"{name} imported successfully")
+#    except ImportError as e:
+#        print(f"Error importing {name}: {e}")
               
 
 # TODO: reload logic...

@@ -94,8 +94,8 @@ class SCENE_OT_BranchClusterEvaluateButton(bpy.types.Operator):
     bl_idname = "scene.evaluate_branch_cluster"
     bl_label = "Evaluate Branch Cluster"
     
-    idx: bpy.props.IntProperty()
-    x: bpy.props.FloatProperty()
+    idx: bpy.props.IntProperty
+    x: bpy.props.FloatProperty
     
     def lerp(self, a, b, t):
         return (a + (b - 1) * t)
@@ -1454,7 +1454,8 @@ def init_properties(data, props, operator): # props = context.scene
             
             nodeGroups.nodes[property_groups.curve_node_mapping[curve_name]].mapping.update()
             
-        
+        props.treeSettings.parentClusterBoolListList.clear()
+
         nestedList = []
         nestedList = data.get("parentClusterBoolListList", nestedList)
         for n in range(0, props.treeSettings.branchClusters):
@@ -1462,12 +1463,10 @@ def init_properties(data, props, operator): # props = context.scene
             item = props.treeSettings.parentClusterBoolListList.add()
             for n in item.value:
                 item.remove(n)
-            boolIndex = 0
+            boolList = props.treeSettings.parentClusterBoolListList[n].value
             for b in innerList:
-                item.value.add() # TODO...
-                if b == True:
-                    bpy.context.scene.toggle_bool(list_index = n, bool_index = boolIndex)
-                boolIndex += 1
+                boolItem = boolList.add()
+                boolItem.value = b
                 
         for outerList in props.treeSettings.leafParentClusterBoolListList:
             while len(outerList.value) > 0:
@@ -1482,12 +1481,11 @@ def init_properties(data, props, operator): # props = context.scene
             item = props.treeSettings.leafParentClusterBoolListList.add()
             for n in item.value:
                 item.remove(n)
-            boolIndex = 0
+            boolList = props.treeSettings.leafParentClusterBoolListList[n].value
             for b in innerLeafList:
-                item.value.add() # TODO...
-                if b == True:
-                    bpy.context.scene.toggle_leaf_bool(list_index = n, bool_index = boolIndex)
-        
+                boolItem = boolList.add()
+                boolItem = b
+
         props.branchClusterSettingsList.clear()
         
         for i in range(0, props.treeSettings.branchClusters):
