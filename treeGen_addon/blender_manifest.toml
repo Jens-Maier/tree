@@ -1,8 +1,8 @@
 schema_version = "1.0.0"
 
 id = "treeGen"
-version = "1.0.2"
-name = "treeGen_v5" # has to be exactly the same name as the folder that contains __init__.py, ...py, blender_manifest.toml
+version = "1.0.3"
+name = "treeGen" # has to be exactly the same name as the folder that contains __init__.py, ...py, blender_manifest.toml
 tagline = "Procedural tree generator"
 maintainer = "Jens Maier"
 type = "add-on"

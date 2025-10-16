@@ -10,7 +10,6 @@ bl_info = {
     "category": "3D View",
 }
 
-
 import importlib
 import bpy
 

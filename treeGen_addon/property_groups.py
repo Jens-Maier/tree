@@ -73,7 +73,6 @@ class floatListProp01(bpy.types.PropertyGroup):
 class boolProp(bpy.types.PropertyGroup):
     value: bpy.props.BoolProperty(name = "boolValue", default=False)
 
-
 class showSplitLevelsProp(bpy.types.PropertyGroup):
     show_split_levels: bpy.props.BoolProperty(
         name="Show Split Levels",

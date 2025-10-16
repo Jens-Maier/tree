@@ -39,8 +39,8 @@ class treegen_utils():
     def lerp(a, b, t):
         return a + (b - a) * t
     
-    #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!!!!!!!!!!!!!!!!!!!
-    #curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves#!!!!!!!!!!!!!!!!!!!!
+    #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!
+    #curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves#!!
     
     
     def sampleCurveStem(treeGeneratorInstance, x):
@@ -48,13 +48,11 @@ class treegen_utils():
         mapping_dict = property_groups.curve_node_mapping
         curveElement = property_groups.curve_node_mapping 
         
-        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!!!!!!!!!!!!!!!!!!!
-        nrCurves = len(nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves)#!!!!!!!!!!!!!!!!!!!!
+        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!
+        nrCurves = len(nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves)#!!
         
         treegen_utils.ensure_stem_curve_node()
-        
-        def lerp(self, a, b, t):
-            return (a + (b - 1) * t)    
+          
         def f0(t):
             return (-0.5*t*t*t + t*t - 0.5*t)
         def f1(t):
@@ -69,20 +67,17 @@ class treegen_utils():
         
         treegen_utils.ensure_stem_curve_node()
         
-        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!!!!!!!!!!!!!!!!!!!
-        curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3]#!!!!!!!!!!!!!!!!!!!!
-        
+        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!
+        curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3]#!!
         
         #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup') #taperNodeGroup')
         #curveElement = nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves[3] #'Stem'
         
         #for p in curveElement.points:
         #    self.report({'INFO'}, f"stem: point: {p.location}")
-            
-        y = 0.0
+        
         for n in range(0, len(curveElement.points) - 1):
             
-            px = curveElement.points[n].location.x
             py = curveElement.points[n].location.y
             
             #first segment
@@ -189,18 +184,15 @@ class treegen_utils():
                 
                 tx = (x - p1.x) / (p2.x - p1.x)
                 
-                px = sampleSpline(p0.x, p1.x, p2.x, p3.x, tx)
+                #px = sampleSpline(p0.x, p1.x, p2.x, p3.x, tx)
                 py = sampleSpline(p0.y, p1.y, p2.y, p3.y, tx)
                 
                 #self.report({'INFO'}, f"stem: sample point: x: {x}, y: {y}, px: {px}, py: {py}")
                 return py
-        self.report({'ERROR'}, f"segment not found!, x: {x}")
+        treeGeneratorInstance.report({'ERROR'}, f"segment not found!, x: {x}")
         return 0.0
     
     def sampleCurveBranch(self, x, clusterIndex):
-        
-        def lerp(self, a, b, t):
-            return (a + (b - 1) * t)    
         def f0(t):
             return (-0.5*t*t*t + t*t - 0.5*t)
         def f1(t):
@@ -212,21 +204,13 @@ class treegen_utils():
         
         def sampleSpline(p0, p1, p2, p3, t):
             return f0(t) * p0 + f1(t) * p1 + f2(t) * p2 + f3(t) * p3
-        
-        curve_name = treegen_utils.ensure_branch_curve_node(clusterIndex)
-        
-        #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
-        #curveElement = nodeGroups.nodes[curve_node_mapping[curve_name]].mapping.curves[3]
-        
-        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!!!!!!!!!!!!!!!!!!!
-        curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3]#!!!!!!!!!!!!!!!!!!!!
-        
+                
+        nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!
+        curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3]#!!
         
         y = 0.0
         
         for n in range(0, len(curveElement.points) - 1):
-            
-            px = curveElement.points[n].location.x
             py = curveElement.points[n].location.y
             
             #first segment
@@ -347,9 +331,8 @@ class treegen_utils():
     #     curve_node_mapping = {}
     #     taper_node_mapping = {}
     
-    #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!!!!!!!!!!!!!!!!!!!
-    #curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves#!!!!!!!!!!!!!!!!!!!!
-        
+    #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!
+    #curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves#!!
     
     def ensure_stem_curve_node():
         curve_name = "Stem"
@@ -360,8 +343,8 @@ class treegen_utils():
             property_groups.curve_node_mapping[curve_name] = cn.name
         return curve_name
     
-    #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!!!!!!!!!!!!!!!!!!!
-    #curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves#!!!!!!!!!!!!!!!!!!!!
+    #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!
+    #curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves#!!
     
     def ensure_branch_curve_node(idx):
         curve_name = f"BranchCluster_{idx}"
