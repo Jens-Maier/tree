@@ -1,9 +1,8 @@
 import random
-import mathutils
 from mathutils import Vector
 
 class SimplexNoiseGenerator():
-    def __init__(self, treeGen, seed=None):
+    def __init__(self, seed=None):
         self.onethird = 1.0 / 3.0
         self.onesixth = 1.0 / 6.0
 
@@ -20,7 +19,6 @@ class SimplexNoiseGenerator():
         if seed is None:
             self.T = [int((x * 0x10000) % 0xFFFFFFFF) for x in range(8)]
         else:
-            expandedSeed = []
             random.seed(seed)
             self.T = [random.randint(0, 2**31 - 1) for _ in range(8)]
             

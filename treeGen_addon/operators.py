@@ -37,10 +37,11 @@ class OBJECT_OT_packUVs(bpy.types.Operator):
         bpy.ops.uv.pack_islands(shape_method='CONVEX', scale=True, rotate=True, rotate_method='AXIS_ALIGNED', margin_method='FRACTION', margin=context.scene.treeSettings.uvMargin, pin=False, merge_overlap=False, udim_source='CLOSEST_UDIM')
     
         bpy.ops.object.editmode_toggle()
+        print(f"uv margin: {context.scene.treeSettings.uvMargin}")
         
         # Check UV bounds after packing
-        #if checkUVbounds():
-        #    self.report({'WARNING'}, "Warning: UVs out of bounds! Reduce UV margin.")
+        if checkUVbounds():
+            self.report({'WARNING'}, "Warning: UVs out of bounds! Reduce UV margin.")
         
         return {'FINISHED'}
     

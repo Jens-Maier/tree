@@ -1,7 +1,7 @@
 bl_info = {
     "name": "treeGen_v5",
     "author": "Jens Maier",
-    "version": (1, 0, 2),
+    "version": (1, 0, 3),
     "blender": (4, 5, 3),
     "location": "View3D > Sidebar",
     "description": "Procedural tree generator",
@@ -43,8 +43,6 @@ import_modules = [
 'panels',
 'tree_generator',
 'treegen_utils_']
-
-names = [__name__ + '.' + name for name in import_modules]
 
 for module_name in import_modules:
     full_name = __name__+ '.' + module_name

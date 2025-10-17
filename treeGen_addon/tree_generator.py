@@ -1,14 +1,12 @@
 import bpy
 import math
-import mathutils
-from mathutils import Vector, Quaternion, Matrix
+from mathutils import Vector, Quaternion
 import random
 import bmesh
 
 from .noise_generator import SimplexNoiseGenerator
 
 from .node_ import node
-from .segment_ import segment
 from .treegen_utils_ import treegen_utils
 from .start_point_data import StartPointData
 from .start_point_data import DummyStartPointData
@@ -28,7 +26,7 @@ class treeGenerator:
         context.scene.treeSettings.maxSplitHeightUsed = 0
         
         context.scene.treeSettings.seed += 1
-        noise_generator = SimplexNoiseGenerator(self, context.scene.treeSettings.seed)
+        noise_generator = SimplexNoiseGenerator(context.scene.treeSettings.seed)
         
         if context.active_object is None:
             treeMesh = bpy.data.meshes.new("treeMesh")
