@@ -729,7 +729,8 @@ class leafSettings(bpy.types.Panel):
                 split.prop(scene.leafClusterSettingsList[i], "leafTiltAngleBranchEnd", text="")
                 
                 box1 = box.box()
-                draw_leaf_cluster_bools(box1, scene, i, scene.treeSettings.leafParentClusterBoolListList[i])
+                if i < len(scene.treeSettings.leafParentClusterBoolListList):
+                    draw_leaf_cluster_bools(box1, scene, i, scene.treeSettings.leafParentClusterBoolListList[i])
 
 
         

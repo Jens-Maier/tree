@@ -1656,7 +1656,8 @@ def addLeaves(self, rootNode,
         leafClusterSettingsList, 
         leafParentClusterBoolListList, 
         leafMaterial):
-            
+        
+        self.report({'INFO'}, f"len(leafClusterSettingsList): {len(leafClusterSettingsList)}, len(leafParentClusterBoolListList): {len(leafParentClusterBoolListList)}") # 6, 3 ERROR HERE !!!
         for leafClusterIndex in range(0, len(leafClusterSettingsList)):
             
             startNodesNextIndexStartTvalEndTval = []
