@@ -1851,16 +1851,20 @@ def init_properties(data, props, operator): # props = context.scene
             item.leavesDensity = value
             nrLeafClusters = len(bpy.context.scene.leafClusterSettingsList)
             operator.report({'INFO'}, f"in init_properties() (after for ... props.leafClusterSettingsList.add(): nrLeafClusters: {nrLeafClusters}")
+            operator.report({'INFO'}, f"jsonLeafDensity{n}: {jsonLeavesDensityList[n]}")
+            bpy.context.scene.leafClusterSettingsList[n].leavesDensity = jsonLeavesDensityList[n]
+            operator.report({'INFO'}, f"bpy.context.scene.leafClusterSettingsList[n].leafDensity: {bpy.context.scene.leafClusterSettingsList[n].leavesDensity}")
         
         operator.report({'INFO'}, f"in init_properties(): after for... props.leafClusterSettingsList.add(): len(parentClusterBoolListList): {len(props.treeSettings.parentClusterBoolListList)}") # 2
 
         nrLeafClusters = len(bpy.context.scene.leafClusterSettingsList)
         operator.report({'INFO'}, f"in init_properties() (after for ... props.leafClusterSettingsList.add(): nrLeafClusters: {nrLeafClusters}") 
         
-
+        props = bpy.context.scene
         i = 0
         for value in data.get("leafSizeList", []):
             props.leafClusterSettingsList[i].leafSize = value
+            operator.report({'INFO'}, f"in init_properties(): setting leaf size : props . leafSize: {props.leafClusterSettingsList[i].leafSize}")
             i += 1
         i = 0
         for value in data.get("leafAspectRatioList", []):
