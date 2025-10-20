@@ -14,6 +14,8 @@ def myNodeTree():
 def myCurveData(curve_name):
     if curve_name not in property_groups.curve_node_mapping: # #in propertyGroups !!! (???)
         cn = myNodeTree().new('ShaderNodeRGBCurve')
+        if curve_name == "Stem":
+            ensure_stem_curve_node()
         property_groups.curve_node_mapping[curve_name] = cn.name
     nodeTree = myNodeTree()[property_groups.curve_node_mapping[curve_name]]
     return nodeTree

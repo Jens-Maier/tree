@@ -849,6 +849,8 @@ class EXPORT_OT_exportProperties(bpy.types.Operator):
             for boolProp in cluster.value:
                 innerLeafList.append(boolProp.value)
             nestedLeafList.append(innerLeafList)
+
+        print(f"save: props.treeSettings.leafClusters: {props.treeSettings.leafClusters}")
             
         nestedBranchSplitHeightInLevelList = []
         for item in props.branchSplitHeightInLevelListList:
@@ -1267,30 +1269,39 @@ class EXPORT_OT_importProperties(bpy.types.Operator):
 
             # synchronise leafParentClusterBoolListList
             
+            # -> moved to init_properties()
+            #leafParentClusterListLength = len(scene.treeSettings.#leafParentClusterBoolListList)
+            #self.report({'INFO'}, f"in importProperties (after init_properties): len(scene.treeSettings.leafParentClusterBoolListList: {leafParentClusterListLength})") # 1 (OK)
+            #
+            #self.report({'INFO'}, f"in importProperties (after init_properties): len(scene.leafClusterSettingsList): {len(scene.leafClusterSettingsList)}")
+            #
+            #while len(scene.treeSettings.leafParentClusterBoolListList) < len(scene.leafClusterSettingsList):
+            #    bpy.ops.scene.add_leaf_cluster()
+            #
+            #self.report({'INFO'}, f"in importProperties() before adjusting list length: len(leafParentClusterBoolListList): {len(scene.treeSettings.leafParentClusterBoolListList)}")
+            #
+            #self.report({'INFO'}, f"in importProperties() before adjusting list length: len(scene.leafClusterSettingsList): {len(scene.leafClusterSettingsList)}")
 
-            leafParentClusterListLength = len(scene.treeSettings.leafParentClusterBoolListList)
-            self.report({'INFO'}, f"in importProperties: len(scene.treeSettings.leafParentClusterBoolListList: {leafParentClusterListLength})") # 1 (OK)
-
-            nrLeafClusters = len(scene.leafClusterSettingsList)
-            self.report({'INFO'}, f"in importProperties (after init_properties): nrLeafClusters: {nrLeafClusters}") # 2 # ERROR HERE !!!
-
-            while len(scene.treeSettings.leafParentClusterBoolListList) < nrLeafClusters:
-                bpy.ops.scene.add_leaf_cluster()
             
-            while len(scene.leafClusterSettingsList) < len(scene.treeSettings.leafParentClusterBoolListList):
-                scene.leafParentClusterBoolListList.remove(scene.treeSettings.leafParentClusterBoolListList[len(scene.treeSettings.leafParentClusterBoolListList) - 1])
+            #while len(scene.leafClusterSettingsList) + 1 < len(scene.treeSettings.leafParentClusterBoolListList): # + 1: stem parent!
+            #    scene.treeSettings.leafParentClusterBoolListList.remove(scene.treeSettings.leafParentClusterBoolListList[len(scene.treeSettings.leafParentClusterBoolListList) - 1])
+            #
+            
 
-            scene.treeSettings.leafClusters = 0#len(scene.treeSettings.leafParentClusterBoolListList)
 
-            # Synchronize the parent bool list with the number of leaf clusters
-            while len(scene.treeSettings.leafParentClusterBoolListList) < nrLeafClusters:
-                # Add a new collection item directly
-                scene.treeSettings.leafParentClusterBoolListList.add()
 
-            # Optional: If you need to remove extra entries (for robust loading)
-            while len(scene.treeSettings.leafParentClusterBoolListList) > nrLeafClusters:
-                # Remove the last item in the collection
-                scene.treeSettings.leafParentClusterBoolListList.remove(len(scene.treeSettings.leafParentClusterBoolListList) - 1)
+
+            #scene.treeSettings.leafClusters = 0#len(scene.treeSettings.leafParentClusterBoolListList)
+
+            ## Synchronize the parent bool list with the number of leaf clusters
+            #while len(scene.treeSettings.leafParentClusterBoolListList) < nrLeafClusters:
+            #    # Add a new collection item directly
+            #    scene.treeSettings.leafParentClusterBoolListList.add()
+            #
+            ## Optional: If you need to remove extra entries (for robust loading)
+            #while len(scene.treeSettings.leafParentClusterBoolListList) > nrLeafClusters:
+            #    # Remove the last item in the collection
+            #    scene.treeSettings.leafParentClusterBoolListList.remove(len(scene.treeSettings.#leafParentClusterBoolListList) - 1)
 
         return {'FINISHED'}
 
@@ -1494,18 +1505,41 @@ def init_properties(data, props, operator): # props = context.scene
             for b in innerList:
                 boolItem = boolList.add()
                 boolItem.value = b
+                operator.report({'INFO'}, f"in init_properties: setting parent bool: {boolList[len(boolList) - 1].value}")
         
         operator.report({'INFO'}, f"in init_properties(): after adding parent clusters from json: len(parentClusterBoolListList): {len(props.treeSettings.parentClusterBoolListList)}") # 2
 
         nrLeafClusters = len(bpy.context.scene.leafClusterSettingsList)
         operator.report({'INFO'}, f"in init_properties() (before adding leaf clusters): nrLeafClusters: {nrLeafClusters}") # 0
         
+        #for outerList in props.treeSettings.parentClusterBoolListList:
+        #    while len(outerList.value) > 0:
+        #        outerList.value.clear()
+        #
+        #props.treeSettings.parentClusterBoolListList.clear()
+
         for outerList in props.treeSettings.leafParentClusterBoolListList:
             while len(outerList.value) > 0:
                 outerList.value.clear()
         
         props.treeSettings.leafParentClusterBoolListList.clear()
         operator.report({'INFO'}, f"in init_properties(): after leafParentClusterBoolListList.clear(): len(leafParentClusterBoolListList): {len(props.treeSettings.leafParentClusterBoolListList)}") # 0
+
+
+        ######
+        #nestedList = []
+        #nestedList = data.get("parentClusterBoolListList", nestedList)
+        #for n in range(0, props.treeSettings.branchClusters):
+        #    innerList = nestedList[n]
+        #    item = props.treeSettings.parentClusterBoolListList.add()
+        #    for n in item.value:
+        #        item.remove(n)
+        #    boolList = props.treeSettings.parentClusterBoolListList[n].value
+        #    for b in innerList:
+        #        boolItem = boolList.add()
+        #        boolItem.value = b
+        ######
+
         nestedLeafList = []
         nestedLeafList = data.get("leafParentClusterBoolListList", nestedLeafList)
         for n in range(0, len(nestedLeafList)):
@@ -1516,7 +1550,22 @@ def init_properties(data, props, operator): # props = context.scene
             boolList = props.treeSettings.leafParentClusterBoolListList[n].value
             for b in innerLeafList:
                 boolItem = boolList.add()
-                boolItem = b
+                boolItem.value = b
+                operator.report({'INFO'}, f"in init_properties: setting leaf bool: {boolList[len(boolList) - 1].value}")
+
+        #-----
+        #leafParentClusterListLength = len(scene.treeSettings.leafParentClusterBoolListList)
+        #    operator.report({'INFO'}, f"in initProperties (after init_properties): #len(scene.treeSettings.leafParentClusterBoolListList: #{leafParentClusterListLength})") # 1 (OK)#
+#
+#            operator.report({'INFO'}, f"in initProperties (after init_properties): #len(scene.leafClusterSettingsList): {len(scene.leafClusterSettingsList)}")
+#
+#            while len(scene.treeSettings.leafParentClusterBoolListList) < len#(scene.leafClusterSettingsList):#
+     #           bpy.ops.scene.add_leaf_cluster()
+#
+            operator.report({'INFO'}, f"in initProperties() before adjusting list length: len(leafParentClusterBoolListList): {len(bpy.context.scene.treeSettings.leafParentClusterBoolListList)}")#
+            operator.report({'INFO'}, f"in initProperties() before adjusting list length: len(scene.leafClusterSettingsList): {len(bpy.context.scene.leafClusterSettingsList)}")
+
+        #-----
 
         operator.report({'INFO'}, f"in init_properties(): after adding leaf parent clusters from json: len(leafParentClusterBoolListList): {len(props.treeSettings.leafParentClusterBoolListList)}") # 1
 
@@ -1828,18 +1877,19 @@ def init_properties(data, props, operator): # props = context.scene
             
         props.treeSettings.branchSplitHeightInLevelListIndex_19 = data.get("branchSplitHeightInLevelListIndex_19", props.treeSettings.branchSplitHeightInLevelListIndex_19)
         
-        operator.report({'INFO'}, f"in init_properties() before props.leafClusterSettingsList.clear(), props.treeSettings.leafParentClusterBoolListList.clear") 
-        operator.report({'INFO'}, f"in init_properties(): before props.leafClusterSettingsList.clear(): len(parentClusterBoolListList): {len(props.treeSettings.parentClusterBoolListList)}") # 2
+        #DOUBLE! -> is done above !!!
+        # operator.report({'INFO'}, f"in init_properties() before props.leafClusterSettingsList.clear(), props.treeSettings.leafParentClusterBoolListList.clear") 
+        # operator.report({'INFO'}, f"in init_properties(): before props.leafClusterSettingsList.clear(): len(parentClusterBoolListList): {len(props.treeSettings.parentClusterBoolListList)}") # 2
 
-        nrLeafClusters = len(bpy.context.scene.leafClusterSettingsList)
-        operator.report({'INFO'}, f"in init_properties() (before props.leafClusterSettingsList.clear(): nrLeafClusters: {nrLeafClusters}") # 0
-        props.leafClusterSettingsList.clear()
-        props.treeSettings.leafParentClusterBoolListList.clear()
+        # nrLeafClusters = len(bpy.context.scene.leafClusterSettingsList)
+        # operator.report({'INFO'}, f"in init_properties() (before props.leafClusterSettingsList.clear(): nrLeafClusters: {nrLeafClusters}") # 0
+        # props.leafClusterSettingsList.clear()
+        # props.treeSettings.leafParentClusterBoolListList.clear()
 
-        operator.report({'INFO'}, f"in init_properties(): after props.leafClusterSettingsList.clear(): len(parentClusterBoolListList): {len(props.treeSettings.parentClusterBoolListList)}") # 2
+        #operator.report({'INFO'}, f"in init_properties(): after props.leafClusterSettingsList.clear(): len(parentClusterBoolListList): {len(props.treeSettings.parentClusterBoolListList)}") # 2
 
-        nrLeafClusters = len(bpy.context.scene.leafClusterSettingsList)
-        operator.report({'INFO'}, f"in init_properties() (after props.leafClusterSettingsList.clear(): nrLeafClusters: {nrLeafClusters}") # 0
+        #nrLeafClusters = len(bpy.context.scene.leafClusterSettingsList)
+        #operator.report({'INFO'}, f"in init_properties() (after props.leafClusterSettingsList.clear(): nrLeafClusters: {nrLeafClusters}") # 0
         
         jsonLeavesDensityList = data.get("leavesDensityList", [])
         operator.report({'INFO'}, f"len(json leaves density list): {len(jsonLeavesDensityList)}")# 1 -> loop over range (0, jsonLeavesDensityList)!
