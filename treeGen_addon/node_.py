@@ -260,7 +260,7 @@ class node():
             # For stem nodes, position = absolute height; 
             # for branch nodes, position = normalized branch position
             if position < gradient and gradient > 0:
-                return pow(treegen_utils_.treegen_utils.lerp(0.0, amplitude, position / gradient), exponent)
+                return pow(treegen_utils_.treegen_utils.lerp(0.0, amplitude, position * gradient), exponent) # new: * gradient (was: / gradient)
             else:
                 if gradient > 0:
                     return pow(amplitude, exponent)

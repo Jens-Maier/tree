@@ -1033,6 +1033,9 @@ class EXPORT_OT_exportProperties(bpy.types.Operator):
                 clusterTaperControlPts[clusterIndex].append(curveElement.points[i].location)
                 clusterTaperCurveHandleTypes[clusterIndex].append(curveElement.points[i].handle_type)
         
+        self.report({'INFO'}, f"in exportProperties(): leafClusters: {props.treeSettings.leafClusters}")
+        self.report({'INFO'}, f"in exportProperties(): len(props.treeSettings.leafParentClusterBoolListList): {len(props.treeSettings.leafParentClusterBoolListList)}") # 7  ERROR HERE !!!
+
         data = {
             "treeHeight": props.treeSettings.treeHeight,
             "treeGrowDir": list(props.treeSettings.treeGrowDir),
@@ -1355,6 +1358,8 @@ def load_preset(preset, context, self):
 
 def init_properties(data, props, operator): # props = context.scene
         #operator.report({'INFO'}, "in init_properties()")
+
+        operator.report({'INFO'}, f"in init_properties()...: len(leafParentClusterBoolListList: {len(props.treeSettings.leafParentClusterBoolListList)}")
         
         #operator.report({'INFO'}, f"treeHeight before loading: {props.treeSettings.treeHeight}")
         dataTreeHeight = 0.0

@@ -17,7 +17,7 @@ def myCurveData(curve_name):
         if curve_name == "Stem":
             ensure_stem_curve_node()
         property_groups.curve_node_mapping[curve_name] = cn.name
-    nodeTree = myNodeTree()[property_groups.curve_node_mapping[curve_name]]
+    nodeTree = myNodeTree()[property_groups.curve_node_mapping[curve_name]] # ERROR HERE !!!
     return nodeTree
 
 #        curve_node_mapping = {}
@@ -89,7 +89,6 @@ class treeSettingsPanel(bpy.types.Panel):
     
     def draw(self, context):
         layout = self.layout
-        obj = context.object
         
         row = layout.row()
         row.label(text="Select Bark Material:")
@@ -107,11 +106,9 @@ class treeSettingsPanel(bpy.types.Panel):
         layout.prop(context.scene.treeSettings, "taper")
         
         row = layout.row()
-        
-        layout.template_curve_mapping(myCurveData('Stem'), "mapping") # TODO! TEMP OFF ...
-        
-        #layout.prop(context.scene, "evaluate", slider=True)
-        #layout.operator("scene.evaluate_button", text="Evaluate").x = context.scene.evaluate
+        ensure_stem_curve_node(self)
+        layout.template_curve_mapping(myCurveData('Stem'), "mapping") 
+
         layout.operator("scene.init_button", text="Reset")
         
         row = layout.row()
