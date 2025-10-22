@@ -70,6 +70,7 @@ def register():
     bpy.utils.register_class(operators.EXPORT_OT_loadPreset)
     
 #    #data types
+    bpy.utils.register_class(property_groups.treeGenCurveNodeMap)
     bpy.utils.register_class(property_groups.treePresetEnumProp)
     bpy.utils.register_class(property_groups.treeShapeEnumProp)
     bpy.utils.register_class(property_groups.splitModeEnumProp)
@@ -137,6 +138,7 @@ def register():
     bpy.utils.register_class(operators.SCENE_OT_addLeafItem)
     bpy.utils.register_class(operators.SCENE_OT_removeLeafItem)
     bpy.utils.register_class(operators.SCENE_OT_toggleUseTaperCurveOperator)
+    bpy.utils.register_class(operators.SCENE_OT_toggleUseStemTaperCurveOperator)
     bpy.utils.register_class(operators.SCENE_OT_evaluateButton)
     bpy.utils.register_class(operators.SCENE_OT_initButton)
     bpy.utils.register_class(operators.SCENE_OT_BranchClusterEvaluateButton)
@@ -185,13 +187,45 @@ def register():
     bpy.types.Scene.leaf_material = bpy.props.PointerProperty(type=bpy.types.Material)
                 
     bpy.types.Scene.treeSettings = bpy.props.PointerProperty(type=property_groups.treeSettings)
+
     
     bpy.app.timers.register(delayed_init, first_interval=0.1) # TODO
+
+    #panels.ensure_stem_curve_node(None)
+    
     
 def delayed_init():
-    panels.ensure_stem_curve_node(None)
+    curve_name = "Stem"
+    
+    # Ensure the node group exists
+    if 'CurveNodeGroup' not in bpy.data.node_groups:
+        bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
+
+    # Get the collection from the scene settings
+    curve_maps = bpy.context.scene.treeSettings.curveNodeMaps
+
+    # Check if the "Stem" entry already exists by its name
+    if curve_name not in curve_maps:
+        # If not, create the node
+        cn = myNodeTree().new('ShaderNodeRGBCurve')
+
+        # Add a new item to the collection
+        new_entry = curve_maps.add()
+
+        # Set its 'name' (which we defined in property_groups.py)
+        new_entry.name = curve_name
+
+        # Store the actual node's name
+        new_entry.node_name = cn.name
+
     bpy.ops.scene.init_button()
 
+
+
+def myNodeTree():
+    if 'CurveNodeGroup' not in bpy.data.node_groups:
+        ng = bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
+    return bpy.data.node_groups['CurveNodeGroup'].nodes
 
 def unregister():
     #save and load
@@ -200,6 +234,7 @@ def unregister():
     bpy.utils.unregister_class(operators.EXPORT_OT_loadPreset)
         
     #data types
+    bpy.utils.unregister_class(property_groups.treeGenCurveNodeMap)
     bpy.utils.unregister_class(property_groups.treeShapeEnumProp)
     bpy.utils.unregister_class(property_groups.treePresetEnumProp)
     bpy.utils.unregister_class(property_groups.splitModeEnumProp)
@@ -248,6 +283,7 @@ def unregister():
     bpy.utils.unregister_class(operators.SCENE_OT_BranchClusterResetButton)
     bpy.utils.unregister_class(operators.SCENE_OT_initButton)
     bpy.utils.unregister_class(operators.SCENE_OT_toggleUseTaperCurveOperator)
+    bpy.utils.unregister_class(operators.SCENE_OT_toggleUseStemTaperCurveOperator)
     
     
     #panels

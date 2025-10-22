@@ -40,16 +40,17 @@ class treegen_utils():
         return a + (b - a) * t
     
     #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!
-    #curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves#!!
+    #curveElement = nodeGroups.nodes[bpy.context.scene.treeSettings.curveNodeMaps['Stem']].mapping.curves#!!
     
     
     def sampleCurveStem(treeGeneratorInstance, x):
-        curve_name = "Stem"
-        mapping_dict = property_groups.curve_node_mapping
-        curveElement = property_groups.curve_node_mapping 
+        #curve_name = "Stem"
+        #mapping_dict = bpy.context.scene.treeSettings.curveNodeMaps
+
+        curveElement = bpy.context.scene.treeSettings.curveNodeMaps
         
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!
-        nrCurves = len(nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves)#!!
+        #nrCurves = len(nodeGroups.nodes[bpy.context.scene.treeSettings.curveNodeMaps['Stem']].mapping.curves)#!!
         
         treegen_utils.ensure_stem_curve_node()
           
@@ -68,7 +69,7 @@ class treegen_utils():
         treegen_utils.ensure_stem_curve_node()
         
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!
-        curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3]#!!
+        curveElement = nodeGroups.nodes[bpy.context.scene.treeSettings.curveNodeMaps['Stem'].node_name].mapping.curves[3]#!!
         
         #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup') #taperNodeGroup')
         #curveElement = nodeGroups.nodes[curve_node_mapping['Stem']].mapping.curves[3] #'Stem'
@@ -204,9 +205,10 @@ class treegen_utils():
         
         def sampleSpline(p0, p1, p2, p3, t):
             return f0(t) * p0 + f1(t) * p1 + f2(t) * p2 + f3(t) * p3
-                
+        
+        curve_name = f"BranchCluster_{clusterIndex}"
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!
-        curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3]#!!
+        curveElement = nodeGroups.nodes[bpy.context.scene.treeSettings.curveNodeMaps[curve_name].node_name].mapping.curves[3]#!!
         
         y = 0.0
         
@@ -323,37 +325,51 @@ class treegen_utils():
                 return py
                     
         return 0.0
-    
-    # in tree_generator.py: 
-    # 
-    # class treeGenerator:
-    # def __init__():
-    #     curve_node_mapping = {}
-    #     taper_node_mapping = {}
-    
+        
     #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!
-    #curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves#!!
+    #curveElement = nodeGroups.nodes[bpy.context.scene.treeSettings.curveNodeMaps['Stem']].mapping.curves#!!
     
     def ensure_stem_curve_node():
         curve_name = "Stem"
+        curve_maps = bpy.context.scene.treeSettings.curveNodeMaps
+        node_tree_nodes = myNodeTree()
+
         if 'CurveNodeGroup' not in bpy.data.node_groups:
             bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
-        if curve_name not in property_groups.curve_node_mapping:
-            cn = myNodeTree().new('ShaderNodeRGBCurve')
-            property_groups.curve_node_mapping[curve_name] = cn.name
+        curve_map_entry = curve_maps.get(curve_name)
+
+        if not curve_map_entry:
+            curveNode = node_tree_nodes.new('ShaderNodeRGBCurve')
+            new_entry = curve_maps.add()
+            new_entry.name = curve_name
+            new_entry.node_name = curveNode.name
+        
         return curve_name
     
     #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!
-    #curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves#!!
+    #curveElement = nodeGroups.nodes[bpy.context.scene.treeSettings.curveNodeMaps['Stem']].mapping.curves#!!
     
     def ensure_branch_curve_node(idx):
         curve_name = f"BranchCluster_{idx}"
+        curve_maps = bpy.context.scene.treeSettings.curveNodeMaps
+        node_tree_nodes = myNodeTree()
+
         if 'CurveNodeGroup' not in bpy.data.node_groups:
             bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
-        if curve_name not in property_groups.curve_node_mapping:
-            cn = myNodeTree().new('ShaderNodeRGBCurve')
-            #cn.label = curve_name
-            property_groups.curve_node_mapping[curve_name] = cn.name
+        curve_map_entry = curve_maps.get(curve_name)
+        
+        if not curve_map_entry:
+            # Entry doesn't exist, create it
+            curveNode = node_tree_nodes.new('ShaderNodeRGBCurve')
+            new_entry = curve_maps.add()
+            new_entry.name = curve_name
+            new_entry.node_name = curveNode.name
+        
+        elif curve_map_entry.node_name not in node_tree_nodes:
+            # Entry is stale, fix it
+            print(f"Fixing stale '{curve_name}' curve map entry.")
+            curveNode = node_tree_nodes.new('ShaderNodeRGBCurve')
+            curve_map_entry.node_name = curveNode.name
         return curve_name
     
     def register():

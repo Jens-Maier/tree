@@ -11,35 +11,90 @@ def myNodeTree():
 
 
 
-def myCurveData(curve_name):
-    if curve_name not in property_groups.curve_node_mapping: # #in propertyGroups !!! (???)
-        cn = myNodeTree().new('ShaderNodeRGBCurve')
-        if curve_name == "Stem":
-            ensure_stem_curve_node()
-        property_groups.curve_node_mapping[curve_name] = cn.name
-    nodeTree = myNodeTree()[property_groups.curve_node_mapping[curve_name]] # ERROR HERE !!!
-    return nodeTree
+def myCurveData(curve_name, context):
+    """
+    Called from a panel's draw() method. MUST be read-only.
+    Assumes the mapping was created by delayed_init or an operator.
+    """
+    # 1. Get the persistent storage collection
+    curve_maps = bpy.context.scene.treeSettings.curveNodeMaps
+    node_tree_nodes = myNodeTree()
 
-#        curve_node_mapping = {}
-#        taper_node_mapping = {}
+    # 2. Find the entry by logical name
+    curve_map_entry = curve_maps.get(curve_name)
 
-def ensure_stem_curve_node(treeGeneratorInstance = None): # called from operators
+    if not curve_map_entry:
+        # This shouldn't happen if delayed_init ran.
+        print(f"ERROR: Curve map entry '{curve_name}' not found in draw method.")
+        return None # Panel will fail to draw the curve, which is correct.
+    
+    node_name = curve_map_entry.node_name
+    
+    if node_name:
+        try:
+            # Return the actual node
+            return node_tree_nodes[node_name]
+        except KeyError:
+            # Node is missing, but we can't fix it from draw()
+            print(f"Stale node name '{node_name}' for '{curve_name}'.")
+            node_name = None # force recreation
+
+    return None
+
+
+def ensure_stem_curve_node(context, treeGeneratorInstance = None): # called from operators
     curve_name = "Stem"
+    curve_maps = bpy.context.scene.treeSettings.curveNodeMaps
+    node_tree_nodes = myNodeTree()
+
     if 'CurveNodeGroup' not in bpy.data.node_groups:
         bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
-    if curve_name not in property_groups.curve_node_mapping:
-        cn = myNodeTree().new('ShaderNodeRGBCurve')
-        property_groups.curve_node_mapping[curve_name] = cn.name
-    return curve_name
+
+    curve_map_entry = curve_maps.get(curve_name)
+    
+    node = None
+
+    if not curve_map_entry:
+        # Entry doesn't exist, create it
+        cn = node_tree_nodes.new('ShaderNodeRGBCurve')
+        new_entry = curve_maps.add()
+        new_entry.name = curve_name
+        new_entry.node_name = cn.name
+        node = cn
+    elif curve_map_entry.node_name not in node_tree_nodes:
+        # Entry is stale (points to a deleted node), fix it
+        print(f"Fixing stale '{curve_name}' curve map entry.")
+        cn = node_tree_nodes.new('ShaderNodeRGBCurve')
+        curve_map_entry.node_name = cn.name
+        node = cn
+
+    else:
+        node = node_tree_nodes[curve_map_entry.node_name]
+        
+    return node
 
 def ensure_branch_curve_node(treeGeneratorInstance, idx):
     curve_name = f"BranchCluster_{idx}"
+    curve_maps = bpy.context.scene.treeSettings.curveNodeMaps
+    node_tree_nodes = myNodeTree()
+
     if 'CurveNodeGroup' not in bpy.data.node_groups:
         bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
-    if curve_name not in property_groups.curve_node_mapping:
-        cn = myNodeTree().new('ShaderNodeRGBCurve')
-        #cn.label = curve_name
-        property_groups.curve_node_mapping[curve_name] = cn.name
+    
+    curve_map_entry = curve_maps.get(curve_name)
+
+    if not curve_map_entry:
+        # Entry doesn't exist, create it
+        cn = node_tree_nodes.new('ShaderNodeRGBCurve')
+        new_entry = curve_maps.add()
+        new_entry.name = curve_name
+        new_entry.node_name = cn.name
+    elif curve_map_entry.node_name not in node_tree_nodes:
+        # Entry is stale, fix it
+        print(f"Fixing stale '{curve_name}' curve map entry.")
+        cn = node_tree_nodes.new('ShaderNodeRGBCurve')
+        curve_map_entry.node_name = cn.name
+
     return curve_name
 
 
@@ -105,11 +160,23 @@ class treeSettingsPanel(bpy.types.Panel):
         row = layout.row()
         layout.prop(context.scene.treeSettings, "taper")
         
-        row = layout.row()
-        ensure_stem_curve_node(self)
-        layout.template_curve_mapping(myCurveData('Stem'), "mapping") 
+        
 
-        layout.operator("scene.init_button", text="Reset")
+        #ensure_stem_curve_node(self) # -> cannot modify persistent Blender data (specifically, calling curve_maps.add() or curve_maps.remove() on a CollectionProperty) from within a Panel's draw() method.
+
+
+
+
+
+        # -> use Stem taper curve Button -> false on initialization -> creates first stem taper curve node...
+        # -> dont use taper curve when set to false in radius calculation! 
+        row = layout.row()
+        row.operator("scene.toggle_use_stem_taper_curve", text="Use taper curve", icon="TRIA_DOWN" if context.scene.treeSettings.useStemTaperCurve else "TRIA_RIGHT")
+        if context.scene.treeSettings.useStemTaperCurve == True:
+            row = layout.row()
+            layout.template_curve_mapping(myCurveData('Stem', context), "mapping") 
+
+            layout.operator("scene.init_button", text="Reset")
         
         row = layout.row()
         layout.prop(context.scene.treeSettings, "branchTipRadius")
@@ -343,8 +410,8 @@ class branchSettings(bpy.types.Panel):
                         reset = row.operator("scene.reset_branch_cluster_curve", text="Reset")
                         reset.idx = i
                         curve_name = ensure_branch_curve_node(self, i)
-                        curve_node = myCurveData(curve_name)
-                        box3.template_curve_mapping(curve_node, "mapping")
+                        curve_node = myCurveData(curve_name, context)
+                        box3.template_curve_mapping(curve_node, "mapping") # -> cannot modify persistent Blender data (specifically, calling curve_maps.add() or curve_maps.remove() on a CollectionProperty) from within a Panel's draw() method.
                     
                     #row = box2.row()
                     

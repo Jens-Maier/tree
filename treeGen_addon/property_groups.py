@@ -1,9 +1,6 @@
 import bpy.props
 import math
 
-curve_node_mapping = {}
-taper_node_mapping = {}
-
 class floatProp(bpy.types.PropertyGroup):
     value: bpy.props.FloatProperty(name = "floatValue", default=0)
     
@@ -26,7 +23,6 @@ class fibonacciProps(bpy.types.PropertyGroup):
     
     use_fibonacci: bpy.props.BoolProperty(name = "useFibonacci", default=False,
         update = lambda self, context:update_fibonacci_numbers(self))
-
 
 class intProp(bpy.types.PropertyGroup):
     value: bpy.props.IntProperty(name = "intValue", default=0, min=0, soft_max=10)
@@ -255,13 +251,25 @@ class toggleUseTaperCurveOperator(bpy.types.Operator):
             bpy.ops.scene.reset_branch_cluster_curve(idx = self.idx)
             
         return {'FINISHED'}
- 
+
+
+class treeGenCurveNodeMap(bpy.types.PropertyGroup):
+    name: bpy.props.StringProperty(name = "Logical Curve Name") # This MUST be 'name' for Blender's collection.get(key) to work
+    node_name: bpy.props.StringProperty(name = "Curve Node Name")
+
+
+    # in operators: 
+    # curveElement = nodeGroups.nodes[context.scene.treeSettings.curveNodeMaps['Stem']].mapping.curves[3] 
 
 class treeSettings(bpy.types.PropertyGroup):
+    curveNodeMaps: bpy.props.CollectionProperty(type=treeGenCurveNodeMap)
+    taperNodeMaps: bpy.props.CollectionProperty(type=treeGenCurveNodeMap)
+
     treePreset: bpy.props.PointerProperty(type = treePresetEnumProp)
     uvMargin: bpy.props.FloatProperty(name = "UV margin", default = 0.1, min = 0, precision = 3)
     treeHeight: bpy.props.FloatProperty(name = "Tree height", default = 10.0, min = 0, unit = 'LENGTH')
     taper: bpy.props.FloatProperty(name = "taper", default = 0.1, min = 0, soft_max = 0.5)
+    useStemTaperCurve: bpy.props.BoolProperty(name = "Use stem taper curve", default = False)
     branchTipRadius:bpy.props.FloatProperty(name = "branch tip radius", default = 0, min = 0, soft_max = 0.1, unit = 'LENGTH')
     ringSpacing: bpy.props.FloatProperty(name = "Ring Spacing", default = 0.1, min = 0.001, unit = 'LENGTH')
     noiseAmplitudeHorizontal: bpy.props.FloatProperty(name = "Noise Amplitude Horizontal", default = 0.0, min = 0.0)
@@ -601,6 +609,7 @@ class TREEGEN_UL_branchSplitLevelListLevel_19(bpy.types.UIList): #template for U
         
         
 def register():
+    
     print("register propertyGroups")
     
 def unregister():

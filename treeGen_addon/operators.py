@@ -72,8 +72,8 @@ class SCENE_OT_BranchClusterResetButton(bpy.types.Operator):
         #self.report({'INFO'}, f"curve_name: {curve_name}")
         
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
-        curveNodeMapping = nodeGroups.nodes[property_groups.curve_node_mapping[curve_name]].mapping
-        curveElement = nodeGroups.nodes[property_groups.curve_node_mapping[curve_name]].mapping.curves[3]
+        curveNodeMapping = nodeGroups.nodes[context.scene.treeSettings.curveNodeMaps[curve_name].node_name].mapping
+        curveElement = nodeGroups.nodes[context.scene.treeSettings.curveNodeMaps[curve_name].node_name].mapping.curves[3]
         
         #self.report({'INFO'}, f"in reset: length: {len(curveElement.points)}")
         
@@ -126,7 +126,7 @@ class SCENE_OT_BranchClusterEvaluateButton(bpy.types.Operator):
     def execute(self, context):
         curve_name = panels.ensure_branch_curve_node(tree_generator, self.idx)
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
-        curveElement = nodeGroups.nodes[property_groups.curve_node_mapping[curve_name]].mapping.curves[3]
+        curveElement = nodeGroups.nodes[context.scene.treeSettings.curveNodeMaps[curve_name].node_name].mapping.curves[3]
         y = 0.0
         nrSamplePoints = 20
         #self.report({'INFO'}, f"length: {len(curveElement.points)}")
@@ -269,10 +269,11 @@ class SCENE_OT_initButton(bpy.types.Operator):
     def execute(self, context):
         panels.ensure_stem_curve_node(tree_generator)
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
-        nrCurves = len(nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves)
+        #nrCurves = len(nodeGroups.nodes[context.scene.treeSettings.curveNodeMaps['Stem']].mapping.curves)
         #self.report({'INFO'}, f"nrCurves: {nrCurves}")
-        curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3] 
         
+        curveElement = nodeGroups.nodes[context.scene.treeSettings.curveNodeMaps['Stem'].node_name].mapping.curves[3] 
+        #context.scene.treeSettings
         #initialise values
         curveElement.points[0].location = (0.0, 1.0)
         curveElement.points[1].location = (1.0, 0.0)
@@ -282,8 +283,8 @@ class SCENE_OT_initButton(bpy.types.Operator):
         if len(curveElement.points) > 2:
             for i in range(2, len(curveElement.points)):
                 curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
-                #self.report({'INFO'}, "removing point")
-        nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.update()
+                self.report({'INFO'}, "removing point")
+        nodeGroups.nodes[context.scene.treeSettings.curveNodeMaps['Stem'].node_name].mapping.update()
         return {'FINISHED'}
     
     
@@ -324,7 +325,7 @@ class SCENE_OT_evaluateButton(bpy.types.Operator):
         
     def execute(self, context):
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
-        curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3] 
+        curveElement = nodeGroups.nodes[property_groups.treeSettings.curveNodeMaps['Stem']].mapping.curves[3] 
         y = 0.0
         nrSamplePoints = 20
         #self.report({'INFO'}, f"length: {len(curveElement.points)}")
@@ -625,6 +626,19 @@ class SCENE_OT_toggleLeafBool(bpy.types.Operator):
             
         return {'FINISHED'}
 
+# TODO: use stem taper curve -> default off -> don not use stem taper curve in radius calculation...
+class SCENE_OT_toggleUseStemTaperCurveOperator(bpy.types.Operator):
+    bl_idname = "scene.toggle_use_stem_taper_curve"
+    bl_label = "Use Taper Curve"
+    bl_description = "resets taper curve"
+
+    def execute(self, context):
+        settings = context.scene.treeSettings
+        wasEnabled = settings.useStemTaperCurve
+        settings.useStemTaperCurve = not wasEnabled
+        bpy.ops.scene.init_button()
+        return {'FINISHED'}
+
 class SCENE_OT_toggleUseTaperCurveOperator(bpy.types.Operator):
     bl_idname = "scene.toggle_use_taper_curve"
     bl_label = "Use Taper Curve"
@@ -830,7 +844,7 @@ class EXPORT_OT_exportProperties(bpy.types.Operator):
         controlPts = []
         handleTypes = []
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
-        curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3]
+        curveElement = nodeGroups.nodes[property_groups.treeSettings.curveNodeMaps['Stem']].mapping.curves[3]
         
         for n in range(0, len(curveElement.points)):
             controlPts.append(list(curveElement.points[n].location))
@@ -1026,7 +1040,7 @@ class EXPORT_OT_exportProperties(bpy.types.Operator):
             
         for clusterIndex in range(props.treeSettings.branchClusters):
             curve_name = panels.ensure_branch_curve_node(tree_generator, clusterIndex)
-            curveElement = nodeGroups.nodes[property_groups.curve_node_mapping[curve_name]].mapping.curves[3]
+            curveElement = nodeGroups.nodes[props.treeSettings.curveNodeMaps[curve_name].node_name].mapping.curves[3]
             clusterTaperControlPts.append([])
             clusterTaperCurveHandleTypes.append([])
             for i in range(0, len(curveElement.points)):
@@ -1041,8 +1055,8 @@ class EXPORT_OT_exportProperties(bpy.types.Operator):
             "treeGrowDir": list(props.treeSettings.treeGrowDir),
             "taper": props.treeSettings.taper,
             
-            "taperCurvePoints": [list(pt.location) for pt in nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3].points],
-            "taperCurveHandleTypes": [pt.handle_type for pt in nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3].points],
+            "taperCurvePoints": [list(pt.location) for pt in nodeGroups.nodes[props.treeSettings.curveNodeMaps['Stem'].node_name].mapping.curves[3].points],
+            "taperCurveHandleTypes": [pt.handle_type for pt in nodeGroups.nodes[props.treeSettings.curveNodeMaps['Stem'].node_name].mapping.curves[3].points],
             
             "clusterTaperCurvePoints": [list(list(pt) for pt in clusterTaperPoints) for clusterTaperPoints in clusterTaperControlPts],
             "clusterTaperCurveHandleTypes": [list(clusterTaperHandles) for clusterTaperHandles in clusterTaperCurveHandleTypes],
@@ -1384,7 +1398,7 @@ def init_properties(data, props, operator): # props = context.scene
                 
         panels.ensure_stem_curve_node(tree_generator)
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup') #taperNodeGroup')
-        curveElement = nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.curves[3]
+        curveElement = nodeGroups.nodes[props.treeSettings.curveNodeMaps['Stem'].node_name].mapping.curves[3]
     
         
                 
@@ -1404,7 +1418,7 @@ def init_properties(data, props, operator): # props = context.scene
                 
                 curveElement.points[len(curveElement.points) - 1].handle_type = handleTypes[i]
                 
-        nodeGroups.nodes[property_groups.curve_node_mapping['Stem']].mapping.update()
+        nodeGroups.nodes[props.treeSettings.curveNodeMaps['Stem'].node_name].mapping.update()
         
         props.treeSettings.branchTipRadius = data.get("branchTipRadius", props.treeSettings.branchTipRadius)
         props.treeSettings.ringSpacing = data.get("ringSpacing", props.treeSettings.ringSpacing)
@@ -1452,7 +1466,7 @@ def init_properties(data, props, operator): # props = context.scene
         #
         # for clusterIndex in range(props.branchClusters):
         #   curve_name = panels.ensure_branch_curve_node(clusterIndex)
-        #   curveElement = nodeGroups.nodes[property_groups.curve_node_mapping[curve_name]].mapping.curves[3]
+        #   curveElement = nodeGroups.nodes[property_groups.treeSettings.curveNodeMaps[curve_name]].mapping.curves[3]
         #   clusterTaperControlPts.append([])
         #   clusterTaperCurveHandleTypes.append([])
         #   for i in range(0, len(curveElement.points)):
@@ -1474,7 +1488,7 @@ def init_properties(data, props, operator): # props = context.scene
             
             
             curve_name = panels.ensure_branch_curve_node(tree_generator, clusterIndex)
-            curveElement = nodeGroups.nodes[property_groups.curve_node_mapping[curve_name]].mapping.curves[3]
+            curveElement = nodeGroups.nodes[props.treeSettings.curveNodeMaps[curve_name].node_name].mapping.curves[3]
             
             
             
@@ -1495,7 +1509,7 @@ def init_properties(data, props, operator): # props = context.scene
                 
                         curveElement.points[len(curveElement.points) - 1].handle_type = clusterHandleTypes[clusterIndex][i]
             
-            nodeGroups.nodes[property_groups.curve_node_mapping[curve_name]].mapping.update()
+            nodeGroups.nodes[props.treeSettings.curveNodeMaps[curve_name].node_name].mapping.update()
             
         props.treeSettings.parentClusterBoolListList.clear()
         operator.report({'INFO'}, f"in init_properties(): after parentClusterBoolListList.clear(): len(parentClusterBoolListList): {len(props.treeSettings.parentClusterBoolListList)}") #0
