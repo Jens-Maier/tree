@@ -325,7 +325,7 @@ class SCENE_OT_evaluateButton(bpy.types.Operator):
         
     def execute(self, context):
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
-        curveElement = nodeGroups.nodes[property_groups.treeSettings.curveNodeMaps['Stem']].mapping.curves[3] 
+        curveElement = nodeGroups.nodes[property_groups.treeSettings.curveNodeMaps['Stem'].node_name].mapping.curves[3] 
         y = 0.0
         nrSamplePoints = 20
         #self.report({'INFO'}, f"length: {len(curveElement.points)}")
@@ -844,7 +844,7 @@ class EXPORT_OT_exportProperties(bpy.types.Operator):
         controlPts = []
         handleTypes = []
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
-        curveElement = nodeGroups.nodes[property_groups.treeSettings.curveNodeMaps['Stem']].mapping.curves[3]
+        curveElement = nodeGroups.nodes[props.treeSettings.curveNodeMaps['Stem'].node_name].mapping.curves[3]
         
         for n in range(0, len(curveElement.points)):
             controlPts.append(list(curveElement.points[n].location))
@@ -858,9 +858,11 @@ class EXPORT_OT_exportProperties(bpy.types.Operator):
             nestedBranchList.append(innerList)
             
         nestedLeafList = []
-        for cluster in props.treeSettings.leafParentClusterBoolListList:
+        #props.treeSettings.leafClusters NEW !
+        #for cluster in props.treeSettings.leafParentClusterBoolListList:
+        for n in range(0, props.treeSettings.leafClusters): # NEW !
             innerLeafList = []
-            for boolProp in cluster.value:
+            for boolProp in props.treeSettings.leafParentClusterBoolListList[n].value:
                 innerLeafList.append(boolProp.value)
             nestedLeafList.append(innerLeafList)
 
@@ -1250,7 +1252,7 @@ class EXPORT_OT_exportProperties(bpy.types.Operator):
             "leafTiltAngleBranchStartList": [props.leafClusterSettingsList[i].leafTiltAngleBranchStart for i in range(props.treeSettings.leafClusters)],
             "leafTiltAngleBranchEndList": [props.leafClusterSettingsList[i].leafTiltAngleBranchEnd for i in range(props.treeSettings.leafClusters)],
             
-            "showLeafClusterList": [props.treeSettings.leafParentClusterBoolListList[i].show_leaf_cluster for  i in range(len(props.treeSettings.leafParentClusterBoolListList))],
+            "showLeafClusterList": [props.treeSettings.leafParentClusterBoolListList[i].show_leaf_cluster for  i in range(props.treeSettings.leafClusters)],
             "leafParentClusterBoolListList": nestedLeafList
         }
 
@@ -1466,7 +1468,7 @@ def init_properties(data, props, operator): # props = context.scene
         #
         # for clusterIndex in range(props.branchClusters):
         #   curve_name = panels.ensure_branch_curve_node(clusterIndex)
-        #   curveElement = nodeGroups.nodes[property_groups.treeSettings.curveNodeMaps[curve_name]].mapping.curves[3]
+        #   curveElement = nodeGroups.nodes[property_groups.treeSettings.curveNodeMaps[curve_name].node_name].mapping.curves[3]
         #   clusterTaperControlPts.append([])
         #   clusterTaperCurveHandleTypes.append([])
         #   for i in range(0, len(curveElement.points)):

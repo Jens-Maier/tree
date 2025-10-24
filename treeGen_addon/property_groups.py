@@ -263,7 +263,6 @@ class treeGenCurveNodeMap(bpy.types.PropertyGroup):
 
 class treeSettings(bpy.types.PropertyGroup):
     curveNodeMaps: bpy.props.CollectionProperty(type=treeGenCurveNodeMap)
-    taperNodeMaps: bpy.props.CollectionProperty(type=treeGenCurveNodeMap)
 
     treePreset: bpy.props.PointerProperty(type = treePresetEnumProp)
     uvMargin: bpy.props.FloatProperty(name = "UV margin", default = 0.1, min = 0, precision = 3)
