@@ -1,7 +1,7 @@
 bl_info = {
     "name": "treeGen_v5",
     "author": "Jens Maier",
-    "version": (1, 0, 6),
+    "version": (1, 0, 7),
     "blender": (4, 5, 3),
     "location": "View3D > Sidebar",
     "description": "Procedural tree generator",

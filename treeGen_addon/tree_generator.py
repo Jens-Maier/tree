@@ -1529,7 +1529,7 @@ def generateVerticesAndTriangles(self,
                     else:
                         linearRadius = treegen_utils.lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing))
                         if context.scene.branchClusterSettingsList[segments[s].clusterIndex].useTaperCurve == True:
-                            normalizedCurve = (1.0 - branchTipRadius) * tValBranch + treegen_utils.sampleCurveBranch(treeGen, tValBranch, segments[s].lusterIndex) * context.scene.taperFactorList[segments[s].clusterIndex].taperFactor 
+                            normalizedCurve = (1.0 - branchTipRadius) * tValBranch + treegen_utils.sampleCurveBranch(treeGen, tValBranch, segments[s].clusterIndex) * context.scene.taperFactorList[segments[s].clusterIndex].taperFactor 
                         else:
                             normalizedCurve = (1.0 - branchTipRadius) * tValBranch + 1.0 - tValBranch
                         radius = linearRadius * normalizedCurve
