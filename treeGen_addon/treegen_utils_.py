@@ -1,5 +1,6 @@
 import bpy
 from . import property_groups
+from . import panels
 from mathutils import Vector
 
 
@@ -47,6 +48,8 @@ class treegen_utils():
         #curve_name = "Stem"
         #mapping_dict = bpy.context.scene.treeSettings.curveNodeMaps
 
+        
+
         curveElement = bpy.context.scene.treeSettings.curveNodeMaps
         
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!
@@ -65,10 +68,15 @@ class treegen_utils():
         
         def sampleSpline(p0, p1, p2, p3, t):
             return f0(t) * p0 + f1(t) * p1 + f2(t) * p2 + f3(t) * p3
-        
-        treegen_utils.ensure_stem_curve_node()
-        
+                
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')#!!
+        if nodeGroups == None:
+            return 1.0 - x
+        if bpy.context.scene.treeSettings.curveNodeMaps['Stem'] == None:
+            return 1.0 - x
+        if nodeGroups.nodes[bpy.context.scene.treeSettings.curveNodeMaps['Stem'].node_name] == None:
+            return 1.0 - x
+        
         curveElement = nodeGroups.nodes[bpy.context.scene.treeSettings.curveNodeMaps['Stem'].node_name].mapping.curves[3]#!!
         
         #nodeGroups = bpy.data.node_groups.get('CurveNodeGroup') #taperNodeGroup')

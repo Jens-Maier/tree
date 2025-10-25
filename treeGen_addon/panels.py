@@ -18,7 +18,12 @@ def myCurveData(curve_name, context):
     """
     # 1. Get the persistent storage collection
     curve_maps = bpy.context.scene.treeSettings.curveNodeMaps
-    node_tree_nodes = myNodeTree()
+
+    # Check for node group
+    if 'CurveNodeGroup' not in bpy.data.node_groups:
+        return None
+
+    node_tree_nodes = bpy.data.node_groups['CurveNodeGroup'].nodes
 
     # 2. Find the entry by logical name
     curve_map_entry = curve_maps.get(curve_name)
@@ -174,7 +179,11 @@ class treeSettingsPanel(bpy.types.Panel):
         row.operator("scene.toggle_use_stem_taper_curve", text="Use taper curve", icon="TRIA_DOWN" if context.scene.treeSettings.useStemTaperCurve else "TRIA_RIGHT")
         if context.scene.treeSettings.useStemTaperCurve == True:
             row = layout.row()
-            layout.template_curve_mapping(myCurveData('Stem', context), "mapping") 
+            curve_node = myCurveData('Stem', context)
+            if curve_node:
+                layout.template_curve_mapping(curve_node, "mapping") 
+            else:
+                layout.label(text="Curve data not available. ", icon='ERROR')
 
             layout.operator("scene.init_button", text="Reset")
         
@@ -407,11 +416,31 @@ class branchSettings(bpy.types.Panel):
                         #row = box3.row()
                         #op = row.operator("scene.evaluate_branch_cluster", text="Evaluate branch")
                         #op.idx = i
+
+                        curve_name = ensure_branch_curve_node(self, i)
+                        branch_curve_node = myCurveData(curve_name, context)
+                        if branch_curve_node:
+                            box3.template_curve_mapping(branch_curve_node, "mapping")
+                        else:
+                            box3.label(text="Curve data not available. ", icon='ERROR')
+
                         reset = row.operator("scene.reset_branch_cluster_curve", text="Reset")
                         reset.idx = i
-                        curve_name = ensure_branch_curve_node(self, i)
-                        curve_node = myCurveData(curve_name, context)
-                        box3.template_curve_mapping(curve_node, "mapping") # -> cannot modify persistent Blender data (specifically, calling curve_maps.add() or curve_maps.remove() on a CollectionProperty) from within a Panel's draw() method.
+                        
+                        
+
+                        #--
+                        #curve_node = myCurveData('Stem', context)
+                        #if curve_node:
+                        #    layout.template_curve_mapping(curve_node, "mapping") 
+                        #else:
+                        #    layout.label(text="Curve data not available. ", icon='ERROR')
+                        #
+                        #    layout.operator("scene.init_button", text="Reset")
+                        #--
+
+
+                        #box3.template_curve_mapping(curve_node, "mapping") # -> cannot modify persistent Blender data (specifically, calling curve_maps.add() or curve_maps.remove() on a CollectionProperty) from within a Panel's draw() method.
                     
                     #row = box2.row()
                     
@@ -678,7 +707,7 @@ class branchSettings(bpy.types.Panel):
                             row.template_list("TREEGEN_UL_branchSplitLevelListLevel_19", "", scene.treeSettings, "branchSplitHeightInLevelList_19", scene.treeSettings, "branchSplitHeightInLevelListIndex_19")
                         if i > 19:
                             j = 0
-                            splitLevelList = scene.treeSettings.branchSplitHeightInLevelListList[i - 6].value
+                            splitLevelList = scene.treeSettings.branchSplitHeightInLevelListList[i - 20].value
                             for splitLevel in splitLevelList:
                                 box2.prop(splitLevel, "value", text=f"Split height level {j}", slider=True)
                                 j += 1

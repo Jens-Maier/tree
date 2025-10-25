@@ -460,8 +460,8 @@ class treeGenerator:
                         splitsInLevel += 1
                         totalSplitCounter += 1
                 safetyCounter += 1
-                if safetyCounter > 100:
-                    self.report({'INFO'}, "iteration 100 reached -> break!")
+                if safetyCounter > 500:
+                    self.report({'INFO'}, "iteration 500 reached -> break!")
                     break
         return maxSplitHeightUsed
 
@@ -643,7 +643,7 @@ class treeGenerator:
                             centerDirs.append(centerDir)
                             
                             if rightRotationRange[branchIndex] + leftRotationRange[branchIndex] < 2.0 * math.pi:
-                                angle = windingAngle % ((rightRotationRange[branchIndex] + leftRotationRange[branchIndex]) * branchClusterSettingsList[clusterIndex].rotateAngleRangeFactor)  - leftRotationRange[branchIndex] * branchClusterSettingsList[clusterIndex].rotateAngleRangeFactor 
+                                angle = windingAngle % ((rightRotationRange[branchIndex] + leftRotationRange[branchIndex]) * branchClusterSettingsList[clusterIndex].rotateAngleRangeFactor) - leftRotationRange[branchIndex] * branchClusterSettingsList[clusterIndex].rotateAngleRangeFactor 
                             else:
                                 angle = windingAngle % (rightRotationRange[branchIndex] + leftRotationRange[branchIndex])  - leftRotationRange[branchIndex]
                             
@@ -1520,12 +1520,18 @@ def generateVerticesAndTriangles(self,
                     tValBranch = segments[s].startTvalBranch + (segments[s].endTvalBranch - segments[s].startTvalBranch) * (section / sections)
                     if segments[s].clusterIndex == -1:
                         linearRadius = treegen_utils.lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing))
-                        normalizedCurve = (1.0 - branchTipRadius) * tVal + treegen_utils.sampleCurveStem(treeGen, tVal)
+                        if context.scene.treeSettings.useStemTaperCurve == True:
+                            normalizedCurve = (1.0 - branchTipRadius) * tVal + treegen_utils.sampleCurveStem(treeGen, tVal)
+                        else:
+                            normalizedCurve = (1.0 - branchTipRadius) * tVal + 1.0 - tVal
                         
                         radius = linearRadius * normalizedCurve
                     else:
                         linearRadius = treegen_utils.lerp(segments[s].startRadius, segments[s].endRadius, section / (segmentLength / branchRingSpacing))
-                        normalizedCurve = (1.0 - branchTipRadius) * tValBranch + treegen_utils.sampleCurveBranch(treeGen, tValBranch, segments[s].clusterIndex) * context.scene.taperFactorList[segments[s].clusterIndex].taperFactor 
+                        if context.scene.branchClusterSettingsList[segments[s].clusterIndex].useTaperCurve == True:
+                            normalizedCurve = (1.0 - branchTipRadius) * tValBranch + treegen_utils.sampleCurveBranch(treeGen, tValBranch, segments[s].lusterIndex) * context.scene.taperFactorList[segments[s].clusterIndex].taperFactor 
+                        else:
+                            normalizedCurve = (1.0 - branchTipRadius) * tValBranch + 1.0 - tValBranch
                         radius = linearRadius * normalizedCurve
                     
                     for i in range(0, segments[s].ringResolution + 1):
@@ -1547,7 +1553,11 @@ def generateVerticesAndTriangles(self,
                     pos = treegen_utils.sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, c / sections)
                     
                     linearRadius = treegen_utils.lerp(segments[s].startRadius, segments[s].endRadius, c / (segmentLength / branchRingSpacing))
-                    normalizedCurve = (1.0 - branchTipRadius) * tVal + treegen_utils.sampleCurveStem(treeGen, tVal)
+
+                    if context.scene.treeSettings.useStemTaperCurve == True:
+                        normalizedCurve = (1.0 - branchTipRadius) * tVal + treegen_utils.sampleCurveStem(treeGen, tVal)
+                    else:
+                        normalizedCurve = (1.0 - branchTipRadius) * tVal + 1.0 - tVal
                     
                     radius = linearRadius * normalizedCurve
                     

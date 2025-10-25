@@ -1,7 +1,7 @@
 bl_info = {
     "name": "treeGen_v5",
     "author": "Jens Maier",
-    "version": (1, 0, 3),
+    "version": (1, 0, 6),
     "blender": (4, 5, 3),
     "location": "View3D > Sidebar",
     "description": "Procedural tree generator",
@@ -187,7 +187,8 @@ def register():
     bpy.types.Scene.leaf_material = bpy.props.PointerProperty(type=bpy.types.Material)
                 
     bpy.types.Scene.treeSettings = bpy.props.PointerProperty(type=property_groups.treeSettings)
-
+    
+    
     
     bpy.app.timers.register(delayed_init, first_interval=0.1) # TODO
 
@@ -201,25 +202,51 @@ def delayed_init():
     if 'CurveNodeGroup' not in bpy.data.node_groups:
         bpy.data.node_groups.new('CurveNodeGroup', 'ShaderNodeTree')
 
+    node_tree_nodes = bpy.data.node_groups['CurveNodeGroup'].nodes
+
     # Get the collection from the scene settings
     curve_maps = bpy.context.scene.treeSettings.curveNodeMaps
 
-    # Check if the "Stem" entry already exists by its name
-    if curve_name not in curve_maps:
-        # If not, create the node
-        cn = myNodeTree().new('ShaderNodeRGBCurve')
+    curve_map_entry = curve_maps.get(curve_name)
+    node = None
 
-        # Add a new item to the collection
+    if not curve_map_entry:
+        # Entry doesn't extst -> create node, create entry
+        print("treeGen: 'Stem' curve map entry not found. Creating.")
+        curve_node = node_tree_nodes.new('ShaderNodeRGBCurve')
         new_entry = curve_maps.add()
-
-        # Set its 'name' (which we defined in property_groups.py)
         new_entry.name = curve_name
+        new_entry.node_name = curve_node.name
+        node = curve_node
+    elif curve_map_entry.node_name not in node_tree_nodes:
+        # Entry points to a deleted or removed node
+        print("fixing stale '{curve_name}' curve map entry. Pointed to '{curve_map_entry.node_name}")
+        curve_node = node_tree_nodes.new('ShaderNodeRGBCurve')
+        curve_map_entry.node_name = curve_node.name
+        node = curve_node
+    else:
+        node = node_tree_nodes[curve_map_entry.node_name]
 
-        # Store the actual node's name
-        new_entry.node_name = cn.name
+
+    ## Check if the "Stem" entry already exists by its name
+    #if curve_name not in curve_maps:
+    #    # If not, create the node
+    #    cn = myNodeTree().new('ShaderNodeRGBCurve')
+    #   
+    #    # Add a new item to the collection
+    #    new_entry = curve_maps.add()
+    #
+    #    # Set its 'name' (which we defined in property_groups.py)
+    #    new_entry.name = curve_name
+    #
+    #    # Store the actual node's name
+    #    new_entry.node_name = cn.name
 
     bpy.ops.scene.init_button()
 
+    #bpy.context.scene.treeSettings.useStemTaperCurve = False
+    # This line doesn't work on file-load as intended, as the
+    # saved file property overrides it immediately after.
 
 
 def myNodeTree():
