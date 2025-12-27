@@ -5,6 +5,7 @@ import json
 from . import panels
 from . import property_groups
 from . import tree_generator
+from . import mathutils
 
 class OBJECT_OT_generateTree(bpy.types.Operator):
     bl_label = "generateTree"
@@ -1052,11 +1053,17 @@ class EXPORT_OT_exportProperties(bpy.types.Operator):
         self.report({'INFO'}, f"in exportProperties(): leafClusters: {props.treeSettings.leafClusters}")
         self.report({'INFO'}, f"in exportProperties(): len(props.treeSettings.leafParentClusterBoolListList): {len(props.treeSettings.leafParentClusterBoolListList)}") # 7  ERROR HERE !!!
 
+        # in load:
+        #wasEnabled = props.treeSettings.useStemTaperCurve
+        #dataUseStemTaperCurve = False
+        #dataUseStemTaperCurve = data.get("useStemTaperCurve", dataUseStemTaperCurve)
+
         data = {
             "treeHeight": props.treeSettings.treeHeight,
             "treeGrowDir": list(props.treeSettings.treeGrowDir),
             "taper": props.treeSettings.taper,
-            
+
+            "useStemTaperCurve": props.treeSettings.useStemTaperCurve,            
             "taperCurvePoints": [list(pt.location) for pt in nodeGroups.nodes[props.treeSettings.curveNodeMaps['Stem'].node_name].mapping.curves[3].points],
             "taperCurveHandleTypes": [pt.handle_type for pt in nodeGroups.nodes[props.treeSettings.curveNodeMaps['Stem'].node_name].mapping.curves[3].points],
             
@@ -1197,7 +1204,7 @@ class EXPORT_OT_exportProperties(bpy.types.Operator):
             "branchSplitHeightInLevelList_8": storeSplitHeights_8,
             "branchSplitHeightInLevelListIndex_8": props.treeSettings.branchSplitHeightInLevelListIndex_8,
             
-            "branchSplitHeightInLevelList_9": storeSplitHeights_5,
+            "branchSplitHeightInLevelList_9": storeSplitHeights_9,
             "branchSplitHeightInLevelListIndex_9": props.treeSettings.branchSplitHeightInLevelListIndex_9,
             
             "branchSplitHeightInLevelList_10": storeSplitHeights_10,
@@ -1391,6 +1398,23 @@ def init_properties(data, props, operator): # props = context.scene
         if isinstance(treeGrowDir, list) and len(treeGrowDir) == 3:
             props.treeSettings.treeGrowDir = treeGrowDir
         props.treeSettings.taper = data.get("taper", props.treeSettings.taper)
+
+        wasEnabled = props.treeSettings.useStemTaperCurve
+        dataUseStemTaperCurve = False
+        dataUseStemTaperCurve = data.get("useStemTaperCurve", dataUseStemTaperCurve)
+
+        operator.report({'INFO'}, f"in init_properties: wasEnabled: {wasEnabled}")
+        operator.report({'INFO'}, f"dataUseStemTaperCurve: {dataUseStemTaperCurve}")
+        if wasEnabled != dataUseStemTaperCurve:
+            bpy.ops.scene.toggle_use_stem_taper_curve()
+            operator.report({'INFO'}, "in init_properties: toggle_use_stem_taper_curve")
+
+            # TODO: execute operator! useTaperCurve... (for stem and branches!)
+            # scene.toggle_use_taper_curve
+
+            #settings = context.scene.treeSettings
+            #wasEnabled = settings.useStemTaperCurve
+            #settings.useStemTaperCurve = not wasEnabled
         
         controlPts = []
         controlPts = data.get("taperCurvePoints", controlPts)
@@ -1478,9 +1502,9 @@ def init_properties(data, props, operator): # props = context.scene
         nodeGroups = bpy.data.node_groups.get('CurveNodeGroup')
         
         clusterControlPts = []
-        clusterControlPts = data.get("clusterTaperControlPts", controlPts)
+        clusterControlPts = data.get("clusterTaperCurvePoints", clusterControlPts)
         clusterHandleTypes = []
-        clusterHandleTypes = data.get("clusterTaperCurveHandleTypes", handleTypes)
+        clusterHandleTypes = data.get("clusterTaperCurveHandleTypes", clusterHandleTypes)
         
         for clusterIndex in range(nrBranchClusters):
 
@@ -1498,18 +1522,22 @@ def init_properties(data, props, operator): # props = context.scene
                 for i in range(2, len(curveElement.points)):
                     curveElement.points.remove(curveElement.points[len(curveElement.points) - 1])
                     
-                curveElement.points[0].location = controlPts[0]
-                curveElement.points[0].handle_type = handleTypes[0]
-                curveElement.points[1].location = controlPts[1]
-                curveElement.points[1].handle_type = handleTypes[1]
+                curveElement.points[0].location = clusterControlPts[0]
+                curveElement.points[0].handle_type = clusterHandleTypes[0]
+                curveElement.points[1].location = clusterControlPts[1]
+                curveElement.points[1].handle_type = clusterHandleTypes[1]
+            
+            operator.report({'INFO'}, f"in init_properties: len(clusterControlPts[clusterIndex = {clusterIndex}]): {len(clusterControlPts[clusterIndex])}")
+                            
+            if len(clusterControlPts[clusterIndex]) > 2:
+                for i in range(2, len(clusterControlPts[clusterIndex])):
+                    curveElement.points.new(curveElement.points[len(curveElement.points) - 1].location.x, curveElement.points[len(curveElement.points) - 1].location.y)
+                    curveElement.points[len(curveElement.points) - 1].location.x = clusterControlPts[clusterIndex][i][0]
+                    curveElement.points[len(curveElement.points) - 1].location.y = clusterControlPts[clusterIndex][i][1]
                 
-                if len(controlPts) > 2:
-                    for i in range(2, len(controlPts)):
-                        curveElement.points.new(curveElement.points[len(curveElement.points) - 1].location.x, curveElement.points[len(curveElement.points) - 1].location.y)
-                        curveElement.points[len(curveElement.points) - 1].location.x = clusterControlPts[clusterIndex][i][0]
-                        curveElement.points[len(curveElement.points) - 1].location.y = clusterControlPts[clusterIndex][i][1]
-                
-                        curveElement.points[len(curveElement.points) - 1].handle_type = clusterHandleTypes[clusterIndex][i]
+                    curveElement.points[len(curveElement.points) - 1].handle_type = clusterHandleTypes[clusterIndex][i]
+
+                    operator.report({'INFO'}, f"in init_properties: curveElement.points.location.x: {curveElement.points[len(curveElement.points) - 1].location.x}")
             
             nodeGroups.nodes[props.treeSettings.curveNodeMaps[curve_name].node_name].mapping.update()
             
@@ -1626,7 +1654,13 @@ def init_properties(data, props, operator): # props = context.scene
             props.taperFactorList[i].taperFactor = value
         
         for i, value in enumerate(data.get("useTaperCurveList", [])):
-            props.branchClusterSettingsList[i].useTaperCurve = value
+            #props.branchClusterSettingsList[i].useTaperCurve = value
+            # TODO: execute operator! useTaperCurve... (for stem and branches!)
+            # scene.toggle_use_taper_curve
+            settings = props.branchClusterSettingsList[i]
+            wasEnabled = settings.useTaperCurve
+            if wasEnabled != value:
+                bpy.ops.scene.toggle_use_taper_curve(i)
             
         for i, value in enumerate(data.get("ringResolutionList", [])):
             props.branchClusterSettingsList[i].ringResolution = value

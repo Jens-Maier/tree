@@ -906,8 +906,7 @@ class treeGenerator:
                     length = len(splitHeightInLevelList)
                     if length < int(branchClusterSettingsList[clusterIndex].nrSplitsPerBranch * branchClusterSettingsList[clusterIndex].nrBranches):
                         for i in range(length, nrSplits):
-                            newHeight = splitHeightInLevelList.add()
-                            newHeight = 0.5
+                            splitHeightInLevelList.add()
                             
                     branchClusterSettingsList[clusterIndex].maxSplitHeightUsed = splitBranches(treeGen,
                         rootNode, 
@@ -1474,6 +1473,7 @@ def generateVerticesAndTriangles(self,
         vertices = []
         normals = []
         vertexTvalGlobal = []
+        vertexTvalBranch = []
         ringAngle = []
         faces = []
         #faceUVs = []
@@ -1542,6 +1542,10 @@ def generateVerticesAndTriangles(self,
                         vertices.append(v)
                         normals.append(normalVector)
                         vertexTvalGlobal.append(tVal)
+                        if segments[s].clusterIndex == -1:
+                            vertexTvalBranch.append(tVal)
+                        else:
+                            vertexTvalBranch.append(tValBranch)
                         ringAngle.append(angle)
                         
                         counter += 1
@@ -1642,17 +1646,22 @@ def generateVerticesAndTriangles(self,
         
         mesh = treeObject.data
         
-        if "tVal" not in mesh.attributes:
-            bpy.ops.geometry.attribute_add(name="tVal", domain='POINT', data_type='FLOAT')
+        if "tValGlobal" not in mesh.attributes:
+            bpy.ops.geometry.attribute_add(name="tValGlobal", domain='POINT', data_type='FLOAT')
+
+        if "tValBranch" not in mesh.attributes:
+            bpy.ops.geometry.attribute_add(name="tValBranch", domain='POINT', data_type='FLOAT')
         
         if "ringAngle" not in mesh.attributes:
             bpy.ops.geometry.attribute_add(name="ringAngle", domain='POINT', data_type='FLOAT')
         
-        tValAttribute = mesh.attributes["tVal"]
+        tValGlobalAttribute = mesh.attributes["tValGlobal"]
+        tValBranchAttribute = mesh.attributes["tValBranch"]
         ringAngleAttribute = mesh.attributes["ringAngle"]
         
         for i, vertex in enumerate(mesh.vertices):
-            tValAttribute.data[i].value = vertexTvalGlobal[i]
+            tValGlobalAttribute.data[i].value = vertexTvalGlobal[i]
+            tValBranchAttribute.data[i].value = vertexTvalBranch[i]
             ringAngleAttribute.data[i].value = ringAngle[i] / (2.0 * math.pi)
         
         treeObject.data.materials.clear()

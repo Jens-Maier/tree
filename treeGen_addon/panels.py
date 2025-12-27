@@ -181,7 +181,7 @@ class treeSettingsPanel(bpy.types.Panel):
             row = layout.row()
             curve_node = myCurveData('Stem', context)
             if curve_node:
-                layout.template_curve_mapping(curve_node, "mapping") 
+                layout.template_curve_mapping(curve_node, "mapping", use_negative_slope = True) 
             else:
                 layout.label(text="Curve data not available. ", icon='ERROR')
 
@@ -420,7 +420,7 @@ class branchSettings(bpy.types.Panel):
                         curve_name = ensure_branch_curve_node(self, i)
                         branch_curve_node = myCurveData(curve_name, context)
                         if branch_curve_node:
-                            box3.template_curve_mapping(branch_curve_node, "mapping")
+                            box3.template_curve_mapping(branch_curve_node, "mapping", use_negative_slope = True)
                         else:
                             box3.label(text="Curve data not available. ", icon='ERROR')
 

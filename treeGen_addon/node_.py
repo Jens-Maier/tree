@@ -1,4 +1,5 @@
 from mathutils import Vector, Quaternion
+import bpy
 
 from . import treegen_utils_
 from . import rotation_step

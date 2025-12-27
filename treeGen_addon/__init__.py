@@ -11,6 +11,7 @@ bl_info = {
 }
 
 import importlib
+import mathutils
 import bpy
 
 # only for tooltips
@@ -50,7 +51,8 @@ for module_name in import_modules:
         globals()[module_name] = importlib.import_module(full_name)
         print(f"{full_name} imported successfully")
     except ImportError as e:
-        print(f"Error importing {full_name}")
+        print(f"Error importing {full_name}: {e}")
+        raise
 
 #for name in names:
 #    try:
