@@ -7,6 +7,7 @@ namespace treeGenNamespace
 {
     public class branchClusterSettings
     {
+        public List<bool> parentClusters;
         public int nrBranches;
         public int treeShape;
         public int branchShape;
@@ -62,13 +63,20 @@ namespace treeGenNamespace
         public float outwardAttraction;
         public float branchSplitHeightVariation;
         public float branchSplitLengthVariation;
+        public List<float> branchSplitHeightInLevel;
 
 
 
-
-        public branchClusterSettings()
+        public branchClusterSettings(int i)
         {
             nrBranches = 0;
+            parentClusters = new List<bool>();
+            for (int n = 0; n < i; n++)
+            {
+                parentClusters.Add(false);
+            }
+            parentClusters[0] = true;
+            branchSplitHeightInLevel = new List<float>();
         }
     }
 
@@ -89,12 +97,25 @@ namespace treeGenNamespace
         public float rotateAngleBranchStart;
         public float rotateAngleBranchEnd;
         public float tiltAngleBranchStart;
-        public float tiltAnlgeBranchEnd;
+        public float tiltAngleBranchEnd;
+        public List<bool> leafParentClusters;
 
 
-        public leafClusterSettings()
+        public leafClusterSettings(int n)
         {
             leafDensity = 0f;
+            leafParentClusters = new List<bool>();
+            for (int i = 0; i <= n; i++)
+            {
+                if (i == 0)
+                {
+                    leafParentClusters.Add(true);
+                }
+                else
+                {
+                    leafParentClusters.Add(false);
+                }
+            }
         }
     }
 
@@ -123,6 +144,7 @@ namespace treeGenNamespace
         public int stemSplitMode;
         public float stemSplitRotateAngle;
         public float curvOffsetStrength;
+        public List<float> stemSplitHeightInLevel;
         public float splitHeightVariation;
         public float splitLengthVariation;
         public float stemSplitAngle;
@@ -138,6 +160,7 @@ namespace treeGenNamespace
         public treeSettings()
         {
             Debug.Log("initialising treeSettings");
+            stemSplitHeightInLevel = new List<float>();
             branchSettings = new List<branchClusterSettings>();
             leafSettings = new List<leafClusterSettings>();
         }
