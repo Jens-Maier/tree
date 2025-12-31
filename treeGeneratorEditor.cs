@@ -308,8 +308,9 @@ namespace treeGenNamespace
                 for (int i = 0; i < settings.nrBranchClusters; i++)
                 {
                     EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-
+                    EditorGUI.indentLevel++;
                     showBranchCluster[i] = EditorGUILayout.Foldout(showBranchCluster[i], "Branch cluster " + i, true);
+                    
 
                     if (showBranchCluster[i] == true)
                     {
@@ -575,8 +576,8 @@ namespace treeGenNamespace
                         {
                             settings.branchSettings[i].branchSplitHeightInLevel[j] = EditorGUILayout.Slider("Level " + j, settings.branchSettings[i].branchSplitHeightInLevel[j], 0f, 1f);
                         }
+                        EditorGUI.indentLevel--;
                         EditorGUILayout.EndVertical();
-    
 
                     }
 
