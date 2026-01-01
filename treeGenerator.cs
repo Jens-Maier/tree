@@ -107,7 +107,8 @@ namespace treeGenNamespace
             {
                 if (next.Count > 1)
                 {
-                    UnityEngine.Debug.Log("adding segment");
+                    UnityEngine.Debug.Log("segments count before: " + segments.Count);
+                    UnityEngine.Debug.Log("adding segment: point" + point + " (next.Count: " + next.Count + ")");
                     segments.Add(new segment(clusterIndex, 
                                             point, 
                                             nextNode.point, 
@@ -131,8 +132,8 @@ namespace treeGenNamespace
                 }
                 else
                 {
-                    UnityEngine.Debug.Log("adding segment: point: " + point);
                     UnityEngine.Debug.Log("segments count before: " + segments.Count);
+                    UnityEngine.Debug.Log("adding segment: point: " + point);
                     segments.Add(new segment(clusterIndex, 
                                             point, 
                                             nextNode.point, 
@@ -153,9 +154,8 @@ namespace treeGenNamespace
                                             1f, // longestBranchLengthInCluster, 
                                             taper, 
                                             nextNode.taper));
-
-                    nextNode.getAllSegments(rootNode, segments, true);
                 }
+                nextNode.getAllSegments(rootNode, segments, true);
                 n += 1;
             }
         
@@ -437,14 +437,11 @@ namespace treeGenNamespace
 
             splitProbabilityInLevel[addToLevel] = (float)expectedSplitsInLevel[addToLevel] / (float)maxPossibleSplits;
 
-            //nodesInLevelNextIndex = [[] for _ in range(nrSplits + 1)]
             List<List<(node, int)>> nodesInLevelNextIndex = new List<List<(node, int)>>();
             for (int i = 0; i < nrSplits + 1; i++)
             {
                 nodesInLevelNextIndex.Add(new List<(node, int)>());
             }
-            //for n in range(len(startNode.next)):
-            //    nodesInLevelNextIndex[0].append((startNode, n))
             for (int n = 0; n < startNode.next.Count; n++)
             {
                 nodesInLevelNextIndex[0].Add((startNode, n));
@@ -694,7 +691,8 @@ namespace treeGenNamespace
                        int stemRingResolution, 
                        float curvOffsetStrength, 
                        List<UnityEngine.Vector3> outwardDir)
-        {    
+        {
+            UnityEngine.Debug.Log("in calculateSplitData() splitNode.point: " + splitNode.point);
             node n = splitNode;
             int nodesAfterSplitNode = 0;
 
