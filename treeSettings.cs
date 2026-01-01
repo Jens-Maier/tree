@@ -126,7 +126,7 @@ namespace treeGenNamespace
         public float taper;
         public float branchTipRadius;
         public float ringSpacing;
-        public int stemRingRes;
+        public int stemRingResolution;
         public float resampleDistance;
 
         public float noiseAmplitudeVertical;

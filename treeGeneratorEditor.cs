@@ -146,14 +146,14 @@ namespace treeGenNamespace
                 {
                     settings.ringSpacing = newRingSpacing;
                 }
-                int newStemRingRes = EditorGUILayout.IntField("Stem Ring Resolution", settings.stemRingRes);
-                if (newStemRingRes >= 3)
+                int newStemRingResolution = EditorGUILayout.IntField("Stem Ring Resolution", settings.stemRingResolution);
+                if (newStemRingResolution >= 3)
                 {
-                    settings.stemRingRes = newStemRingRes;
+                    settings.stemRingResolution = newStemRingResolution;
                 }
                 else
                 {
-                    settings.stemRingRes = 3;
+                    settings.stemRingResolution = 3;
                 }
                 float newResampleDistance = EditorGUILayout.FloatField("Resample Distance", settings.resampleDistance);
                 if (newResampleDistance > 0f)
