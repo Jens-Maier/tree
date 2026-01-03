@@ -543,7 +543,7 @@ namespace treeGenNamespace
                         settings.branchSettings[i].branchSplitMode = (int)branchSplitMode[i];
                         if (branchSplitMode[i] == splitMode.rotateAngle)
                         {
-                            settings.branchSettings[i].branchSplitRotateAnlge = EditorGUILayout.FloatField("Branch split rotate angle", settings.   branchSettings[i].branchSplitRotateAnlge);
+                            settings.branchSettings[i].branchSplitRotateAngle = EditorGUILayout.FloatField("Branch split rotate angle", settings.   branchSettings[i].branchSplitRotateAngle);
                         }
                         else
                         {

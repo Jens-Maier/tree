@@ -7,6 +7,7 @@ using System.Security.Cryptography.X509Certificates;
 using UnityEngine;
 using System.Drawing;
 using System.Diagnostics;
+using System.Text;
 
 namespace treeGenNamespace
 {
@@ -58,6 +59,313 @@ namespace treeGenNamespace
             endTaper = EndTaper;
         }
     }
+
+    public class startNodeInfo
+    {
+        public node startNode;
+        public int nextIndex;
+        public float startTval;
+        public float endTval;
+        public float startTvalGlobal;
+        public float endTvalGlobal;
+
+        public startNodeInfo(node StartNode, int NextIndex, float StartTval, float EndTval, float StartTvalGlobal, float EndTvalGlobal)
+        {
+            startNode = StartNode;
+            nextIndex = NextIndex;
+            startTval = StartTval;
+            endTval = EndTval;
+            startTvalGlobal = StartTvalGlobal;
+            endTvalGlobal = EndTvalGlobal;
+        }
+    }
+
+    public class StartPointData
+    {
+        public UnityEngine.Vector3 startPoint;
+        public float startPointTvalGlobal;
+        public UnityEngine.Vector3 outwardDir;
+        public node startNode;
+        public int startNodeIndex;
+        public int startNodeNextIndex;
+        public float t;
+        public UnityEngine.Vector3 tangent;
+        public UnityEngine.Vector3 cotangent;
+        public float rotateAngleRange;
+
+        public StartPointData(UnityEngine.Vector3 StartPoint, float StartPointTvalGlobal, UnityEngine.Vector3 OutwardDir, node StartNode, int StartNodeIndex, int StartNodeNextIndex, float T, UnityEngine.Vector3 Tangent, UnityEngine.Vector3 Cotangent)
+        {
+            startPoint = StartPoint;
+            startPointTvalGlobal = StartPointTvalGlobal;
+            outwardDir = OutwardDir;
+            startNode = StartNode;
+            startNodeIndex = StartNodeIndex;
+            startNodeNextIndex = StartNodeNextIndex;
+            t = T;
+            tangent = Tangent;
+            cotangent = Cotangent;
+            rotateAngleRange = 0f;
+        }
+        
+        static UnityEngine.Vector3 sampleSplineT(UnityEngine.Vector3 start, UnityEngine.Vector3 end, UnityEngine.Vector3 startTangent, UnityEngine.Vector3 endTangent, float t)
+        {
+            UnityEngine.Vector3 controlPt1 = start + norm(startTangent) * (end - start).magnitude / 3.0f;
+            UnityEngine.Vector3 controlPt2 = end - norm(endTangent) * (end - start).magnitude / 3.0f;
+            return (1.0f - t)*(1.0f - t)*(1.0f - t) * start + 3.0f * (1.0f - t)*(1.0f - t) * t * controlPt1 + 3.0f * (1.0f - t) * t*t * controlPt2 + t*t*t * end;
+        }
+
+        static UnityEngine.Vector3 norm(UnityEngine.Vector3 v)
+        {
+            if (v ==  new UnityEngine.Vector3(0f, 0f, 0f))
+            {
+                return v;
+            }
+            else
+            {
+                return v / v.magnitude;
+            }
+        }
+
+        static float length(UnityEngine.Vector3 v)
+        {
+            return v.magnitude;
+        }
+
+        static UnityEngine.Vector3 lerp(UnityEngine.Vector3 a, UnityEngine.Vector3 b, float t)
+        {
+            return a + t * (b - a);
+        }
+
+        public static StartPointData generateStartPointData(List<startNodeInfo> startNodesNextIndexStartTvalEndTval, List<float> segmentLengths, float branchPos, UnityEngine.Vector3 treeGrowDir, node rootNode, float treeHeight, bool calledFromAddLeaves)
+        {
+            float accumLength = 0f;
+            int startNodeIndex = 0;
+            float tVal = 0f;
+            float startPointTvalGlobal = 0f;
+
+            for (int i = 0; i < segmentLengths.Count; i++)
+            {
+                if (accumLength + segmentLengths[i] >= branchPos)
+                {
+                    startNodeIndex = i;
+                    float segStart = accumLength;
+                    float segLen = segmentLengths[i];
+                    if (segLen > 0f)
+                    {
+                        tVal = (branchPos - segStart) / segLen;
+                    }
+                    float startTval = startNodesNextIndexStartTvalEndTval[startNodeIndex].startTval;
+                    float endTval = startNodesNextIndexStartTvalEndTval[startNodeIndex].endTval;
+                    node startNode = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode;
+                    node nextNode = startNode.next[startNodesNextIndexStartTvalEndTval[startNodeIndex].nextIndex];
+
+                    tVal = startTval + tVal * (endTval - startTval);
+                    startPointTvalGlobal = startNode.tValGlobal + tVal * (nextNode.tValGlobal - startNode.tValGlobal);
+                    break;
+                }
+                accumLength += segmentLengths[i];
+            }
+            int startNodeNextIndex = startNodesNextIndexStartTvalEndTval[startNodeIndex].nextIndex;
+            node nStart = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode;
+            UnityEngine.Vector3 tangent = new UnityEngine.Vector3(0f, 0f, 0f);
+
+            if (startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next.Count > 1)
+            {
+                tangent = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tangent[startNodeNextIndex + 1];
+            }
+            else
+            {
+                tangent = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tangent[0];
+            }
+
+            UnityEngine.Vector3 startPoint = sampleSplineT(startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point, 
+                                                    startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point, 
+                                                    tangent,
+                                                    startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].tangent[0], 
+                                                    tVal);
+
+            UnityEngine.Vector3 nextTangent = norm(norm(treeGrowDir) * treeHeight - (rootNode.point + rootNode.tangent[0] * length(norm(treeGrowDir) * treeHeight - rootNode.point) * (1.5f / 3f)));
+
+            UnityEngine.Vector3 centerPoint = sampleSplineT(rootNode.point, norm(treeGrowDir) * treeHeight, new UnityEngine.Vector3(0f, 1f, 0f), nextTangent, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal);
+
+            UnityEngine.Vector3 startPointCotangent = lerp(startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.cotangent, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent, tVal);
+
+            UnityEngine.Vector3 outwardDir = lerp(startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal) - centerPoint;
+
+            if (outwardDir == new UnityEngine.Vector3(0f, 0f, 0f))
+            {
+                outwardDir = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent;
+            }
+
+            outwardDir = new UnityEngine.Vector3(outwardDir.x, 0f, outwardDir.z);
+
+            if (outwardDir == new UnityEngine.Vector3(0f, 0f, 0f))
+            {
+                outwardDir = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent;
+            }
+
+            outwardDir = norm(outwardDir);
+
+            return new StartPointData(startPoint, startPointTvalGlobal, outwardDir, nStart, startNodeIndex, startNodeNextIndex, tVal, tangent, startPointCotangent);
+        }
+
+        static float getAngle(UnityEngine.Vector3 v)
+        {
+            float angle = MathF.Atan2(v.z, v.x);
+            return (angle + 2f * MathF.PI) % (2f * MathF.PI);
+        }
+
+        public static (UnityEngine.Vector3, UnityEngine.Vector3, UnityEngine.Vector3, UnityEngine.Vector3, float, float) findClosestVectors(List<UnityEngine.Vector3> vectors, UnityEngine.Vector3 targetVector)
+        {
+            float targetAngle = getAngle(targetVector);
+
+            float minClockwiseDiff = 2f * MathF.PI;
+            UnityEngine.Vector3 closestClockwiseVector = new UnityEngine.Vector3(0f, 0f, 0f);
+
+            float minAnticlockwiseDiff = 2f * MathF.PI;
+            UnityEngine.Vector3 closestAnticlockwiseVector = new UnityEngine.Vector3(0f, 0f, 0f);
+
+            foreach (UnityEngine.Vector3 v in vectors)
+            {
+                float vectorAngle = getAngle(v);
+
+                // Calculate clockwise difference
+                // This handles the wrap-around from 0 to 360
+                float clockwiseDiff = (targetAngle - vectorAngle + 2f * MathF.PI) % (2f * MathF.PI);
+                if (clockwiseDiff < minClockwiseDiff && clockwiseDiff != 0f)
+                {
+                    minClockwiseDiff = clockwiseDiff;
+                    closestClockwiseVector = v;
+                }
+
+                // Calculate anticlockwise difference
+                // This also handles the wrap-around
+                float anticlockwiseDiff = (vectorAngle - targetAngle + 2f * MathF.PI) % (2f * MathF.PI);
+                if (anticlockwiseDiff < minAnticlockwiseDiff && anticlockwiseDiff != 0f)
+                {
+                    minAnticlockwiseDiff = anticlockwiseDiff;
+                    closestAnticlockwiseVector = v;
+                }
+            }
+
+            // Handle the case where the target vector is not found in the list, but one of the vectors is the same.
+            if (closestClockwiseVector == new UnityEngine.Vector3(0f, 0f, 0f))
+            {
+                closestClockwiseVector = closestAnticlockwiseVector;
+            }
+            if (closestAnticlockwiseVector == new UnityEngine.Vector3(0f, 0f, 0f))
+            {
+                closestAnticlockwiseVector = closestClockwiseVector;
+            }
+
+            float clockwiseAngleRange = minClockwiseDiff / 2f;
+            float anticlockwiseAngleRange = minAnticlockwiseDiff / 2f;
+
+            UnityEngine.Vector3 halfClosestClockwiseVector = UnityEngine.Quaternion.AngleAxis(-clockwiseAngleRange, new UnityEngine.Vector3(0f, 1f, 0f)) * targetVector;
+            UnityEngine.Vector3 halfClosestAnticlockwiseVector = UnityEngine.Quaternion.AngleAxis(anticlockwiseAngleRange, new UnityEngine.Vector3(0f, 1f, 0f)) * targetVector;
+
+            return (closestClockwiseVector, closestAnticlockwiseVector, halfClosestClockwiseVector, halfClosestAnticlockwiseVector, clockwiseAngleRange, anticlockwiseAngleRange);
+        }
+    }
+
+    public class DummyStartPointData
+    {
+        List<StartPointData> dummyStartPoints = new List<StartPointData>(); 
+        // for all other stems at same height as startPoint
+
+        public static (List<StartPointData>, UnityEngine.Vector3) generateDummyStartPointData(node rootNode, StartPointData startPointDatum)
+        {
+            UnityEngine.Debug.Log("in generateDummyStartPointData()");
+            List<UnityEngine.Vector3> parallelPoints = new List<UnityEngine.Vector3>();
+            rootNode.getAllParallelStartPoints(startPointDatum.startPointTvalGlobal, startPointDatum.startNode, parallelPoints);
+
+            List<StartPointData> dummyStartPointData = new List<StartPointData>();
+            UnityEngine.Vector3 centerPoint = startPointDatum.startPoint;
+            int n = 1;
+            foreach (UnityEngine.Vector3 p in parallelPoints)
+            {
+                centerPoint += p;
+                n += 1;
+            }
+            centerPoint = centerPoint / (float)n;
+
+            foreach (UnityEngine.Vector3 p in parallelPoints)
+            {
+                dummyStartPointData.Add(new StartPointData(p, startPointDatum.startPointTvalGlobal, new UnityEngine.Vector3(0f, 0f, 0f), null, 0, 0, 0f, new UnityEngine.Vector3(0f, 0f, 0f), new UnityEngine.Vector3(0f, 0f, 0f)));
+            }
+            return (dummyStartPointData, centerPoint);
+        }
+
+        
+    }
+
+    
+
+    //     # Handle the case where the target vector is not found in the list, but one of the vectors is the same.
+    //     if closest_clockwise_vector is None:
+    //         closest_clockwise_vector = closest_anticlockwise_vector
+    //     if closest_anticlockwise_vector is None:
+    //         closest_anticlockwise_vector = closest_clockwise_vector
+    //         
+    //     clockwise_angle_range = min_clockwise_diff / 2.0
+    //     anticlockwise_angle_range = min_anticlockwise_diff / 2.0
+    //     #treeGen.report({'INFO'}, f"clockwise_angle_range: {clockwise_angle_range}")
+    //     #treeGen.report({'INFO'}, f"anticlockwise_angle_range: {anticlockwise_angle_range}")
+    //     
+    //     half_closest_clockwise_vector = Quaternion(Vector((0.0,0.0,1.0)), -clockwise_angle_range) @ target_vector
+    //     half_closest_anticlockwise_vector = Quaternion(Vector((0.0,0.0,1.0)), anticlockwise_angle_range) @ target_vector
+    //     
+    //     return closest_clockwise_vector, closest_anticlockwise_vector, half_closest_clockwise_vector, half_closest_anticlockwise_vector, // clockwise_angle_range, anticlockwise_angle_range
+    // 
+    // def register():
+    //     print("in startPointData: register")
+// 
+    // def unregister():
+    //     print("in startPointData: unregister")
+
+    
+    
+// class DummyStartPointData():
+//     def __init__(self):
+//         self.dummyStartPoints = [] # for all other stems at same height as startPoint
+//         
+//     def generateDummyStartPointData(treeGen, rootNode, startPointDatum):
+//         
+//         #treeGen.report({'INFO'}, "in generateDummyStartPointData()")
+//         parallelPoints = []
+//         rootNode.getAllParallelStartPoints(treeGen, startPointDatum.startPointTvalGlobal, startPointDatum.startNode, parallelPoints)
+//         
+//         dummyStartPointData = []
+//         centerPoint = Vector(startPointDatum.startPoint)
+//         n = 1
+//         for p in parallelPoints:
+//             centerPoint += p
+//             n += 1
+//         centerPoint = centerPoint / n
+//         
+//         for p in parallelPoints:
+//             dummyStartPointData.append(StartPointData(p, startPointDatum.startPointTvalGlobal, Vector((0.0,0.0,0.0)), None, 0, 0, 0, Vector((0.0,0.0,0.// 0)), Vector((0.0,0.0,0.0))))
+//         
+//         return (dummyStartPointData, centerPoint)
+// 
+// 
+//         
+//     def register():
+//         print("in DummyStartPointData: register")
+//     
+//     def unregister():
+//         print("in DummyStartPointData: unregister")
+//         
+//         
+// def register():
+//     print("register StartPointData")
+//     StartPointData.register()
+//     DummyStartPointData.register()
+//     
+// def unregister():
+//     StartPointData.unregister()
+//     DummyStartPointData.unregister()
+//     print("unregister StartPointData")
 
     public class node
     {
@@ -166,6 +474,49 @@ namespace treeGenNamespace
                     b.getAllSegments(rootNode, segments, false);
                 }
             }
+        }
+
+        public void getAllStartNodes(List<startNodeInfo> startNodesNextIndexStartTvalEndTval, 
+                                     List<List<startNodeInfo>> branchNodesNextIndexStartTvalEndTval,
+                                     int activeBranchIndex, 
+                                     float startHeightGlobal, 
+                                     float endHeightGlobal, 
+                                     float startHeightCluster, 
+                                     float endHeightCluster, 
+                                     List<List<bool>> parentClusterBoolListList, 
+                                     int newClusterIndex)
+        {
+            
+        }
+
+        public void getAllParallelStartPoints(float startPointTvalGlobal, node startNode, List<UnityEngine.Vector3> parallelPoints)
+        {
+            
+        }
+
+        public void resampleSpline(node rootNode, float resampleDistance)
+        {
+            
+        }
+
+        public void attractOutward(float outwardAttraction, UnityEngine.Vector3 outwardDir)
+        {
+            
+        }
+
+        public void applyCurvature(node rootNode, 
+                                   UnityEngine.Vector3 treeGrowDir, 
+                                   float treeHeight, 
+                                   float branchGlobalCurvatureStart, 
+                                   float branchCurvatureStart,
+                                   float branchGlobalCurvatureEnd, 
+                                   float branchCurvatureEnd,
+                                   int clusterIndex,
+                                   UnityEngine.Vector3 point,
+                                   float reducedCurveStepCutoff,
+                                   float reducedCurveStepFactor)
+        {
+            
         }
     }
 
@@ -787,7 +1138,698 @@ namespace treeGenNamespace
                     previousNodeB = nodeB;
                 }
             }
+        }
 
+        void addBranches(
+            float resampleDistance,
+            node rootNode, 
+            int branchClusters,
+
+            List<branchClusterSettings> branchClusterSettingsList,
+
+            List<List<bool>> parentClusterBoolListList, 
+
+            UnityEngine.Vector3 treeGrowDir, 
+            float treeHeight, 
+            float taper, 
+            List<float> taperFactorList, 
+
+            List<List<float>> branchSplitHeightInLevelListList) //,
+            //noiseGenerator):
+            {
+            //treeGen.report({'INFO'}, f"in addBranches(): branchClusters: {branchClusters}")
+            
+            for (int clusterIndex = 0; clusterIndex < branchClusters; clusterIndex++)
+            {
+                int nrBranches = branchClusterSettingsList[clusterIndex].nrBranches;
+                float branchesStartHeightGlobal = branchClusterSettingsList[clusterIndex].branchesStartHeightGlobal;
+                float branchesEndHeightGlobal = branchClusterSettingsList[clusterIndex].branchesEndHeightGlobal;
+                float branchesStartHeightCluster = branchClusterSettingsList[clusterIndex].branchesStartHeightCluster;
+                float branchesEndHeightCluster = branchClusterSettingsList[clusterIndex].branchesEndHeightCluster;
+                float branchesStartPointVariation = branchClusterSettingsList[clusterIndex].branchesStartPointVariation;
+                
+                List<startNodeInfo> startNodesNextIndexStartTvalEndTval = new List<startNodeInfo>();
+                List<List<startNodeInfo>> branchNodesNextIndexStartTvalEndTval = new List<List<startNodeInfo>>();
+                List<node> branchNodes = new List<node>();
+                List<UnityEngine.Vector3> centerDirs = new List<UnityEngine.Vector3>();
+
+                for (int i = 0; i < branchClusterSettingsList[clusterIndex].nrBranches; i++)
+                {
+                    branchNodesNextIndexStartTvalEndTval.Add(new List<startNodeInfo>());
+                }
+                
+                if (parentClusterBoolListList.Count > 0)
+                {
+                    rootNode.getAllStartNodes(
+                        startNodesNextIndexStartTvalEndTval, 
+                        branchNodesNextIndexStartTvalEndTval,
+                        -1, 
+                        branchesStartHeightGlobal, 
+                        branchesEndHeightGlobal, 
+                        branchesStartHeightCluster, 
+                        branchesEndHeightCluster, 
+                        parentClusterBoolListList, 
+                        clusterIndex);
+                }
+                
+                //treeGen.report({'INFO'}, f"in addBranches(): len(startNodes): {len(startNodesNextIndexStartTvalEndTval)}")   
+                if (startNodesNextIndexStartTvalEndTval.Count > 0)
+                {
+                    List<float> segmentLengths = new List<float>();
+                    
+                    float totalLength = calculateSegmentLengthsAndTotalLength(startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster);
+                    
+                    UnityEngine.Debug.Log("in addBranches(): totalLength: " + totalLength);
+            
+                    List<StartPointData> startPointData = new List<StartPointData>();
+                    List<float> branchPositions = new List<float>();
+                    
+                    for (int branchIndex = 0; branchIndex < nrBranches; branchIndex++)
+                    {
+                        float branchPos = branchIndex * totalLength / nrBranches + UnityEngine.Random.Range(-branchesStartPointVariation, branchesStartPointVariation);
+                        if (branchPos < 0f)
+                        {
+                            branchPos = 0f;
+                        }
+                        if (branchPos > totalLength)
+                        {
+                            branchPos = totalLength;
+                        }
+                        branchPositions.Add(branchPos);
+                        startPointData.Add(StartPointData.generateStartPointData(startNodesNextIndexStartTvalEndTval, segmentLengths, branchPos, treeGrowDir, rootNode, treeHeight, false));
+                    }
+
+                    //treeGen.report({'INFO'}, "before sorting:")
+                    //for data in startPointData:
+                    //    treeGen.report({'INFO'}, f"outwardDir: {data.outwardDir}")
+                    
+                    //startPointData.sort(key=lambda x: x.startPointTvalGlobal)
+                    startPointData.Sort((a, b) => a.startPointTvalGlobal.CompareTo(b.startPointTvalGlobal));
+
+            
+                    //#treeGen.report({'INFO'}, "after sorting:")
+                    //#for n, data in enumerate(startPointData):
+                    //#    treeGen.report({'INFO'}, f"startPointData[{n}].outwardDir: {data.outwardDir}")
+                    
+                    List<List<StartPointData>> dummyStartPointData = new List<List<StartPointData>>();
+                    List<UnityEngine.Vector3> centerPoints = new List<UnityEngine.Vector3>();
+                    List<float> rightRotationRange = new List<float>();
+                    List<float> leftRotationRange = new List<float>();
+                    foreach (StartPointData data in startPointData)
+                    {
+                        (List<StartPointData> dummyData, UnityEngine.Vector3 centerPoint) = DummyStartPointData.generateDummyStartPointData(rootNode, data);
+                        dummyStartPointData.Add(dummyData);
+                        centerPoints.Add(centerPoint);
+                        // generates all parallel start points for one startPoint
+                    }
+                    // -> calculate outwardDir per startPoint startPointData.outwardDir
+                    
+                    // calculate right and left dummy neighbor
+                    for (int n = 0; n < dummyStartPointData.Count; n++) // n: branchIndex
+                    {
+                        // -> calculate rotate angle range per startPoint
+                        float startPointAngle = MathF.Atan2(startPointData[n].outwardDir.x, startPointData[n].outwardDir.z);
+
+                        List<UnityEngine.Vector3> directions = new List<UnityEngine.Vector3>();
+                        foreach (StartPointData data in dummyStartPointData[n])
+                        {
+                            directions.Add(new UnityEngine.Vector3((data.startPoint - centerPoints[n]).x, (data.startPoint - centerPoints[n]).z, 0f));
+                        }
+
+                        (UnityEngine.Vector3 cwVector, UnityEngine.Vector3 acwVector, UnityEngine.Vector3 halfCwVector, UnityEngine.Vector3 halfAcwVector, float halfAngleCW, float halfAngleACW) = StartPointData.findClosestVectors(directions, startPointData[n].outwardDir); // -> adaptive rotate angle range !!!
+
+                        rightRotationRange.Add(halfAngleCW);
+                        leftRotationRange.Add(halfAngleACW);
+                    }
+
+                    for (int n = 0; n < startPointData.Count; n++)
+                    {
+                        UnityEngine.Debug.Log("startPointData[n].startPoint: " + startPointData[n].startPoint);
+                        UnityEngine.Debug.Log("centerPoints[" + n + "]: " + centerPoints[n]);
+                        if (length(startPointData[n].startPoint - centerPoints[n]) > 0.0001f)
+                        {
+                            startPointData[n].outwardDir = startPointData[n].startPoint - centerPoints[n];
+                            UnityEngine.Debug.Log("re-asigning startPointData[" + n + "].outwardDir: " + startPointData[n].outwardDir);
+                        }
+                        else
+                        {
+                            UnityEngine.Debug.Log("setting startPointData[" + n + "].outwardDir = startPointData[" + n + "].startNode.cotangent");
+                            startPointData[n].outwardDir = startPointData[n].startNode.cotangent;
+                        }
+                    }
+                       
+                    float maxAngle = 0f;
+                    float minAngle = 0f;
+                    float windingAngle = 0f;
+                        
+                    for (int branchIndex = 0; branchIndex < nrBranches; branchIndex++)
+                    {
+                        StartPointData data = StartPointData.generateStartPointData(startNodesNextIndexStartTvalEndTval, segmentLengths, branchPositions[branchIndex], treeGrowDir, rootNode, treeHeight, false);
+
+                        UnityEngine.Vector3 startPointTangent = sampleSplineTangentT(data.startNode.point, 
+                                                                                     data.startNode.next[data.startNodeNextIndex].point, 
+                                                                                     data.tangent,
+                                                                                     data.startNode.next[data.startNodeNextIndex].tangent[0],
+                                                                                     data.t);
+                        
+                        float branchStartTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[data.startNodeNextIndex].tValGlobal, data.t);
+
+                        float globalVerticalAngle = lerp(branchClusterSettingsList[clusterIndex].verticalAngleCrownStart, branchClusterSettingsList[clusterIndex].verticalAngleCrownEnd, data.startNode.tValGlobal);
+
+                        float branchVerticalAngle = lerp(branchClusterSettingsList[clusterIndex].verticalAngleBranchStart, branchClusterSettingsList[clusterIndex].verticalAngleBranchEnd, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t));
+
+                        float verticalAngle = globalVerticalAngle + branchVerticalAngle;
+
+                        float globalRotateAngle = lerp(branchClusterSettingsList[clusterIndex].rotateAngleCrownStart, branchClusterSettingsList[clusterIndex].rotateAngleCrownEnd, branchStartTvalGlobal);
+
+                        float branchRotateAngle = lerp(branchClusterSettingsList[clusterIndex].rotateAngleBranchStart, branchClusterSettingsList[clusterIndex].rotateAngleBranchEnd, lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t));
+
+                        float rotateAngle = 0f;
+
+                        //public enum angleMode
+                        //{
+                        //    symmetric,
+                        //    winding, 
+                        //    adaptiveWinding
+                        //}
+
+                        UnityEngine.Vector3 branchDir = new UnityEngine.Vector3(0f, 0f, 0f);
+                            
+                        if (branchClusterSettingsList[clusterIndex].rotateAngleRange == 0f)
+                        {
+                            branchClusterSettingsList[clusterIndex].rotateAngleRange = MathF.PI;
+                        }
+                        if (branchClusterSettingsList[clusterIndex].branchAngleMode == 2) // adaptiveWinding
+                        {
+                            UnityEngine.Vector3 centerDir = data.outwardDir;
+                            centerDirs.Add(centerDir);
+
+                            float angle;
+                            if (rightRotationRange[branchIndex] + leftRotationRange[branchIndex] < 2f * MathF.PI)
+                            {
+                                angle = windingAngle % ((rightRotationRange[branchIndex] + leftRotationRange[branchIndex]) * branchClusterSettingsList[clusterIndex].rotateAngleRangeFactor) - leftRotationRange[branchIndex] * branchClusterSettingsList[clusterIndex].rotateAngleRangeFactor;
+                            }
+                            else
+                            {
+                                angle = windingAngle % (rightRotationRange[branchIndex] + leftRotationRange[branchIndex]) - leftRotationRange[branchIndex];
+                            }
+
+                            if (angle > maxAngle)
+                            {
+                                maxAngle = angle;
+                            }
+                            if (angle < minAngle)
+                            {
+                                minAngle = angle;
+                            }
+
+                            UnityEngine.Vector3 right = UnityEngine.Vector3.Cross(startPointData[branchIndex].outwardDir, startPointTangent);
+                            UnityEngine.Vector3 axis = -UnityEngine.Vector3.Cross(-centerDir, startPointTangent);
+
+                            branchDir = UnityEngine.Quaternion.AngleAxis(verticalAngle, axis) * startPointTangent;
+                            branchDir = UnityEngine.Quaternion.AngleAxis(angle, startPointTangent) * branchDir;
+                        }
+                        if (branchClusterSettingsList[clusterIndex].branchAngleMode == 1) // winding
+                        {
+                            UnityEngine.Vector3 centerDir = data.outwardDir;
+                            centerDirs.Add(centerDir);
+                            float angle;
+                            UnityEngine.Vector3 right;
+                            if (branchClusterSettingsList[clusterIndex].useFibonacciAngles == true)
+                            {
+                                angle = (windingAngle + 2f * MathF.PI) % (2f * MathF.PI);
+                                right = norm(UnityEngine.Vector3.Cross(startPointTangent, new UnityEngine.Vector3(1f, 0f, 0f))); // -> most likely vertical
+                            }
+                            else
+                            {
+                                if (branchClusterSettingsList[clusterIndex].rotateAngleRange <= 0f)
+                                {
+                                    branchClusterSettingsList[clusterIndex].rotateAngleRange = MathF.PI;
+                                }
+                                angle = windingAngle % branchClusterSettingsList[clusterIndex].rotateAngleRange + branchClusterSettingsList[clusterIndex].rotateAngleOffset - branchClusterSettingsList[clusterIndex].rotateAngleRange / 2f;
+                                right = UnityEngine.Vector3.Cross(data.outwardDir, startPointTangent);
+
+                                if (length(right) < 0.001f)
+                                {
+                                    UnityEngine.Vector3 d = data.startNode.next[data.startNodeNextIndex].point - data.startNode.point;
+                                    UnityEngine.Vector3 h = new UnityEngine.Vector3(d.x, 0f, d.z);
+                                    if (length(h) > 0.00001f)
+                                    {
+                                        right = UnityEngine.Vector3.Cross(h, data.startNode.tangent[0]);
+                                    }
+                                    else
+                                    {
+                                        right = new UnityEngine.Vector3(1f, 0f, 0f);
+                                    }
+                                }
+                                else
+                                {
+                                    right = norm(right);
+                                }
+                            }
+                            UnityEngine.Vector3 axis = norm(UnityEngine.Vector3.Cross(right, startPointTangent));
+                            branchDir = UnityEngine.Quaternion.AngleAxis(-verticalAngle, axis) * startPointTangent;
+                            branchDir = UnityEngine.Quaternion.AngleAxis(angle, startPointTangent) * branchDir;
+                        }
+
+                        if (branchClusterSettingsList[clusterIndex].branchAngleMode == 0) // symmetric
+                        {
+                            UnityEngine.Vector3 centerDir = UnityEngine.Quaternion.AngleAxis(-verticalAngle, UnityEngine.Vector3.Cross(startPointTangent, data.outwardDir)) * data.outwardDir;
+                            centerDirs.Add(centerDir);
+                            UnityEngine.Vector3 axis = norm(UnityEngine.Vector3.Cross(startPointTangent, centerDir));
+
+                            rotateAngle = globalRotateAngle + branchRotateAngle;
+                            UnityEngine.Vector3 right;
+                            if (branchIndex % 2 == 0)
+                            {
+                                right = norm(UnityEngine.Vector3.Cross(startPointTangent, new UnityEngine.Vector3(0f, 1f, 0f)));
+                                axis = norm(UnityEngine.Vector3.Cross(right, startPointTangent));
+                                branchDir = UnityEngine.Quaternion.AngleAxis(-verticalAngle, axis) * startPointTangent;
+                                branchDir = UnityEngine.Quaternion.AngleAxis(-rotateAngle, startPointTangent) * branchDir;
+                            }
+                            else
+                            {
+                                right = norm(UnityEngine.Vector3.Cross(startPointTangent, new UnityEngine.Vector3(0f, 1f, 0f)));
+                                axis = norm(UnityEngine.Vector3.Cross(right, startPointTangent));
+                                branchDir = UnityEngine.Quaternion.AngleAxis(verticalAngle, axis) * startPointTangent;
+                                branchDir = UnityEngine.Quaternion.AngleAxis(rotateAngle, startPointTangent) * branchDir;
+                            }
+                        }
+
+                        UnityEngine.Vector3 branchCotangent = new UnityEngine.Vector3(0f, 0f, 0f);
+                        //There is no single continuous function that can generate a vector in R3 that is orthogonal to a given one for all vector inputs. https://en.wikipedia.org/wiki/Hairy_ball_theorem
+
+                        if (branchDir.x != 0f)
+                        {
+                            branchCotangent = new UnityEngine.Vector3(-branchDir.z, 0f, branchDir.x);
+                        }
+                        else
+                        {
+                            if (branchDir.z != 0f)
+                            {
+                                branchCotangent = new UnityEngine.Vector3(0f, branchDir.z, -branchDir.y);
+                            }
+                            else
+                            {
+                                branchCotangent = new UnityEngine.Vector3(-branchDir.y, branchDir.x, 0f);
+                            }
+                        }
+
+                        float startTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[data.startNodeNextIndex].tValGlobal, data.t);
+                        float startTvalBranch = lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t);
+
+                        float treeShapeRatioValue = shapeRatio(startTvalGlobal, branchClusterSettingsList[clusterIndex].treeShape);
+                        float branchShapeRatioValue = shapeRatio(startTvalBranch, branchClusterSettingsList[clusterIndex].branchShape);
+
+                        float branchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * UnityEngine.Random.Range(-1f, 1f)) * treeShapeRatioValue * branchShapeRatioValue;
+
+                        node branch = new node(data.startPoint, 
+                                               1f, 
+                                               branchCotangent, 
+                                               clusterIndex, 
+                                               branchClusterSettingsList[clusterIndex].ringResolution, 
+                                               taper * taperFactorList[clusterIndex], 
+                                               startTvalGlobal, 
+                                               0f, 
+                                               branchLength);
+                        
+                        branch.tangent.Add(branchDir);
+                        branch.tValBranch = 0f;
+
+                        node branchNext = new node(data.startPoint + branchDir * branchLength, 
+                                                      1f, 
+                                                      branchCotangent, 
+                                                      clusterIndex, 
+                                                      branchClusterSettingsList[clusterIndex].ringResolution, 
+                                                      taper * taperFactorList[clusterIndex], 
+                                                      startTvalGlobal, 
+                                                      0f, 
+                                                      branchLength);
+                        
+                        branchNext.tangent.Add(branchDir);
+                        branchNext.tValBranch = 1f;
+                        branch.next.Add(branchNext);
+
+                        if (data.startNode.branches.Count < data.startNodeNextIndex + 1)
+                        {
+                            for (int m = 0; m < data.startNode.next.Count; m++)
+                            {
+                                data.startNode.branches.Add(new List<node>());
+                            }
+                        }
+                        data.startNode.branches[data.startNodeNextIndex].Add(branch);
+                        branchNodes.Add(branch);
+
+                        //public enum angleMode
+                        //{
+                        //    symmetric,
+                        //    winding, 
+                        //    adaptiveWinding
+                        //}
+
+                        if (branchClusterSettingsList[clusterIndex].useFibonacciAngles == true)
+                        {
+                            float fn0 = 1.0f;
+                            float fn1 = 1.0f;
+                            branchClusterSettingsList[clusterIndex].rotateAngleRange = 2.0f * MathF.PI;
+                            if (branchClusterSettingsList[clusterIndex].fibonacciNr > 2)
+                            {
+                                for(int n = 2; n < branchClusterSettingsList[clusterIndex].fibonacciNr + 1; n++)
+                                {
+                                    float temp = fn0 + fn1;
+                                    fn0 = fn1;
+                                    fn1 = temp;
+                                }
+                            }
+                            float fibonacciAngle = 2.0f * MathF.PI * (1.0f - fn0 / fn1);
+                            windingAngle += fibonacciAngle;
+                        }
+                        else
+                        {
+                            if (branchClusterSettingsList[clusterIndex].branchAngleMode == 1) //"WINDING":
+                            {
+                                rotateAngle = (globalRotateAngle + branchRotateAngle) % branchClusterSettingsList[clusterIndex].rotateAngleRange;
+                                windingAngle += rotateAngle;
+                            }
+                            
+                            if (branchClusterSettingsList[clusterIndex].branchAngleMode == 2) //"ADAPTIVE":
+                            {
+                                rotateAngle = globalRotateAngle + branchRotateAngle;
+                                windingAngle += rotateAngle;
+                            }
+                        } 
+
+                        // public enum branchTypes
+                        // {
+                        //     single,
+                        //     opposite,
+                        //     whorled
+                        // }  
+
+                        //public enum angleMode
+                        //{
+                        //    symmetric,
+                        //    winding, 
+                        //    adaptiveWinding
+                        //}            
+                        
+                        if (branchClusterSettingsList[clusterIndex].branchType == 1) //"OPPOSITE":    // UnityEngine.Quaternion(verticalAngle, axis) * startPointTangent;
+                        {
+                            centerDirs.Add(centerDirs[centerDirs.Count - 1]);
+                            UnityEngine.Vector3 oppositeBranchDir = UnityEngine.Quaternion.AngleAxis(MathF.PI, startPointTangent) * branchDir;
+                            UnityEngine.Vector3 oppositeBranchCotangent = UnityEngine.Quaternion.AngleAxis(MathF.PI, startPointTangent) * branchCotangent;
+                            
+                            if (branchClusterSettingsList[clusterIndex].branchAngleMode == 0) // "SYMMETRIC":
+                            {
+                                if (branchIndex % 2 == 0)
+                                {
+                                    oppositeBranchDir = UnityEngine.Quaternion.AngleAxis( 2.0f * rotateAngle, startPointTangent) * oppositeBranchDir;
+                                }
+                                else
+                                {
+                                    oppositeBranchDir = UnityEngine.Quaternion.AngleAxis(-2.0f * rotateAngle, startPointTangent) * oppositeBranchDir;
+                                }
+                            }
+                            
+                            float oppositeBranchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * UnityEngine.Random.Range(-1.0f, 1.0f)) * treeShapeRatioValue * branchShapeRatioValue;
+                            
+                            node oppositeBranch = new node(data.startPoint, 
+                                                           1.0f, 
+                                                           oppositeBranchCotangent, 
+                                                           clusterIndex, 
+                                                           branchClusterSettingsList[clusterIndex].ringResolution,
+                                                           taper * taperFactorList[clusterIndex], 
+                                                           startTvalGlobal,
+                                                           0.0f, 
+                                                           oppositeBranchLength);
+                                          
+                            oppositeBranch.tangent.Add(oppositeBranchDir);
+                            oppositeBranch.tValBranch = 0f;
+                            
+                            node oppositeBranchNext = new node(data.startPoint + oppositeBranchDir * oppositeBranchLength, 
+                                                               1.0f,
+                                                               oppositeBranchCotangent,
+                                                               clusterIndex,
+                                                               branchClusterSettingsList[clusterIndex].ringResolution,
+                                                               taper * taperFactorList[clusterIndex],
+                                                               data.startNode.tValGlobal,
+                                                               0.0f,
+                                                               oppositeBranchLength);
+                            oppositeBranchNext.tangent.Add(oppositeBranchDir);
+                            oppositeBranchNext.tValBranch = 1.0f;
+                            oppositeBranch.next.Add(oppositeBranchNext);
+                            
+                            if (data.startNode.branches.Count < data.startNodeNextIndex + 1)
+                            {
+                                for (int m = 0; m < data.startNode.next.Count; m++)
+                                {
+                                    data.startNode.branches.Add(new List<node>());
+                                }
+                            }
+                            
+                            data.startNode.branches[data.startNodeNextIndex].Add(oppositeBranch);
+                            branchNodes.Add(oppositeBranch);
+                        }
+
+                        // public enum branchTypes
+                        // {
+                        //     single,
+                        //     opposite,
+                        //     whorled
+                        // }  
+
+                        //public enum angleMode
+                        //{
+                        //    symmetric,
+                        //    winding, 
+                        //    adaptiveWinding
+                        //}  
+
+                        if (branchClusterSettingsList[clusterIndex].branchType == 2) // "WHORLED":
+                        {
+                            int whorlCount = (int)MathF.Round(lerp(branchClusterSettingsList[clusterIndex].whorlCountStart, branchClusterSettingsList[clusterIndex].whorlCountEnd, startTvalGlobal));
+                            
+                            for (int n = 1; n < whorlCount; n++)
+                            {
+                                centerDirs.Add(centerDirs[centerDirs.Count - 1]);
+                                UnityEngine.Vector3 whorlDir = UnityEngine.Quaternion.AngleAxis(n * 2f * MathF.PI / whorlCount, startPointTangent) * branchDir;
+                                UnityEngine.Vector3 whorlCotangent = UnityEngine.Quaternion.AngleAxis(n * 2f * MathF.PI / whorlCount, branchCotangent) * branchCotangent;
+                                
+                                float whorlBranchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * UnityEngine.Random.Range(-1.0f, 1.0f)) * treeShapeRatioValue * branchShapeRatioValue;
+                                
+                                node whorlBranch = new node(data.startPoint, 
+                                                            1.0f, 
+                                                            whorlCotangent, 
+                                                            clusterIndex, 
+                                                            branchClusterSettingsList[clusterIndex].ringResolution, 
+                                                            taper * taperFactorList[clusterIndex], 
+                                                            startTvalGlobal, 
+                                                            0.0f, 
+                                                            whorlBranchLength);
+                                           
+                                whorlBranch.tangent.Add(whorlDir);
+                                whorlBranch.tValBranch = 0.0f;
+                                
+                                node whorlBranchNext = new node(data.startPoint + whorlDir * whorlBranchLength, 
+                                                           1.0f,
+                                                           whorlCotangent,
+                                                           clusterIndex,
+                                                           branchClusterSettingsList[clusterIndex].ringResolution,
+                                                           taper * taperFactorList[clusterIndex],
+                                                           data.startNode.tValGlobal,
+                                                           0.0f,
+                                                           branchLength);
+                                whorlBranchNext.tangent.Add(whorlDir);
+                                whorlBranchNext.tValBranch = 1.0f;
+                                whorlBranch.next.Add(whorlBranchNext);
+                                
+                                if (data.startNode.branches.Count < data.startNodeNextIndex + 1)
+                                {
+                                    for (int m = 0; m < data.startNode.next.Count; m++)
+                                    {
+                                        data.startNode.branches.Add(new List<node>());
+                                    }
+                                }
+                                
+                                data.startNode.branches[data.startNodeNextIndex].Add(whorlBranch);
+                                branchNodes.Add(whorlBranch);
+                            }
+                        }
+                    }
+                }
+
+                // for each branch cluster
+                if (branchClusterSettingsList[clusterIndex].nrSplitsPerBranch > 0f)
+                {
+                    List<float> splitHeightInLevelList = branchSplitHeightInLevelListList[clusterIndex]; 
+
+                    int nrSplits = (int)(branchClusterSettingsList[clusterIndex].nrSplitsPerBranch * branchClusterSettingsList[clusterIndex].nrBranches);
+                    
+                    int length = splitHeightInLevelList.Count;
+                    if (length < (int)branchClusterSettingsList[clusterIndex].nrSplitsPerBranch * branchClusterSettingsList[clusterIndex].nrBranches)
+                    {
+                        for (int i = length; i < nrSplits; i++)
+                        {
+                            splitHeightInLevelList.Add(0.5f);
+                        }
+                    }
+
+                    branchClusterSettingsList[clusterIndex].maxSplitHeightUsed = splitBranches(rootNode, 
+                                                                                               clusterIndex,
+                                                                                               nrSplits, 
+                                                                                               
+                                                                                               branchClusterSettingsList[clusterIndex].branchSplitAngle, 
+                                                                                               branchClusterSettingsList[clusterIndex].branchSplitPointAngle,
+                                                                                               branchClusterSettingsList[clusterIndex].nrSplitsPerBranch,
+                                                                                               
+                                                                                               branchClusterSettingsList[clusterIndex].splitsPerBranchVariation,
+                                                                                               splitHeightInLevelList,
+                                                                                               branchClusterSettingsList[clusterIndex].branchSplitHeightVariation,
+                                                                                               branchClusterSettingsList[clusterIndex].branchSplitLengthVariation,
+                                                                                               branchClusterSettingsList[clusterIndex].branchSplitMode, 
+                                                                                               
+                                                                                               branchClusterSettingsList[clusterIndex].branchSplitRotateAngle, 
+                                                                                               branchClusterSettingsList[clusterIndex].ringResolution,
+                                                                                               branchClusterSettingsList[clusterIndex].branchCurvatureOffset,
+
+                                                                                               branchClusterSettingsList[clusterIndex].branchVariance,
+                                                                                               branchClusterSettingsList[clusterIndex].branchSplitAxisVariation);
+                }
+
+                for (int i = 0; i < branchNodes.Count; i++)
+                {
+                    branchNodes[i].resampleSpline(rootNode, resampleDistance);
+                    branchNodes[i].applyCurvature(rootNode, 
+                                                  treeGrowDir, 
+                                                  treeHeight, 
+                                                  branchClusterSettingsList[clusterIndex].branchGlobalCurvatureStart, 
+                                                  branchClusterSettingsList[clusterIndex].branchCurvatureStart,
+                                                  branchClusterSettingsList[clusterIndex].branchGlobalCurvatureEnd, 
+                                                  branchClusterSettingsList[clusterIndex].branchCurvatureEnd,
+                                                  clusterIndex,
+                                                  branchNodes[i].point,
+                                                  branchClusterSettingsList[clusterIndex].reducedCurveStepCutoff,
+                                                  branchClusterSettingsList[clusterIndex].reducedCurveStepFactor);
+
+                    if (clusterIndex == 0)
+                    {
+                        branchNodes[i].attractOutward(branchClusterSettingsList[clusterIndex].outwardAttraction, branchNodes[i].tangent[0]);
+                    }
+                    else
+                    {
+                        branchNodes[i].attractOutward(branchClusterSettingsList[clusterIndex].outwardAttraction, centerDirs[i]);
+                    }
+
+                    if (branchClusterSettingsList[clusterIndex].noiseAmplitudeHorizontalBranch > 0f || branchClusterSettingsList[clusterIndex].noiseAmplitudeVerticalBranch > 0f)
+                    {
+                        // TODO
+                        //
+                        // branchNodes[i].applyNoise(noiseGenerator, 
+                        //                       branchClusterSettingsList[clusterIndex].noiseAmplitudeHorizontalBranch, 
+                        //                       branchClusterSettingsList[clusterIndex].noiseAmplitudeVerticalBranch,
+                        //                       branchClusterSettingsList[clusterIndex].noiseAmplitudeBranchGradient,
+                        //                       branchClusterSettingsList[clusterIndex].noiseAmplitudeBranchExponent, 
+                        //                       branchClusterSettingsList[clusterIndex].noiseScale, 
+                        //                       branchNodes[i].point - (branchNodes[i].next[0].point - branchNodes[i].point), 
+                        //                       branchLength);
+                    }
+                }
+
+            }
+        }
+
+        float calculateSegmentLengthsAndTotalLength(List<startNodeInfo> startNodesNextIndexStartTvalEndTval, 
+                                                    List<float> segmentLengths, 
+                                                    float branchesStartHeightGlobal, 
+                                                    float branchesEndHeightGlobal, 
+                                                    float branchesStartHeightCluster, 
+                                                    float branchesEndHeightCluster)
+        {
+            UnityEngine.Debug.LogError("TODO");
+            return -1f; 
+        }
+
+        public int splitBranches(node rootNode, 
+                                  int clusterIndex,
+                                  int nrSplits, 
+                                  
+                                  float branchSplitAngle, 
+                                  float branchSplitPointAngle,
+                                  float nrSplitsPerBranch,
+                                  
+                                  float splitsPerBranchVariation,
+                                  List<float> splitHeightInLevelList,
+                                  float branchSplitHeightVariation,
+                                  float branchSplitLengthVariation,
+                                  int branchSplitMode, 
+                                  
+                                  float branchSplitRotateAngle, 
+                                  int ringResolution,
+                                  float branchCurvatureOffsetStrength,
+              
+                                  float branchVariance,
+                                  float branchSplitAxisVariation)
+        {
+            return 0;
+        }
+
+        static float shapeRatio(float tValGlobal, int treeShape)
+        {
+            if (treeShape == 0)//"CONICAL":
+            {
+                return 0.2f + 0.8f * tValGlobal;
+            }
+            if (treeShape == 1)//"SPHERICAL":
+            {
+                return 0.2f + 0.8f * MathF.Sin(MathF.PI * tValGlobal);
+            }
+            if (treeShape == 2)//"HEMISPHERICAL":
+            {
+                return 0.2f + 0.8f * MathF.Sin(0.5f * MathF.PI * tValGlobal);
+            }
+            if (treeShape == 3)//"INVERSE_HEMISPHERICAL":
+            {
+                return 0.2f + 0.8f * MathF.Sin(0.5f * MathF.PI * (1.0f - tValGlobal));
+            }
+            if (treeShape == 4)//"CYLINDRICAL":
+            {
+                return 1.0f;
+            }
+            if (treeShape == 5)//"TAPERED_CYLINDRICAL":
+            {
+                return 0.5f + 0.5f * tValGlobal;
+            }
+            if (treeShape == 6)//"FLAME":
+            {
+                if (tValGlobal <= 0.7f)
+                {
+                    return tValGlobal / 0.7f;
+                }
+                else
+                {
+                    return (1f - tValGlobal) / 0.3f;
+                }
+            }
+            if (treeShape == 7)//"INVERSE_CONICAL":
+            {
+                return 1.0f - 0.8f * tValGlobal;
+            }
+            if (treeShape == 8)//"TEND_FLAME":
+            {
+                if (tValGlobal <= 0.7f)
+                {
+                    return 0.5f + 0.5f * tValGlobal / 0.7f;
+                }
+                else
+                {
+                    return 0.5f + 0.5f * (1.0f - tValGlobal) / 0.3f;
+                }
+            }
+            else
+            {
+                UnityEngine.Debug.LogError("ERROR: invalid tree shape!");
+                return 0f;
+            }
         }
 
         void generateVerticesAndTriangles(List<segment> segments, float ringSpacing, float branchTipRadius)

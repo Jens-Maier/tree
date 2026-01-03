@@ -54,7 +54,7 @@ namespace treeGenNamespace
 
         public float nrSplitsPerBranch;
         public int branchSplitMode;
-        public float branchSplitRotateAnlge;
+        public float branchSplitRotateAngle;
         public float branchSplitAxisVariation;
         public float branchSplitAngle;
         public float branchSplitPointAngle;
@@ -64,6 +64,7 @@ namespace treeGenNamespace
         public float branchSplitHeightVariation;
         public float branchSplitLengthVariation;
         public List<float> branchSplitHeightInLevel;
+        public int maxSplitHeightUsed;
 
 
 
