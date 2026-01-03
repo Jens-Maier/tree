@@ -122,13 +122,13 @@ namespace treeGenNamespace
 
     public class treeSettings
     {
-        public float treeHeight;
-        public Vector3 treeGrowDir;
-        public float taper;
-        public float branchTipRadius;
-        public float ringSpacing;
-        public int stemRingResolution;
-        public float resampleDistance;
+        public float treeHeight = 10f;
+        public Vector3 treeGrowDir = new Vector3(0f, 1f, 0f);
+        public float taper = 0.1f;
+        public float branchTipRadius = 0.2f;
+        public float ringSpacing = 1f;
+        public int stemRingResolution = 6;
+        public float resampleDistance = 2f;
 
         public float noiseAmplitudeVertical;
         public float noiseAmplitudeHorizontal;
@@ -148,8 +148,9 @@ namespace treeGenNamespace
         public List<float> stemSplitHeightInLevel;
         public float splitHeightVariation;
         public float splitLengthVariation;
-        public float stemSplitAngle;
-        public float stemSplitPointAngle;
+        public float stemSplitAngle = 30f;
+        public float stemSplitPointAngle = 30f;
+        public int maxSplitHeightUsed;
 
         public int nrBranchClusters;
         public List<branchClusterSettings> branchSettings;
