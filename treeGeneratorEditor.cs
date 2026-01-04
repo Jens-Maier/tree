@@ -129,9 +129,17 @@ namespace treeGenNamespace
 
                 
                 taperCurve = EditorGUILayout.CurveField("taper curve", taperCurve);
+                if (settings != null)
+                {
+                    settings.taperCurve = taperCurve;
+                }
                 if (GUILayout.Button("Reset taper curve"))
                 {
                     taperCurve = AnimationCurve.Linear(0f, 1f, 1f, 0f);
+                    if (settings != null)
+                    {
+                        settings.taperCurve = taperCurve;
+                    }
 
                     Debug.Log("curve at 0.25: " + taperCurve.Evaluate(0.25f));
                 }
@@ -216,19 +224,36 @@ namespace treeGenNamespace
                 EditorGUILayout.BeginHorizontal();
                 if (GUILayout.Button("Add split level"))
                 {
+                    settings.maxSplitHeightUsed += 1;
                     settings.stemSplitHeightInLevel.Add(0.5f);
                 }
                 if (GUILayout.Button("Remove"))
                 {
+                    settings.maxSplitHeightUsed -= 1;
                     if (settings.stemSplitHeightInLevel.Count > 0)
                     {
                         settings.stemSplitHeightInLevel.RemoveAt(settings.stemSplitHeightInLevel.Count - 1);
                     }
                 }
                 EditorGUILayout.EndHorizontal();
-                for (int i = 0; i < settings.stemSplitHeightInLevel.Count; i++)
+                if (settings.maxSplitHeightUsed > 0)
                 {
-                    settings.stemSplitHeightInLevel[i] = EditorGUILayout.Slider("Level " + i, settings.stemSplitHeightInLevel[i], 0f, 1f);
+                    int l = settings.maxSplitHeightUsed;
+                    if (l >= settings.stemSplitHeightInLevel.Count)
+                    {
+                        l = settings.maxSplitHeightUsed - 1;
+                    }
+                    for (int i = 0; i <= l; i++)
+                    {
+                        settings.stemSplitHeightInLevel[i] = EditorGUILayout.Slider("Level " + i, settings.stemSplitHeightInLevel[i], 0f, 1f);
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < settings.stemSplitHeightInLevel.Count; i++)
+                    {
+                        settings.stemSplitHeightInLevel[i] = EditorGUILayout.Slider("Level " + i, settings.stemSplitHeightInLevel[i], 0f, 1f);
+                    }
                 }
                 EditorGUILayout.EndVertical();
 
@@ -252,7 +277,15 @@ namespace treeGenNamespace
                 if (GUILayout.Button("Add"))
                 {
                     settings.nrBranchClusters += 1;
-                    settings.branchSettings.Add(new branchClusterSettings(settings.nrBranchClusters));
+                    settings.branchSettings.Add(new branchClusterSettings());
+                    settings.taperFactorList.Add(1f);
+                    settings.parentClusterBoolListList.Add(new List<bool>());
+                    for (int i = 0; i <= settings.nrBranchClusters; i++)
+                    {
+                        List<bool> boolList = settings.parentClusterBoolListList[settings.nrBranchClusters - 1];
+                        boolList.Add(false);
+                    }
+                    settings.parentClusterBoolListList[settings.nrBranchClusters - 1][0] = true;
 
                     if (treeShape == null)
                     {
@@ -285,6 +318,7 @@ namespace treeGenNamespace
                     {
                         settings.nrBranchClusters -= 1;
                         settings.branchSettings.RemoveAt(settings.branchSettings.Count - 1);
+                        settings.taperFactorList.RemoveAt(settings.taperFactorList.Count - 1);
                         treeShape.RemoveAt(treeShape.Count - 1);
                         branchShape.RemoveAt(branchShape.Count - 1);
                         branchType.RemoveAt(branchType.Count - 1);
@@ -294,6 +328,8 @@ namespace treeGenNamespace
                         showBranchClusterNoise.RemoveAt(showBranchClusterNoise.Count - 1);
                         showBranchClusterSplit.RemoveAt(showBranchClusterSplit.Count - 1);
                         branchTaperCurve.RemoveAt(branchTaperCurve.Count - 1);
+
+                        settings.parentClusterBoolListList.RemoveAt(settings.parentClusterBoolListList.Count - 1);
 
                         for (int l = 0; l < settings.leafSettings.Count; l++)
                         {
@@ -321,18 +357,18 @@ namespace treeGenNamespace
                         {
                             if (n == 0)
                             {
-                                settings.branchSettings[i].parentClusters[n] = EditorGUILayout.Toggle("Stem", settings.branchSettings[i].parentClusters[n]);
+                                settings.parentClusterBoolListList[i][n] = EditorGUILayout.Toggle("Stem", settings.parentClusterBoolListList[i][n]);
                             }
                             else
                             {
                                 int m = n - 1;
-                                settings.branchSettings[i].parentClusters[n] = EditorGUILayout.Toggle("Branch cluster " + m, settings.branchSettings[i].parentClusters[n]);
+                                settings.parentClusterBoolListList[i][n] = EditorGUILayout.Toggle("Branch cluster " + m, settings.parentClusterBoolListList[i][n]);
                             }
                         }
                         bool allFalse = true;
                         for (int n = 0; n < i + 1; n++)
                         {
-                            if (settings.branchSettings[i].parentClusters[n] == true)
+                            if (settings.parentClusterBoolListList[i][n] == true)
                             {
                                 allFalse = false;
                                 break;
@@ -340,7 +376,7 @@ namespace treeGenNamespace
                         }
                         if (allFalse == true)
                         {
-                            settings.branchSettings[i].parentClusters[0] = true;
+                            settings.parentClusterBoolListList[i][0] = true;
                         }
 
                         EditorGUILayout.EndVertical();
@@ -399,7 +435,7 @@ namespace treeGenNamespace
                             settings.branchSettings[i].relBranchLengthVariation = relBranchLengthVariation;
                         }
  
-                        settings.branchSettings[i].taperFactor = EditorGUILayout.Slider("Taper factor", settings.branchSettings[i].taperFactor, 0f, 1f);
+                        settings.taperFactorList[i] = EditorGUILayout.Slider("Taper factor", settings.taperFactorList[i], 0f, 1f);
  
                         branchTaperCurve[i] = EditorGUILayout.CurveField("taper curve", branchTaperCurve[i]);
                         if (GUILayout.Button("Reset taper curve"))
@@ -475,16 +511,16 @@ namespace treeGenNamespace
                         settings.branchSettings[i].branchAngleMode = (int)branchAngleMode[i];
                         if (branchAngleMode[i] == angleMode.symmetric)
                         {
-                            settings.branchSettings[i].rotateAngleRange = EditorGUILayout.FloatField("Rotate angle range", settings.branchSettings[i].  rotateAngleRange);
+                            settings.branchSettings[i].rotateAngleRange = EditorGUILayout.FloatField("Rotate angle range", settings.branchSettings[i].rotateAngleRange);
     
-                            settings.branchSettings[i].rotateAngleCrownStart = EditorGUILayout.FloatField("Rotate angle crown start", settings. branchSettings[i].rotateAngleCrownStart);
+                            settings.branchSettings[i].rotateAngleCrownStart = EditorGUILayout.FloatField("Rotate angle crown start", settings.branchSettings[i].rotateAngleCrownStart);
                             settings.branchSettings[i].rotateAngleCrownEnd = EditorGUILayout.FloatField("Rotate angle crown end", settings.branchSettings[i].rotateAngleCrownEnd);
-                            settings.branchSettings[i].rotateAngleBranchStart = EditorGUILayout.FloatField("Rotate angle branch start", settings.   branchSettings[i].rotateAngleBranchStart);
+                            settings.branchSettings[i].rotateAngleBranchStart = EditorGUILayout.FloatField("Rotate angle branch start", settings.branchSettings[i].rotateAngleBranchStart);
                             settings.branchSettings[i].rotateAngleBranchEnd = EditorGUILayout.FloatField("Rotate angle branch end", settings.branchSettings [i].rotateAngleBranchEnd);
                         }
                         if (branchAngleMode[i] == angleMode.winding)
                         {
-                            settings.branchSettings[i].useFibonacciAngles = EditorGUILayout.Toggle("Use Fibonacci angles", settings.branchSettings[i].  useFibonacciAngles);
+                            settings.branchSettings[i].useFibonacciAngles = EditorGUILayout.Toggle("Use Fibonacci angles", settings.branchSettings[i].useFibonacciAngles);
     
                             if (settings.branchSettings[i].useFibonacciAngles == true)
                             {
@@ -512,7 +548,7 @@ namespace treeGenNamespace
                             settings.branchSettings[i].rotateAngleBranchStart = EditorGUILayout.FloatField("Rotate angle branch start", settings.       branchSettings[i].rotateAngleBranchStart);
                             settings.branchSettings[i].rotateAngleBranchEnd = EditorGUILayout.FloatField("Rotate angle branch end", settings.branchSettings [i].rotateAngleBranchEnd);
 
-                            settings.branchSettings[i].rotateAngleRangeFactor = EditorGUILayout.Slider("Rotate angle range factor", settings.branchSettings [i].rotateAngleRangeFactor, 0f, 1f);
+                            settings.branchSettings[i].rotateAngleRangeFactor = EditorGUILayout.Slider("Rotate angle range factor", settings.branchSettings[i].rotateAngleRangeFactor, 0f, 1f);
                         }
                         EditorGUILayout.EndVertical();
 
@@ -523,10 +559,10 @@ namespace treeGenNamespace
                         }
                         settings.branchSettings[i].reducedCurveStepFactor = EditorGUILayout.Slider("Reduced curve step factor", settings.branchSettings[i].reducedCurveStepFactor, 0f, 1f);
 
-                        settings.branchSettings[i].branchGlobalCurvatureStart = EditorGUILayout.FloatField("Branch global curvature start", settings.   branchSettings[i].branchGlobalCurvatureStart);
-                        settings.branchSettings[i].branchGlobalCurvatureEnd = EditorGUILayout.FloatField("Branch global curvature end", settings.   branchSettings[i].branchGlobalCurvatureEnd);
+                        settings.branchSettings[i].branchGlobalCurvatureStart = EditorGUILayout.FloatField("Branch global curvature start", settings.branchSettings[i].branchGlobalCurvatureStart);
+                        settings.branchSettings[i].branchGlobalCurvatureEnd = EditorGUILayout.FloatField("Branch global curvature end", settings.branchSettings[i].branchGlobalCurvatureEnd);
                         settings.branchSettings[i].branchCurvatureStart = EditorGUILayout.FloatField("Branch curvature start", settings.branchSettings[i].branchCurvatureStart);
-                        settings.branchSettings[i].branchCurvatureEnd = EditorGUILayout.FloatField("Branch curvature end", settings.branchSettings[i].  branchCurvatureEnd);
+                        settings.branchSettings[i].branchCurvatureEnd = EditorGUILayout.FloatField("Branch curvature end", settings.branchSettings[i].branchCurvatureEnd);
                         settings.branchSettings[i].branchCurvatureOffset = EditorGUILayout.FloatField("Branch curvature offset", settings.branchSettings[i].branchCurvatureOffset);
                         EditorGUILayout.Space();
 

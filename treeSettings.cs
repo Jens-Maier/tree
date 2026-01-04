@@ -7,35 +7,33 @@ namespace treeGenNamespace
 {
     public class branchClusterSettings
     {
-        public List<bool> parentClusters;
         public int nrBranches;
         public int treeShape;
         public int branchShape;
         public int branchType;
         public int whorlCountStart;
         public int whorlCountEnd;
-        public float relBranchLength;
+        public float relBranchLength = 1f;
         public float relBranchLengthVariation;
-        public float taperFactor;
-        public int ringResolution;
+        public int ringResolution = 6;
         public float branchesStartHeightGlobal;
-        public float branchesEndHeightGlobal;
+        public float branchesEndHeightGlobal = 1f;
         public float branchesStartHeightCluster;
-        public float branchesEndHeightCluster;
+        public float branchesEndHeightCluster = 1f;
         public float branchesStartPointVariation;
 
         public float noiseAmplitudeHorizontalBranch;
         public float noiseAmplitudeVerticalBranch;
         public float noiseAmplitudeBranchGradient;
-        public float noiseAmplitudeExponent;
-        public float noiseScale;
+        public float noiseAmplitudeExponent = 1f;
+        public float noiseScale = 1f;
 
         public float verticalAngleCrownStart;
         public float verticalAngleCrownEnd;
         public float verticalAngleBranchStart;
         public float verticalAngleBranchEnd;
         public int branchAngleMode;
-        public float rotateAngleRange;
+        public float rotateAngleRange = 180f;
         public float rotateAngleOffset;
         public float rotateAngleCrownStart;
         public float rotateAngleCrownEnd;
@@ -68,15 +66,9 @@ namespace treeGenNamespace
 
 
 
-        public branchClusterSettings(int i)
+        public branchClusterSettings()
         {
             nrBranches = 0;
-            parentClusters = new List<bool>();
-            for (int n = 0; n < i; n++)
-            {
-                parentClusters.Add(false);
-            }
-            parentClusters[0] = true;
             branchSplitHeightInLevel = new List<float>();
         }
     }
@@ -125,6 +117,8 @@ namespace treeGenNamespace
         public float treeHeight = 10f;
         public Vector3 treeGrowDir = new Vector3(0f, 1f, 0f);
         public float taper = 0.1f;
+        public List<float> taperFactorList;
+        public UnityEngine.AnimationCurve taperCurve = UnityEngine.AnimationCurve.Linear(0f, 1f, 1f, 0f);
         public float branchTipRadius = 0.2f;
         public float ringSpacing = 1f;
         public int stemRingResolution = 6;
@@ -153,6 +147,7 @@ namespace treeGenNamespace
         public int maxSplitHeightUsed;
 
         public int nrBranchClusters;
+        public List<List<bool>> parentClusterBoolListList;
         public List<branchClusterSettings> branchSettings;
 
         public int nrLeafClusters;
@@ -163,6 +158,8 @@ namespace treeGenNamespace
         {
             Debug.Log("initialising treeSettings");
             stemSplitHeightInLevel = new List<float>();
+            parentClusterBoolListList = new List<List<bool>>();
+            taperFactorList = new List<float>();
             branchSettings = new List<branchClusterSettings>();
             leafSettings = new List<leafClusterSettings>();
         }
