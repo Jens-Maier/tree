@@ -1,6 +1,5 @@
 
 using System.Collections.Generic;
-using System.Numerics;
 using System;
 using System.Security.AccessControl;
 using System.Security.Cryptography.X509Certificates;
@@ -8,6 +7,10 @@ using UnityEngine;
 using System.Drawing;
 using System.Diagnostics;
 using System.Text;
+using Vector3 = UnityEngine.Vector3;
+using Quaternion = UnityEngine.Quaternion;
+using Debug = UnityEngine.Debug;
+using Random = UnityEngine.Random;
 
 namespace treeGenNamespace
 {
@@ -15,13 +18,13 @@ namespace treeGenNamespace
     public class segment
     {
         public int clusterIndex;
-        public UnityEngine.Vector3 start;
-        public UnityEngine.Vector3 end;
-        public UnityEngine.Vector3 firstTangent;
-        public UnityEngine.Vector3 startTangent;
-        public UnityEngine.Vector3 endTangent;
-        public UnityEngine.Vector3 startCotangent;
-        public UnityEngine.Vector3 endCotangent;
+        public Vector3 start;
+        public Vector3 end;
+        public Vector3 firstTangent;
+        public Vector3 startTangent;
+        public Vector3 endTangent;
+        public Vector3 startCotangent;
+        public Vector3 endCotangent;
         public float startRadius;
         public float endRadius;
         public float startTvalGlobal;
@@ -35,7 +38,7 @@ namespace treeGenNamespace
         public float startTaper;
         public float endTaper;
 
-        public segment(int ClusterIndex, UnityEngine.Vector3 Start, UnityEngine.Vector3 End, UnityEngine.Vector3 FirstTangent, UnityEngine.Vector3 StartTangent, UnityEngine.Vector3 EndTangent, UnityEngine.Vector3 StartCotangent, UnityEngine.Vector3 EndCotangent, float StartRadius, float EndRadius, float StartTvalGlobal, float EndTvalGlobal, float StartTvalBranch, float EndTvalBranch, int RingResolution, bool ConnectedToPrevious, float BranchLength, float LongestBranchLengthInCluster, float StartTaper, float EndTaper)
+        public segment(int ClusterIndex, Vector3 Start, Vector3 End, Vector3 FirstTangent, Vector3 StartTangent, Vector3 EndTangent, Vector3 StartCotangent, Vector3 EndCotangent, float StartRadius, float EndRadius, float StartTvalGlobal, float EndTvalGlobal, float StartTvalBranch, float EndTvalBranch, int RingResolution, bool ConnectedToPrevious, float BranchLength, float LongestBranchLengthInCluster, float StartTaper, float EndTaper)
         {
             clusterIndex = ClusterIndex;
             start = Start;
@@ -82,18 +85,18 @@ namespace treeGenNamespace
 
     public class StartPointData
     {
-        public UnityEngine.Vector3 startPoint;
+        public Vector3 startPoint;
         public float startPointTvalGlobal;
-        public UnityEngine.Vector3 outwardDir;
+        public Vector3 outwardDir;
         public node startNode;
         public int startNodeIndex;
         public int startNodeNextIndex;
         public float t;
-        public UnityEngine.Vector3 tangent;
-        public UnityEngine.Vector3 cotangent;
+        public Vector3 tangent;
+        public Vector3 cotangent;
         public float rotateAngleRange;
 
-        public StartPointData(UnityEngine.Vector3 StartPoint, float StartPointTvalGlobal, UnityEngine.Vector3 OutwardDir, node StartNode, int StartNodeIndex, int StartNodeNextIndex, float T, UnityEngine.Vector3 Tangent, UnityEngine.Vector3 Cotangent)
+        public StartPointData(Vector3 StartPoint, float StartPointTvalGlobal, Vector3 OutwardDir, node StartNode, int StartNodeIndex, int StartNodeNextIndex, float T, Vector3 Tangent, Vector3 Cotangent)
         {
             startPoint = StartPoint;
             startPointTvalGlobal = StartPointTvalGlobal;
@@ -107,16 +110,16 @@ namespace treeGenNamespace
             rotateAngleRange = 0f;
         }
         
-        static UnityEngine.Vector3 sampleSplineT(UnityEngine.Vector3 start, UnityEngine.Vector3 end, UnityEngine.Vector3 startTangent, UnityEngine.Vector3 endTangent, float t)
+        static Vector3 sampleSplineT(Vector3 start, Vector3 end, Vector3 startTangent, Vector3 endTangent, float t)
         {
-            UnityEngine.Vector3 controlPt1 = start + norm(startTangent) * (end - start).magnitude / 3.0f;
-            UnityEngine.Vector3 controlPt2 = end - norm(endTangent) * (end - start).magnitude / 3.0f;
+            Vector3 controlPt1 = start + norm(startTangent) * (end - start).magnitude / 3.0f;
+            Vector3 controlPt2 = end - norm(endTangent) * (end - start).magnitude / 3.0f;
             return (1.0f - t)*(1.0f - t)*(1.0f - t) * start + 3.0f * (1.0f - t)*(1.0f - t) * t * controlPt1 + 3.0f * (1.0f - t) * t*t * controlPt2 + t*t*t * end;
         }
 
-        static UnityEngine.Vector3 norm(UnityEngine.Vector3 v)
+        static Vector3 norm(Vector3 v)
         {
-            if (v ==  new UnityEngine.Vector3(0f, 0f, 0f))
+            if (v ==  new Vector3(0f, 0f, 0f))
             {
                 return v;
             }
@@ -126,17 +129,17 @@ namespace treeGenNamespace
             }
         }
 
-        static float length(UnityEngine.Vector3 v)
+        static float length(Vector3 v)
         {
             return v.magnitude;
         }
 
-        static UnityEngine.Vector3 lerp(UnityEngine.Vector3 a, UnityEngine.Vector3 b, float t)
+        static Vector3 lerp(Vector3 a, Vector3 b, float t)
         {
             return a + t * (b - a);
         }
 
-        public static StartPointData generateStartPointData(List<startNodeInfo> startNodesNextIndexStartTvalEndTval, List<float> segmentLengths, float branchPos, UnityEngine.Vector3 treeGrowDir, node rootNode, float treeHeight, bool calledFromAddLeaves)
+        public static StartPointData generateStartPointData(List<startNodeInfo> startNodesNextIndexStartTvalEndTval, List<float> segmentLengths, float branchPos, Vector3 treeGrowDir, node rootNode, float treeHeight, bool calledFromAddLeaves)
         {
             float accumLength = 0f;
             int startNodeIndex = 0;
@@ -167,7 +170,7 @@ namespace treeGenNamespace
             }
             int startNodeNextIndex = startNodesNextIndexStartTvalEndTval[startNodeIndex].nextIndex;
             node nStart = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode;
-            UnityEngine.Vector3 tangent = new UnityEngine.Vector3(0f, 0f, 0f);
+            Vector3 tangent = new Vector3(0f, 0f, 0f);
 
             if (startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next.Count > 1)
             {
@@ -178,28 +181,28 @@ namespace treeGenNamespace
                 tangent = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tangent[0];
             }
 
-            UnityEngine.Vector3 startPoint = sampleSplineT(startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point, 
+            Vector3 startPoint = sampleSplineT(startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point, 
                                                     startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point, 
                                                     tangent,
                                                     startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].tangent[0], 
                                                     tVal);
 
-            UnityEngine.Vector3 nextTangent = norm(norm(treeGrowDir) * treeHeight - (rootNode.point + rootNode.tangent[0] * length(norm(treeGrowDir) * treeHeight - rootNode.point) * (1.5f / 3f)));
+            Vector3 nextTangent = norm(norm(treeGrowDir) * treeHeight - (rootNode.point + rootNode.tangent[0] * length(norm(treeGrowDir) * treeHeight - rootNode.point) * (1.5f / 3f)));
 
-            UnityEngine.Vector3 centerPoint = sampleSplineT(rootNode.point, norm(treeGrowDir) * treeHeight, new UnityEngine.Vector3(0f, 1f, 0f), nextTangent, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal);
+            Vector3 centerPoint = sampleSplineT(rootNode.point, norm(treeGrowDir) * treeHeight, new Vector3(0f, 1f, 0f), nextTangent, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal);
 
-            UnityEngine.Vector3 startPointCotangent = lerp(startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.cotangent, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent, tVal);
+            Vector3 startPointCotangent = lerp(startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.cotangent, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent, tVal);
 
-            UnityEngine.Vector3 outwardDir = lerp(startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal) - centerPoint;
+            Vector3 outwardDir = lerp(startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.point, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].point, startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.tValGlobal) - centerPoint;
 
-            if (outwardDir == new UnityEngine.Vector3(0f, 0f, 0f))
+            if (outwardDir == new Vector3(0f, 0f, 0f))
             {
                 outwardDir = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent;
             }
 
-            outwardDir = new UnityEngine.Vector3(outwardDir.x, 0f, outwardDir.z);
+            outwardDir = new Vector3(outwardDir.x, 0f, outwardDir.z);
 
-            if (outwardDir == new UnityEngine.Vector3(0f, 0f, 0f))
+            if (outwardDir == new Vector3(0f, 0f, 0f))
             {
                 outwardDir = startNodesNextIndexStartTvalEndTval[startNodeIndex].startNode.next[startNodeNextIndex].cotangent;
             }
@@ -209,23 +212,23 @@ namespace treeGenNamespace
             return new StartPointData(startPoint, startPointTvalGlobal, outwardDir, nStart, startNodeIndex, startNodeNextIndex, tVal, tangent, startPointCotangent);
         }
 
-        static float getAngle(UnityEngine.Vector3 v)
+        static float getAngle(Vector3 v)
         {
             float angle = MathF.Atan2(v.z, v.x);
             return (angle + 2f * MathF.PI) % (2f * MathF.PI);
         }
 
-        public static (UnityEngine.Vector3, UnityEngine.Vector3, UnityEngine.Vector3, UnityEngine.Vector3, float, float) findClosestVectors(List<UnityEngine.Vector3> vectors, UnityEngine.Vector3 targetVector)
+        public static (Vector3, Vector3, Vector3, Vector3, float, float) findClosestVectors(List<Vector3> vectors, Vector3 targetVector)
         {
             float targetAngle = getAngle(targetVector);
 
             float minClockwiseDiff = 2f * MathF.PI;
-            UnityEngine.Vector3 closestClockwiseVector = new UnityEngine.Vector3(0f, 0f, 0f);
+            Vector3 closestClockwiseVector = new Vector3(0f, 0f, 0f);
 
             float minAnticlockwiseDiff = 2f * MathF.PI;
-            UnityEngine.Vector3 closestAnticlockwiseVector = new UnityEngine.Vector3(0f, 0f, 0f);
+            Vector3 closestAnticlockwiseVector = new Vector3(0f, 0f, 0f);
 
-            foreach (UnityEngine.Vector3 v in vectors)
+            foreach (Vector3 v in vectors)
             {
                 float vectorAngle = getAngle(v);
 
@@ -249,11 +252,11 @@ namespace treeGenNamespace
             }
 
             // Handle the case where the target vector is not found in the list, but one of the vectors is the same.
-            if (closestClockwiseVector == new UnityEngine.Vector3(0f, 0f, 0f))
+            if (closestClockwiseVector == new Vector3(0f, 0f, 0f))
             {
                 closestClockwiseVector = closestAnticlockwiseVector;
             }
-            if (closestAnticlockwiseVector == new UnityEngine.Vector3(0f, 0f, 0f))
+            if (closestAnticlockwiseVector == new Vector3(0f, 0f, 0f))
             {
                 closestAnticlockwiseVector = closestClockwiseVector;
             }
@@ -261,8 +264,8 @@ namespace treeGenNamespace
             float clockwiseAngleRange = minClockwiseDiff / 2f;
             float anticlockwiseAngleRange = minAnticlockwiseDiff / 2f;
 
-            UnityEngine.Vector3 halfClosestClockwiseVector = UnityEngine.Quaternion.AngleAxis(-clockwiseAngleRange, new UnityEngine.Vector3(0f, 1f, 0f)) * targetVector;
-            UnityEngine.Vector3 halfClosestAnticlockwiseVector = UnityEngine.Quaternion.AngleAxis(anticlockwiseAngleRange, new UnityEngine.Vector3(0f, 1f, 0f)) * targetVector;
+            Vector3 halfClosestClockwiseVector = Quaternion.AngleAxis(-clockwiseAngleRange, new Vector3(0f, 1f, 0f)) * targetVector;
+            Vector3 halfClosestAnticlockwiseVector = Quaternion.AngleAxis(anticlockwiseAngleRange, new Vector3(0f, 1f, 0f)) * targetVector;
 
             return (closestClockwiseVector, closestAnticlockwiseVector, halfClosestClockwiseVector, halfClosestAnticlockwiseVector, clockwiseAngleRange, anticlockwiseAngleRange);
         }
@@ -273,25 +276,25 @@ namespace treeGenNamespace
         List<StartPointData> dummyStartPoints = new List<StartPointData>(); 
         // for all other stems at same height as startPoint
 
-        public static (List<StartPointData>, UnityEngine.Vector3) generateDummyStartPointData(node rootNode, StartPointData startPointDatum)
+        public static (List<StartPointData>, Vector3) generateDummyStartPointData(node rootNode, StartPointData startPointDatum)
         {
-            UnityEngine.Debug.Log("in generateDummyStartPointData()");
-            List<UnityEngine.Vector3> parallelPoints = new List<UnityEngine.Vector3>();
+            Debug.Log("in generateDummyStartPointData()");
+            List<Vector3> parallelPoints = new List<Vector3>();
             rootNode.getAllParallelStartPoints(startPointDatum.startPointTvalGlobal, startPointDatum.startNode, parallelPoints);
 
             List<StartPointData> dummyStartPointData = new List<StartPointData>();
-            UnityEngine.Vector3 centerPoint = startPointDatum.startPoint;
+            Vector3 centerPoint = startPointDatum.startPoint;
             int n = 1;
-            foreach (UnityEngine.Vector3 p in parallelPoints)
+            foreach (Vector3 p in parallelPoints)
             {
                 centerPoint += p;
                 n += 1;
             }
             centerPoint = centerPoint / (float)n;
 
-            foreach (UnityEngine.Vector3 p in parallelPoints)
+            foreach (Vector3 p in parallelPoints)
             {
-                dummyStartPointData.Add(new StartPointData(p, startPointDatum.startPointTvalGlobal, new UnityEngine.Vector3(0f, 0f, 0f), null, 0, 0, 0f, new UnityEngine.Vector3(0f, 0f, 0f), new UnityEngine.Vector3(0f, 0f, 0f)));
+                dummyStartPointData.Add(new StartPointData(p, startPointDatum.startPointTvalGlobal, new Vector3(0f, 0f, 0f), null, 0, 0, 0f, new Vector3(0f, 0f, 0f), new Vector3(0f, 0f, 0f)));
             }
             return (dummyStartPointData, centerPoint);
         }
@@ -369,10 +372,10 @@ namespace treeGenNamespace
 
     public class node
     {
-        public UnityEngine.Vector3 point;
+        public Vector3 point;
         public float radius;
-        public List<UnityEngine.Vector3> tangent;
-        public UnityEngine.Vector3 cotangent;
+        public List<Vector3> tangent;
+        public Vector3 cotangent;
         public int clusterIndex;
         public int ringResolution;
         public float taper;
@@ -382,15 +385,15 @@ namespace treeGenNamespace
         public List<List<node>> branches;
         public float branchLength;
         public bool isLastRotated = false;
-        public List<UnityEngine.Vector3> outwardDir;
+        public List<Vector3> outwardDir;
         public List<float> rotateAngleRange;
 
 
-        public node(UnityEngine.Vector3 Point, float Radius, UnityEngine.Vector3 Cotangent, int ClusterIndex, int RingResolution, float Taper, float TvalGlobal, float TvalBranch,  float BranchLength)
+        public node(Vector3 Point, float Radius, Vector3 Cotangent, int ClusterIndex, int RingResolution, float Taper, float TvalGlobal, float TvalBranch,  float BranchLength)
         {
             point = Point;
             radius = Radius;
-            tangent = new List<UnityEngine.Vector3>();
+            tangent = new List<Vector3>();
             cotangent = Cotangent;
             clusterIndex = ClusterIndex;
             ringResolution = RingResolution;
@@ -401,13 +404,13 @@ namespace treeGenNamespace
             branches = new List<List<node>>();
             branchLength = BranchLength;
             isLastRotated = false;
-            outwardDir = new List<UnityEngine.Vector3>();
+            outwardDir = new List<Vector3>();
             rotateAngleRange = new List<float>();
         }
 
         public void getAllSegments(node rootNode, List<segment> segments, bool connectedToPrev)
         {
-            //UnityEngine.Debug.Log("in getAllSegments: point: " + point + ", next.Count: " + next.Count);
+            //Debug.Log("in getAllSegments: point: " + point + ", next.Count: " + next.Count);
             //for n, nextNode in enumerate(self.next):
             //    longestBranchLengthInCluster = 1.0
             int n = 0;
@@ -415,9 +418,9 @@ namespace treeGenNamespace
             {
                 if (next.Count > 1)
                 {
-                    //UnityEngine.Debug.Log("next.Count > 1");
-                    //UnityEngine.Debug.Log("segments count before: " + segments.Count);
-                    //UnityEngine.Debug.Log("adding segment: point" + point + " (next.Count: " + next.Count + ")");
+                    //Debug.Log("next.Count > 1");
+                    //Debug.Log("segments count before: " + segments.Count);
+                    //Debug.Log("adding segment: point" + point + " (next.Count: " + next.Count + ")");
                     segments.Add(new segment(clusterIndex, 
                                             point, 
                                             nextNode.point, 
@@ -441,8 +444,8 @@ namespace treeGenNamespace
                 }
                 else
                 {
-                    //UnityEngine.Debug.Log("segments count before: " + segments.Count);
-                    //UnityEngine.Debug.Log("adding segment: point: " + point);
+                    //Debug.Log("segments count before: " + segments.Count);
+                    //Debug.Log("adding segment: point: " + point);
                     segments.Add(new segment(clusterIndex, 
                                             point, 
                                             nextNode.point, 
@@ -464,7 +467,7 @@ namespace treeGenNamespace
                                             taper, 
                                             nextNode.taper));
                 }
-                //UnityEngine.Debug.Log("calling nextNode.getAllSegments(), n = " + n);
+                //Debug.Log("calling nextNode.getAllSegments(), n = " + n);
                 nextNode.getAllSegments(rootNode, segments, true);
                 n += 1;
             }
@@ -587,17 +590,17 @@ namespace treeGenNamespace
             }
         }
 
-        public void getAllParallelStartPoints(float startPointTvalGlobal, node startNode, List<UnityEngine.Vector3> parallelPoints)
+        public void getAllParallelStartPoints(float startPointTvalGlobal, node startNode, List<Vector3> parallelPoints)
         {
             
         }
 
         public void resampleSpline(node rootNode, float resampleDistance)
         {
-            UnityEngine.Debug.Log("in resampleSpline: point: " + point);
-            UnityEngine.Debug.Log("in resampleSpline: next[0].point: " + next[0].point);
-            UnityEngine.Debug.Log("in resampleSpline: resampleDistance: " + resampleDistance);
-            UnityEngine.Debug.Log("in resampleSpline: next.Count: " + next.Count);
+            Debug.Log("in resampleSpline: point: " + point);
+            Debug.Log("in resampleSpline: next[0].point: " + next[0].point);
+            Debug.Log("in resampleSpline: resampleDistance: " + resampleDistance);
+            Debug.Log("in resampleSpline: next.Count: " + next.Count);
 
             for (int i = 0; i < next.Count; i++)
             {
@@ -606,20 +609,20 @@ namespace treeGenNamespace
                 node nextNode = next[i];
 
                 int resampleNr = (int)MathF.Round((nextNode.point - startNode.point).magnitude / resampleDistance);
-                //UnityEngine.Debug.Log("activeNode.point: " + activeNode.point);
-                //UnityEngine.Debug.Log("nextNode.point: " + nextNode.point);
-                //UnityEngine.Debug.Log("next_i: " + i + ", resampleNr: " + resampleNr + ", startNode.ringResolution: " + startNode.ringResolution);
+                //Debug.Log("activeNode.point: " + activeNode.point);
+                //Debug.Log("nextNode.point: " + nextNode.point);
+                //Debug.Log("next_i: " + i + ", resampleNr: " + resampleNr + ", startNode.ringResolution: " + startNode.ringResolution);
                 if (resampleNr > 1)
                 {
                     for (int n = 1; n < resampleNr; n++)
                     {
-                        UnityEngine.Vector3 samplePoint;
-                        UnityEngine.Vector3 sampleTangent;
+                        Vector3 samplePoint;
+                        Vector3 sampleTangent;
 
                         if (next.Count > 1)
                         {
                             float t = (float)n / resampleNr;
-                            //UnityEngine.Debug.Log("i = " + i + ", n = " + n + ", spline sample: startNode.point: " + startNode.point + ", nextNode.point: " + nextNode.point + ", startNode.tangent[i + 1]: " + startNode.tangent[i + 1] + ", nextNode.tangent[0]: " + nextNode.tangent[0] + ", n/resampleNr: " + t);
+                            //Debug.Log("i = " + i + ", n = " + n + ", spline sample: startNode.point: " + startNode.point + ", nextNode.point: " + nextNode.point + ", startNode.tangent[i + 1]: " + startNode.tangent[i + 1] + ", nextNode.tangent[0]: " + nextNode.tangent[0] + ", n/resampleNr: " + t);
                             samplePoint = sampleSplineT(startNode.point, nextNode.point, startNode.tangent[i + 1], nextNode.tangent[0], (float)n / resampleNr);
                             sampleTangent = sampleSplineTangentT(startNode.point, nextNode.point, startNode.tangent[i + 1], nextNode.tangent[0], (float)n / resampleNr);
                         }
@@ -629,13 +632,13 @@ namespace treeGenNamespace
                             sampleTangent = sampleSplineTangentT(startNode.point, nextNode.point, startNode.tangent[0], nextNode.tangent[0], (float)n / resampleNr);
                         }
 
-                        UnityEngine.Vector3 sampleCotangent = lerp(startNode.cotangent, nextNode.cotangent, (float)n / resampleNr);
+                        Vector3 sampleCotangent = lerp(startNode.cotangent, nextNode.cotangent, (float)n / resampleNr);
                         float sampleRadius = lerp(startNode.radius, nextNode.radius, (float)n / resampleNr);
                         float sampleTvalGlobal = lerp(startNode.tValGlobal, nextNode.tValGlobal, (float)n / resampleNr);
                         float sampleTvalBranch = lerp(startNode.tValBranch, nextNode.tValBranch, (float)n / resampleNr);
                         //drawDebugPoint(samplePoint, 0.4)
 
-                        //UnityEngine.Debug.Log("n = " + n + ", sample point: " + samplePoint);
+                        //Debug.Log("n = " + n + ", sample point: " + samplePoint);
 
                         node newNode = new node(samplePoint, sampleRadius, sampleCotangent, startNode.clusterIndex, startNode.ringResolution, taper, sampleTvalGlobal, sampleTvalBranch, startNode.branchLength);
                         newNode.tangent.Add(sampleTangent);
@@ -664,28 +667,28 @@ namespace treeGenNamespace
 
         }
 
-        static UnityEngine.Vector3 sampleSplineT(UnityEngine.Vector3 start, UnityEngine.Vector3 end, UnityEngine.Vector3 startTangent, UnityEngine.Vector3 endTangent, float t)
+        static Vector3 sampleSplineT(Vector3 start, Vector3 end, Vector3 startTangent, Vector3 endTangent, float t)
         {
-            UnityEngine.Vector3 controlPt1 = start + norm(startTangent) * (end - start).magnitude / 3.0f;
-            UnityEngine.Vector3 controlPt2 = end - norm(endTangent) * (end - start).magnitude / 3.0f;
+            Vector3 controlPt1 = start + norm(startTangent) * (end - start).magnitude / 3.0f;
+            Vector3 controlPt2 = end - norm(endTangent) * (end - start).magnitude / 3.0f;
             return (1.0f - t)*(1.0f - t)*(1.0f - t) * start + 3.0f * (1.0f - t)*(1.0f - t) * t * controlPt1 + 3.0f * (1.0f - t) * t*t * controlPt2 + t*t*t * end;
         }
 
-        static UnityEngine.Vector3 sampleSplineTangentT(UnityEngine.Vector3 start, UnityEngine.Vector3 end, UnityEngine.Vector3 startTangent, UnityEngine.Vector3 endTangent, float t)
+        static Vector3 sampleSplineTangentT(Vector3 start, Vector3 end, Vector3 startTangent, Vector3 endTangent, float t)
         {
-            UnityEngine.Vector3 controlPt1 = start + norm(startTangent) * length(end - start) / 3.0f;
-            UnityEngine.Vector3 controlPt2 = end - norm(endTangent) * length(end - start) / 3.0f;
+            Vector3 controlPt1 = start + norm(startTangent) * length(end - start) / 3.0f;
+            Vector3 controlPt2 = end - norm(endTangent) * length(end - start) / 3.0f;
             return norm(-3.0f * (1.0f - t) * (1.0f - t) * start + 3.0f * (3.0f * t*t - 4.0f * t + 1.0f) * controlPt1 + 3.0f * (-3.0f * t*t + 2.0f * t) * controlPt2 + 3.0f * t*t * end);
         }
 
-        static float length(UnityEngine.Vector3 v)
+        static float length(Vector3 v)
         {
             return v.magnitude;
         }
 
-        static UnityEngine.Vector3 norm(UnityEngine.Vector3 v)
+        static Vector3 norm(Vector3 v)
         {
-            if (v ==  new UnityEngine.Vector3(0f, 0f, 0f))
+            if (v ==  new Vector3(0f, 0f, 0f))
             {
                 return v;
             }
@@ -695,7 +698,7 @@ namespace treeGenNamespace
             }
         }
 
-        static UnityEngine.Vector3 lerp(UnityEngine.Vector3 a, UnityEngine.Vector3 b, float t)
+        static Vector3 lerp(Vector3 a, Vector3 b, float t)
         {
             return a + t * (b - a);
         }
@@ -707,20 +710,20 @@ namespace treeGenNamespace
 
         
 
-        public void attractOutward(float outwardAttraction, UnityEngine.Vector3 outwardDir)
+        public void attractOutward(float outwardAttraction, Vector3 outwardDir)
         {
             
         }
 
         public void applyCurvature(node rootNode, 
-                                   UnityEngine.Vector3 treeGrowDir, 
+                                   Vector3 treeGrowDir, 
                                    float treeHeight, 
                                    float branchGlobalCurvatureStart, 
                                    float branchCurvatureStart,
                                    float branchGlobalCurvatureEnd, 
                                    float branchCurvatureEnd,
                                    int clusterIndex,
-                                   UnityEngine.Vector3 point,
+                                   Vector3 point,
                                    float reducedCurveStepCutoff,
                                    float reducedCurveStepFactor)
         {
@@ -735,8 +738,8 @@ namespace treeGenNamespace
 
         public List<segment> segments;
 
-        public List<UnityEngine.Vector3> vertices = new List<UnityEngine.Vector3>();
-        public List<UnityEngine.Vector3> normals = new List<UnityEngine.Vector3>();
+        public List<Vector3> vertices = new List<Vector3>();
+        public List<Vector3> normals = new List<Vector3>();
         public List<float> vertexTvalGlobal = new List<float>();
         public List<float> vertexTvalBranch = new List<float>();
         public List<float> ringAngle = new List<float>();
@@ -747,12 +750,12 @@ namespace treeGenNamespace
 
         public void generateTree()
         {
-            UnityEngine.Debug.Log("generateTree() in treeGenerator.cs");
+            Debug.Log("generateTree() in treeGenerator.cs");
             //settings = new treeSettings();
             nodes = new List<node>();
-            nodes.Add(new node(new UnityEngine.Vector3(0f, 0f, 0f), 
+            nodes.Add(new node(new Vector3(0f, 0f, 0f), 
                                0.1f, 
-                               new UnityEngine.Vector3(1f, 0f, 0f), 
+                               new Vector3(1f, 0f, 0f), 
                                -1, 
                                settings.stemRingResolution, 
                                settings.taper, 
@@ -760,12 +763,12 @@ namespace treeGenNamespace
                                0f, 
                                settings.treeHeight));
     
-            nodes[0].tangent.Add(new UnityEngine.Vector3(0f, 1f, 0f));
-            nodes[0].cotangent = new UnityEngine.Vector3(1f, 0f, 0f);
+            nodes[0].tangent.Add(new Vector3(0f, 1f, 0f));
+            nodes[0].cotangent = new Vector3(1f, 0f, 0f);
     
             nodes.Add(new node(settings.treeGrowDir * settings.treeHeight, 
                                0.1f, 
-                               new UnityEngine.Vector3(1f, 0f, 0f), 
+                               new Vector3(1f, 0f, 0f), 
                                -1, 
                                settings.stemRingResolution, 
                                settings.taper, 
@@ -773,17 +776,17 @@ namespace treeGenNamespace
                                0.0f, 
                                settings.treeHeight));
             
-            nodes[1].tangent.Add(new UnityEngine.Vector3(0f, 1f, 0f));
-            nodes[1].cotangent = new UnityEngine.Vector3(1f, 0f, 0f);
+            nodes[1].tangent.Add(new Vector3(0f, 1f, 0f));
+            nodes[1].cotangent = new Vector3(1f, 0f, 0f);
 
             nodes[0].next.Add(nodes[1]);
 
-            UnityEngine.Debug.Log("settings.treeGrowDir: " + settings.treeGrowDir);
-            UnityEngine.Debug.Log("settings.treeHeight: " + settings.treeHeight);
+            Debug.Log("settings.treeGrowDir: " + settings.treeGrowDir);
+            Debug.Log("settings.treeHeight: " + settings.treeHeight);
 
             foreach (node n in nodes)
             {
-                UnityEngine.Debug.Log("node: point: " + n.point);
+                Debug.Log("node: point: " + n.point);
             }
 
             if (settings.nrSplits > 0)
@@ -820,7 +823,7 @@ namespace treeGenNamespace
                                     settings.curvatureEnd / settings.resampleDistance, 
                                     0.0f, 
                                     -1, 
-                                    new UnityEngine.Vector3(0.0f,0.0f,0.0f),
+                                    new Vector3(0.0f,0.0f,0.0f),
                                     0.0f,
                                     0.0f);
 
@@ -864,8 +867,8 @@ namespace treeGenNamespace
 
             //foreach (segment s in segments)
             //{
-            //    UnityEngine.Debug.Log("segment: start: " + s.start + ", connected: " + s.connectedToPrevious);
-            //    UnityEngine.Debug.Log("segment: end: " + s.end);
+            //    Debug.Log("segment: start: " + s.start + ", connected: " + s.connectedToPrevious);
+            //    Debug.Log("segment: end: " + s.end);
             //}
 
             generateVerticesAndTriangles(segments, settings.ringSpacing, settings.branchTipRadius);
@@ -874,8 +877,8 @@ namespace treeGenNamespace
             mesh.vertices = vertices.ToArray();
             mesh.triangles = triangles.ToArray();
             mesh.normals = normals.ToArray();
-            UnityEngine.Debug.Log("vertices count: " + vertices.Count);
-            UnityEngine.Debug.Log("triangles count: " + triangles.Count);
+            Debug.Log("vertices count: " + vertices.Count);
+            Debug.Log("triangles count: " + triangles.Count);
 
             GetComponent<MeshFilter>().mesh = mesh;
         }
@@ -1056,11 +1059,11 @@ namespace treeGenNamespace
                     {
                         break;
                     }
-                    float r = UnityEngine.Random.Range(0f, 1f);
-                    float h = UnityEngine.Random.Range(0f, 1f) - 0.5f;
+                    float r = Random.Range(0f, 1f);
+                    float h = Random.Range(0f, 1f) - 0.5f;
                     if (r <= splitProbabilityInLevel[level])
                     {
-                        int indexToSplit = UnityEngine.Random.Range(0, nodeIndices.Count);
+                        int indexToSplit = Random.Range(0, nodeIndices.Count);
                         if (nodeIndices.Count > indexToSplit)
                         {
                             float splitHeight = splitHeightInLevel[level];
@@ -1101,7 +1104,7 @@ namespace treeGenNamespace
                     safetyCounter += 1;
                     if (safetyCounter > 500)
                     {
-                        UnityEngine.Debug.Log("iteration 500 reached -> break!");
+                        Debug.Log("iteration 500 reached -> break!");
                         break;
                     }
                 }
@@ -1125,15 +1128,15 @@ namespace treeGenNamespace
         {
             if (startNode.next.Count > 0 && nextIndex < startNode.next.Count)
             {
-                UnityEngine.Debug.Log("before calling nodesToTip()");
+                Debug.Log("before calling nodesToTip()");
                 int nrNodesToTip = nodesToTip(startNode.next[nextIndex], 0); // .next???
-                UnityEngine.Debug.Log("result int nrNodesToTip: " + nrNodesToTip);
+                Debug.Log("result int nrNodesToTip: " + nrNodesToTip);
                 if (splitHeight > 0.999f)
                 {
                     splitHeight = 0.999f;
                 }
                 int splitAfterNodeNr = (int)(nrNodesToTip * splitHeight);
-                UnityEngine.Debug.Log("in split(): nrNodesToTip: " + nrNodesToTip);
+                Debug.Log("in split(): nrNodesToTip: " + nrNodesToTip);
                 
                 if (nrNodesToTip > 0)
                 {
@@ -1177,17 +1180,17 @@ namespace treeGenNamespace
         {
             if (n.next.Count > 0)
             {
-                UnityEngine.Debug.Log("in nodesToTip(): i: " + i);
+                Debug.Log("in nodesToTip(): i: " + i);
                 if (i > 500)
                 {
-                    UnityEngine.Debug.Log("ERROR: in nodesToTip(): max iteration reached!");
+                    Debug.Log("ERROR: in nodesToTip(): max iteration reached!");
                     return i;
                 }
                 return 1 + nodesToTip(n.next[0], i + 1);
             }
             else
             {
-                UnityEngine.Debug.Log("in nodesToTip(): return 1");
+                Debug.Log("in nodesToTip(): return 1");
                 return 1;
             }
         }
@@ -1237,20 +1240,20 @@ namespace treeGenNamespace
 
             // Interpolate position and attributes for the new node
             float t = (float)nrNodesToTip * splitHeight - (float)splitAfterNodeNr;
-            UnityEngine.Vector3 p0 = splitAfterNode.point;
-            UnityEngine.Vector3 p1 = splitAfterNode.next[nextIndex].point;
-            UnityEngine.Vector3 t0 = splitAfterNode.tangent[tangentIndex];
-            UnityEngine.Vector3 t1 = splitAfterNode.next[nextIndex].tangent[0];
-            UnityEngine.Vector3 c0 = splitAfterNode.cotangent;
-            UnityEngine.Vector3 c1 = splitAfterNode.next[nextIndex].cotangent;
+            Vector3 p0 = splitAfterNode.point;
+            Vector3 p1 = splitAfterNode.next[nextIndex].point;
+            Vector3 t0 = splitAfterNode.tangent[tangentIndex];
+            Vector3 t1 = splitAfterNode.next[nextIndex].tangent[0];
+            Vector3 c0 = splitAfterNode.cotangent;
+            Vector3 c1 = splitAfterNode.next[nextIndex].cotangent;
             float r0 = splitAfterNode.radius;
             float r1 = splitAfterNode.next[nextIndex].radius;
             int ring_res = splitAfterNode.ringResolution;
             float taper = splitAfterNode.taper;
 
-            UnityEngine.Vector3 newPoint = sampleSplineT(p0, p1, t0, t1, t);
-            UnityEngine.Vector3 newTangent = sampleSplineTangentT(p0, p1, t0, t1, t);
-            UnityEngine.Vector3 newCotangent = lerp(c0, c1, t);
+            Vector3 newPoint = sampleSplineT(p0, p1, t0, t1, t);
+            Vector3 newTangent = sampleSplineTangentT(p0, p1, t0, t1, t);
+            Vector3 newCotangent = lerp(c0, c1, t);
             float newRadius = lerp(r0, r1, t);
             float newTvalGlobal = lerp(splitAfterNode.tValGlobal, splitAfterNode.next[nextIndex].tValGlobal, nrNodesToTip * splitHeight -       splitAfterNodeNr);
 
@@ -1280,9 +1283,9 @@ namespace treeGenNamespace
                        float rotationAngle, 
                        int stemRingResolution, 
                        float curvOffsetStrength, 
-                       List<UnityEngine.Vector3> outwardDir)
+                       List<Vector3> outwardDir)
         {
-            UnityEngine.Debug.Log("in calculateSplitData() splitNode.point: " + splitNode.point);
+            Debug.Log("in calculateSplitData() splitNode.point: " + splitNode.point);
             node n = splitNode;
             int nodesAfterSplitNode = 0;
 
@@ -1293,7 +1296,7 @@ namespace treeGenNamespace
             }
 
             // Initialize splitAxis
-            UnityEngine.Vector3 splitAxis = new UnityEngine.Vector3(0f, 0f, 0f);
+            Vector3 splitAxis = new Vector3(0f, 0f, 0f);
 
             // public enum splitMode
             // {
@@ -1303,9 +1306,9 @@ namespace treeGenNamespace
 
             if (sMode == 1) // "HORIZONTAL":
             {
-                UnityEngine.Vector3 right = UnityEngine.Vector3.Cross(splitNode.tangent[0],new UnityEngine.Vector3(0.0f, 0.0f, 1.0f));
-                splitAxis = UnityEngine.Vector3.Cross(right,norm(splitNode.tangent[0]));
-                splitAxis = UnityEngine.Quaternion.AngleAxis(UnityEngine.Random.Range(-branchSplitAxisVariation, branchSplitAxisVariation), splitNode.tangent[0]) * splitAxis;
+                Vector3 right = Vector3.Cross(splitNode.tangent[0],new Vector3(0.0f, 0.0f, 1.0f));
+                splitAxis = Vector3.Cross(right,norm(splitNode.tangent[0]));
+                splitAxis = Quaternion.AngleAxis(Random.Range(-branchSplitAxisVariation, branchSplitAxisVariation), splitNode.tangent[0]) * splitAxis;
 
                 //splitAxis = Quaternion(splitNode.tangent[0], random.uniform(-branchSplitAxisVariation, branchSplitAxisVariation)) @ splitAxis
             }
@@ -1314,21 +1317,21 @@ namespace treeGenNamespace
                 if (sMode == 0) //"ROTATE_ANGLE":
                 {
                     splitAxis = norm(splitNode.cotangent);
-                    splitAxis = norm(UnityEngine.Quaternion.AngleAxis(rotationAngle * level, splitNode.tangent[0]) * splitAxis);
+                    splitAxis = norm(Quaternion.AngleAxis(rotationAngle * level, splitNode.tangent[0]) * splitAxis);
                 }
                 else
                 {
-                    UnityEngine.Debug.LogError("ERROR: invalid splitMode: " + sMode);
+                    Debug.LogError("ERROR: invalid splitMode: " + sMode);
                     splitAxis = norm(splitNode.cotangent);
                     if (level % 2 == 1)
                     {
-                        splitAxis = norm(UnityEngine.Quaternion.AngleAxis(MathF.PI / 2.0f, splitNode.tangent[0]) * splitAxis);
+                        splitAxis = norm(Quaternion.AngleAxis(MathF.PI / 2.0f, splitNode.tangent[0]) * splitAxis);
                     }
                 }
             }
 
-            UnityEngine.Vector3 splitDirA = norm(UnityEngine.Quaternion.AngleAxis(splitPointAngle, splitAxis) * splitNode.tangent[0]);
-            UnityEngine.Vector3 splitDirB = norm(UnityEngine.Quaternion.AngleAxis(-splitPointAngle, splitAxis) * splitNode.tangent[0]);
+            Vector3 splitDirA = norm(Quaternion.AngleAxis(splitPointAngle, splitAxis) * splitNode.tangent[0]);
+            Vector3 splitDirB = norm(Quaternion.AngleAxis(-splitPointAngle, splitAxis) * splitNode.tangent[0]);
 
             splitNode.tangent.Add(splitDirA);
             splitNode.tangent.Add(splitDirB);
@@ -1336,24 +1339,24 @@ namespace treeGenNamespace
             node s = splitNode;
             node previousNodeA = splitNode;
             node previousNodeB = splitNode;
-            UnityEngine.Vector3 curv_offset = norm(splitNode.tangent[0]) * length(s.next[0].point - s.point) * (splitAngle / 360.0f) * curvOffsetStrength;
+            Vector3 curv_offset = norm(splitNode.tangent[0]) * length(s.next[0].point - s.point) * (splitAngle / 360.0f) * curvOffsetStrength;
             s.outwardDir = outwardDir;
 
             for (int i = 0; i < nodesAfterSplitNode; i++)
             {
                 s = s.next[0];
-                UnityEngine.Vector3 rel_pos = s.point - splitNode.point;
+                Vector3 rel_pos = s.point - splitNode.point;
                 s.outwardDir = outwardDir;
 
-                UnityEngine.Vector3 tangent_a = norm(UnityEngine.Quaternion.AngleAxis(splitAngle, splitAxis) * s.tangent[0]);
-                UnityEngine.Vector3 tangent_b = norm(UnityEngine.Quaternion.AngleAxis(-splitAngle, splitAxis) * s.tangent[0]);
-                UnityEngine.Vector3 cotangent_a = norm(UnityEngine.Quaternion.AngleAxis(splitAngle, splitAxis) * s.cotangent);
-                UnityEngine.Vector3 cotangent_b = norm(UnityEngine.Quaternion.AngleAxis(-splitAngle, splitAxis) * s.cotangent);
+                Vector3 tangent_a = norm(Quaternion.AngleAxis(splitAngle, splitAxis) * s.tangent[0]);
+                Vector3 tangent_b = norm(Quaternion.AngleAxis(-splitAngle, splitAxis) * s.tangent[0]);
+                Vector3 cotangent_a = norm(Quaternion.AngleAxis(splitAngle, splitAxis) * s.cotangent);
+                Vector3 cotangent_b = norm(Quaternion.AngleAxis(-splitAngle, splitAxis) * s.cotangent);
 
-                UnityEngine.Vector3 offset_a = UnityEngine.Quaternion.AngleAxis(splitAngle, splitAxis) * rel_pos;
-                offset_a = offset_a * (1.0f + UnityEngine.Random.Range(-1.0f, 1.0f) * splitLengthVariation);
-                UnityEngine.Vector3 offset_b = UnityEngine.Quaternion.AngleAxis(-splitAngle, splitAxis) * rel_pos;
-                offset_b = offset_b * (1.0f + UnityEngine.Random.Range(-1.0f, 1.0f) * splitLengthVariation);
+                Vector3 offset_a = Quaternion.AngleAxis(splitAngle, splitAxis) * rel_pos;
+                offset_a = offset_a * (1.0f + Random.Range(-1.0f, 1.0f) * splitLengthVariation);
+                Vector3 offset_b = Quaternion.AngleAxis(-splitAngle, splitAxis) * rel_pos;
+                offset_b = offset_b * (1.0f + Random.Range(-1.0f, 1.0f) * splitLengthVariation);
 
                 int ring_resolution = stemRingResolution;
 
@@ -1388,7 +1391,7 @@ namespace treeGenNamespace
 
             List<List<bool>> parentClusterBoolListList, 
 
-            UnityEngine.Vector3 treeGrowDir, 
+            Vector3 treeGrowDir, 
             float treeHeight, 
             float taper, 
             List<float> taperFactorList) //,
@@ -1398,7 +1401,7 @@ namespace treeGenNamespace
             
             for (int clusterIndex = 0; clusterIndex < branchClusters; clusterIndex++)
             {
-                UnityEngine.Debug.Log("in addBranches() clusterIndex: " + clusterIndex);
+                Debug.Log("in addBranches() clusterIndex: " + clusterIndex);
                 int nrBranches = branchClusterSettingsList[clusterIndex].nrBranches;
                 float branchesStartHeightGlobal = branchClusterSettingsList[clusterIndex].branchesStartHeightGlobal;
                 float branchesEndHeightGlobal = branchClusterSettingsList[clusterIndex].branchesEndHeightGlobal;
@@ -1409,7 +1412,7 @@ namespace treeGenNamespace
                 List<startNodeInfo> startNodesNextIndexStartTvalEndTval = new List<startNodeInfo>();
                 List<List<startNodeInfo>> branchNodesNextIndexStartTvalEndTval = new List<List<startNodeInfo>>();
                 List<node> branchNodes = new List<node>();
-                List<UnityEngine.Vector3> centerDirs = new List<UnityEngine.Vector3>();
+                List<Vector3> centerDirs = new List<Vector3>();
 
                 for (int i = 0; i < branchClusterSettingsList[clusterIndex].nrBranches; i++)
                 {
@@ -1429,7 +1432,7 @@ namespace treeGenNamespace
                         parentClusterBoolListList, 
                         clusterIndex);
                 }
-                UnityEngine.Debug.Log("in addBranches(): startNodes.Count: " + startNodesNextIndexStartTvalEndTval.Count);
+                Debug.Log("in addBranches(): startNodes.Count: " + startNodesNextIndexStartTvalEndTval.Count);
                  
                 if (startNodesNextIndexStartTvalEndTval.Count > 0)
                 {
@@ -1437,14 +1440,14 @@ namespace treeGenNamespace
                     
                     float totalLength = calculateSegmentLengthsAndTotalLength(startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster);
                     
-                    UnityEngine.Debug.Log("in addBranches(): totalLength: " + totalLength);
+                    Debug.Log("in addBranches(): totalLength: " + totalLength);
             
                     List<StartPointData> startPointData = new List<StartPointData>();
                     List<float> branchPositions = new List<float>();
                     
                     for (int branchIndex = 0; branchIndex < nrBranches; branchIndex++)
                     {
-                        float branchPos = branchIndex * totalLength / nrBranches + UnityEngine.Random.Range(-branchesStartPointVariation, branchesStartPointVariation);
+                        float branchPos = branchIndex * totalLength / nrBranches + Random.Range(-branchesStartPointVariation, branchesStartPointVariation);
                         if (branchPos < 0f)
                         {
                             branchPos = 0f;
@@ -1470,12 +1473,12 @@ namespace treeGenNamespace
                     //#    treeGen.report({'INFO'}, f"startPointData[{n}].outwardDir: {data.outwardDir}")
                     
                     List<List<StartPointData>> dummyStartPointData = new List<List<StartPointData>>();
-                    List<UnityEngine.Vector3> centerPoints = new List<UnityEngine.Vector3>();
+                    List<Vector3> centerPoints = new List<Vector3>();
                     List<float> rightRotationRange = new List<float>();
                     List<float> leftRotationRange = new List<float>();
                     foreach (StartPointData data in startPointData)
                     {
-                        (List<StartPointData> dummyData, UnityEngine.Vector3 centerPoint) = DummyStartPointData.generateDummyStartPointData(rootNode, data);
+                        (List<StartPointData> dummyData, Vector3 centerPoint) = DummyStartPointData.generateDummyStartPointData(rootNode, data);
                         dummyStartPointData.Add(dummyData);
                         centerPoints.Add(centerPoint);
                         // generates all parallel start points for one startPoint
@@ -1488,13 +1491,13 @@ namespace treeGenNamespace
                         // -> calculate rotate angle range per startPoint
                         float startPointAngle = MathF.Atan2(startPointData[n].outwardDir.x, startPointData[n].outwardDir.z);
 
-                        List<UnityEngine.Vector3> directions = new List<UnityEngine.Vector3>();
+                        List<Vector3> directions = new List<Vector3>();
                         foreach (StartPointData data in dummyStartPointData[n])
                         {
-                            directions.Add(new UnityEngine.Vector3((data.startPoint - centerPoints[n]).x, (data.startPoint - centerPoints[n]).z, 0f));
+                            directions.Add(new Vector3((data.startPoint - centerPoints[n]).x, (data.startPoint - centerPoints[n]).z, 0f));
                         }
 
-                        (UnityEngine.Vector3 cwVector, UnityEngine.Vector3 acwVector, UnityEngine.Vector3 halfCwVector, UnityEngine.Vector3 halfAcwVector, float halfAngleCW, float halfAngleACW) = StartPointData.findClosestVectors(directions, startPointData[n].outwardDir); // -> adaptive rotate angle range !!!
+                        (Vector3 cwVector, Vector3 acwVector, Vector3 halfCwVector, Vector3 halfAcwVector, float halfAngleCW, float halfAngleACW) = StartPointData.findClosestVectors(directions, startPointData[n].outwardDir); // -> adaptive rotate angle range !!!
 
                         rightRotationRange.Add(halfAngleCW);
                         leftRotationRange.Add(halfAngleACW);
@@ -1502,16 +1505,16 @@ namespace treeGenNamespace
 
                     for (int n = 0; n < startPointData.Count; n++)
                     {
-                        UnityEngine.Debug.Log("startPointData[n].startPoint: " + startPointData[n].startPoint);
-                        UnityEngine.Debug.Log("centerPoints[" + n + "]: " + centerPoints[n]);
+                        Debug.Log("startPointData[n].startPoint: " + startPointData[n].startPoint);
+                        Debug.Log("centerPoints[" + n + "]: " + centerPoints[n]);
                         if (length(startPointData[n].startPoint - centerPoints[n]) > 0.0001f)
                         {
                             startPointData[n].outwardDir = startPointData[n].startPoint - centerPoints[n];
-                            UnityEngine.Debug.Log("re-asigning startPointData[" + n + "].outwardDir: " + startPointData[n].outwardDir);
+                            Debug.Log("re-asigning startPointData[" + n + "].outwardDir: " + startPointData[n].outwardDir);
                         }
                         else
                         {
-                            UnityEngine.Debug.Log("setting startPointData[" + n + "].outwardDir = startPointData[" + n + "].startNode.cotangent");
+                            Debug.Log("setting startPointData[" + n + "].outwardDir = startPointData[" + n + "].startNode.cotangent");
                             startPointData[n].outwardDir = startPointData[n].startNode.cotangent;
                         }
                     }
@@ -1524,7 +1527,7 @@ namespace treeGenNamespace
                     {
                         StartPointData data = StartPointData.generateStartPointData(startNodesNextIndexStartTvalEndTval, segmentLengths, branchPositions[branchIndex], treeGrowDir, rootNode, treeHeight, false);
 
-                        UnityEngine.Vector3 startPointTangent = sampleSplineTangentT(data.startNode.point, 
+                        Vector3 startPointTangent = sampleSplineTangentT(data.startNode.point, 
                                                                                      data.startNode.next[data.startNodeNextIndex].point, 
                                                                                      data.tangent,
                                                                                      data.startNode.next[data.startNodeNextIndex].tangent[0],
@@ -1551,7 +1554,7 @@ namespace treeGenNamespace
                         //    adaptiveWinding
                         //}
 
-                        UnityEngine.Vector3 branchDir = new UnityEngine.Vector3(0f, 0f, 0f);
+                        Vector3 branchDir = new Vector3(0f, 0f, 0f);
                             
                         if (branchClusterSettingsList[clusterIndex].rotateAngleRange == 0f)
                         {
@@ -1559,7 +1562,7 @@ namespace treeGenNamespace
                         }
                         if (branchClusterSettingsList[clusterIndex].branchAngleMode == 2) // adaptiveWinding
                         {
-                            UnityEngine.Vector3 centerDir = data.outwardDir;
+                            Vector3 centerDir = data.outwardDir;
                             centerDirs.Add(centerDir);
 
                             float angle;
@@ -1581,22 +1584,22 @@ namespace treeGenNamespace
                                 minAngle = angle;
                             }
 
-                            UnityEngine.Vector3 right = UnityEngine.Vector3.Cross(startPointData[branchIndex].outwardDir, startPointTangent);
-                            UnityEngine.Vector3 axis = -UnityEngine.Vector3.Cross(-centerDir, startPointTangent);
+                            Vector3 right = Vector3.Cross(startPointData[branchIndex].outwardDir, startPointTangent);
+                            Vector3 axis = -Vector3.Cross(-centerDir, startPointTangent);
 
-                            branchDir = UnityEngine.Quaternion.AngleAxis(verticalAngle, axis) * startPointTangent;
-                            branchDir = UnityEngine.Quaternion.AngleAxis(angle, startPointTangent) * branchDir;
+                            branchDir = Quaternion.AngleAxis(verticalAngle, axis) * startPointTangent;
+                            branchDir = Quaternion.AngleAxis(angle, startPointTangent) * branchDir;
                         }
                         if (branchClusterSettingsList[clusterIndex].branchAngleMode == 1) // winding
                         {
-                            UnityEngine.Vector3 centerDir = data.outwardDir;
+                            Vector3 centerDir = data.outwardDir;
                             centerDirs.Add(centerDir);
                             float angle;
-                            UnityEngine.Vector3 right;
+                            Vector3 right;
                             if (branchClusterSettingsList[clusterIndex].useFibonacciAngles == true)
                             {
-                                angle = (windingAngle + 360f) % (360f);
-                                right = norm(UnityEngine.Vector3.Cross(startPointTangent, new UnityEngine.Vector3(1f, 0f, 0f))); // -> most likely vertical
+                                angle = (windingAngle + 360f) % 360f;
+                                right = norm(Vector3.Cross(startPointTangent, new Vector3(1f, 0f, 0f))); // -> most likely vertical
                             }
                             else
                             {
@@ -1605,19 +1608,19 @@ namespace treeGenNamespace
                                     branchClusterSettingsList[clusterIndex].rotateAngleRange = 180f;
                                 }
                                 angle = windingAngle % branchClusterSettingsList[clusterIndex].rotateAngleRange + branchClusterSettingsList[clusterIndex].rotateAngleOffset - branchClusterSettingsList[clusterIndex].rotateAngleRange / 2f;
-                                right = UnityEngine.Vector3.Cross(data.outwardDir, startPointTangent);
+                                right = Vector3.Cross(data.outwardDir, startPointTangent);
 
                                 if (length(right) < 0.001f)
                                 {
-                                    UnityEngine.Vector3 d = data.startNode.next[data.startNodeNextIndex].point - data.startNode.point;
-                                    UnityEngine.Vector3 h = new UnityEngine.Vector3(d.x, 0f, d.z);
+                                    Vector3 d = data.startNode.next[data.startNodeNextIndex].point - data.startNode.point;
+                                    Vector3 h = new Vector3(d.x, 0f, d.z);
                                     if (length(h) > 0.00001f)
                                     {
-                                        right = UnityEngine.Vector3.Cross(h, data.startNode.tangent[0]);
+                                        right = Vector3.Cross(h, data.startNode.tangent[0]);
                                     }
                                     else
                                     {
-                                        right = new UnityEngine.Vector3(1f, 0f, 0f);
+                                        right = new Vector3(1f, 0f, 0f);
                                     }
                                 }
                                 else
@@ -1625,51 +1628,51 @@ namespace treeGenNamespace
                                     right = norm(right);
                                 }
                             }
-                            UnityEngine.Vector3 axis = norm(UnityEngine.Vector3.Cross(right, startPointTangent));
-                            branchDir = UnityEngine.Quaternion.AngleAxis(-verticalAngle, axis) * startPointTangent;
-                            branchDir = UnityEngine.Quaternion.AngleAxis(angle, startPointTangent) * branchDir;
+                            Vector3 axis = norm(Vector3.Cross(right, startPointTangent));
+                            branchDir = Quaternion.AngleAxis(-verticalAngle, axis) * startPointTangent;
+                            branchDir = Quaternion.AngleAxis(angle, startPointTangent) * branchDir;
                         }
 
                         if (branchClusterSettingsList[clusterIndex].branchAngleMode == 0) // symmetric
                         {
-                            UnityEngine.Vector3 centerDir = UnityEngine.Quaternion.AngleAxis(-verticalAngle, UnityEngine.Vector3.Cross(startPointTangent, data.outwardDir)) * data.outwardDir;
+                            Vector3 centerDir = Quaternion.AngleAxis(-verticalAngle, Vector3.Cross(startPointTangent, data.outwardDir)) * data.outwardDir;
                             centerDirs.Add(centerDir);
-                            UnityEngine.Vector3 axis = norm(UnityEngine.Vector3.Cross(startPointTangent, centerDir));
+                            Vector3 axis = norm(Vector3.Cross(startPointTangent, centerDir));
 
                             rotateAngle = globalRotateAngle + branchRotateAngle;
-                            UnityEngine.Vector3 right;
+                            Vector3 right;
                             if (branchIndex % 2 == 0)
                             {
-                                right = norm(UnityEngine.Vector3.Cross(startPointTangent, new UnityEngine.Vector3(0f, 1f, 0f)));
-                                axis = norm(UnityEngine.Vector3.Cross(right, startPointTangent));
-                                branchDir = UnityEngine.Quaternion.AngleAxis(-verticalAngle, axis) * startPointTangent;
-                                branchDir = UnityEngine.Quaternion.AngleAxis(-rotateAngle, startPointTangent) * branchDir;
+                                right = norm(Vector3.Cross(startPointTangent, new Vector3(0f, 1f, 0f)));
+                                axis = norm(Vector3.Cross(right, startPointTangent));
+                                branchDir = Quaternion.AngleAxis(-verticalAngle, axis) * startPointTangent;
+                                branchDir = Quaternion.AngleAxis(-rotateAngle, startPointTangent) * branchDir;
                             }
                             else
                             {
-                                right = norm(UnityEngine.Vector3.Cross(startPointTangent, new UnityEngine.Vector3(0f, 1f, 0f)));
-                                axis = norm(UnityEngine.Vector3.Cross(right, startPointTangent));
-                                branchDir = UnityEngine.Quaternion.AngleAxis(verticalAngle, axis) * startPointTangent;
-                                branchDir = UnityEngine.Quaternion.AngleAxis(rotateAngle, startPointTangent) * branchDir;
+                                right = norm(Vector3.Cross(startPointTangent, new Vector3(0f, 1f, 0f)));
+                                axis = norm(Vector3.Cross(right, startPointTangent));
+                                branchDir = Quaternion.AngleAxis(verticalAngle, axis) * startPointTangent;
+                                branchDir = Quaternion.AngleAxis(rotateAngle, startPointTangent) * branchDir;
                             }
                         }
 
-                        UnityEngine.Vector3 branchCotangent = new UnityEngine.Vector3(0f, 0f, 0f);
+                        Vector3 branchCotangent = new Vector3(0f, 0f, 0f);
                         //There is no single continuous function that can generate a vector in R3 that is orthogonal to a given one for all vector inputs. https://en.wikipedia.org/wiki/Hairy_ball_theorem
 
                         if (branchDir.x != 0f)
                         {
-                            branchCotangent = new UnityEngine.Vector3(-branchDir.z, 0f, branchDir.x);
+                            branchCotangent = new Vector3(-branchDir.z, 0f, branchDir.x);
                         }
                         else
                         {
                             if (branchDir.z != 0f)
                             {
-                                branchCotangent = new UnityEngine.Vector3(0f, branchDir.z, -branchDir.y);
+                                branchCotangent = new Vector3(0f, branchDir.z, -branchDir.y);
                             }
                             else
                             {
-                                branchCotangent = new UnityEngine.Vector3(-branchDir.y, branchDir.x, 0f);
+                                branchCotangent = new Vector3(-branchDir.y, branchDir.x, 0f);
                             }
                         }
 
@@ -1679,7 +1682,7 @@ namespace treeGenNamespace
                         float treeShapeRatioValue = shapeRatio(startTvalGlobal, branchClusterSettingsList[clusterIndex].treeShape);
                         float branchShapeRatioValue = shapeRatio(startTvalBranch, branchClusterSettingsList[clusterIndex].branchShape);
 
-                        float branchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * UnityEngine.Random.Range(-1f, 1f)) * treeShapeRatioValue * branchShapeRatioValue;
+                        float branchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * Random.Range(-1f, 1f)) * treeShapeRatioValue * branchShapeRatioValue;
 
                         node branch = new node(data.startPoint, 
                                                1f, 
@@ -1771,25 +1774,25 @@ namespace treeGenNamespace
                         //    adaptiveWinding
                         //}            
                         
-                        if (branchClusterSettingsList[clusterIndex].branchType == 1) //"OPPOSITE":    // UnityEngine.Quaternion(verticalAngle, axis) * startPointTangent;
+                        if (branchClusterSettingsList[clusterIndex].branchType == 1) //"OPPOSITE":    // Quaternion(verticalAngle, axis) * startPointTangent;
                         {
                             centerDirs.Add(centerDirs[centerDirs.Count - 1]);
-                            UnityEngine.Vector3 oppositeBranchDir = UnityEngine.Quaternion.AngleAxis(180f, startPointTangent) * branchDir;
-                            UnityEngine.Vector3 oppositeBranchCotangent = UnityEngine.Quaternion.AngleAxis(180f, startPointTangent) * branchCotangent;
+                            Vector3 oppositeBranchDir = Quaternion.AngleAxis(180f, startPointTangent) * branchDir;
+                            Vector3 oppositeBranchCotangent = Quaternion.AngleAxis(180f, startPointTangent) * branchCotangent;
                             
                             if (branchClusterSettingsList[clusterIndex].branchAngleMode == 0) // "SYMMETRIC":
                             {
                                 if (branchIndex % 2 == 0)
                                 {
-                                    oppositeBranchDir = UnityEngine.Quaternion.AngleAxis( 2.0f * rotateAngle, startPointTangent) * oppositeBranchDir;
+                                    oppositeBranchDir = Quaternion.AngleAxis( 2.0f * rotateAngle, startPointTangent) * oppositeBranchDir;
                                 }
                                 else
                                 {
-                                    oppositeBranchDir = UnityEngine.Quaternion.AngleAxis(-2.0f * rotateAngle, startPointTangent) * oppositeBranchDir;
+                                    oppositeBranchDir = Quaternion.AngleAxis(-2.0f * rotateAngle, startPointTangent) * oppositeBranchDir;
                                 }
                             }
                             
-                            float oppositeBranchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * UnityEngine.Random.Range(-1.0f, 1.0f)) * treeShapeRatioValue * branchShapeRatioValue;
+                            float oppositeBranchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * Random.Range(-1.0f, 1.0f)) * treeShapeRatioValue * branchShapeRatioValue;
                             
                             node oppositeBranch = new node(data.startPoint, 
                                                            1.0f, 
@@ -1850,10 +1853,10 @@ namespace treeGenNamespace
                             for (int n = 1; n < whorlCount; n++)
                             {
                                 centerDirs.Add(centerDirs[centerDirs.Count - 1]);
-                                UnityEngine.Vector3 whorlDir = UnityEngine.Quaternion.AngleAxis(n * 2f * MathF.PI / whorlCount, startPointTangent) * branchDir;
-                                UnityEngine.Vector3 whorlCotangent = UnityEngine.Quaternion.AngleAxis(n * 2f * MathF.PI / whorlCount, branchCotangent) * branchCotangent;
+                                Vector3 whorlDir = Quaternion.AngleAxis(n * 2f * MathF.PI / whorlCount, startPointTangent) * branchDir;
+                                Vector3 whorlCotangent = Quaternion.AngleAxis(n * 2f * MathF.PI / whorlCount, branchCotangent) * branchCotangent;
                                 
-                                float whorlBranchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * UnityEngine.Random.Range(-1.0f, 1.0f)) * treeShapeRatioValue * branchShapeRatioValue;
+                                float whorlBranchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * Random.Range(-1.0f, 1.0f)) * treeShapeRatioValue * branchShapeRatioValue;
                                 
                                 node whorlBranch = new node(data.startPoint, 
                                                             1.0f, 
@@ -2135,16 +2138,16 @@ namespace treeGenNamespace
             }
             else
             {
-                UnityEngine.Debug.LogError("ERROR: invalid tree shape!");
+                Debug.LogError("ERROR: invalid tree shape!");
                 return 0f;
             }
         }
 
         void generateVerticesAndTriangles(List<segment> segments, float ringSpacing, float branchTipRadius)
         {
-            UnityEngine.Debug.Log("in generateVerticesAndTriangles()");
-            vertices = new List<UnityEngine.Vector3>();
-            normals = new List<UnityEngine.Vector3>();
+            Debug.Log("in generateVerticesAndTriangles()");
+            vertices = new List<Vector3>();
+            normals = new List<Vector3>();
             vertexTvalGlobal = new List<float>();
             vertexTvalBranch = new List<float>();
             ringAngle = new List<float>();
@@ -2154,12 +2157,12 @@ namespace treeGenNamespace
             int counter = 0;
 
             int startSection = 0;
-            UnityEngine.Debug.Log("segments.Count: " + segments.Count);
+            Debug.Log("segments.Count: " + segments.Count);
 
             for (int s = 0; s < segments.Count; s++)
             {
                 float segmentLength = length(segments[s].end - segments[s].start);
-                //UnityEngine.Debug.Log("segment length: " + segmentLength);
+                //Debug.Log("segment length: " + segmentLength);
                 if (segmentLength > 0f)
                 {
                     int sections = (int)MathF.Round(segmentLength / ringSpacing);
@@ -2171,43 +2174,43 @@ namespace treeGenNamespace
 
                     if (s > 0)
                     {
-                        //UnityEngine.Debug.Log("segment " + s + ".connectedToPrevious: " + segments[s].connectedToPrevious);
+                        //Debug.Log("segment " + s + ".connectedToPrevious: " + segments[s].connectedToPrevious);
                         if (segments[s].connectedToPrevious == true && segments[s - 1].connectedToPrevious == false) // only on first segment
                         {
                             startSection = 1;
                             offset -= segments[s].ringResolution + 1;
-                            //UnityEngine.Debug.Log("startSection = 1, offset = " + offset);
+                            //Debug.Log("startSection = 1, offset = " + offset);
                         }
 
                         if (segments[s].connectedToPrevious == false)
                         {
                             startSection = 0;
                             offset = vertices.Count;
-                            //UnityEngine.Debug.Log("startSection = 0, offset = " + offset);
+                            //Debug.Log("startSection = 0, offset = " + offset);
                         }
                     }
                     //else
                     //{
-                    //    UnityEngine.Debug.Log("segment " + s);
-                    //    UnityEngine.Debug.Log("startSection = " + startSection + ", offset = " + offset);
+                    //    Debug.Log("segment " + s);
+                    //    Debug.Log("startSection = " + startSection + ", offset = " + offset);
                     //}
 
-                    UnityEngine.Vector3 controlPt1 = segments[s].start + norm(segments[s].startTangent) * (segments[s].end - segments[s].start).magnitude / 3f;
-                    UnityEngine.Vector3 controlPt2 = segments[s].end - norm(segments[s].endTangent) * (segments[s].end - segments[s].start).magnitude / 3f;
+                    Vector3 controlPt1 = segments[s].start + norm(segments[s].startTangent) * (segments[s].end - segments[s].start).magnitude / 3f;
+                    Vector3 controlPt2 = segments[s].end - norm(segments[s].endTangent) * (segments[s].end - segments[s].start).magnitude / 3f;
 
                     for (int section = startSection; section < sections + 1; section++)
                     {
-                        UnityEngine.Vector3 pos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / (float)sections);
-                        UnityEngine.Vector3 tangent = sampleSplineTangentC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / (float)sections);
+                        Vector3 pos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / (float)sections);
+                        Vector3 tangent = sampleSplineTangentC(segments[s].start, controlPt1, controlPt2, segments[s].end, section / (float)sections);
 
                         if (section == 0)
                         {
                             tangent = segments[s].firstTangent;
                         }
 
-                        UnityEngine.Vector3 dirA = lerp(segments[s].startCotangent, segments[s].endCotangent, section / (float)sections);
-                        UnityEngine.Vector3 dirB = norm(UnityEngine.Vector3.Cross(tangent, dirA));
-                        dirA = norm(UnityEngine.Vector3.Cross(dirB, tangent));
+                        Vector3 dirA = lerp(segments[s].startCotangent, segments[s].endCotangent, section / (float)sections);
+                        Vector3 dirB = norm(Vector3.Cross(tangent, dirA));
+                        dirA = norm(Vector3.Cross(dirB, tangent));
 
                         float tVal = segments[s].startTvalGlobal + (segments[s].endTvalGlobal - segments[s].startTvalGlobal) * (section / (float)sections);
                         float tValBranch = segments[s].startTvalBranch + (segments[s].endTvalBranch - segments[s].startTvalBranch) * (section / (float)sections);
@@ -2242,8 +2245,8 @@ namespace treeGenNamespace
                         for (int i = 0; i < segments[s].ringResolution + 1; i++)
                         {
                             float angle = 2f * MathF.PI * i / segments[s].ringResolution;
-                            UnityEngine.Vector3 normalVector = dirA * radius * MathF.Cos(angle) + dirB * radius * MathF.Sin(angle);
-                            UnityEngine.Vector3 v = pos + normalVector;
+                            Vector3 normalVector = dirA * radius * MathF.Cos(angle) + dirB * radius * MathF.Sin(angle);
+                            Vector3 v = pos + normalVector;
 
                             vertices.Add(v);
                             normals.Add(normalVector);
@@ -2267,7 +2270,7 @@ namespace treeGenNamespace
                         float tVal = segments[s].startTvalGlobal + (segments[s].endTvalGlobal - segments[s].startTvalGlobal) * (c / (float)sections);
                         float nextTval = segments[s].startTvalGlobal + (segments[s].endTvalGlobal - segments[s].startTvalGlobal) * ((c + 1) / (float)sections);
 
-                        UnityEngine.Vector3 pos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, c / (float)sections);
+                        Vector3 pos = sampleSplineC(segments[s].start, controlPt1, controlPt2, segments[s].end, c / (float)sections);
 
                         float linearRadius = lerp(segments[s].startRadius, segments[s].endRadius, c / (segmentLength / branchRingSpacing));
                         // TODO: taper curve...
@@ -2277,7 +2280,7 @@ namespace treeGenNamespace
                         //float normalizedCurve = (1f - branchTipRadius) * tVal + 1f - tVal;
                         float radius = linearRadius * normalizedCurve;
 
-                        //UnityEngine.Debug.Log("adding triangles: section: " + c + ", offset: " + offset);
+                        //Debug.Log("adding triangles: section: " + c + ", offset: " + offset);
 
                         for (int j = 0; j < segments[s].ringResolution; j++)
                         {
@@ -2339,11 +2342,11 @@ namespace treeGenNamespace
             //{
             //    if (triangles[i] >= vCount || triangles[i] < 0)
             //    {
-            //        UnityEngine.Debug.LogError("triangles[" + i + "]: " + triangles[i] + " out of bounds!");
+            //        Debug.LogError("triangles[" + i + "]: " + triangles[i] + " out of bounds!");
             //    }
             //    //else
             //    //{
-            //    //    UnityEngine.Debug.Log("triangles[" + i + "]: " + triangles[i]);
+            //    //    Debug.Log("triangles[" + i + "]: " + triangles[i]);
             //    //}
             //}
             /*  
@@ -2466,9 +2469,9 @@ namespace treeGenNamespace
             */
         }
 
-        static UnityEngine.Vector3 norm(UnityEngine.Vector3 v)
+        static Vector3 norm(Vector3 v)
         {
-            if (v ==  new UnityEngine.Vector3(0f, 0f, 0f))
+            if (v ==  new Vector3(0f, 0f, 0f))
             {
                 return v;
             }
@@ -2478,22 +2481,22 @@ namespace treeGenNamespace
             }
         }
 
-        static float length(UnityEngine.Vector3 v)
+        static float length(Vector3 v)
         {
             return v.magnitude;
         }
 
-        static UnityEngine.Vector3 sampleSplineC(UnityEngine.Vector3 controlPt0, UnityEngine.Vector3 controlPt1, UnityEngine.Vector3 controlPt2, UnityEngine.Vector3 controlPt3, float t)
+        static Vector3 sampleSplineC(Vector3 controlPt0, Vector3 controlPt1, Vector3 controlPt2, Vector3 controlPt3, float t)
         {
             return (1.0f - t) * (1.0f - t) * (1.0f - t) * controlPt0 + 3.0f * (1.0f - t) * (1.0f - t) * t * controlPt1 + 3.0f * (1.0f- t) * t * t * controlPt2 + t * t * t * controlPt3;
         }
         // def sampleSplineC(controlPt0, controlPt1, controlPt2, controlPt3, t):
         // return (1.0 - t)**3.0 * controlPt0 + 3.0 * (1.0 - t)**2.0 * t * controlPt1 + 3.0 * (1.0 - t) * t**2.0 * controlPt2 + t**3.0 * controlPt3
         
-        static UnityEngine.Vector3 sampleSplineT(UnityEngine.Vector3 start, UnityEngine.Vector3 end, UnityEngine.Vector3 startTangent, UnityEngine.Vector3 endTangent, float t)
+        static Vector3 sampleSplineT(Vector3 start, Vector3 end, Vector3 startTangent, Vector3 endTangent, float t)
         {
-            UnityEngine.Vector3 controlPt1 = start + norm(startTangent) * (end - start).magnitude / 3.0f;
-            UnityEngine.Vector3 controlPt2 = end - norm(endTangent) * (end - start).magnitude / 3.0f;
+            Vector3 controlPt1 = start + norm(startTangent) * (end - start).magnitude / 3.0f;
+            Vector3 controlPt2 = end - norm(endTangent) * (end - start).magnitude / 3.0f;
             return (1.0f - t)*(1.0f - t)*(1.0f - t) * start + 3.0f * (1.0f - t)*(1.0f - t) * t * controlPt1 + 3.0f * (1.0f - t) * t*t * controlPt2 + t*t*t * end;
         }
         // def sampleSplineT(start, end, startTangent, endTangent, t):
@@ -2502,7 +2505,7 @@ namespace treeGenNamespace
         // return (1.0 - t)**3.0 * start + 3.0 * (1.0 - t)**2.0 * t * controlPt1 + 3.0 * (1.0 - t) * t**2.0 * controlPt2 + t**3.0 * end
     // 
 
-        static UnityEngine.Vector3 sampleSplineTangentC(UnityEngine.Vector3 controlPt0, UnityEngine.Vector3 controlPt1, UnityEngine.Vector3 controlPt2, UnityEngine.Vector3 controlPt3, float t)
+        static Vector3 sampleSplineTangentC(Vector3 controlPt0, Vector3 controlPt1, Vector3 controlPt2, Vector3 controlPt3, float t)
         {
             return norm(-3.0f * (1.0f - t) * (1.0f - t) * controlPt0 + 3.0f * (3.0f * t * t - 4.0f * t + 1.0f) * controlPt1 + 3.0f * (-3.0f * t * t + 2.0f * t) * controlPt2 + 3.0f * t * t * controlPt3);
         }
@@ -2510,10 +2513,10 @@ namespace treeGenNamespace
         // return (-3.0 * (1.0 - t)**2.0 * controlPt0 + 3.0 * (3.0 * t**2.0 - 4.0 * t + 1.0) * controlPt1 + 3.0 * (-3.0 * t**2.0 + 2.0 * t) * controlPt2 + 3.0 * t**2.0 * controlPt3).normalized()
     
 
-        static UnityEngine.Vector3 sampleSplineTangentT(UnityEngine.Vector3 start, UnityEngine.Vector3 end, UnityEngine.Vector3 startTangent, UnityEngine.Vector3 endTangent, float t)
+        static Vector3 sampleSplineTangentT(Vector3 start, Vector3 end, Vector3 startTangent, Vector3 endTangent, float t)
         {
-            UnityEngine.Vector3 controlPt1 = start + norm(startTangent) * length(end - start) / 3.0f;
-            UnityEngine.Vector3 controlPt2 = end - norm(endTangent) * length(end - start) / 3.0f;
+            Vector3 controlPt1 = start + norm(startTangent) * length(end - start) / 3.0f;
+            Vector3 controlPt2 = end - norm(endTangent) * length(end - start) / 3.0f;
             return norm(-3.0f * (1.0f - t) * (1.0f - t) * start + 3.0f * (3.0f * t*t - 4.0f * t + 1.0f) * controlPt1 + 3.0f * (-3.0f * t*t + 2.0f * t) * controlPt2 + 3.0f * t*t * end);
         }
 
@@ -2522,7 +2525,7 @@ namespace treeGenNamespace
         // controlPt2 = end - endTangent.normalized() * (end - start).length / 3.0
         // return (-3.0 * (1.0 - t)**2.0 * start + 3.0 * (3.0 * t**2.0 - 4.0 * t + 1.0) * controlPt1 + 3.0 * (-3.0 * t**2.0 + 2.0 * t) * controlPt2 + 3.0 * t**2.0 * end).normalized()
 
-        static UnityEngine.Vector3 lerp(UnityEngine.Vector3 a, UnityEngine.Vector3 b, float t)
+        static Vector3 lerp(Vector3 a, Vector3 b, float t)
         {
             return a + t * (b - a);
         }
@@ -2561,7 +2564,7 @@ namespace treeGenNamespace
                 //    Gizmos.DrawSphere(s.end, 0.1f);
                 //}
 
-                //foreach (UnityEngine.Vector3 v in vertices)
+                //foreach (Vector3 v in vertices)
                 //{
                 //    Gizmos.color = UnityEngine.Color.blue;
                 //    Gizmos.DrawSphere(v, 0.05f);
