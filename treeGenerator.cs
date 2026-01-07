@@ -280,7 +280,7 @@ namespace treeGenNamespace
 
         public static (List<StartPointData>, Vector3) generateDummyStartPointData(node rootNode, StartPointData startPointDatum)
         {
-            Debug.Log("in generateDummyStartPointData()");
+            Debug.Log("in generateDummyStartPointData(), startPointTvalGlobal: " + startPointDatum.startPointTvalGlobal);
             List<Vector3> parallelPoints = new List<Vector3>();
             rootNode.getAllParallelStartPoints(startPointDatum.startPointTvalGlobal, startPointDatum.startNode, parallelPoints);
 
@@ -292,6 +292,7 @@ namespace treeGenNamespace
                 centerPoint += p;
                 n += 1;
             }
+            Debug.Log("parallelPoints.Count: " + parallelPoints.Count);
             centerPoint = centerPoint / (float)n;
 
             foreach (Vector3 p in parallelPoints)
@@ -614,9 +615,47 @@ namespace treeGenNamespace
             }
         }
 
-        public void getAllParallelStartPoints(float startPointTvalGlobal, node startNode, List<Vector3> parallelPoints)
+        public List<Vector3> getAllParallelStartPoints(float startPointTvalGlobal, node startNode, List<Vector3> parallelPoints)
         {
-            
+            if (this != startNode)
+            {
+                if (tValGlobal < startPointTvalGlobal)
+                {
+                    //for i, n in enumerate(self.next):
+                    for (int i = 0; i < next.Count; i++)
+                    {
+                        if (next[i].tValGlobal > startPointTvalGlobal)
+                        {
+                            float tVal = (startPointTvalGlobal - tValGlobal) / (next[i].tValGlobal - tValGlobal);
+                            if (next.Count == 2)
+                            {
+                                //treeGen.report({'INFO'}, "in getAllParallelStartPoints() appinding point 2")
+                                parallelPoints.Add(sampleSplineT(point, next[i].point, tangent[i + 1], next[i].tangent[0], tVal));
+                            }
+                            if (next.Count == 1)
+                            {
+                                //treeGen.report({'INFO'}, "in getAllParallelStartPoints() appinding point 1")
+                                parallelPoints.Add(sampleSplineT(point, next[i].point, tangent[0], next[i].tangent[0], tVal));
+                            }
+                        }
+                        else
+                        {
+                            next[i].getAllParallelStartPoints(startPointTvalGlobal, startNode, parallelPoints);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                foreach (node n in next)
+                {
+                    if (n.tValGlobal < startPointTvalGlobal)
+                    {
+                        n.getAllParallelStartPoints(startPointTvalGlobal, startNode, parallelPoints);
+                    }
+                }
+            }
+            return parallelPoints;
         }
 
         public float lengthToTip()
@@ -752,7 +791,7 @@ namespace treeGenNamespace
 
         public void attractOutward(float outwardAttraction, Vector3 outwardDir)
         {
-            
+            Debug.LogWarning("attractOutward: not implemented!");
         }
 
         public void applyCurvature(node rootNode, 
@@ -1530,12 +1569,14 @@ namespace treeGenNamespace
                     for (int n = 0; n < dummyStartPointData.Count; n++) // n: branchIndex
                     {
                         // -> calculate rotate angle range per startPoint
-                        float startPointAngle = MathF.Atan2(startPointData[n].outwardDir.x, startPointData[n].outwardDir.z);
+                        float startPointAngle = MathF.Atan2(startPointData[n].outwardDir.z, startPointData[n].outwardDir.x);
+
+                        // startPointAngle = math.atan2(startPointData[n].outwardDir[0], startPointData[n].outwardDir[1])
 
                         List<Vector3> directions = new List<Vector3>();
                         foreach (StartPointData data in dummyStartPointData[n])
                         {
-                            directions.Add(new Vector3((data.startPoint - centerPoints[n]).x, (data.startPoint - centerPoints[n]).z, 0f));
+                            directions.Add(new Vector3((data.startPoint - centerPoints[n]).x, 0f, (data.startPoint - centerPoints[n]).z));
                         }
 
                         (Vector3 cwVector, Vector3 acwVector, Vector3 halfCwVector, Vector3 halfAcwVector, float halfAngleCW, float halfAngleACW) = StartPointData.findClosestVectors(directions, startPointData[n].outwardDir); // -> adaptive rotate angle range !!!

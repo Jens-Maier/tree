@@ -398,7 +398,7 @@ namespace treeGenNamespace
                     {
                         settings.branchSettings[settings.nrBranchClusters - 1].branchTaperCurve = UnityEngine.AnimationCurve.Linear(0f, 1f, 1f, 0f);
                     }
-                    Debug.Log("nrBranchClusters: " + settings.nrBranchClusters);
+                    //Debug.Log("nrBranchClusters: " + settings.nrBranchClusters);
 
                     for (int l = 0; l < settings.leafSettings.Count; l++)
                     {
@@ -434,7 +434,7 @@ namespace treeGenNamespace
 
                 EditorGUILayout.EndHorizontal();
                 
-                Debug.Log("nrBranchClusters: " + settings.nrBranchClusters);
+                //Debug.Log("nrBranchClusters: " + settings.nrBranchClusters);
                 // ensure parentClusterBoolListList exists and is large enough before indexing it
                 if (settings.parentClusterBoolListList == null)
                 {
@@ -464,7 +464,7 @@ namespace treeGenNamespace
                     }
                     EditorGUILayout.BeginVertical(EditorStyles.helpBox);
                     EditorGUI.indentLevel++;
-                    Debug.Log("showBranchCluster.Count: " + showBranchCluster.Count + "; i: " + i);
+                    //Debug.Log("showBranchCluster.Count: " + showBranchCluster.Count + "; i: " + i);
                     showBranchCluster[i] = EditorGUILayout.Foldout(showBranchCluster[i], "Branch cluster " + i, true);
                     
 
@@ -477,7 +477,7 @@ namespace treeGenNamespace
                         {
                             if (n == 0)
                             {
-                                Debug.Log("parentClusterBoolListList.Count: " + settings.parentClusterBoolListList.Count + ", i: " + i);
+                                //Debug.Log("parentClusterBoolListList.Count: " + settings.parentClusterBoolListList.Count + ", i: " + i);
                                 settings.parentClusterBoolListList[i].b[n] = EditorGUILayout.Toggle("Stem", settings.parentClusterBoolListList[i].b[n]);
                             }
                             else
@@ -573,6 +573,13 @@ namespace treeGenNamespace
                         settings.branchSettings[i].branchesStartHeightGlobal = EditorGUILayout.Slider("Branches start height global", settings.branchSettings[i].branchesStartHeightGlobal, 0f, 1f);
                      
                         settings.branchSettings[i].branchesEndHeightGlobal = EditorGUILayout.Slider("Branches end height global", settings.branchSettings[i].branchesEndHeightGlobal, 0f, 1f);
+
+                        if (i > 0)
+                        {
+                            settings.branchSettings[i].branchesStartHeightCluster = EditorGUILayout.Slider("Branches start height cluster", settings.branchSettings[i].branchesStartHeightCluster, 0f, 1f);
+
+                            settings.branchSettings[i].branchesEndHeightCluster = EditorGUILayout.Slider("Branches end height cluster", settings.branchSettings[i].branchesEndHeightCluster, 0f, 1f);
+                        }
  
                         settings.branchSettings[i].branchesStartPointVariation = EditorGUILayout.Slider("Branches start point variation", settings.branchSettings[i].branchesStartPointVariation, 0f, 1f);
 
@@ -680,7 +687,7 @@ namespace treeGenNamespace
                             settings.branchSettings[i].rotateAngleBranchStart = EditorGUILayout.FloatField("Rotate angle branch start", settings.       branchSettings[i].rotateAngleBranchStart);
                             settings.branchSettings[i].rotateAngleBranchEnd = EditorGUILayout.FloatField("Rotate angle branch end", settings.branchSettings [i].rotateAngleBranchEnd);
 
-                            settings.branchSettings[i].rotateAngleRangeFactor = EditorGUILayout.Slider("Rotate angle range factor", settings.branchSettings[i].rotateAngleRangeFactor, 0f, 1f);
+                            settings.branchSettings[i].rotateAngleRangeFactor = EditorGUILayout.Slider("Rotate angle range factor", settings.branchSettings[i].rotateAngleRangeFactor, 0f, 2f);
                         }
                         EditorGUILayout.EndVertical();
 
@@ -896,6 +903,14 @@ namespace treeGenNamespace
 
         private void SaveSettingsToJson(treeSettings settings)
         {
+            for (int i = 0; i < settings.nrBranchClusters; i++)
+            {
+                while (settings.branchSettings[i].branchSplitHeightInLevel.Count > settings.branchSettings[i].maxSplitHeightUsed)
+                {
+                    settings.branchSettings[i].branchSplitHeightInLevel.RemoveAt(settings.branchSettings[i].branchSplitHeightInLevel.Count - 1);
+                }
+            }
+
             try
             {
                 string jsonString = JsonUtility.ToJson(settings, true);
@@ -993,6 +1008,7 @@ namespace treeGenNamespace
                         }
                         if (!leafCluster.leafParentClusters.Contains(true))
                         {
+                            Debug.Log("leaf parentCluste.Count: " + leafCluster.leafParentClusters.Count);
                             leafCluster.leafParentClusters[0] = true;
                         }
                     }
@@ -1037,6 +1053,9 @@ namespace treeGenNamespace
                         branchType[i] = (branchTypes)settings.branchSettings[i].branchType;
                         branchAngleMode[i] = (angleMode)settings.branchSettings[i].branchAngleMode;
                         branchSplitMode[i] = (splitMode)settings.branchSettings[i].branchSplitMode;
+                    }
+                    for (int i = 0; i < settings.nrLeafClusters; i++)
+                    {
                         leafType[i] = (branchTypes)settings.leafSettings[i].leafType;
                         leafAngleMode[i] = (angleModeLeaf)settings.leafSettings[i].leafAngleMode;
                     }
@@ -1045,6 +1064,7 @@ namespace treeGenNamespace
             }
             catch (System.Exception e)
             {
+                Debug.LogError(e.Message);
                 EditorUtility.DisplayDialog("Load Settings - Error", "Failed to load settings:\n" + e.Message, "OK");
             }
         }
