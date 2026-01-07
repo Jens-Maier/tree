@@ -216,18 +216,18 @@ namespace treeGenNamespace
 
         static float getAngle(Vector3 v)
         {
-            float angle = MathF.Atan2(v.z, v.x);
-            return (angle + 2f * MathF.PI) % (2f * MathF.PI);
+            float angle = MathF.Atan2(v.z, v.x) * 180f / MathF.PI;
+            return (angle + 360f) % 360f;
         }
 
         public static (Vector3, Vector3, Vector3, Vector3, float, float) findClosestVectors(List<Vector3> vectors, Vector3 targetVector)
         {
             float targetAngle = getAngle(targetVector);
 
-            float minClockwiseDiff = 2f * MathF.PI;
+            float minClockwiseDiff = 360f;
             Vector3 closestClockwiseVector = new Vector3(0f, 0f, 0f);
 
-            float minAnticlockwiseDiff = 2f * MathF.PI;
+            float minAnticlockwiseDiff = 360f;
             Vector3 closestAnticlockwiseVector = new Vector3(0f, 0f, 0f);
 
             foreach (Vector3 v in vectors)
@@ -236,7 +236,7 @@ namespace treeGenNamespace
 
                 // Calculate clockwise difference
                 // This handles the wrap-around from 0 to 360
-                float clockwiseDiff = (targetAngle - vectorAngle + 2f * MathF.PI) % (2f * MathF.PI);
+                float clockwiseDiff = (targetAngle - vectorAngle + 360f) % 360f;
                 if (clockwiseDiff < minClockwiseDiff && clockwiseDiff != 0f)
                 {
                     minClockwiseDiff = clockwiseDiff;
@@ -245,7 +245,7 @@ namespace treeGenNamespace
 
                 // Calculate anticlockwise difference
                 // This also handles the wrap-around
-                float anticlockwiseDiff = (vectorAngle - targetAngle + 2f * MathF.PI) % (2f * MathF.PI);
+                float anticlockwiseDiff = (vectorAngle - targetAngle + 360f) % 360f;
                 if (anticlockwiseDiff < minAnticlockwiseDiff && anticlockwiseDiff != 0f)
                 {
                     minAnticlockwiseDiff = anticlockwiseDiff;
@@ -490,14 +490,14 @@ namespace treeGenNamespace
                                      float endHeightGlobal, 
                                      float startHeightCluster, 
                                      float endHeightCluster, 
-                                     List<List<bool>> parentClusterBoolListList, 
+                                     List<boolList> parentClusterBoolListList, 
                                      int newClusterIndex)
         {
         
             if (clusterIndex == -1)
             {
                 // stem
-                if (parentClusterBoolListList[newClusterIndex][0] == true)
+                if (parentClusterBoolListList[newClusterIndex].b[0] == true)
                 {
                     for (int n = 0; n < next.Count; n++)
                     {
@@ -517,9 +517,9 @@ namespace treeGenNamespace
             }
             else // not in stem
             {
-                if (parentClusterBoolListList[newClusterIndex].Count > clusterIndex + 1)
+                if (parentClusterBoolListList[newClusterIndex].b.Count > clusterIndex + 1)
                 {
-                    if (parentClusterBoolListList[newClusterIndex][clusterIndex + 1] == true)
+                    if (parentClusterBoolListList[newClusterIndex].b[clusterIndex + 1] == true)
                     {
                         for (int n = 0; n < next.Count; n++)
                         {
@@ -845,9 +845,10 @@ namespace treeGenNamespace
                                                         settings.curvOffsetStrength, 
                                                         nodes[0]);
 
-                if (settings.maxSplitHeightUsed < maxSplitHeightUsed)
+                Debug.Log("maxSplitHeightUsed returned from splitRecursive: ");
+                if (settings.maxSplitHeightUsed < maxSplitHeightUsed + 1)
                 {
-                    settings.maxSplitHeightUsed = maxSplitHeightUsed;
+                    settings.maxSplitHeightUsed = maxSplitHeightUsed + 1;
                 }
             }
 
@@ -1365,7 +1366,7 @@ namespace treeGenNamespace
                     splitAxis = norm(splitNode.cotangent);
                     if (level % 2 == 1)
                     {
-                        splitAxis = norm(Quaternion.AngleAxis(MathF.PI / 2.0f, splitNode.tangent[0]) * splitAxis);
+                        splitAxis = norm(Quaternion.AngleAxis(90f, splitNode.tangent[0]) * splitAxis);
                     }
                 }
             }
@@ -1429,7 +1430,7 @@ namespace treeGenNamespace
 
             List<branchClusterSettings> branchClusterSettingsList,
 
-            List<List<bool>> parentClusterBoolListList, 
+            List<boolList> parentClusterBoolListList, 
 
             Vector3 treeGrowDir, 
             float treeHeight, 
@@ -1598,7 +1599,7 @@ namespace treeGenNamespace
                             
                         if (branchClusterSettingsList[clusterIndex].rotateAngleRange == 0f)
                         {
-                            branchClusterSettingsList[clusterIndex].rotateAngleRange = MathF.PI;
+                            branchClusterSettingsList[clusterIndex].rotateAngleRange = 180f;
                         }
                         if (branchClusterSettingsList[clusterIndex].branchAngleMode == 2) // adaptiveWinding
                         {
@@ -1623,6 +1624,12 @@ namespace treeGenNamespace
                             {
                                 minAngle = angle;
                             }
+
+                            Debug.Log("rightRotationRange[" + branchIndex + "]: " + rightRotationRange[branchIndex]);
+                            Debug.Log("leftRotationRange[" + branchIndex + "]: " + leftRotationRange[branchIndex]);
+                            
+                            Debug.Log("adaptive winding: angle: " + angle);
+                            
 
                             Vector3 right = Vector3.Cross(startPointData[branchIndex].outwardDir, startPointTangent);
                             Vector3 axis = -Vector3.Cross(-centerDir, startPointTangent);
@@ -1718,8 +1725,9 @@ namespace treeGenNamespace
 
                         float startTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[data.startNodeNextIndex].tValGlobal, data.t);
                         float startTvalBranch = lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t);
-
+                        Debug.Log("tree shape ratio: ");
                         float treeShapeRatioValue = shapeRatio(startTvalGlobal, branchClusterSettingsList[clusterIndex].treeShape);
+                        Debug.Log("branch shape ratio: ");
                         float branchShapeRatioValue = shapeRatio(startTvalBranch, branchClusterSettingsList[clusterIndex].branchShape);
 
                         float branchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * Random.Range(-1f, 1f)) * treeShapeRatioValue * branchShapeRatioValue;
@@ -1893,8 +1901,8 @@ namespace treeGenNamespace
                             for (int n = 1; n < whorlCount; n++)
                             {
                                 centerDirs.Add(centerDirs[centerDirs.Count - 1]);
-                                Vector3 whorlDir = Quaternion.AngleAxis(n * 2f * MathF.PI / whorlCount, startPointTangent) * branchDir;
-                                Vector3 whorlCotangent = Quaternion.AngleAxis(n * 2f * MathF.PI / whorlCount, branchCotangent) * branchCotangent;
+                                Vector3 whorlDir = Quaternion.AngleAxis(n * 360f / whorlCount, startPointTangent) * branchDir;
+                                Vector3 whorlCotangent = Quaternion.AngleAxis(n * 360f / whorlCount, branchCotangent) * branchCotangent;
                                 
                                 float whorlBranchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * Random.Range(-1.0f, 1.0f)) * treeShapeRatioValue * branchShapeRatioValue;
                                 
@@ -1955,26 +1963,37 @@ namespace treeGenNamespace
                         }
                     }
 
-                    branchClusterSettingsList[clusterIndex].maxSplitHeightUsed = splitBranches(rootNode, 
-                                                                                               clusterIndex,
-                                                                                               nrSplits, 
+                    int newMaxSplitHeightUsed = splitBranches(rootNode, 
+                                                           clusterIndex,
+                                                           nrSplits, 
+                                                           
+                                                           branchClusterSettingsList[clusterIndex].branchSplitAngle, 
+                                                           branchClusterSettingsList[clusterIndex].branchSplitPointAngle,
+                                                           branchClusterSettingsList[clusterIndex].nrSplitsPerBranch,
                                                                                                
-                                                                                               branchClusterSettingsList[clusterIndex].branchSplitAngle, 
-                                                                                               branchClusterSettingsList[clusterIndex].branchSplitPointAngle,
-                                                                                               branchClusterSettingsList[clusterIndex].nrSplitsPerBranch,
+                                                           branchClusterSettingsList[clusterIndex].splitsPerBranchVariation,
+                                                           splitHeightInLevelList,
+                                                           branchClusterSettingsList[clusterIndex].branchSplitHeightVariation,
+                                                           branchClusterSettingsList[clusterIndex].branchSplitLengthVariation,
+                                                           branchClusterSettingsList[clusterIndex].branchSplitMode, 
                                                                                                
-                                                                                               branchClusterSettingsList[clusterIndex].splitsPerBranchVariation,
-                                                                                               splitHeightInLevelList,
-                                                                                               branchClusterSettingsList[clusterIndex].branchSplitHeightVariation,
-                                                                                               branchClusterSettingsList[clusterIndex].branchSplitLengthVariation,
-                                                                                               branchClusterSettingsList[clusterIndex].branchSplitMode, 
-                                                                                               
-                                                                                               branchClusterSettingsList[clusterIndex].branchSplitRotateAngle, 
-                                                                                               branchClusterSettingsList[clusterIndex].ringResolution,
-                                                                                               branchClusterSettingsList[clusterIndex].branchCurvatureOffset,
+                                                           branchClusterSettingsList[clusterIndex].branchSplitRotateAngle, 
+                                                           branchClusterSettingsList[clusterIndex].ringResolution,
+                                                           branchClusterSettingsList[clusterIndex].branchCurvatureOffset,
 
-                                                                                               branchClusterSettingsList[clusterIndex].branchVariance,
-                                                                                               branchClusterSettingsList[clusterIndex].branchSplitAxisVariation);
+                                                           branchClusterSettingsList[clusterIndex].branchVariance,
+                                                           branchClusterSettingsList[clusterIndex].branchSplitAxisVariation);
+
+                    Debug.Log("newMaxSplitHeightUsed: " + newMaxSplitHeightUsed);
+                    //if (branchClusterSettingsList[clusterIndex].maxSplitHeightUsed < newMaxSplitHeightUsed + 1)
+                    //{
+                        branchClusterSettingsList[clusterIndex].maxSplitHeightUsed = newMaxSplitHeightUsed + 1;
+                        Debug.Log("setting branchClusterSettingsList[clusterIndex].maxSplitHeightUsed = " + newMaxSplitHeightUsed + " + 1");
+                    //}
+               //     if (settings.maxSplitHeightUsed < maxSplitHeightUsed + 1)
+               // {
+               //     settings.maxSplitHeightUsed = maxSplitHeightUsed + 1;
+               // }
                 }
 
                 for (int i = 0; i < branchNodes.Count; i++)
@@ -2333,30 +2352,37 @@ namespace treeGenNamespace
         {
             if (treeShape == 0)//"CONICAL":
             {
+                Debug.Log("conical");
                 return 0.2f + 0.8f * tValGlobal;
             }
             if (treeShape == 1)//"SPHERICAL":
             {
+                Debug.Log("spherical");
                 return 0.2f + 0.8f * MathF.Sin(MathF.PI * tValGlobal);
             }
             if (treeShape == 2)//"HEMISPHERICAL":
             {
+                Debug.Log("hemispherical");
                 return 0.2f + 0.8f * MathF.Sin(0.5f * MathF.PI * tValGlobal);
             }
             if (treeShape == 3)//"INVERSE_HEMISPHERICAL":
             {
+                Debug.Log("inverse hemispherical");
                 return 0.2f + 0.8f * MathF.Sin(0.5f * MathF.PI * (1.0f - tValGlobal));
             }
             if (treeShape == 4)//"CYLINDRICAL":
             {
+                Debug.Log("cylindrical");
                 return 1.0f;
             }
             if (treeShape == 5)//"TAPERED_CYLINDRICAL":
             {
+                Debug.Log("tapered cylindrical");
                 return 0.5f + 0.5f * tValGlobal;
             }
             if (treeShape == 6)//"FLAME":
             {
+                Debug.Log("flame");
                 if (tValGlobal <= 0.7f)
                 {
                     return tValGlobal / 0.7f;
@@ -2368,10 +2394,12 @@ namespace treeGenNamespace
             }
             if (treeShape == 7)//"INVERSE_CONICAL":
             {
+                Debug.Log("inverse conical");
                 return 1.0f - 0.8f * tValGlobal;
             }
             if (treeShape == 8)//"TEND_FLAME":
             {
+                Debug.Log("tend flame");
                 if (tValGlobal <= 0.7f)
                 {
                     return 0.5f + 0.5f * tValGlobal / 0.7f;

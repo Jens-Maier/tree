@@ -2,9 +2,11 @@
 //using System.Numerics;
 using UnityEngine;
 using System.Collections.Generic;
+using Debug = UnityEngine.Debug;
 
 namespace treeGenNamespace
 {
+    [System.Serializable]
     public class branchClusterSettings
     {
         public int nrBranches;
@@ -14,6 +16,7 @@ namespace treeGenNamespace
         public int whorlCountStart;
         public int whorlCountEnd;
         public float relBranchLength = 1f;
+        public UnityEngine.AnimationCurve branchTaperCurve;
         public float relBranchLengthVariation;
         public int ringResolution = 6;
         public float branchesStartHeightGlobal;
@@ -70,9 +73,11 @@ namespace treeGenNamespace
         {
             nrBranches = 0;
             branchSplitHeightInLevel = new List<float>();
+            branchTaperCurve = UnityEngine.AnimationCurve.Linear(0, 1, 1, 0);
         }
     }
 
+    [System.Serializable]
     public class leafClusterSettings
     {
         public float leafDensity;
@@ -112,6 +117,17 @@ namespace treeGenNamespace
         }
     }
 
+    [System.Serializable]
+    public class boolList
+    {
+        public List<bool> b;
+        public boolList()
+        {
+            b = new List<bool>();
+        }
+    }
+
+    [System.Serializable]
     public class treeSettings
     {
         public float treeHeight = 10f;
@@ -147,7 +163,7 @@ namespace treeGenNamespace
         public int maxSplitHeightUsed;
 
         public int nrBranchClusters;
-        public List<List<bool>> parentClusterBoolListList;
+        public List<boolList> parentClusterBoolListList;
         public List<branchClusterSettings> branchSettings;
 
         public int nrLeafClusters;
@@ -158,7 +174,7 @@ namespace treeGenNamespace
         {
             Debug.Log("initialising treeSettings");
             stemSplitHeightInLevel = new List<float>();
-            parentClusterBoolListList = new List<List<bool>>();
+            parentClusterBoolListList = new List<boolList>();
             taperFactorList = new List<float>();
             branchSettings = new List<branchClusterSettings>();
             leafSettings = new List<leafClusterSettings>();

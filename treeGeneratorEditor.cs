@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 using UnityEditor;
 using System.IO;
 using Random = System.Random;
+using System.Globalization;
+using System.Diagnostics;
+using Debug = UnityEngine.Debug;
 
 namespace treeGenNamespace
 {
@@ -18,6 +21,7 @@ namespace treeGenNamespace
         conical,
         spherical,
         hemispherical,
+        inverseHemispherical,
         cylindrical,
         taperedCylindrical,
         flame,
@@ -89,6 +93,69 @@ namespace treeGenNamespace
         {
             treeGenerator treeGen = (treeGenerator)target;
             
+            // ensure settings and dependent lists are initialized to avoid IndexOutOfRange when GUI indexes them
+            if (settings == null)
+                settings = new treeSettings();
+            if (settings.branchSettings == null) settings.branchSettings = new List<branchClusterSettings>();
+            if (settings.taperFactorList == null) settings.taperFactorList = new List<float>();
+            if (settings.parentClusterBoolListList == null) settings.parentClusterBoolListList = new List<boolList>();
+            if (settings.leafSettings == null) settings.leafSettings = new List<leafClusterSettings>();
+
+            // expand outer collections to match nrBranchClusters
+            while (settings.branchSettings.Count < settings.nrBranchClusters) settings.branchSettings.Add(new branchClusterSettings());
+            while (settings.taperFactorList.Count < settings.nrBranchClusters) settings.taperFactorList.Add(1f);
+            while (settings.parentClusterBoolListList.Count < settings.nrBranchClusters) settings.parentClusterBoolListList.Add(new boolList());
+
+            // ensure auxiliary editor lists match as well
+            while (treeShape.Count < settings.nrBranchClusters) treeShape.Add(shape.conical);
+            while (branchShape.Count < settings.nrBranchClusters) branchShape.Add(shape.conical);
+            while (branchType.Count < settings.nrBranchClusters) branchType.Add(branchTypes.single);
+            while (branchAngleMode.Count < settings.nrBranchClusters) branchAngleMode.Add(angleMode.winding);
+            while (branchSplitMode.Count < settings.nrBranchClusters) branchSplitMode.Add(splitMode.rotateAngle);
+            while (showBranchCluster.Count < settings.nrBranchClusters) showBranchCluster.Add(true);
+            while (showBranchClusterNoise.Count < settings.nrBranchClusters) showBranchClusterNoise.Add(true);
+            while (showBranchClusterAngle.Count < settings.nrBranchClusters) showBranchClusterAngle.Add(true);
+            while (showBranchClusterSplit.Count < settings.nrBranchClusters) showBranchClusterSplit.Add(true);
+            while (branchTaperCurve.Count < settings.nrBranchClusters) branchTaperCurve.Add(AnimationCurve.Linear(0,1,1,0));
+
+            // Ensure leafType and leafAngleMode lists are initialized and resized
+            while (leafType.Count < settings.nrLeafClusters)
+                leafType.Add(branchTypes.single);
+            while (leafAngleMode.Count < settings.nrLeafClusters)
+                leafAngleMode.Add(angleModeLeaf.alternating);
+
+            while (leafType.Count > settings.nrLeafClusters)
+                leafType.RemoveAt(leafType.Count - 1);
+            while (leafAngleMode.Count > settings.nrLeafClusters)
+                leafAngleMode.RemoveAt(leafAngleMode.Count - 1);
+
+            // Ensure each leaf cluster's parent clusters are initialized
+            foreach (var leafCluster in settings.leafSettings)
+            {
+                if (leafCluster.leafParentClusters == null)
+                    leafCluster.leafParentClusters = new List<bool>();
+
+                while (leafCluster.leafParentClusters.Count < settings.nrBranchClusters + 1)
+                    leafCluster.leafParentClusters.Add(false);
+
+                if (!leafCluster.leafParentClusters.Contains(true))
+                    leafCluster.leafParentClusters[0] = true;
+            }
+
+
+            // ensure each inner bool list is initialized and has at least (i+1) entries before indexing
+            for (int _i = 0; _i < settings.nrBranchClusters; _i++)
+            {
+                if (settings.parentClusterBoolListList[_i].b == null) settings.parentClusterBoolListList[_i].b = new List<bool>();
+                while (settings.parentClusterBoolListList[_i].b.Count < _i + 1) settings.parentClusterBoolListList[_i].b.Add(false);
+            }
+            // ensure leaf parent lists sized to nrBranchClusters + 1
+            foreach (var leaf in settings.leafSettings)
+            {
+                if (leaf.leafParentClusters == null) leaf.leafParentClusters = new List<bool>();
+                while (leaf.leafParentClusters.Count < settings.nrBranchClusters + 1) leaf.leafParentClusters.Add(false);
+            }
+            
             if (GUILayout.Button("generate tree"))
             {
                 Debug.Log("tree height: " + settings.treeHeight);
@@ -96,6 +163,25 @@ namespace treeGenNamespace
                 Debug.Log("stemSplitMode: " + settings.stemSplitMode);
                 treeGen.settings = settings;
                 treeGen.generateTree();
+
+                for(int i = 0; i < settings.nrBranchClusters; i++)
+                {
+                    Debug.Log("maxSplitHeightUsed after generateTree: " + settings.branchSettings[i].maxSplitHeightUsed);
+                }
+            }
+
+            if (GUILayout.Button("Save Properties"))
+            {
+                if (settings == null)
+                {
+                    settings = new treeSettings();
+                }
+                SaveSettingsToJson(settings);
+            }
+
+            if (GUILayout.Button("Load Properties"))
+            {
+                LoadSettingsFromJson();
             }
 
             // Tree Settings
@@ -229,7 +315,10 @@ namespace treeGenNamespace
                 }
                 if (GUILayout.Button("Remove"))
                 {
-                    settings.maxSplitHeightUsed -= 1;
+                    if (settings.maxSplitHeightUsed > 0)
+                    {
+                        settings.maxSplitHeightUsed -= 1;
+                    }
                     if (settings.stemSplitHeightInLevel.Count > 0)
                     {
                         settings.stemSplitHeightInLevel.RemoveAt(settings.stemSplitHeightInLevel.Count - 1);
@@ -279,13 +368,13 @@ namespace treeGenNamespace
                     settings.nrBranchClusters += 1;
                     settings.branchSettings.Add(new branchClusterSettings());
                     settings.taperFactorList.Add(1f);
-                    settings.parentClusterBoolListList.Add(new List<bool>());
-                    for (int i = 0; i <= settings.nrBranchClusters; i++)
+                    settings.parentClusterBoolListList.Add(new boolList());
+                    for (int i = 0; i < settings.nrBranchClusters; i++)
                     {
-                        List<bool> boolList = settings.parentClusterBoolListList[settings.nrBranchClusters - 1];
+                        List<bool> boolList = settings.parentClusterBoolListList[settings.nrBranchClusters - 1].b;
                         boolList.Add(false);
                     }
-                    settings.parentClusterBoolListList[settings.nrBranchClusters - 1][0] = true;
+                    settings.parentClusterBoolListList[settings.nrBranchClusters - 1].b[0] = true;
 
                     if (treeShape == null)
                     {
@@ -305,6 +394,10 @@ namespace treeGenNamespace
                     showBranchClusterAngle.Add(true);
                     showBranchClusterSplit.Add(true);
                     branchTaperCurve.Add(AnimationCurve.Linear(0, 1, 1, 0));
+                    if (settings != null)
+                    {
+                        settings.branchSettings[settings.nrBranchClusters - 1].branchTaperCurve = UnityEngine.AnimationCurve.Linear(0f, 1f, 1f, 0f);
+                    }
                     Debug.Log("nrBranchClusters: " + settings.nrBranchClusters);
 
                     for (int l = 0; l < settings.leafSettings.Count; l++)
@@ -340,11 +433,38 @@ namespace treeGenNamespace
                 }
 
                 EditorGUILayout.EndHorizontal();
+                
+                Debug.Log("nrBranchClusters: " + settings.nrBranchClusters);
+                // ensure parentClusterBoolListList exists and is large enough before indexing it
+                if (settings.parentClusterBoolListList == null)
+                {
+                    settings.parentClusterBoolListList = new List<boolList>();
+                }
+                while (settings.parentClusterBoolListList.Count < settings.nrBranchClusters)
+                {
+                    settings.parentClusterBoolListList.Add(new boolList());
+                }
+                for (int _i = 0; _i < settings.nrBranchClusters; _i++)
+                {
+                    if (settings.parentClusterBoolListList[_i].b == null)
+                    {
+                        settings.parentClusterBoolListList[_i].b = new List<bool>();
+                    }
+                    while (settings.parentClusterBoolListList[_i].b.Count < _i + 1)
+                    {
+                        settings.parentClusterBoolListList[_i].b.Add(false);
+                    }
+                }
 
                 for (int i = 0; i < settings.nrBranchClusters; i++)
                 {
+                    while (showBranchCluster.Count < settings.nrBranchClusters)
+                    {
+                        showBranchCluster.Add(true);
+                    }
                     EditorGUILayout.BeginVertical(EditorStyles.helpBox);
                     EditorGUI.indentLevel++;
+                    Debug.Log("showBranchCluster.Count: " + showBranchCluster.Count + "; i: " + i);
                     showBranchCluster[i] = EditorGUILayout.Foldout(showBranchCluster[i], "Branch cluster " + i, true);
                     
 
@@ -357,18 +477,19 @@ namespace treeGenNamespace
                         {
                             if (n == 0)
                             {
-                                settings.parentClusterBoolListList[i][n] = EditorGUILayout.Toggle("Stem", settings.parentClusterBoolListList[i][n]);
+                                Debug.Log("parentClusterBoolListList.Count: " + settings.parentClusterBoolListList.Count + ", i: " + i);
+                                settings.parentClusterBoolListList[i].b[n] = EditorGUILayout.Toggle("Stem", settings.parentClusterBoolListList[i].b[n]);
                             }
                             else
                             {
                                 int m = n - 1;
-                                settings.parentClusterBoolListList[i][n] = EditorGUILayout.Toggle("Branch cluster " + m, settings.parentClusterBoolListList[i][n]);
+                                settings.parentClusterBoolListList[i].b[n] = EditorGUILayout.Toggle("Branch cluster " + m, settings.parentClusterBoolListList[i].b[n]);
                             }
                         }
                         bool allFalse = true;
                         for (int n = 0; n < i + 1; n++)
                         {
-                            if (settings.parentClusterBoolListList[i][n] == true)
+                            if (settings.parentClusterBoolListList[i].b[n] == true)
                             {
                                 allFalse = false;
                                 break;
@@ -376,7 +497,7 @@ namespace treeGenNamespace
                         }
                         if (allFalse == true)
                         {
-                            settings.parentClusterBoolListList[i][0] = true;
+                            settings.parentClusterBoolListList[i].b[0] = true;
                         }
 
                         EditorGUILayout.EndVertical();
@@ -437,10 +558,10 @@ namespace treeGenNamespace
  
                         settings.taperFactorList[i] = EditorGUILayout.Slider("Taper factor", settings.taperFactorList[i], 0f, 1f);
  
-                        branchTaperCurve[i] = EditorGUILayout.CurveField("taper curve", branchTaperCurve[i]);
+                        settings.branchSettings[i].branchTaperCurve = EditorGUILayout.CurveField("taper curve", settings.branchSettings[i].branchTaperCurve);
                         if (GUILayout.Button("Reset taper curve"))
                         {
-                            branchTaperCurve[i] = AnimationCurve.Linear(0f, 1f, 1f, 0f);
+                            settings.branchSettings[i].branchTaperCurve = AnimationCurve.Linear(0f, 1f, 1f, 0f);
                         }
 
                         int ringResolution = EditorGUILayout.IntField("Ring resolution", settings.branchSettings[i].ringResolution);
@@ -459,6 +580,10 @@ namespace treeGenNamespace
                     EditorGUILayout.Space();
  
                     // Branch settings -> noise settings
+                    while(showBranchClusterNoise.Count < settings.nrBranchClusters)
+                    {
+                        showBranchClusterNoise.Add(true);
+                    }
                     showBranchClusterNoise[i] = EditorGUILayout.Foldout(showBranchClusterNoise[i], "Noise Settings", true);
 
                     if (showBranchClusterNoise[i] == true)
@@ -496,7 +621,10 @@ namespace treeGenNamespace
                     }
  
                     // Branch settings -> angle settings
-
+                    while(showBranchClusterAngle.Count < settings.nrBranchClusters)
+                    {
+                        showBranchClusterAngle.Add(true);
+                    }
                     showBranchClusterAngle[i] = EditorGUILayout.Foldout(showBranchClusterAngle[i], "Angle Settings", true);
 
                     if (showBranchClusterAngle[i] == true)
@@ -528,6 +656,10 @@ namespace treeGenNamespace
                                 if (fibonacciNr >= 3)
                                 {
                                     settings.branchSettings[i].fibonacciNr = fibonacciNr;
+                                }
+                                else
+                                {
+                                    settings.branchSettings[i].fibonacciNr = 3;
                                 }
                             }
                             else
@@ -568,6 +700,10 @@ namespace treeGenNamespace
 
                     }
 
+                    while(showBranchClusterSplit.Count < settings.nrBranchClusters)
+                    {
+                        showBranchClusterSplit.Add(true);
+                    }
                     // Branch settings -> split settings
                     showBranchClusterSplit[i] = EditorGUILayout.Foldout(showBranchClusterSplit[i], "Split Settings", true);
 
@@ -598,20 +734,44 @@ namespace treeGenNamespace
                         EditorGUILayout.BeginHorizontal();
                         if (GUILayout.Button("Add split level"))
                         {
+                            settings.branchSettings[i].maxSplitHeightUsed += 1;
                             settings.branchSettings[i].branchSplitHeightInLevel.Add(0.5f);
+                            Debug.Log("[" + i + "]: maxSplitHeightUsed: " + settings.branchSettings[i].maxSplitHeightUsed);
                         }
                         if (GUILayout.Button("Remove"))
                         {
                             if (settings.branchSettings[i].branchSplitHeightInLevel.Count > 0)
                             {
-                                settings.branchSettings[i].branchSplitHeightInLevel.RemoveAt(settings.branchSettings[i].branchSplitHeightInLevel.Count - 1);
+                                if (settings.branchSettings[i].maxSplitHeightUsed > 0)
+                                {
+                                    settings.branchSettings[i].maxSplitHeightUsed -= 1;
+                                    settings.branchSettings[i].branchSplitHeightInLevel.RemoveAt(settings.branchSettings[i].branchSplitHeightInLevel.Count - 1);
+                                }
+                                else
+                                {
+                                    settings.branchSettings[i].branchSplitHeightInLevel.Clear();
+                                }
                             }
                         }
                         EditorGUILayout.EndHorizontal();
-                        for (int j = 0; j < settings.branchSettings[i].branchSplitHeightInLevel.Count; j++)
+                        
+                        EditorGUILayout.LabelField("Max split height used: " + settings.branchSettings[i].maxSplitHeightUsed);
+
+                        if (settings.branchSettings[i].maxSplitHeightUsed > 0)
                         {
-                            settings.branchSettings[i].branchSplitHeightInLevel[j] = EditorGUILayout.Slider("Level " + j, settings.branchSettings[i].branchSplitHeightInLevel[j], 0f, 1f);
+                            for (int j = 0; j < settings.branchSettings[i].maxSplitHeightUsed; j++)
+                            {
+                                settings.branchSettings[i].branchSplitHeightInLevel[j] = EditorGUILayout.Slider("Level " + j, settings.branchSettings[i].branchSplitHeightInLevel[j], 0f, 1f);
+                            }
                         }
+                        else
+                        {
+                            for (int j = 0; j < settings.branchSettings[i].branchSplitHeightInLevel.Count; j++)
+                            {
+                                settings.branchSettings[i].branchSplitHeightInLevel[j] = EditorGUILayout.Slider("Level " + j, settings.branchSettings[i].branchSplitHeightInLevel[j], 0f, 1f);
+                            }
+                        }
+                        
                         EditorGUI.indentLevel--;
                         EditorGUILayout.EndVertical();
 
@@ -665,6 +825,7 @@ namespace treeGenNamespace
                         settings.leafSettings[i].leafEndHeightGlobal = EditorGUILayout.FloatField("Leaf end height global", settings.leafSettings[i].leafEndHeightGlobal);
                         settings.leafSettings[i].leafStartHeightCluster = EditorGUILayout.FloatField("Leaf start height cluster", settings.leafSettings[i].leafStartHeightCluster);
                         settings.leafSettings[i].leafEndHeightCluster = EditorGUILayout.FloatField("Leaf end height cluster", settings.leafSettings[i].leafEndHeightCluster);
+                        Debug.Log("leafType.Count: " + leafType.Count + ", nrLeafClusters: " + settings.nrLeafClusters);
                         leafType[i] = (branchTypes)EditorGUILayout.EnumPopup("Leaf type", leafType[i]);
                         settings.leafSettings[i].leafType = (int)leafType[i];
                         if (leafType[i] == branchTypes.whorled)
@@ -731,6 +892,161 @@ namespace treeGenNamespace
         // public int stemRingRes;
         // public float resampleDistance;
 
+        }
+
+        private void SaveSettingsToJson(treeSettings settings)
+        {
+            try
+            {
+                string jsonString = JsonUtility.ToJson(settings, true);
+                string defaultName = "treeSettings.json";
+                string path = EditorUtility.SaveFilePanel("Save Tree Settings", Application.dataPath, defaultName, "json");
+                if (string.IsNullOrEmpty(path))
+                {
+                    return; // user cancelled
+                }
+                File.WriteAllText(path, jsonString);
+                EditorUtility.DisplayDialog("Save Settings", "Settings saved to:\n" + path, "OK");
+            }
+            catch (System.Exception e)
+            {
+                EditorUtility.DisplayDialog("Save Settings - Error", "Failed to save settings:\n" + e.Message, "OK");
+            }
+        }
+
+        private void LoadSettingsFromJson()
+        {
+            try
+            {
+                string path = EditorUtility.OpenFilePanel("Load Tree Settings", "", "json");
+                if (path.Length != 0)
+                {
+                    string jsonString = File.ReadAllText(path);
+                    settings = new treeSettings();
+                    JsonUtility.FromJsonOverwrite(jsonString, settings);
+                    if (settings.parentClusterBoolListList == null) 
+                    {
+                        settings.parentClusterBoolListList = new List<boolList>();
+                    }
+                    if (settings.branchSettings == null) 
+                    {
+                        settings.branchSettings = new List<branchClusterSettings>();
+                    }
+                    if (settings.taperFactorList == null) 
+                    {
+                        settings.taperFactorList = new List<float>();
+                    }
+                    if (settings.leafSettings == null) 
+                    {
+                        settings.leafSettings = new List<leafClusterSettings>();
+                    }
+
+                    while (settings.branchSettings.Count < settings.nrBranchClusters)
+                    {
+                        settings.branchSettings.Add(new branchClusterSettings());
+                    }
+                    while (settings.taperFactorList.Count < settings.nrBranchClusters)
+                    {
+                        settings.taperFactorList.Add(1f);
+                    }
+                    while (settings.parentClusterBoolListList.Count < settings.nrBranchClusters)
+                    {
+                        settings.parentClusterBoolListList.Add(new boolList());
+                    }
+
+                    for (int i = 0; i < settings.nrBranchClusters; i++)
+                    {
+                        if (settings.parentClusterBoolListList[i].b == null)
+                        {
+                            settings.parentClusterBoolListList[i].b = new List<bool>();
+                        }
+                        while (settings.parentClusterBoolListList[i].b.Count < i + 1)
+                        {
+                            settings.parentClusterBoolListList[i].b.Add(false);
+                        }
+
+                        // guarantee at least the "Stem" entry is true
+                        bool anyTrue = false;
+                        for (int n = 0; n < settings.parentClusterBoolListList[i].b.Count; n++)
+                        {
+                            if (settings.parentClusterBoolListList[i].b[n])
+                            {
+                                anyTrue = true;
+                                break;
+                            }
+                        }
+                        if (!anyTrue)
+                        {
+                            settings.parentClusterBoolListList[i].b[0] = true;
+                        }
+                    }
+
+                    foreach (var leafCluster in settings.leafSettings)
+                    {
+                        if (leafCluster.leafParentClusters == null)
+                        {
+                            leafCluster.leafParentClusters = new List<bool>();
+                        }
+                        while (leafCluster.leafParentClusters.Count < settings.nrBranchClusters + 1)
+                        {
+                            leafCluster.leafParentClusters.Add(false);
+                        }
+                        if (!leafCluster.leafParentClusters.Contains(true))
+                        {
+                            leafCluster.leafParentClusters[0] = true;
+                        }
+                    }
+
+                    while (treeShape.Count < settings.nrBranchClusters)
+                        treeShape.Add(shape.conical);
+                    while (branchShape.Count < settings.nrBranchClusters)
+                        branchShape.Add(shape.conical);
+                    while (branchType.Count < settings.nrBranchClusters)
+                        branchType.Add(branchTypes.single);
+                    while (branchAngleMode.Count < settings.nrBranchClusters)
+                        branchAngleMode.Add(angleMode.winding);
+                    while (branchSplitMode.Count < settings.nrBranchClusters)
+                        branchSplitMode.Add(splitMode.rotateAngle);
+                    
+
+                    while (leafType.Count < settings.nrLeafClusters)
+                        leafType.Add(branchTypes.single);
+                    while (leafAngleMode.Count < settings.nrLeafClusters)
+                        leafAngleMode.Add(angleModeLeaf.alternating);
+                    
+                    while (treeShape.Count > settings.nrBranchClusters)
+                        treeShape.RemoveAt(treeShape.Count - 1);
+                    while (branchShape.Count > settings.nrBranchClusters)
+                        branchShape.RemoveAt(branchShape.Count - 1);
+                    while (branchType.Count > settings.nrBranchClusters)
+                        branchType.RemoveAt(branchType.Count - 1);
+                    while (branchAngleMode.Count > settings.nrBranchClusters)
+                        branchAngleMode.RemoveAt(branchAngleMode.Count - 1);
+                    while (branchSplitMode.Count > settings.nrBranchClusters)
+                        branchSplitMode.RemoveAt(branchSplitMode.Count - 1);
+
+                    while (leafType.Count > settings.nrLeafClusters)
+                        leafType.RemoveAt(leafType.Count - 1);
+                    while (leafAngleMode.Count > settings.nrLeafClusters)
+                        leafAngleMode.RemoveAt(leafAngleMode.Count - 1);
+
+                    for (int i = 0; i < settings.nrBranchClusters; i++)
+                    {
+                        treeShape[i] = (shape)settings.branchSettings[i].treeShape;
+                        branchShape[i] = (shape)settings.branchSettings[i].branchShape;
+                        branchType[i] = (branchTypes)settings.branchSettings[i].branchType;
+                        branchAngleMode[i] = (angleMode)settings.branchSettings[i].branchAngleMode;
+                        branchSplitMode[i] = (splitMode)settings.branchSettings[i].branchSplitMode;
+                        leafType[i] = (branchTypes)settings.leafSettings[i].leafType;
+                        leafAngleMode[i] = (angleModeLeaf)settings.leafSettings[i].leafAngleMode;
+                    }
+
+                }
+            }
+            catch (System.Exception e)
+            {
+                EditorUtility.DisplayDialog("Load Settings - Error", "Failed to load settings:\n" + e.Message, "OK");
+            }
         }
 
     }
