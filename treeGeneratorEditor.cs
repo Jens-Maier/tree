@@ -158,15 +158,15 @@ namespace treeGenNamespace
             
             if (GUILayout.Button("generate tree"))
             {
-                Debug.Log("tree height: " + settings.treeHeight);
-                Debug.Log("tree grow dir: " + settings.treeGrowDir);
-                Debug.Log("stemSplitMode: " + settings.stemSplitMode);
+                //Debug.Log("tree height: " + settings.treeHeight);
+                //Debug.Log("tree grow dir: " + settings.treeGrowDir);
+                //Debug.Log("stemSplitMode: " + settings.stemSplitMode);
                 treeGen.settings = settings;
                 treeGen.generateTree();
 
                 for(int i = 0; i < settings.nrBranchClusters; i++)
                 {
-                    Debug.Log("maxSplitHeightUsed after generateTree: " + settings.branchSettings[i].maxSplitHeightUsed);
+                    //Debug.Log("maxSplitHeightUsed after generateTree: " + settings.branchSettings[i].maxSplitHeightUsed);
                 }
             }
 
@@ -227,7 +227,7 @@ namespace treeGenNamespace
                         settings.taperCurve = taperCurve;
                     }
 
-                    Debug.Log("curve at 0.25: " + taperCurve.Evaluate(0.25f));
+                    //Debug.Log("curve at 0.25: " + taperCurve.Evaluate(0.25f));
                 }
 
                 float newBranchTipRadius = EditorGUILayout.FloatField("branch Tip Radius", settings.branchTipRadius);
@@ -429,7 +429,7 @@ namespace treeGenNamespace
                             settings.leafSettings[l].leafParentClusters.RemoveAt(settings.leafSettings[l].leafParentClusters.Count - 1);
                         }
                     }
-                    Debug.Log("nrBranchClusters: " + settings.nrBranchClusters);
+                    //Debug.Log("nrBranchClusters: " + settings.nrBranchClusters);
                 }
 
                 EditorGUILayout.EndHorizontal();
@@ -743,7 +743,7 @@ namespace treeGenNamespace
                         {
                             settings.branchSettings[i].maxSplitHeightUsed += 1;
                             settings.branchSettings[i].branchSplitHeightInLevel.Add(0.5f);
-                            Debug.Log("[" + i + "]: maxSplitHeightUsed: " + settings.branchSettings[i].maxSplitHeightUsed);
+                            //Debug.Log("[" + i + "]: maxSplitHeightUsed: " + settings.branchSettings[i].maxSplitHeightUsed);
                         }
                         if (GUILayout.Button("Remove"))
                         {
@@ -779,10 +779,10 @@ namespace treeGenNamespace
                             }
                         }
                         
-                        EditorGUI.indentLevel--;
                         EditorGUILayout.EndVertical();
 
                     }
+                    EditorGUI.indentLevel--;
 
                    EditorGUILayout.EndVertical();
                 }
@@ -832,7 +832,7 @@ namespace treeGenNamespace
                         settings.leafSettings[i].leafEndHeightGlobal = EditorGUILayout.FloatField("Leaf end height global", settings.leafSettings[i].leafEndHeightGlobal);
                         settings.leafSettings[i].leafStartHeightCluster = EditorGUILayout.FloatField("Leaf start height cluster", settings.leafSettings[i].leafStartHeightCluster);
                         settings.leafSettings[i].leafEndHeightCluster = EditorGUILayout.FloatField("Leaf end height cluster", settings.leafSettings[i].leafEndHeightCluster);
-                        Debug.Log("leafType.Count: " + leafType.Count + ", nrLeafClusters: " + settings.nrLeafClusters);
+                        //Debug.Log("leafType.Count: " + leafType.Count + ", nrLeafClusters: " + settings.nrLeafClusters);
                         leafType[i] = (branchTypes)EditorGUILayout.EnumPopup("Leaf type", leafType[i]);
                         settings.leafSettings[i].leafType = (int)leafType[i];
                         if (leafType[i] == branchTypes.whorled)
@@ -1008,7 +1008,7 @@ namespace treeGenNamespace
                         }
                         if (!leafCluster.leafParentClusters.Contains(true))
                         {
-                            Debug.Log("leaf parentCluste.Count: " + leafCluster.leafParentClusters.Count);
+                            //Debug.Log("leaf parentCluste.Count: " + leafCluster.leafParentClusters.Count);
                             leafCluster.leafParentClusters[0] = true;
                         }
                     }

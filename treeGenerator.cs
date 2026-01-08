@@ -11,6 +11,7 @@ using Vector3 = UnityEngine.Vector3;
 using Quaternion = UnityEngine.Quaternion;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
+using System.Globalization;
 
 namespace treeGenNamespace
 {
@@ -280,7 +281,7 @@ namespace treeGenNamespace
 
         public static (List<StartPointData>, Vector3) generateDummyStartPointData(node rootNode, StartPointData startPointDatum)
         {
-            Debug.Log("in generateDummyStartPointData(), startPointTvalGlobal: " + startPointDatum.startPointTvalGlobal);
+            //Debug.Log("in generateDummyStartPointData(), startPointTvalGlobal: " + startPointDatum.startPointTvalGlobal);
             List<Vector3> parallelPoints = new List<Vector3>();
             rootNode.getAllParallelStartPoints(startPointDatum.startPointTvalGlobal, startPointDatum.startNode, parallelPoints);
 
@@ -292,7 +293,7 @@ namespace treeGenNamespace
                 centerPoint += p;
                 n += 1;
             }
-            Debug.Log("parallelPoints.Count: " + parallelPoints.Count);
+            //Debug.Log("parallelPoints.Count: " + parallelPoints.Count);
             centerPoint = centerPoint / (float)n;
 
             foreach (Vector3 p in parallelPoints)
@@ -676,10 +677,10 @@ namespace treeGenNamespace
 
         public void resampleSpline(node rootNode, float resampleDistance)
         {
-            Debug.Log("in resampleSpline: point: " + point);
-            Debug.Log("in resampleSpline: next[0].point: " + next[0].point);
-            Debug.Log("in resampleSpline: resampleDistance: " + resampleDistance);
-            Debug.Log("in resampleSpline: next.Count: " + next.Count);
+            //Debug.Log("in resampleSpline: point: " + point);
+            //Debug.Log("in resampleSpline: next[0].point: " + next[0].point);
+            //Debug.Log("in resampleSpline: resampleDistance: " + resampleDistance);
+            //Debug.Log("in resampleSpline: next.Count: " + next.Count);
 
             for (int i = 0; i < next.Count; i++)
             {
@@ -744,6 +745,148 @@ namespace treeGenNamespace
                 }
             }
 
+        }
+
+        public void applyNoise(
+            float noiseAmplitudeHorizontal,
+            float noiseAmplitudeVertical, 
+            float noiseAmplitudeGradient, 
+            float noiseAmplitudeExponent,
+            float noiseScale, 
+            Vector3 prevPoint, 
+            float treeHeight)
+        {
+        
+            float computeAmplitude(float position, float amplitude, float gradient, float     exponent)
+            {
+                //Helper to compute noise amplitude based on tVal and treeHeight.
+                // For stem nodes, position = absolute height; 
+                // for branch nodes, position = normalized branch position
+                if (position < gradient && gradient > 0f)
+                {
+                    return MathF.Pow(lerp(0.0f, amplitude, position * gradient), exponent);
+                    // new: * gradient (was: / gradient)
+                }
+                else
+                {
+                    if (gradient > 0f)
+                    {
+                        return MathF.Pow(amplitude, exponent);
+                    }
+                    else
+                    {
+                        return 0f;
+                    }
+                }
+            }
+            float noiseAmplitudeH;
+            float noiseAmplitudeV;
+            Vector3 right;
+            if (clusterIndex == -1)
+            {
+                noiseAmplitudeH = computeAmplitude(tValGlobal * treeHeight,    noiseAmplitudeHorizontal, noiseAmplitudeGradient, noiseAmplitudeExponent);
+                noiseAmplitudeV = computeAmplitude(tValGlobal * treeHeight,    noiseAmplitudeVertical, noiseAmplitudeGradient, noiseAmplitudeExponent);
+                right = cotangent;
+            }
+            else
+            {
+                noiseAmplitudeH = computeAmplitude(tValBranch * treeHeight,    noiseAmplitudeHorizontal, noiseAmplitudeGradient, noiseAmplitudeExponent);
+                noiseAmplitudeV = computeAmplitude(tValBranch * treeHeight,    noiseAmplitudeVertical, noiseAmplitudeGradient, noiseAmplitudeExponent);
+                right = Vector3.Cross(tangent[0], new Vector3(0.0f,1.0f,0.0f));
+            }
+
+            if (length(right) <= 0.001f)
+            {
+                right = new Vector3(1.0f,0.0f,0.0f);
+            }
+            else
+            {
+                right = norm(right);
+            }
+
+            float noiseX = simplexNoiseGenerator.noiseGenerator.coherent_noise(point.x / noiseScale, point.y / noiseScale, point.z / noiseScale);
+            float noiseY = simplexNoiseGenerator.noiseGenerator.coherent_noise(point.x / noiseScale + 1000f, point.y / noiseScale + 1000f, point.z / noiseScale + 1000f);
+            point += noiseX * noiseAmplitudeH * right + noiseY * noiseAmplitudeV * Vector3.Cross(right, norm(tangent[0]));
+
+            if (next.Count > 0)
+            {
+                float nextAmplitude(node n, float amplitude, float gradient, float exponent)
+                {
+                    float position;
+                    if (clusterIndex == -1)
+                    {
+                        // For stem nodes, position = absolute height; for branch nodes, position =  normalized branch position
+                        position = n.tValGlobal * treeHeight;
+                    }
+                    else
+                    {
+                        position = n.tValBranch;
+                    }
+                    return computeAmplitude(position, amplitude, gradient, exponent);
+                }
+
+                float nextNoiseX = simplexNoiseGenerator.noiseGenerator.coherent_noise(next[0].point.x / noiseScale, next[0].point.y / noiseScale, next[0].point.z / noiseScale);
+                float nextNoiseY = simplexNoiseGenerator.noiseGenerator.coherent_noise(next[0].point.x / noiseScale +   1000f, next[0].point.y / noiseScale + 1000f, next[0].point.z / noiseScale + 1000f);
+
+                float nextNoiseAmplitudeH = nextAmplitude(next[0], noiseAmplitudeHorizontal, noiseAmplitudeGradient, noiseAmplitudeExponent);
+                float nextNoiseAmplitudeV = nextAmplitude(next[0], noiseAmplitudeVertical, noiseAmplitudeGradient, noiseAmplitudeExponent);
+
+                Vector3 nextRight = next[0].cotangent;
+                if (clusterIndex != -1)
+                {
+                    nextRight = Vector3.Cross(next[0].tangent[0], new Vector3(0f, 1f, 0f));
+                }
+                if (length(nextRight) <= 0.001f)
+                {
+                    nextRight = new Vector3(1.0f,0.0f,0.0f);
+                }
+                else
+                {
+                    nextRight = norm(nextRight);
+                }
+
+                Vector3 nextPoint = next[0].point + nextNoiseX * nextNoiseAmplitudeH * nextRight + nextNoiseY * nextNoiseAmplitudeV * Vector3.Cross(nextRight, norm(next[0].tangent[0]));
+
+                if (next.Count > 1)
+                {
+                    float nextNoiseAmplitudeHb = nextAmplitude(next[1], noiseAmplitudeHorizontal, noiseAmplitudeGradient, noiseAmplitudeExponent);
+                    float nextNoiseAmplitudeVb = nextAmplitude(next[1], noiseAmplitudeVertical, noiseAmplitudeGradient, noiseAmplitudeExponent);
+                    float nextNoiseYb = simplexNoiseGenerator.noiseGenerator.coherent_noise(next[1].point.x /   noiseScale + 1000.0f, next[1].point.y / noiseScale + 1000.0f, next[1].point.z / noiseScale + 1000.0f);
+                    Vector3 nextRightB = next[1].cotangent;
+                    if (clusterIndex != -1)
+                    {
+                        nextRightB = Vector3.Cross(next[1].tangent[0], new Vector3(0f, 1f, 0f));
+                    }
+                    if (length(nextRightB) <= 0.001f)
+                    {
+                        nextRightB = new Vector3(1.0f,0.0f,0.0f);
+                    }
+                    else
+                    {
+                        nextRightB = norm(nextRightB);
+                    }
+                    Vector3 nextPointB = next[1].point + nextNoiseX * nextNoiseAmplitudeHb *   nextRightB + nextNoiseYb * nextNoiseAmplitudeVb * Vector3.Cross(nextRightB, norm(next[1].tangent[0]));
+                    tangent[0] = (nextPoint + nextPointB) / 2.0f - point;
+                    tangent[1] = nextPoint - point;
+                    tangent[2] = nextPointB - point;
+                }
+                else
+                {
+                    tangent[0] = (nextPoint - prevPoint) / 2.0f;
+                }
+            }
+            foreach (node n in next)
+            {
+                n.applyNoise(
+                    noiseAmplitudeHorizontal,
+                    noiseAmplitudeVertical,  
+                    noiseAmplitudeGradient, 
+                    noiseAmplitudeExponent, 
+                    noiseScale, 
+                    point, 
+                    treeHeight
+                );
+            }
         }
 
         static Vector3 sampleSplineT(Vector3 start, Vector3 end, Vector3 startTangent, Vector3 endTangent, float t)
@@ -814,6 +957,7 @@ namespace treeGenNamespace
     {
         public treeSettings settings;
         public List<node> nodes;
+        public static simplexNoiseGenerator noiseGenerator;
 
         public List<segment> segments;
 
@@ -829,7 +973,14 @@ namespace treeGenNamespace
 
         public void generateTree()
         {
-            Debug.Log("generateTree() in treeGenerator.cs");
+
+            if (simplexNoiseGenerator.noiseGenerator == null)
+            {
+                // create default generator (useSeed=false ignores seed)
+                simplexNoiseGenerator.noiseGenerator = new simplexNoiseGenerator(0, false);
+            }
+
+            //Debug.Log("generateTree() in treeGenerator.cs");
             //settings = new treeSettings();
             nodes = new List<node>();
             nodes.Add(new node(new Vector3(0f, 0f, 0f), 
@@ -860,8 +1011,8 @@ namespace treeGenNamespace
 
             nodes[0].next.Add(nodes[1]);
 
-            Debug.Log("settings.treeGrowDir: " + settings.treeGrowDir);
-            Debug.Log("settings.treeHeight: " + settings.treeHeight);
+            //Debug.Log("settings.treeGrowDir: " + settings.treeGrowDir);
+            //Debug.Log("settings.treeHeight: " + settings.treeHeight);
 
             foreach (node n in nodes)
             {
@@ -884,7 +1035,7 @@ namespace treeGenNamespace
                                                         settings.curvOffsetStrength, 
                                                         nodes[0]);
 
-                Debug.Log("maxSplitHeightUsed returned from splitRecursive: ");
+                //Debug.Log("maxSplitHeightUsed returned from splitRecursive: ");
                 if (settings.maxSplitHeightUsed < maxSplitHeightUsed + 1)
                 {
                     settings.maxSplitHeightUsed = maxSplitHeightUsed + 1;
@@ -910,15 +1061,13 @@ namespace treeGenNamespace
             if (settings.noiseAmplitudeHorizontal > 0.0f || settings.noiseAmplitudeVertical > 0.0f)
             {
                 // TODO
-                //
-                // nodes[0].applyNoise(noise_generator, 
-                //                     context.scene.treeSettings.noiseAmplitudeHorizontal,
-                //                     context.scene.treeSettings.noiseAmplitudeVertical, 
-                //                     context.scene.treeSettings.noiseAmplitudeGradient, 
-                //                     context.scene.treeSettings.noiseAmplitudeExponent, 
-                //                     context.scene.treeSettings.noiseScale, 
-                //                     nodes[0].point - (nodes[0].next[0].point - nodes[0].point), 
-                //                     context.scene.treeSettings.treeHeight)
+                nodes[0].applyNoise(settings.noiseAmplitudeHorizontal,
+                                    settings.noiseAmplitudeVertical, 
+                                    settings.noiseAmplitudeGradient, 
+                                    settings.noiseAmplitudeExponent, 
+                                    settings.noiseScale, 
+                                    nodes[0].point - (nodes[0].next[0].point - nodes[0].point), 
+                                    settings.treeHeight);
             }
 
             if (settings.nrBranchClusters > 0)
@@ -947,8 +1096,8 @@ namespace treeGenNamespace
 
             //foreach (segment s in segments)
             //{
-            //    Debug.Log("segment: start: " + s.start + ", connected: " + s.connectedToPrevious);
-            //    Debug.Log("segment: end: " + s.end);
+            //    //Debug.Log("segment: start: " + s.start + ", connected: " + s.connectedToPrevious);
+            //    //Debug.Log("segment: end: " + s.end);
             //}
 
             generateVerticesAndTriangles(segments, settings.ringSpacing, settings.branchTipRadius);
@@ -1208,15 +1357,15 @@ namespace treeGenNamespace
         {
             if (startNode.next.Count > 0 && nextIndex < startNode.next.Count)
             {
-                Debug.Log("before calling nodesToTip()");
+                //Debug.Log("before calling nodesToTip()");
                 int nrNodesToTip = nodesToTip(startNode.next[nextIndex], 0); // .next???
-                Debug.Log("result int nrNodesToTip: " + nrNodesToTip);
+                //Debug.Log("result int nrNodesToTip: " + nrNodesToTip);
                 if (splitHeight > 0.999f)
                 {
                     splitHeight = 0.999f;
                 }
                 int splitAfterNodeNr = (int)(nrNodesToTip * splitHeight);
-                Debug.Log("in split(): nrNodesToTip: " + nrNodesToTip);
+                //Debug.Log("in split(): nrNodesToTip: " + nrNodesToTip);
                 
                 if (nrNodesToTip > 0)
                 {
@@ -1260,7 +1409,7 @@ namespace treeGenNamespace
         {
             if (n.next.Count > 0)
             {
-                Debug.Log("in nodesToTip(): i: " + i);
+                //Debug.Log("in nodesToTip(): i: " + i);
                 if (i > 500)
                 {
                     Debug.Log("ERROR: in nodesToTip(): max iteration reached!");
@@ -1270,7 +1419,7 @@ namespace treeGenNamespace
             }
             else
             {
-                Debug.Log("in nodesToTip(): return 1");
+                //Debug.Log("in nodesToTip(): return 1");
                 return 1;
             }
         }
@@ -1365,7 +1514,7 @@ namespace treeGenNamespace
                        float curvOffsetStrength, 
                        List<Vector3> outwardDir)
         {
-            Debug.Log("in calculateSplitData() splitNode.point: " + splitNode.point);
+            //Debug.Log("in calculateSplitData() splitNode.point: " + splitNode.point);
             node n = splitNode;
             int nodesAfterSplitNode = 0;
 
@@ -1493,6 +1642,7 @@ namespace treeGenNamespace
                 List<List<startNodeInfo>> branchNodesNextIndexStartTvalEndTval = new List<List<startNodeInfo>>();
                 List<node> branchNodes = new List<node>();
                 List<Vector3> centerDirs = new List<Vector3>();
+                List<float> branchLengths = new List<float>();
 
                 for (int i = 0; i < branchClusterSettingsList[clusterIndex].nrBranches; i++)
                 {
@@ -1512,7 +1662,7 @@ namespace treeGenNamespace
                         parentClusterBoolListList, 
                         clusterIndex);
                 }
-                Debug.Log("in addBranches(): startNodes.Count: " + startNodesNextIndexStartTvalEndTval.Count);
+                //Debug.Log("in addBranches(): startNodes.Count: " + startNodesNextIndexStartTvalEndTval.Count);
                  
                 if (startNodesNextIndexStartTvalEndTval.Count > 0)
                 {
@@ -1520,7 +1670,7 @@ namespace treeGenNamespace
                     
                     float totalLength = calculateSegmentLengthsAndTotalLength(startNodesNextIndexStartTvalEndTval, segmentLengths, branchesStartHeightGlobal, branchesEndHeightGlobal, branchesStartHeightCluster, branchesEndHeightCluster);
                     
-                    Debug.Log("in addBranches(): totalLength: " + totalLength);
+                    //Debug.Log("in addBranches(): totalLength: " + totalLength);
             
                     List<StartPointData> startPointData = new List<StartPointData>();
                     //List<float> branchPositions = new List<float>();
@@ -1587,16 +1737,16 @@ namespace treeGenNamespace
 
                     for (int n = 0; n < startPointData.Count; n++)
                     {
-                        Debug.Log("startPointData[n].startPoint: " + startPointData[n].startPoint);
-                        Debug.Log("centerPoints[" + n + "]: " + centerPoints[n]);
+                        //Debug.Log("startPointData[n].startPoint: " + startPointData[n].startPoint);
+                        //Debug.Log("centerPoints[" + n + "]: " + centerPoints[n]);
                         if (length(startPointData[n].startPoint - centerPoints[n]) > 0.0001f)
                         {
                             startPointData[n].outwardDir = startPointData[n].startPoint - centerPoints[n];
-                            Debug.Log("re-asigning startPointData[" + n + "].outwardDir: " + startPointData[n].outwardDir);
+                            //Debug.Log("re-asigning startPointData[" + n + "].outwardDir: " + startPointData[n].outwardDir);
                         }
                         else
                         {
-                            Debug.Log("setting startPointData[" + n + "].outwardDir = startPointData[" + n + "].startNode.cotangent");
+                            //Debug.Log("setting startPointData[" + n + "].outwardDir = startPointData[" + n + "].startNode.cotangent");
                             startPointData[n].outwardDir = startPointData[n].startNode.cotangent;
                         }
                     }
@@ -1666,10 +1816,10 @@ namespace treeGenNamespace
                                 minAngle = angle;
                             }
 
-                            Debug.Log("rightRotationRange[" + branchIndex + "]: " + rightRotationRange[branchIndex]);
-                            Debug.Log("leftRotationRange[" + branchIndex + "]: " + leftRotationRange[branchIndex]);
+                            //Debug.Log("rightRotationRange[" + branchIndex + "]: " + rightRotationRange[branchIndex]);
+                            //Debug.Log("leftRotationRange[" + branchIndex + "]: " + leftRotationRange[branchIndex]);
                             
-                            Debug.Log("adaptive winding: angle: " + angle);
+                            //Debug.Log("adaptive winding: angle: " + angle);
                             
 
                             Vector3 right = Vector3.Cross(startPointData[branchIndex].outwardDir, startPointTangent);
@@ -1766,12 +1916,13 @@ namespace treeGenNamespace
 
                         float startTvalGlobal = lerp(data.startNode.tValGlobal, data.startNode.next[data.startNodeNextIndex].tValGlobal, data.t);
                         float startTvalBranch = lerp(data.startNode.tValBranch, data.startNode.next[data.startNodeNextIndex].tValBranch, data.t);
-                        Debug.Log("tree shape ratio: ");
+                        //Debug.Log("tree shape ratio: ");
                         float treeShapeRatioValue = shapeRatio(startTvalGlobal, branchClusterSettingsList[clusterIndex].treeShape);
-                        Debug.Log("branch shape ratio: ");
+                        //Debug.Log("branch shape ratio: ");
                         float branchShapeRatioValue = shapeRatio(startTvalBranch, branchClusterSettingsList[clusterIndex].branchShape);
 
                         float branchLength = treeHeight * (branchClusterSettingsList[clusterIndex].relBranchLength + branchClusterSettingsList[clusterIndex].relBranchLengthVariation * Random.Range(-1f, 1f)) * treeShapeRatioValue * branchShapeRatioValue;
+                        branchLengths.Add(branchLength);
 
                         node branch = new node(data.startPoint, 
                                                1f, 
@@ -2025,11 +2176,11 @@ namespace treeGenNamespace
                                                            branchClusterSettingsList[clusterIndex].branchVariance,
                                                            branchClusterSettingsList[clusterIndex].branchSplitAxisVariation);
 
-                    Debug.Log("newMaxSplitHeightUsed: " + newMaxSplitHeightUsed);
+                    //Debug.Log("newMaxSplitHeightUsed: " + newMaxSplitHeightUsed);
                     //if (branchClusterSettingsList[clusterIndex].maxSplitHeightUsed < newMaxSplitHeightUsed + 1)
                     //{
                         branchClusterSettingsList[clusterIndex].maxSplitHeightUsed = newMaxSplitHeightUsed + 1;
-                        Debug.Log("setting branchClusterSettingsList[clusterIndex].maxSplitHeightUsed = " + newMaxSplitHeightUsed + " + 1");
+                        //Debug.Log("setting branchClusterSettingsList[clusterIndex].maxSplitHeightUsed = " + newMaxSplitHeightUsed + " + 1");
                     //}
                //     if (settings.maxSplitHeightUsed < maxSplitHeightUsed + 1)
                // {
@@ -2064,15 +2215,15 @@ namespace treeGenNamespace
                     if (branchClusterSettingsList[clusterIndex].noiseAmplitudeHorizontalBranch > 0f || branchClusterSettingsList[clusterIndex].noiseAmplitudeVerticalBranch > 0f)
                     {
                         // TODO
-                        //
-                        // branchNodes[i].applyNoise(noiseGenerator, 
-                        //                       branchClusterSettingsList[clusterIndex].noiseAmplitudeHorizontalBranch, 
-                        //                       branchClusterSettingsList[clusterIndex].noiseAmplitudeVerticalBranch,
-                        //                       branchClusterSettingsList[clusterIndex].noiseAmplitudeBranchGradient,
-                        //                       branchClusterSettingsList[clusterIndex].noiseAmplitudeBranchExponent, 
-                        //                       branchClusterSettingsList[clusterIndex].noiseScale, 
-                        //                       branchNodes[i].point - (branchNodes[i].next[0].point - branchNodes[i].point), 
-                        //                       branchLength);
+                        
+                         branchNodes[i].applyNoise(
+                                               branchClusterSettingsList[clusterIndex].noiseAmplitudeHorizontalBranch, 
+                                               branchClusterSettingsList[clusterIndex].noiseAmplitudeVerticalBranch,
+                                               branchClusterSettingsList[clusterIndex].noiseAmplitudeBranchGradient,
+                                               branchClusterSettingsList[clusterIndex].noiseAmplitudeExponent, 
+                                               branchClusterSettingsList[clusterIndex].noiseScale, 
+                                               branchNodes[i].point - (branchNodes[i].next[0].point - branchNodes[i].point), 
+                                               branchLengths[i]);
                     }
                 }
 
@@ -2200,7 +2351,7 @@ namespace treeGenNamespace
                 float length = allBranchNodes[i].lengthToTip();
                 branchLengths.Add(length);
                 totalLength += length;
-                Debug.Log("adding length: " + length);
+                //Debug.Log("adding length: " + length);
 
                 float weight = length * length;
                 branchWeights.Add(weight);
@@ -2209,7 +2360,7 @@ namespace treeGenNamespace
 
             for (int i = 0; i < allBranchNodes.Count; i++)
             {
-                Debug.Log("allBranchNodes.Count: " + allBranchNodes.Count);
+                //Debug.Log("allBranchNodes.Count: " + allBranchNodes.Count);
 
                 splitsForBranch[i] = (int)MathF.Round(nrBranchSplits * branchWeights[i] / totalWeight + Random.Range(-splitsPerBranchVariation * nrSplitsPerBranch, splitsPerBranchVariation * nrSplitsPerBranch));
                 if (splitsForBranch[i] < 1)
@@ -2328,9 +2479,9 @@ namespace treeGenNamespace
                             if (nodeIndices.Count > indexToSplit)
                             {
                                 float splitHeight = branchSplitHeightInLevel[level];
-                                Debug.Log("branch splitHeight before: " + splitHeight);
-                                Debug.Log("branchSplitHeightVariation: " + branchSplitHeightVariation);
-                                Debug.Log("h: " + h);
+                                //Debug.Log("branch splitHeight before: " + splitHeight);
+                                //Debug.Log("branchSplitHeightVariation: " + branchSplitHeightVariation);
+                                //Debug.Log("h: " + h);
                                 if (h * splitHeight < 0f)
                                 {
                                     splitHeight =  splitHeight + h * branchSplitHeightVariation;
@@ -2341,7 +2492,7 @@ namespace treeGenNamespace
                                     splitHeight = splitHeight + h * branchSplitHeightVariation;
                                     splitHeight = splitHeight < 0.95f ? splitHeight : 0.95f;
                                 }
-                                Debug.Log("branch splitHeight: " + splitHeight);
+                                //Debug.Log("branch splitHeight: " + splitHeight);
                                 node splitNode = split(
                                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item1,
                                         nodesInLevelNextIndex[level][nodeIndices[indexToSplit]].Item2, 
@@ -2393,37 +2544,37 @@ namespace treeGenNamespace
         {
             if (treeShape == 0)//"CONICAL":
             {
-                Debug.Log("conical");
+                //Debug.Log("conical");
                 return 0.2f + 0.8f * tValGlobal;
             }
             if (treeShape == 1)//"SPHERICAL":
             {
-                Debug.Log("spherical");
+                //Debug.Log("spherical");
                 return 0.2f + 0.8f * MathF.Sin(MathF.PI * tValGlobal);
             }
             if (treeShape == 2)//"HEMISPHERICAL":
             {
-                Debug.Log("hemispherical");
+                //Debug.Log("hemispherical");
                 return 0.2f + 0.8f * MathF.Sin(0.5f * MathF.PI * tValGlobal);
             }
             if (treeShape == 3)//"INVERSE_HEMISPHERICAL":
             {
-                Debug.Log("inverse hemispherical");
+                //Debug.Log("inverse hemispherical");
                 return 0.2f + 0.8f * MathF.Sin(0.5f * MathF.PI * (1.0f - tValGlobal));
             }
             if (treeShape == 4)//"CYLINDRICAL":
             {
-                Debug.Log("cylindrical");
+                //Debug.Log("cylindrical");
                 return 1.0f;
             }
             if (treeShape == 5)//"TAPERED_CYLINDRICAL":
             {
-                Debug.Log("tapered cylindrical");
+                //Debug.Log("tapered cylindrical");
                 return 0.5f + 0.5f * tValGlobal;
             }
             if (treeShape == 6)//"FLAME":
             {
-                Debug.Log("flame");
+                //Debug.Log("flame");
                 if (tValGlobal <= 0.7f)
                 {
                     return tValGlobal / 0.7f;
@@ -2435,12 +2586,12 @@ namespace treeGenNamespace
             }
             if (treeShape == 7)//"INVERSE_CONICAL":
             {
-                Debug.Log("inverse conical");
+                //Debug.Log("inverse conical");
                 return 1.0f - 0.8f * tValGlobal;
             }
             if (treeShape == 8)//"TEND_FLAME":
             {
-                Debug.Log("tend flame");
+                //Debug.Log("tend flame");
                 if (tValGlobal <= 0.7f)
                 {
                     return 0.5f + 0.5f * tValGlobal / 0.7f;
@@ -2459,7 +2610,6 @@ namespace treeGenNamespace
 
         void generateVerticesAndTriangles(List<segment> segments, float ringSpacing, float branchTipRadius)
         {
-            Debug.Log("in generateVerticesAndTriangles()");
             vertices = new List<Vector3>();
             normals = new List<Vector3>();
             vertexTvalGlobal = new List<float>();
@@ -2471,7 +2621,7 @@ namespace treeGenNamespace
             int counter = 0;
 
             int startSection = 0;
-            Debug.Log("segments.Count: " + segments.Count);
+            Debug.Log("in generateVerticesAndTriangles(): segments.Count: " + segments.Count);
 
             for (int s = 0; s < segments.Count; s++)
             {
@@ -2505,8 +2655,8 @@ namespace treeGenNamespace
                     }
                     //else
                     //{
-                    //    Debug.Log("segment " + s);
-                    //    Debug.Log("startSection = " + startSection + ", offset = " + offset);
+                    //    //Debug.Log("segment " + s);
+                    //    //Debug.Log("startSection = " + startSection + ", offset = " + offset);
                     //}
 
                     Vector3 controlPt1 = segments[s].start + norm(segments[s].startTangent) * (segments[s].end - segments[s].start).magnitude / 3f;
@@ -2656,11 +2806,11 @@ namespace treeGenNamespace
             //{
             //    if (triangles[i] >= vCount || triangles[i] < 0)
             //    {
-            //        Debug.LogError("triangles[" + i + "]: " + triangles[i] + " out of bounds!");
+            //        //Debug.LogError("triangles[" + i + "]: " + triangles[i] + " out of bounds!");
             //    }
             //    //else
             //    //{
-            //    //    Debug.Log("triangles[" + i + "]: " + triangles[i]);
+            //    //    //Debug.Log("triangles[" + i + "]: " + triangles[i]);
             //    //}
             //}
             /*  
@@ -2888,6 +3038,224 @@ namespace treeGenNamespace
 
     }
 
-    
+    public class simplexNoiseGenerator
+    {
+        const float onethird = 1f / 3f;
+        const float onesixth = 1f / 6f;
+        float[] A;
+        float s;
+        float u;
+        float v;
+        float w;
+        float i;
+        float j;
+        float k;
+        int[] T;
+
+        public static simplexNoiseGenerator noiseGenerator;
+
+        public simplexNoiseGenerator(int seed, bool useSeed)
+        {
+            noiseGenerator = this;
+
+            A = new float[] {0f, 0f, 0f};
+            s = 0f;
+            u = 0f;
+            v = 0f;
+            w = 0f;
+            i = 0;
+            j = 0;
+            k = 0;
+
+            if (useSeed == false)
+            {
+                T = new int[8];
+                for (int i = 0; i < 8; i++)
+                {
+                    T[i] = (int)(((ulong)i * 0x10000UL) % 0xFFFFFFFFUL);
+                }
+            }
+            else
+            {
+                var rnd = new System.Random(seed);
+                T = new int[0];
+                for (int i = 0; i < 8; i++)
+                {
+                    T[i] = rnd.Next(0, int.MaxValue);
+                }
+            }
+        }
+
+        public float coherent_noise(float x, float y, float z, int octaves = 2, int multiplier = 25, float amplitude = 0.5f, float lacunarity = 2f, float persistence = 0.9f)
+        {
+            float v3x = x / multiplier;
+            float v3y = y / multiplier;
+            float v3z = z / multiplier;
+            float val = 0f;
+            for (int n = 0; n < octaves; n++)
+            {
+                val += noise(v3x, v3y, v3z) * amplitude;
+                v3x *= lacunarity;
+                v3y *= lacunarity;
+                v3z *= lacunarity;
+                amplitude *= persistence;
+            }
+            return val;
+        }
+
+        public float noise(float x, float y, float z)
+        {
+            s = (x + y + z) * onethird;
+            i = fastfloor(x + s);
+            j = fastfloor(y + s);
+            k = fastfloor(z + s);
+
+            s = (i + j + k) * onesixth;
+            u = x - i + s;
+            v = y - j + s;
+            w = z - k + s;
+
+            A = new float[] {0f, 0f, 0f};
+
+            int hi;
+            int lo;
+            if (u >= w)
+            {
+                if (u >= v)
+                {
+                    hi = 0;
+                }
+                else
+                {
+                    hi = 1;
+                }
+            }
+            else
+            {
+                if (v >= w)
+                {
+                    hi = 1;
+                }
+                else
+                {
+                    hi = 2;
+                }
+            }
+            if (u < w)
+            {
+                if (u < v)
+                {
+                    lo = 0;
+                }
+                else
+                {
+                    lo = 1;
+                }
+            }
+            else
+            {
+                if (v < w)
+                {
+                    lo = 1;
+                }
+                else
+                {
+                    lo = 2;
+                }
+            }
+            return kay(hi) + kay(3 - hi - lo) + kay(lo) + kay(0);
+        }
+
+        float kay(int a)
+        {
+            float s = (A[0] + A[1] + A[2]) * onesixth;
+            float x = u - A[0] + s;
+            float y = v - A[1] + s;
+            float z = w - A[2] + s;
+
+            float t = 0.6f - x * x - y * y - z * z;
+            float h = shuffle(i + A[0], j + A[1], k + A[2]);
+            A[a] += 1;
+            if (t < 0f)
+            {
+                return 0f;
+            }
+            int b5 = ((int)h) >> 5 & 1;
+            int b4 = ((int)h) >> 4 & 1;
+            int b3 = ((int)h) >> 3 & 1;
+            int b2 = ((int)h) >> 2 & 1;
+            int b1 = (int)h & 3;
+
+            (float p, float q, float r) = get_pqr(b1, x, y, z);
+            if (b5 == b3)
+            {
+                p = -p;
+            }
+            if (b5 == b4)
+            {
+                q = -q;
+            }
+            if (b5 != (b4 ^ b3))
+            {
+                r = -r;
+            }
+            t *= t;
+            if (b1 == 0)
+            {
+                return 8f * t * t * (p + q + r);
+            }
+            if (b2 == 0)
+            {
+                return 8f * t * t * (q + r);
+            }
+            return 8 * t * t * r;
+
+        }
+
+        (float, float, float) get_pqr(int b1, float x, float y, float z)
+        {
+            if (b1 == 1)
+            {
+                return (x, y, z);
+            }
+            if (b1 == 2)
+            {
+                return (y, z, x);
+            }
+            else
+            {
+                return (z, x, y);
+            }
+        }
+
+        float shuffle(float i, float j, float k)
+        {
+            return bb((int)i, (int)j, (int)k, 0) + bb((int)j, (int)k, (int)i, 1) + bb((int)k, (int)i, (int)j, 2) + bb((int)i, (int)j, (int)k, 3) + bb((int)j, (int)k, (int)i, 4) + bb((int)k, (int)i, (int)j, 5) + bb((int)i, (int)j, (int)k, 6) + bb((int)j, (int)k, (int)i, 7);
+        }
+
+        float bb(int i, int j, int k, int B)
+        {
+            return T[b(i, B) << 2 | b(j, B) <<1 | b(k, B)];
+        }
+
+        int b(int N, int B)
+        {
+            return (N >> B) & 1;
+        }
+
+        float fastfloor(float n)
+        {
+            if (n > 0f)
+            {
+                return (int)n;
+            }
+            else
+            {
+                return ((int)n - 1);
+            }
+        }
+    }
+            
+
 
 }
